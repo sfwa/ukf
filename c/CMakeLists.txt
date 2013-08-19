@@ -1,0 +1,10 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8.7 FATAL_ERROR)
+PROJECT(cukf)
+
+INCLUDE_DIRECTORIES(../include /usr/local/include/eigen3)
+
+ADD_LIBRARY(cukf SHARED interface.cpp)
+
+ADD_DEPENDENCIES(cukf ukf)
+
+TARGET_LINK_LIBRARIES(cukf ukf)

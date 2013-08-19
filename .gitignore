@@ -1,0 +1,42 @@
+*.py[cod]
+.DS_Store
+
+# C extensions
+*.so
+a.out
+
+# Packages
+*.egg
+*.egg-info
+dist
+build
+eggs
+parts
+var
+sdist
+develop-eggs
+.installed.cfg
+lib64
+Debug
+Release
+
+# Installer logs
+pip-log.txt
+
+# Unit test / coverage reports
+.coverage
+.tox
+nosetests.xml
+
+# Translations
+*.mo
+
+# Mr Developer
+.mr.developer.cfg
+.project
+.pydevproject
+
+# LaTeX
+*.synctex.gz
+*.aux
+*.log
