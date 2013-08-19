@@ -63,6 +63,7 @@ input vector as a parameter.
 */
 class DynamicsModel {
 public:
+    virtual ~DynamicsModel();
     virtual AccelerationVector evaluate(
     const State &in, const ControlVector &control) const = 0;
 };
@@ -88,20 +89,8 @@ class FixedWingFlightDynamicsModel: public DynamicsModel {
     */
     real_t prop_area, prop_cve;
 
-    /*
-    Inverse mass and inertia tensor are for performance; we never need the
-    actual values.
-    */
+    /* Use reciprocal of mass for performance */
     real_t mass_inv;
-    Eigen::Matrix<real_t, 3, 3> inertia_tensor_inv;
-
-    /*
-    Polynomial coefficients for varying alpha:
-    C = v[0]x^4 + v[1]x^3 + v[2]x^2 + v[3]x^1 + v[4]
-    coefficient of drag (alpha)
-    coefficient of lift (alpha)
-    */
-    Eigen::Matrix<real_t, 5, 1> c_drag_alpha, c_lift_alpha;
 
     /*
     Coefficient vector for side force:
@@ -126,13 +115,6 @@ class FixedWingFlightDynamicsModel: public DynamicsModel {
     Eigen::Matrix<real_t, 2 + CONTROL_MAX_DIM, 1> c_pitch_moment;
 
     /*
-    CL (roll) -
-        P * qbar
-        control[0-3] * qbar
-    */
-    Eigen::Matrix<real_t, 1 + CONTROL_MAX_DIM, 1> c_roll_moment;
-
-    /*
     CN (yaw) -
         beta * qbar
         R * qbar
@@ -140,11 +122,29 @@ class FixedWingFlightDynamicsModel: public DynamicsModel {
     */
     Eigen::Matrix<real_t, 2 + CONTROL_MAX_DIM, 1> c_yaw_moment;
 
-    /* Motor control channel index */
-    uint8_t motor_idx;
+    /*
+    CL (roll) -
+        P * qbar
+        control[0-3] * qbar
+    */
+    Eigen::Matrix<real_t, 1 + CONTROL_MAX_DIM, 1> c_roll_moment;
+
+    /* Store inverse inertia tensor for performance */
+    Eigen::Matrix<real_t, 3, 3> inertia_tensor_inv;
+
+    /*
+    Polynomial coefficients for varying alpha:
+    C = v[0]x^4 + v[1]x^3 + v[2]x^2 + v[3]x^1 + v[4]
+    coefficient of drag (alpha)
+    coefficient of lift (alpha)
+    */
+    Eigen::Matrix<real_t, 5, 1> c_drag_alpha, c_lift_alpha;
 
     /* Motor force direction vector in body frame */
     Vector3r motor_thrust;
+
+    /* Motor control channel index */
+    ControlVector::Index motor_idx;
 
 public:
     FixedWingFlightDynamicsModel(void) {
@@ -210,6 +210,10 @@ public:
     void set_yaw_moment_coeffs(
     const Eigen::Matrix<real_t, 2 + CONTROL_MAX_DIM, 1>& in_coeffs) {
         c_yaw_moment << in_coeffs;
+    }
+
+    void set_motor_index(ControlVector::Index idx) {
+        motor_idx = idx;
     }
 };
 

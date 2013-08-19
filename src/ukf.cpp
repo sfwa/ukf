@@ -104,7 +104,7 @@ void UnscentedKalmanFilter::create_sigma_points() {
     sigma_points.col(0) = state;
 
     /* For each column in S, create the two complementary sigma points. */
-    for(int i = 0; i < UKF_DIM; i++) {
+    for(uint32_t i = 0; i < UKF_DIM; i++) {
         /*
         Construct error quaternions using the MRP method, equation 34 from the
         Markley paper.
@@ -165,7 +165,7 @@ void UnscentedKalmanFilter::calculate_kalman_gain() {
     */
     cross_correlation =
         UKF_SIGMA_WC0 * (w_prime.col(0) * z_prime.col(0).transpose());
-    for(int i = 1; i < UKF_NUM_SIGMA; i++) {
+    for(uint32_t i = 1; i < UKF_NUM_SIGMA; i++) {
         cross_correlation +=
             UKF_SIGMA_WCI * (w_prime.col(i) * z_prime.col(i).transpose());
     }

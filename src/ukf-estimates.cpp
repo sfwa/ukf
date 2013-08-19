@@ -41,7 +41,7 @@ See ukf.cpp for details.
 Follows section 3.3.
 */
 void UnscentedKalmanFilter::apriori_estimate(real_t dt, ControlVector c) {
-    int i;
+    uint32_t i;
 
     /*
     Run the sigma points through the process model as per equation 37.
@@ -136,7 +136,7 @@ in equation 42; it's the a priori sigma points which should be transformed by
 the measurement model, not the original sigma point distribution.
 */
 void UnscentedKalmanFilter::measurement_estimate() {
-    int i;
+    uint32_t i;
     Eigen::Matrix<
         real_t,
         Eigen::Dynamic,

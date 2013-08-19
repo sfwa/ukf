@@ -4,6 +4,8 @@ PROJECT(unittest)
 # Enable ExternalProject CMake module
 INCLUDE(ExternalProject)
 
+set(CMAKE_CXX_FLAGS "-isystem /usr/local/include/eigen3 -O3 -Weverything -Wno-documentation -Wno-system-headers")
+
 # Set default ExternalProject root directory
 SET_DIRECTORY_PROPERTIES(PROPERTIES EP_PREFIX .)
 

@@ -157,58 +157,6 @@ TEST(UKFTest, AccelerometerConstantAngularVelocity) {
         Eigen::Matrix<real_t, 4, 1>(0, 0.958924, 0, 0.283662), 0.1));
 }
 
-TEST(UKFTest, MagnetometerConstantAngularVelocity) {
-    _MM_SET_EXCEPTION_MASK(_MM_GET_EXCEPTION_MASK() & ~_MM_MASK_INVALID);
-    IOBoardModel test_model = IOBoardModel(
-        Quaternionr(1, 0, 0, 0),
-        Vector3r(0, 0, 0),
-        Quaternionr(1, 0, 0, 0),
-        Quaternionr(1, 0, 0, 0),
-        Vector3r(1, 0, 0));
-    UnscentedKalmanFilter ukf = UnscentedKalmanFilter(test_model);
-    State test_state;
-    test_state << 0, 0, 0,
-                  0, 0, 0,
-                  0, 0, 0,
-                  0, 0, 0, 1,
-                  0, 1, 0,
-                  0, 0, 0,
-                  0, 0, 0,
-                  0, 0, 0;
-    ukf.set_state(test_state);
-    MeasurementVector sensor_covariance(18);
-    sensor_covariance <<
-        0.001, 0.001, 0.001,
-        0.01, 0.01, 0.01,
-        0.01, 0.01, 0.01,
-        5, 5, 5,
-        5, 5, 5,
-        1,
-        1,
-        1;
-    test_model.set_covariance(sensor_covariance);
-    Eigen::Matrix<real_t, 4, 1> ref = Eigen::Matrix<real_t, 4, 1>(0, 0, 0, 1);
-
-    for(real_t i = 0; i < 10; i += 0.01) {
-        Quaternionr temp_q =
-            (Quaternionr(0, 0, 1, 0).conjugate()*Quaternionr(ref));
-        Eigen::Matrix<real_t, 4, 1> temp_v;
-        temp_v << temp_q.vec(), temp_q.w();
-        ref += 0.01 * 0.5 * temp_v;
-        temp_q = Quaternionr(ref).normalized();
-        ref << temp_q.vec(), temp_q.w();
-
-        test_model.clear();
-        test_model.set_magnetometer(
-            Quaternionr(ref) *
-            Vector3r(1, 0, 0));
-        ukf.iterate(0.01, ControlVector());
-    }
-
-    EXPECT_TRUE(ukf.get_state().attitude().isApprox(
-        Eigen::Matrix<real_t, 4, 1>(0, 0.958924, 0, 0.283662), 0.01));
-}
-
 TEST(UKFTest, GyroscopeConstantAngularVelocity) {
     _MM_SET_EXCEPTION_MASK(_MM_GET_EXCEPTION_MASK() & ~_MM_MASK_INVALID);
     IOBoardModel test_model = IOBoardModel(

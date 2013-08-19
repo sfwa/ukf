@@ -60,7 +60,8 @@ Sensor model base class. The public interface consists of the following:
 */
 class SensorModel {
 public:
-    virtual int size() const = 0;
+    virtual ~SensorModel();
+    virtual MeasurementVector::Index size() const = 0;
     virtual MeasurementVector collate() const = 0;
     virtual MeasurementVector predict(const State &in) const = 0;
     virtual MeasurementVector get_covariance() const = 0;
@@ -92,19 +93,19 @@ magnetic field vector at the current position, in the ECEF reference frame.
 class IOBoardModel: public SensorModel {
     /* Sensor data and parameters. */
     struct {
-        Vector3r data;
         Quaternionr orientation;
+        Vector3r data;
         Vector3r offset;
     } accelerometer;
 
     struct {
-        Vector3r data;
         Quaternionr orientation;
+        Vector3r data;
     } gyroscope;
 
     struct {
-        Vector3r data;
         Quaternionr orientation;
+        Vector3r data;
         Vector3r field;
     } magnetometer;
 
@@ -151,7 +152,7 @@ public:
         clear();
     }
     void clear() { memset(&flags, 0, sizeof(flags)); }
-    int size() const;
+    MeasurementVector::Index size() const;
     MeasurementVector collate() const;
     MeasurementVector predict(const State &in) const;
     MeasurementVector get_covariance() const;

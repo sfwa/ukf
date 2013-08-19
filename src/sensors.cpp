@@ -30,6 +30,8 @@ SOFTWARE.
 #include "state.h"
 #include "debug.h"
 
+SensorModel::~SensorModel() {}
+
 
 /*
 Takes the mean of a sigma point distribution given a column vector of weights.
@@ -52,8 +54,8 @@ const MeasurementVector &mean) {
 
 
 /* Calculates the current size of the measurement vector. */
-int IOBoardModel::size() const {
-    int i = 0;
+MeasurementVector::Index IOBoardModel::size() const {
+    MeasurementVector::Index i = 0;
 
     i += flags.accelerometer ? 6 : 0;
     i += flags.gyroscope ? 3 : 0;
@@ -71,8 +73,8 @@ int IOBoardModel::size() const {
 Takes all populated sensor data and puts it into a vector for use by the UKF.
 */
 MeasurementVector IOBoardModel::collate() const {
-    int max_size = size();
-    int i = 0;
+    MeasurementVector::Index max_size = size();
+    MeasurementVector::Index i = 0;
     if(flags.accelerometer) {
         max_size -= 3;
     }
@@ -122,8 +124,8 @@ Takes a state vector and creates a predicted measurement vector containing
 only the sensor values which have been supplied.
 */
 MeasurementVector IOBoardModel::predict(const State &in) const {
-    int max_size = size();
-    int i = 0;
+    MeasurementVector::Index max_size = size();
+    MeasurementVector::Index i = 0;
     MeasurementVector predicted(max_size);
     Quaternionr attitude = Quaternionr(in.attitude());
 
@@ -211,8 +213,8 @@ MeasurementVector IOBoardModel::predict(const State &in) const {
 }
 
 MeasurementVector IOBoardModel::get_covariance() const {
-    int max_size = size();
-    int i = 0;
+    MeasurementVector::Index max_size = size();
+    MeasurementVector::Index i = 0;
     if(flags.accelerometer) {
         max_size -= 3;
     }
@@ -267,8 +269,8 @@ accelerometer measurement.
 MeasurementVector IOBoardModel::calculate_mean(
 const MatrixXr &in,
 const VectorXr &weights) {
-    int max_size = size();
-    int i = 0, j = 0;
+    MeasurementVector::Index max_size = size();
+    MeasurementVector::Index i = 0, j = 0;
     if(flags.accelerometer) {
         max_size -= 3;
     }
@@ -340,7 +342,7 @@ MatrixXr IOBoardModel::calculate_deltas(
 const MatrixXr &in,
 const MeasurementVector &mean) {
     MatrixXr deltas;
-    int max_size = in.rows();
+    MeasurementVector::Index max_size = in.rows();
 
     if(flags.accelerometer) {
         max_size -= 3;

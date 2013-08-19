@@ -121,21 +121,6 @@ TEST(IOBoardModelTest, SetBarometerAMSL) {
     EXPECT_EQ(test.collate(), target);
 }
 
-TEST(IOBoardModelTest, SetBarometerROC) {
-    IOBoardModel test = IOBoardModel(
-        Quaternionr(1, 0, 0, 0),
-        Vector3r(0, 0, 0),
-        Quaternionr(1, 0, 0, 0),
-        Quaternionr(1, 0, 0, 0),
-        Vector3r(0, 0, 0));
-    MeasurementVector target(1);
-
-    test.set_barometer_roc(1);
-    target << 1;
-
-    EXPECT_EQ(test.collate(), target);
-}
-
 TEST(IOBoardModelTest, SetMultipleInOrder) {
     IOBoardModel test = IOBoardModel(
         Quaternionr(1, 0, 0, 0),
@@ -147,7 +132,7 @@ TEST(IOBoardModelTest, SetMultipleInOrder) {
 
     test.set_accelerometer(Vector3r(1, 2, 3));
     test.set_gyroscope(Vector3r(4, 5, 6));
-    test.set_barometer_roc(7);
+    test.set_barometer_amsl(7);
     target << 1, 2, 3, 4, 5, 6, 7;
 
     EXPECT_EQ(test.collate(), target);
@@ -164,7 +149,7 @@ TEST(IOBoardModelTest, SetMultipleOutOfOrder) {
 
     test.set_magnetometer(Vector3r(4, 5, 6));
     test.set_accelerometer(Vector3r(1, 2, 3));
-    test.set_barometer_roc(10);
+    test.set_barometer_amsl(10);
     test.set_gps_velocity(Vector3r(7, 8, 9));
     target << 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
 
@@ -181,7 +166,7 @@ TEST(IOBoardModelTest, SetThenClear) {
 
     test.set_accelerometer(Vector3r(1, 2, 3));
     test.set_gyroscope(Vector3r(4, 5, 6));
-    test.set_barometer_roc(7);
+    test.set_barometer_amsl(7);
     test.clear();
 
     EXPECT_EQ(test.collate(), MeasurementVector());
@@ -364,26 +349,4 @@ TEST(IOBoardModelTest, PredictBarometerAMSL) {
     test.set_barometer_amsl(0);
 
     EXPECT_TRUE(abs(test.predict(test_state)(0) - 150) < 0.1);
-}
-
-TEST(IOBoardModelTest, PredictBarometerROC) {
-    IOBoardModel test = IOBoardModel(
-        Quaternionr(1, 0, 0, 0),
-        Vector3r(0, 0, 0),
-        Quaternionr(1, 0, 0, 0),
-        Quaternionr(1, 0, 0, 0),
-        Vector3r(7, 8, 9));
-    State test_state;
-    test_state << 0, 0, 0,
-            0, 0, 10,
-            1, 2, 3,
-            0.7071, 0, 0, 0.7071,
-            4, 5, 6,
-            0, 0, 0,
-            1, 2, 3,
-            0, 0, 0;
-
-    test.set_barometer_roc(0);
-
-    EXPECT_EQ(test.predict(test_state)[0], -10);
 }

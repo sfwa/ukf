@@ -3,7 +3,7 @@ PROJECT(ukf)
 
 INCLUDE_DIRECTORIES(include /usr/local/include/eigen3)
 
-set(CMAKE_CXX_FLAGS "-O3")
+set(CMAKE_CXX_FLAGS "-isystem /usr/local/include/eigen3 -O3 -Weverything -Werror -Wno-documentation -Wno-system-headers -Wno-error=padded")
 
 ADD_LIBRARY(ukf STATIC
     src/state.cpp

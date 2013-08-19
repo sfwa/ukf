@@ -27,6 +27,8 @@ SOFTWARE.
 #include "types.h"
 #include "dynamics.h"
 
+DynamicsModel::~DynamicsModel() {}
+
 /*
 Runs the dynamics model and calculates the expected linear and angular
 accelerations for this timestep. Eventually this will need to take control
@@ -38,6 +40,8 @@ velocity, and doesn't attempt to calculate angular acceleration at all.
 */
 AccelerationVector CentripetalModel::evaluate(
 const State &in, const ControlVector &control) const {
+    #pragma unused(control)
+
     AccelerationVector output;
 
     /* First convert velocity to body frame. */
