@@ -4,7 +4,7 @@ PROJECT(unittest)
 # Enable ExternalProject CMake module
 INCLUDE(ExternalProject)
 
-set(CMAKE_CXX_FLAGS "-isystem /usr/local/include/eigen3 -O3 -Weverything -Wno-documentation -Wno-system-headers")
+set(CMAKE_CXX_FLAGS "-isystem /usr/local/include/eigen3 -O3")
 
 # Set default ExternalProject root directory
 SET_DIRECTORY_PROPERTIES(PROPERTIES EP_PREFIX .)
@@ -41,7 +41,8 @@ ExternalProject_Get_Property(googletest binary_dir)
 TARGET_LINK_LIBRARIES(unittest
     ukf
     ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}gtest.a
-    ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}gtest_main.a)
+    ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}gtest_main.a
+    pthread)
 
 ADD_TEST(unittest unittest)
 ADD_CUSTOM_TARGET(check COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS unittest)

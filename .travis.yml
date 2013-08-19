@@ -1,0 +1,4 @@
+language: cpp
+compiler: clang
+before_install: "wget -O /tmp/eigen.tar.bz2 https://bitbucket.org/eigen/eigen/get/3.2.0.tar.bz2 && tar -xvjf /tmp/eigen.tar.bz2 -C /tmp/ && sudo mkdir /usr/local/include/eigen3 && sudo mv /tmp/eigen-eigen-ffa86ffb5570/Eigen /usr/local/include/eigen3/"
+script: "cmake . && make unittest && ./test/unittest"
