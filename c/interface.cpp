@@ -40,7 +40,6 @@ static IOBoardModel model = IOBoardModel(
 static UnscentedKalmanFilter ukf = UnscentedKalmanFilter(model);
 static CentripetalModel centripetal_model = CentripetalModel();
 static FixedWingFlightDynamicsModel fixed_wing_model = FixedWingFlightDynamicsModel();
-static struct state interface;
 
 void set_position(real_t lat, real_t lon, real_t alt) {
     State temp = ukf.get_state();
