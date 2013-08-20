@@ -89,13 +89,13 @@ sensor(sensor_model) {
 void UnscentedKalmanFilter::create_sigma_points() {
     Eigen::Matrix<real_t, UKF_DIM, UKF_DIM> S;
 
-    AssertNormalized(Quaternionr(state.attitude()));
+    //AssertNormalized(Quaternionr(state.attitude()));
 
     /* Add the process noise before calculating the square root. */
     state_covariance.diagonal() += process_noise_covariance;
     state_covariance *= UKF_DIM_PLUS_LAMBDA;
 
-    AssertPositiveDefinite(state_covariance);
+    //AssertPositiveDefinite(state_covariance);
 
     /* Compute the 'square root' of the covariance matrix. */
     S = state_covariance.llt().matrixL();
@@ -104,7 +104,7 @@ void UnscentedKalmanFilter::create_sigma_points() {
     sigma_points.col(0) = state;
 
     /* For each column in S, create the two complementary sigma points. */
-    for(uint32_t i = 0; i < UKF_DIM; i++) {
+    for(uint8_t i = 0; i < UKF_DIM; i++) {
         /*
         Construct error quaternions using the MRP method, equation 34 from the
         Markley paper.
@@ -125,7 +125,7 @@ void UnscentedKalmanFilter::create_sigma_points() {
         sigma_points.col(i+1).segment<9>(0) =
             state.segment<9>(0) + S.col(i).segment<9>(0);
         temp = noise * Quaternionr(state.attitude());
-        AssertNormalized(temp);
+        //AssertNormalized(temp);
         sigma_points.col(i+1).segment<4>(9) << temp.vec(), temp.w();
         sigma_points.col(i+1).segment<12>(13) =
             state.segment<12>(13) + S.col(i).segment<12>(12);
@@ -134,7 +134,7 @@ void UnscentedKalmanFilter::create_sigma_points() {
         sigma_points.col(i+1 + UKF_DIM).segment<9>(0) =
             state.segment<9>(0) - S.col(i).segment<9>(0);
         temp = noise.conjugate() * Quaternionr(state.attitude());
-        AssertNormalized(temp);
+        //AssertNormalized(temp);
         sigma_points.col(i+1 + UKF_DIM).segment<4>(9) << temp.vec(), temp.w();
         sigma_points.col(i+1 + UKF_DIM).segment<12>(13) =
             state.segment<12>(13) - S.col(i).segment<12>(12);
@@ -155,23 +155,6 @@ void UnscentedKalmanFilter::calculate_innovation() {
     */
     innovation_covariance = measurement_estimate_covariance;
     innovation_covariance.diagonal() += sensor.get_covariance();
-}
-
-/* The Kalman gain is calculated using sections 3.5.3 and 3.6. */
-void UnscentedKalmanFilter::calculate_kalman_gain() {
-    /*
-    First calculate the cross-correlation matrix between the a priori estimate
-    and the predicted measurement as shown in equation 70.
-    */
-    cross_correlation =
-        UKF_SIGMA_WC0 * (w_prime.col(0) * z_prime.col(0).transpose());
-    for(uint32_t i = 1; i < UKF_NUM_SIGMA; i++) {
-        cross_correlation +=
-            UKF_SIGMA_WCI * (w_prime.col(i) * z_prime.col(i).transpose());
-    }
-
-    /* Next, calculate the Kalman gain as described in equation 72. */
-    kalman_gain = cross_correlation * innovation_covariance.inverse();
 }
 
 /* This just does all the steps in order to complete a filter iteration. */

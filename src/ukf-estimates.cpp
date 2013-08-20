@@ -31,8 +31,9 @@ SOFTWARE.
 #include "debug.h"
 
 /*
-This implementation is split into two files, ukf.cpp and ukf-estimates.cpp,
-in order to work around memory limitations in the TI CCS compiler.
+This implementation is split into three files, ukf.cpp, ukf-estimates.cpp and
+ukf-gain.cpp in order to work around memory limitations in the TI CCS
+compiler.
 
 See ukf.cpp for details.
 */
