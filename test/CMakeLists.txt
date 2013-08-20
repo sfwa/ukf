@@ -4,7 +4,7 @@ PROJECT(unittest)
 # Enable ExternalProject CMake module
 INCLUDE(ExternalProject)
 
-set(CMAKE_CXX_FLAGS "-isystem /usr/local/include/eigen3 -O3")
+set(CMAKE_CXX_FLAGS "-O3")
 
 # Set default ExternalProject root directory
 SET_DIRECTORY_PROPERTIES(PROPERTIES EP_PREFIX .)
@@ -23,7 +23,9 @@ LOG_BUILD ON)
 
 # Specify include dir
 ExternalProject_Get_Property(googletest source_dir)
-INCLUDE_DIRECTORIES(${source_dir}/include ../include /usr/local/include/eigen3)
+SET(googletest_dir ${source_dir})
+
+INCLUDE_DIRECTORIES(${googletest_dir}/include ../include ${eigen_dir})
 
 # Add test executable target
 ADD_EXECUTABLE(unittest
