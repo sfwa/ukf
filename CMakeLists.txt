@@ -1,9 +1,28 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.7 FATAL_ERROR)
 PROJECT(ukf)
+INCLUDE(ExternalProject)
 
-INCLUDE_DIRECTORIES(include /usr/local/include/eigen3)
+# Set default ExternalProject root directory
+SET_DIRECTORY_PROPERTIES(PROPERTIES EP_PREFIX .)
 
-set(CMAKE_CXX_FLAGS "-isystem /usr/local/include/eigen3 -O3 -Weverything -Werror -Wno-documentation -Wno-system-headers -Wno-error=padded")
+# Add eigen3.2
+ExternalProject_Add(
+eigen3
+URL https://bitbucket.org/eigen/eigen/get/3.2.0.tar.gz
+TIMEOUT 30
+# Disable install step
+INSTALL_COMMAND ""
+# Wrap download, configure and build steps in a script to log output
+LOG_DOWNLOAD ON
+LOG_CONFIGURE ON
+LOG_BUILD ON)
+
+ExternalProject_Get_Property(eigen3 source_dir)
+SET(eigen_dir ${source_dir})
+
+INCLUDE_DIRECTORIES(include ${eigen_dir})
+
+SET(CMAKE_CXX_FLAGS "-isystem ${eigen_dir} -O3 -Weverything -Werror -Wno-documentation -Wno-system-headers -Wno-padded")
 
 ADD_LIBRARY(ukf STATIC
     src/state.cpp
@@ -13,6 +32,8 @@ ADD_LIBRARY(ukf STATIC
     src/ukf-estimates.cpp)
 
 ADD_SUBDIRECTORY(c EXCLUDE_FROM_ALL)
+
+ADD_DEPENDENCIES(ukf eigen3)
 
 ENABLE_TESTING()
 

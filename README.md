@@ -42,9 +42,7 @@ TODO: Use cmake to automatically generate `config.h`
 
 ## Building
 
-Required packages:
-* `cmake` version 2.8.7 or higher;
-* `eigen` version 3.0 or higher, installed to `/usr/local/include`.
+Requires `cmake` version 2.8.7 or higher.
 
 Create a build directory outside the source tree, then use cmake to generate
 the makefile.
@@ -55,7 +53,8 @@ the makefile.
 
 `cmake /path/to/ukf`
 
-Now, build the library using the `make` command.
+Now, build the library using the `make` command. An appropriate version of
+Eigen will be downloaded automatically.
 
 To build the dynamic library, run `make cukf`. A dynamic library appropriate
 for the host platform should be built.
@@ -71,3 +70,15 @@ and build googletest, build the unit tests and then run them.
 To build the unit tests without running them, use `make unittest`. The unit
 tests can then manually be run (with more detailed reporting) by running
 `test/unittest` in the build directory.
+
+
+## Python module installation
+
+Requires `cmake` version 2.8.7 or higher.
+
+Run `python setup.py install` to build the C shared library and install the
+Python interface (the `ukf` module) in your `site-packages` directory.
+
+Alternatively, just run `pip install https://github.com/sfwa/ukf/archive/master.zip#egg=ukf-1.0.0`
+to download and install.
+

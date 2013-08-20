@@ -1,3 +1,4 @@
+import os
 from ctypes import *
 
 class IOBoardParams(Structure):
@@ -35,7 +36,8 @@ class State(Structure):
 
         return str(fields)
 
-cukf = cdll.LoadLibrary("libcukf.dylib")
+cukf = cdll.LoadLibrary(
+    os.path.join(os.path.dirname(__file__), "c", "libcukf.dylib"))
 
 cukf.set_position.argtypes = [c_double, c_double, c_double]
 cukf.set_position.restype = None
@@ -138,7 +140,6 @@ cukf.fixedwingdynamics_set_roll_moment_coeffs.restype = None
 cukf.fixedwingdynamics_set_yaw_moment_coeffs.argtypes = [
     POINTER(c_double * 6)]
 cukf.fixedwingdynamics_set_yaw_moment_coeffs.restype = None
-
 
 current = State()
 cukf.get_state(byref(current))
