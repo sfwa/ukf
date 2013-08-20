@@ -39,7 +39,7 @@ class State(Structure):
 cukf = cdll.LoadLibrary(os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
     "c",
-    "libcukf.dylib")))
+    "libcukf.dylib"))
 
 cukf.set_position.argtypes = [c_double, c_double, c_double]
 cukf.set_position.restype = None
