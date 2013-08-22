@@ -118,7 +118,8 @@ const State &in, const ControlVector &control) const {
     Set up a^4, a^3, a^2, a, 1 so that we can use dot product for the
     polynomial evaluation.
     */
-    Vector5r alpha_coeffs(alpha2 * alpha2, alpha2 * alpha, alpha2, alpha, 1.0);
+    Vector5r alpha_coeffs;
+    alpha_coeffs << alpha2 * alpha2, alpha2 * alpha, alpha2, alpha, 1.0;
 
     /* Evaluate quartics in alpha to determine lift and drag */
     real_t lift = alpha_coeffs.dot(c_lift_alpha),
@@ -151,9 +152,9 @@ const State &in, const ControlVector &control) const {
     /*
     Set up the side force coefficient vector, and calculate side force
     */
-    Vector8r side_coeffs(
-        alpha2, alpha, beta2, beta, alpha2 * beta, alpha * beta,
-        yaw_rate, roll_rate);
+    Vector8r side_coeffs;
+    side_coeffs << alpha2, alpha, beta2, beta, alpha2 * beta, alpha * beta,
+                   yaw_rate, roll_rate;
 
     real_t side_force = side_coeffs.dot(c_side_force) +
         control.dot(c_side_force_control);
@@ -161,8 +162,9 @@ const State &in, const ControlVector &control) const {
     /*
     Calculate pitch moment
     */
-    Vector2r pitch_coeffs(alpha,
-        pitch_rate * pitch_rate * (pitch_rate < 0.0 ? -1.0 : 1.0));
+    Vector2r pitch_coeffs;
+    pitch_coeffs << alpha,
+        pitch_rate * pitch_rate * (pitch_rate < 0.0 ? -1.0 : 1.0);
 
     real_t pitch_moment = pitch_coeffs.dot(c_pitch_moment) +
         control.dot(c_pitch_moment_control);
@@ -170,14 +172,16 @@ const State &in, const ControlVector &control) const {
     /*
     Roll moment
     */
-    Vector1r roll_coeffs(roll_rate);
+    Vector1r roll_coeffs;
+    roll_coeffs << roll_rate;
     real_t roll_moment = roll_coeffs.dot(c_roll_moment) +
         control.dot(c_roll_moment_control);
 
     /*
     Yaw moment
     */
-    Vector2r yaw_coeffs(beta, yaw_rate);
+    Vector2r yaw_coeffs;
+    yaw_coeffs << beta, yaw_rate;
     real_t yaw_moment = yaw_coeffs.dot(c_yaw_moment) +
         control.dot(c_yaw_moment_control);
 
