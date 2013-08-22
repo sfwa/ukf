@@ -45,6 +45,6 @@ than UKF_STATE_DIM, as the attitude is stored as a quaternion.
 
 #define UKF_CONTROL_DIM 4
 #define UKF_STATE_DIM 24
-#define UKF_MEASUREMENT_DIM 18
+#define UKF_MEASUREMENT_DIM 20
 
 #endif

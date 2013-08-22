@@ -172,35 +172,35 @@ public:
     }
 
     void set_drag_coeffs(const Vector5r& in_coeffs) {
-        c_drag_alpha << in_coeffs;
+        c_drag_alpha = in_coeffs;
     }
 
     void set_lift_coeffs(const Vector5r& in_coeffs) {
-        c_lift_alpha << in_coeffs;
+        c_lift_alpha = in_coeffs;
     }
 
     void set_side_coeffs(const Vector8r& in_coeffs,
     const ControlVector& in_control) {
-        c_side_force << in_coeffs;
-        c_side_force_control << in_control;
+        c_side_force = in_coeffs;
+        c_side_force_control = in_control;
     }
 
     void set_pitch_moment_coeffs(const Vector2r& in_coeffs,
     const ControlVector& in_control) {
-        c_pitch_moment << in_coeffs;
-        c_pitch_moment_control << in_control;
+        c_pitch_moment = in_coeffs;
+        c_pitch_moment_control = in_control;
     }
 
     void set_roll_moment_coeffs(const Vector1r& in_coeffs,
     const ControlVector& in_control) {
-        c_roll_moment << in_coeffs;
-        c_roll_moment_control << in_control;
+        c_roll_moment = in_coeffs;
+        c_roll_moment_control = in_control;
     }
 
     void set_yaw_moment_coeffs(const Vector2r& in_coeffs,
     const ControlVector& in_control) {
-        c_yaw_moment << in_coeffs;
-        c_yaw_moment_control << in_control;
+        c_yaw_moment = in_coeffs;
+        c_yaw_moment_control = in_control;
     }
 
     void set_motor_index(int8_t idx) {

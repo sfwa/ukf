@@ -24,9 +24,10 @@ SOFTWARE.
 #include "state.h"
 #include "integrator.h"
 #include "dynamics.h"
-#include "interface.h"
 #include "sensors.h"
 #include "ukf.h"
+
+#include "cukf.h"
 
 static IOBoardModel model = IOBoardModel(
     Quaternionr(1, 0, 0, 0),
@@ -87,7 +88,7 @@ void ukf_set_gyro_bias(real_t x, real_t y, real_t z) {
     ukf.set_state(temp);
 }
 
-void ukf_get_state(struct ukf_state *in) {
+void ukf_get_state(struct ukf_state_t *in) {
     State current = ukf.get_state();
     in->position[0] = current.position()[0];
     in->position[1] = current.position()[1];
@@ -116,7 +117,39 @@ void ukf_get_state(struct ukf_state *in) {
     in->gyro_bias[2] = current.gyro_bias()[2];
 }
 
-void ukf_get_state_covariance(real_t state_covariance[24*24]) {
+void ukf_set_state(struct ukf_state_t *in) {
+    State temp = ukf.get_state();
+    temp <<
+        in->position[0],
+        in->position[1],
+        in->position[2],
+        in->velocity[0],
+        in->velocity[1],
+        in->velocity[2],
+        in->acceleration[0],
+        in->acceleration[1],
+        in->acceleration[2],
+        in->attitude[1],
+        in->attitude[2],
+        in->attitude[3],
+        in->attitude[0],
+        in->angular_velocity[0],
+        in->angular_velocity[1],
+        in->angular_velocity[2],
+        in->angular_acceleration[0],
+        in->angular_acceleration[1],
+        in->angular_acceleration[2],
+        in->wind_velocity[0],
+        in->wind_velocity[1],
+        in->wind_velocity[2],
+        in->gyro_bias[0],
+        in->gyro_bias[1],
+        in->gyro_bias[2];
+    ukf.set_state(temp);
+}
+
+void ukf_get_state_covariance(
+real_t state_covariance[UKF_STATE_DIM*UKF_STATE_DIM]) {
     Eigen::Map<StateCovariance> covariance_map(state_covariance);
     covariance_map = ukf.get_state_covariance();
 }
@@ -153,14 +186,7 @@ void ukf_sensor_set_barometer_amsl(real_t amsl) {
     model.set_barometer_amsl(amsl);
 }
 
-void ukf_sensor_set_covariance(real_t sensor_covariance[17]) {
-    Eigen::Map< Eigen::Matrix<real_t, 17, 1> > covariance_map =
-        Eigen::Map< Eigen::Matrix<real_t, 17, 1> >(sensor_covariance);
-    MeasurementVector covariance = covariance_map;
-    model.set_covariance(covariance);
-}
-
-void ukf_set_params(struct ukf_ioboard_params *in) {
+void ukf_set_params(struct ukf_ioboard_params_t *in) {
     model = IOBoardModel(
         Quaternionr(
             in->accel_orientation[0],
@@ -185,33 +211,46 @@ void ukf_set_params(struct ukf_ioboard_params *in) {
             in->mag_field[0],
             in->mag_field[1],
             in->mag_field[2]));
+
+    MeasurementVector covariance(17);
+    covariance <<
+        in->accel_covariance[0], in->accel_covariance[1],
+            in->accel_covariance[2],
+        in->gyro_covariance[0], in->gyro_covariance[1],
+            in->gyro_covariance[2],
+        in->mag_covariance[0], in->mag_covariance[1], in->mag_covariance[2],
+        in->gps_position_covariance[0], in->gps_position_covariance[1],
+            in->gps_position_covariance[2],
+        in->gps_velocity_covariance[0], in->gps_velocity_covariance[1],
+            in->gps_velocity_covariance[2],
+        in->pitot_covariance,
+        in->barometer_amsl_covariance;
+    model.set_covariance(covariance);
 }
 
-void ukf_set_field(real_t x, real_t y, real_t z) {
-    model.set_magnetic_field(Vector3r(x, y, z));
-}
-
-void ukf_choose_dynamics(enum ukf_model_types t) {
+void ukf_choose_dynamics(enum ukf_model_t t) {
     switch(t) {
-        case MODEL_NONE:
+        case UKF_MODEL_NONE:
             ukf.set_dynamics_model((DynamicsModel *)NULL);
             break;
-        case MODEL_CENTRIPETAL:
+        case UKF_MODEL_CENTRIPETAL:
             ukf.set_dynamics_model(&centripetal_model);
             break;
-        case MODEL_FIXED_WING:
+        case UKF_MODEL_FIXED_WING:
             ukf.set_dynamics_model(&fixed_wing_model);
             break;
     }
 }
 
-void ukf_iterate(float dt, real_t control_vector[4]) {
-    ukf.iterate(dt, Eigen::Matrix<real_t, 4, 1>(control_vector));
+void ukf_iterate(float dt, real_t control_vector[UKF_CONTROL_DIM]) {
+    ukf.iterate(dt,
+        Eigen::Matrix<real_t, UKF_CONTROL_DIM, 1>(control_vector));
 }
 
-void ukf_set_process_noise(real_t process_noise_covariance[24]) {
-    Eigen::Map< Eigen::Matrix<real_t, 24, 1> > covariance_map =
-        Eigen::Map< Eigen::Matrix<real_t, 24, 1> >(process_noise_covariance);
+void ukf_set_process_noise(real_t process_noise_covariance[UKF_STATE_DIM]) {
+    Eigen::Map< Eigen::Matrix<real_t, UKF_STATE_DIM, 1> > covariance_map =
+        Eigen::Map< Eigen::Matrix<real_t, UKF_STATE_DIM, 1>
+            >(process_noise_covariance);
     ProcessCovariance covariance = covariance_map;
     ukf.set_process_noise(covariance);
 }
@@ -224,7 +263,8 @@ void ukf_fixedwingdynamics_set_inertia_tensor(real_t inertia_tensor[9]) {
     fixed_wing_model.set_inertia_tensor(Matrix3x3r(inertia_tensor));
 }
 
-void ukf_fixedwingdynamics_set_prop_coeffs(real_t in_prop_area, real_t in_prop_cve){
+void ukf_fixedwingdynamics_set_prop_coeffs(real_t in_prop_area,
+real_t in_prop_cve){
     fixed_wing_model.set_prop_coeffs(in_prop_area, in_prop_cve);
 }
 
@@ -237,25 +277,45 @@ void ukf_fixedwingdynamics_set_lift_coeffs(real_t coeffs[5]) {
 }
 
 void ukf_fixedwingdynamics_set_side_coeffs(real_t coeffs[8],
-real_t control[4]) {
+real_t control[UKF_CONTROL_DIM]) {
     fixed_wing_model.set_side_coeffs(Vector8r(coeffs),
         Vector4r(control));
 }
 
 void ukf_fixedwingdynamics_set_pitch_moment_coeffs(real_t coeffs[2],
-real_t control[4]) {
+real_t control[UKF_CONTROL_DIM]) {
     fixed_wing_model.set_pitch_moment_coeffs(Vector2r(coeffs),
         Vector4r(control));
 }
 
 void ukf_fixedwingdynamics_set_roll_moment_coeffs(real_t coeffs[1],
-real_t control[4]) {
+real_t control[UKF_CONTROL_DIM]) {
     fixed_wing_model.set_roll_moment_coeffs(Vector1r(coeffs),
         Vector4r(control));
 }
 
 void ukf_fixedwingdynamics_set_yaw_moment_coeffs(real_t coeffs[2],
-real_t control[4]) {
+real_t control[UKF_CONTROL_DIM]) {
     fixed_wing_model.set_yaw_moment_coeffs(Vector2r(coeffs),
         Vector4r(control));
+}
+
+uint32_t ukf_config_get_state_dim() {
+    return UKF_STATE_DIM;
+}
+
+uint32_t ukf_config_get_measurement_dim() {
+    return UKF_MEASUREMENT_DIM;
+}
+
+uint32_t ukf_config_get_control_dim() {
+    return UKF_CONTROL_DIM;
+}
+
+enum ukf_precision_t ukf_config_get_precision() {
+#ifdef UKF_SINGLE_PRECISION
+    return UKF_PRECISION_FLOAT;
+#else
+    return UKF_PRECISION_DOUBLE;
+#endif
 }

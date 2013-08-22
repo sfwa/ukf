@@ -157,7 +157,6 @@ public:
         magnetometer.data = data;
         flags.magnetometer = true;
     }
-
     void set_pitot_tas(real_t tas) {
         pitot_tas = tas;
         flags.pitot_tas = true;

@@ -40,3 +40,6 @@ nosetests.xml
 *.synctex.gz
 *.aux
 *.log
+
+# Symlink to dynamic library for development
+python/ukf/c

@@ -137,16 +137,12 @@ class UnscentedKalmanFilter {
         UKF_MEASUREMENT_DIM> kalman_gain;
 
     /* Integrator object, depends on selection in `config.h`. */
-#ifdef UKF_INTEGRATOR_RK4
+#if defined(UKF_INTEGRATOR_RK4)
     IntegratorRK4 integrator;
-#else
-#ifdef UKF_INTEGRATOR_HEUN
+#elif defined(UKF_INTEGRATOR_HEUN)
     IntegratorHeun integrator;
-#else
-#ifdef UKF_INTEGRATOR_EULER
+#elif defined(UKF_INTEGRATOR_EULER)
     IntegratorEuler integrator;
-#endif
-#endif
 #endif
 
     void create_sigma_points();

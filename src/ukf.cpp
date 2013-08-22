@@ -42,16 +42,12 @@ and F. Landis Markley.
 
 UnscentedKalmanFilter::UnscentedKalmanFilter(SensorModel &sensor_model) :
 sensor(sensor_model) {
-#ifdef UKF_INTEGRATOR_RK4
+#if defined(UKF_INTEGRATOR_RK4)
     integrator = IntegratorRK4();
-#else
-#ifdef UKF_INTEGRATOR_RK4
+#elif defined(UKF_INTEGRATOR_HEUN)
     integrator = IntegratorHeun();
-#else
-#ifdef UKF_INTEGRATOR_RK4
+#elif defined(UKF_INTEGRATOR_EULER)
     integrator = IntegratorEuler();
-#endif
-#endif
 #endif
 
     state = StateVector::Zero();
