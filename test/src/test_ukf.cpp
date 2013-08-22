@@ -6,6 +6,7 @@
 #include "ukf.h"
 #include "comparisons.h"
 
+#include <Eigen/Core>
 #include <xmmintrin.h>
 
 TEST(UKFTest, Instantiation) {

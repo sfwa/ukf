@@ -187,7 +187,7 @@ TEST(IOBoardModelTest, PredictAccelerometer) {
             0, 0, 0,
             0, 0, 0,
             0, 0, 0;
-    Eigen::Matrix<real_t, 6, 1> target;
+    MeasurementVector target(6);
 
     test.set_accelerometer(Vector3r(0, 0, 0));
 

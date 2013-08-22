@@ -23,9 +23,7 @@ Quaternionr a, Quaternionr b) {
 inline ::testing::AssertionResult CmpHelperVectorEq(
 const char* expected_expression, const char* actual_expression,
 Vector3r a, Vector3r b) {
-    real_t dx = a.x() - b.x(), dy = a.y() - b.y(), dz = a.z() - b.z(),
-           d = sqrt(dx*dx + dy*dy + dz*dz),
-           an = sqrt(a.x()*a.x() + a.y()*a.y() + a.z()*a.z());
+    real_t d = (a - b).norm(), an = a.norm();
 
     if (d / std::max(an, 1e-3) < 0.01) {
         return ::testing::AssertionSuccess();

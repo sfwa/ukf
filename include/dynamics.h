@@ -86,7 +86,8 @@ class FixedWingFlightDynamicsModel: public DynamicsModel {
         yaw rate * qbar, roll rate * qbar,
         [control 0-3] * qbar
     */
-    Eigen::Matrix<real_t, 8 + UKF_CONTROL_DIM, 1> c_side_force;
+    Vector8r c_side_force;
+    ControlVector c_side_force_control;
 
     /*
     Coefficient vectors for aerodynamic moments:
@@ -95,7 +96,8 @@ class FixedWingFlightDynamicsModel: public DynamicsModel {
         Q^2 * sign(Q) * qbar
         control[0-3] * qbar
     */
-    Eigen::Matrix<real_t, 2 + UKF_CONTROL_DIM, 1> c_pitch_moment;
+    Vector2r c_pitch_moment;
+    ControlVector c_pitch_moment_control;
 
     /*
     CN (yaw) -
@@ -103,14 +105,16 @@ class FixedWingFlightDynamicsModel: public DynamicsModel {
         R * qbar
         control[0-3] * qbar
     */
-    Eigen::Matrix<real_t, 2 + UKF_CONTROL_DIM, 1> c_yaw_moment;
+    Vector2r c_yaw_moment;
+    ControlVector c_yaw_moment_control;
 
     /*
     CL (roll) -
         P * qbar
         control[0-3] * qbar
     */
-    Eigen::Matrix<real_t, 1 + UKF_CONTROL_DIM, 1> c_roll_moment;
+    Vector1r c_roll_moment;
+    ControlVector c_roll_moment_control;
 
     /* Store inverse inertia tensor for performance */
     Matrix3x3r inertia_tensor_inv;
@@ -121,7 +125,7 @@ class FixedWingFlightDynamicsModel: public DynamicsModel {
     coefficient of drag (alpha)
     coefficient of lift (alpha)
     */
-    Eigen::Matrix<real_t, 5, 1> c_drag_alpha, c_lift_alpha;
+    Vector5r c_drag_alpha, c_lift_alpha;
 
     /* Motor force direction vector in body frame */
     Vector3r motor_thrust;
@@ -167,32 +171,36 @@ public:
         prop_cve = in_prop_cve;
     }
 
-    void set_drag_coeffs(const Eigen::Matrix<real_t, 5, 1>& in_coeffs) {
+    void set_drag_coeffs(const Vector5r& in_coeffs) {
         c_drag_alpha << in_coeffs;
     }
 
-    void set_lift_coeffs(const Eigen::Matrix<real_t, 5, 1>& in_coeffs) {
+    void set_lift_coeffs(const Vector5r& in_coeffs) {
         c_lift_alpha << in_coeffs;
     }
 
-    void set_side_coeffs(
-    const Eigen::Matrix<real_t, 8 + UKF_CONTROL_DIM, 1>& in_coeffs) {
+    void set_side_coeffs(const Vector8r& in_coeffs,
+    const ControlVector& in_control) {
         c_side_force << in_coeffs;
+        c_side_force_control << in_control;
     }
 
-    void set_pitch_moment_coeffs(
-    const Eigen::Matrix<real_t, 2 + UKF_CONTROL_DIM, 1>& in_coeffs) {
+    void set_pitch_moment_coeffs(const Vector2r& in_coeffs,
+    const ControlVector& in_control) {
         c_pitch_moment << in_coeffs;
+        c_pitch_moment_control << in_control;
     }
 
-    void set_roll_moment_coeffs(
-    const Eigen::Matrix<real_t, 1 + UKF_CONTROL_DIM, 1>& in_coeffs) {
+    void set_roll_moment_coeffs(const Vector1r& in_coeffs,
+    const ControlVector& in_control) {
         c_roll_moment << in_coeffs;
+        c_roll_moment_control << in_control;
     }
 
-    void set_yaw_moment_coeffs(
-    const Eigen::Matrix<real_t, 2 + UKF_CONTROL_DIM, 1>& in_coeffs) {
+    void set_yaw_moment_coeffs(const Vector2r& in_coeffs,
+    const ControlVector& in_control) {
         c_yaw_moment << in_coeffs;
+        c_yaw_moment_control << in_control;
     }
 
     void set_motor_index(int8_t idx) {

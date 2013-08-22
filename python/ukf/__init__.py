@@ -41,62 +41,62 @@ cukf = cdll.LoadLibrary(os.path.join(
     "c",
     "libcukf.dylib"))
 
-cukf.set_position.argtypes = [c_double, c_double, c_double]
-cukf.set_position.restype = None
+cukf.ukf_set_position.argtypes = [c_double, c_double, c_double]
+cukf.ukf_set_position.restype = None
 
-cukf.set_velocity.argtypes = [c_double, c_double, c_double]
-cukf.set_velocity.restype = None
+cukf.ukf_set_velocity.argtypes = [c_double, c_double, c_double]
+cukf.ukf_set_velocity.restype = None
 
-cukf.set_acceleration.argtypes = [c_double, c_double, c_double]
-cukf.set_acceleration.restype = None
+cukf.ukf_set_acceleration.argtypes = [c_double, c_double, c_double]
+cukf.ukf_set_acceleration.restype = None
 
-cukf.set_attitude.argtypes = [c_double, c_double, c_double, c_double]
-cukf.set_attitude.restype = None
+cukf.ukf_set_attitude.argtypes = [c_double, c_double, c_double, c_double]
+cukf.ukf_set_attitude.restype = None
 
-cukf.set_angular_velocity.argtypes = [c_double, c_double, c_double]
-cukf.set_angular_velocity.restype = None
+cukf.ukf_set_angular_velocity.argtypes = [c_double, c_double, c_double]
+cukf.ukf_set_angular_velocity.restype = None
 
-cukf.set_angular_acceleration.argtypes = [c_double, c_double, c_double]
-cukf.set_angular_acceleration.restype = None
+cukf.ukf_set_angular_acceleration.argtypes = [c_double, c_double, c_double]
+cukf.ukf_set_angular_acceleration.restype = None
 
-cukf.set_wind_velocity.argtypes = [c_double, c_double, c_double]
-cukf.set_wind_velocity.restype = None
+cukf.ukf_set_wind_velocity.argtypes = [c_double, c_double, c_double]
+cukf.ukf_set_wind_velocity.restype = None
 
-cukf.set_gyro_bias.argtypes = [c_double, c_double, c_double]
-cukf.set_gyro_bias.restype = None
+cukf.ukf_set_gyro_bias.argtypes = [c_double, c_double, c_double]
+cukf.ukf_set_gyro_bias.restype = None
 
-cukf.get_state.argtypes = [POINTER(State)]
-cukf.get_state.restype = None
+cukf.ukf_get_state.argtypes = [POINTER(State)]
+cukf.ukf_get_state.restype = None
 
-cukf.get_state_covariance.argtypes = [POINTER(c_double * (24**2))]
-cukf.get_state_covariance.restype = None
+cukf.ukf_get_state_covariance.argtypes = [POINTER(c_double * (24**2))]
+cukf.ukf_get_state_covariance.restype = None
 
-cukf.sensor_clear.argtypes = []
-cukf.sensor_clear.restype = None
+cukf.ukf_sensor_clear.argtypes = []
+cukf.ukf_sensor_clear.restype = None
 
-cukf.sensor_set_covariance.argtypes = [POINTER(c_double * 17)]
-cukf.sensor_set_covariance.restype = None
+cukf.ukf_sensor_set_covariance.argtypes = [POINTER(c_double * 17)]
+cukf.ukf_sensor_set_covariance.restype = None
 
-cukf.sensor_set_accelerometer.argtypes = [c_double, c_double, c_double]
-cukf.sensor_set_accelerometer.restype = None
+cukf.ukf_sensor_set_accelerometer.argtypes = [c_double, c_double, c_double]
+cukf.ukf_sensor_set_accelerometer.restype = None
 
-cukf.sensor_set_gyroscope.argtypes = [c_double, c_double, c_double]
-cukf.sensor_set_gyroscope.restype = None
+cukf.ukf_sensor_set_gyroscope.argtypes = [c_double, c_double, c_double]
+cukf.ukf_sensor_set_gyroscope.restype = None
 
-cukf.sensor_set_magnetometer.argtypes = [c_double, c_double, c_double]
-cukf.sensor_set_magnetometer.restype = None
+cukf.ukf_sensor_set_magnetometer.argtypes = [c_double, c_double, c_double]
+cukf.ukf_sensor_set_magnetometer.restype = None
 
-cukf.sensor_set_gps_position.argtypes = [c_double, c_double, c_double]
-cukf.sensor_set_gps_position.restype = None
+cukf.ukf_sensor_set_gps_position.argtypes = [c_double, c_double, c_double]
+cukf.ukf_sensor_set_gps_position.restype = None
 
-cukf.sensor_set_gps_velocity.argtypes = [c_double, c_double, c_double]
-cukf.sensor_set_gps_velocity.restype = None
+cukf.ukf_sensor_set_gps_velocity.argtypes = [c_double, c_double, c_double]
+cukf.ukf_sensor_set_gps_velocity.restype = None
 
-cukf.sensor_set_pitot_tas.argtypes = [c_double]
-cukf.sensor_set_pitot_tas.restype = None
+cukf.ukf_sensor_set_pitot_tas.argtypes = [c_double]
+cukf.ukf_sensor_set_pitot_tas.restype = None
 
-cukf.sensor_set_barometer_amsl.argtypes = [c_double]
-cukf.sensor_set_barometer_amsl.restype = None
+cukf.ukf_sensor_set_barometer_amsl.argtypes = [c_double]
+cukf.ukf_sensor_set_barometer_amsl.restype = None
 
 cukf.ukf_set_params.argtypes = [POINTER(IOBoardParams)]
 cukf.ukf_set_params.restype = None
@@ -113,35 +113,37 @@ cukf.ukf_iterate.restype = None
 cukf.ukf_set_process_noise.argtypes = [POINTER(c_double * 24)]
 cukf.ukf_set_process_noise.restype = None
 
-cukf.fixedwingdynamics_set_mass.argtypes = [c_double]
-cukf.fixedwingdynamics_set_mass.restype = None
+cukf.ukf_fixedwingdynamics_set_mass.argtypes = [c_double]
+cukf.ukf_fixedwingdynamics_set_mass.restype = None
 
-cukf.fixedwingdynamics_set_inertia_tensor.argtypes = [POINTER(c_double * 9)]
-cukf.fixedwingdynamics_set_inertia_tensor.restype = None
+cukf.ukf_fixedwingdynamics_set_inertia_tensor.argtypes = [
+    POINTER(c_double * 9)]
+cukf.ukf_fixedwingdynamics_set_inertia_tensor.restype = None
 
-cukf.fixedwingdynamics_set_prop_coeffs.argtypes = [c_double, c_double]
-cukf.fixedwingdynamics_set_prop_coeffs.restype = None
+cukf.ukf_fixedwingdynamics_set_prop_coeffs.argtypes = [c_double, c_double]
+cukf.ukf_fixedwingdynamics_set_prop_coeffs.restype = None
 
-cukf.fixedwingdynamics_set_drag_coeffs.argtypes = [POINTER(c_double * 5)]
-cukf.fixedwingdynamics_set_drag_coeffs.restype = None
+cukf.ukf_fixedwingdynamics_set_drag_coeffs.argtypes = [POINTER(c_double * 5)]
+cukf.ukf_fixedwingdynamics_set_drag_coeffs.restype = None
 
-cukf.fixedwingdynamics_set_lift_coeffs.argtypes = [POINTER(c_double * 5)]
-cukf.fixedwingdynamics_set_lift_coeffs.restype = None
+cukf.ukf_fixedwingdynamics_set_lift_coeffs.argtypes = [POINTER(c_double * 5)]
+cukf.ukf_fixedwingdynamics_set_lift_coeffs.restype = None
 
-cukf.fixedwingdynamics_set_side_coeffs.argtypes = [POINTER(c_double * 12)]
-cukf.fixedwingdynamics_set_side_coeffs.restype = None
+cukf.ukf_fixedwingdynamics_set_side_coeffs.argtypes = [POINTER(c_double * 8),
+    POINTER(c_double * 4)]
+cukf.ukf_fixedwingdynamics_set_side_coeffs.restype = None
 
-cukf.fixedwingdynamics_set_pitch_moment_coeffs.argtypes = [
-    POINTER(c_double * 6)]
-cukf.fixedwingdynamics_set_pitch_moment_coeffs.restype = None
+cukf.ukf_fixedwingdynamics_set_pitch_moment_coeffs.argtypes = [
+    POINTER(c_double * 2), POINTER(c_double * 4)]
+cukf.ukf_fixedwingdynamics_set_pitch_moment_coeffs.restype = None
 
-cukf.fixedwingdynamics_set_roll_moment_coeffs.argtypes = [
-    POINTER(c_double * 5)]
-cukf.fixedwingdynamics_set_roll_moment_coeffs.restype = None
+cukf.ukf_fixedwingdynamics_set_roll_moment_coeffs.argtypes = [
+    POINTER(c_double * 1), POINTER(c_double * 4)]
+cukf.ukf_fixedwingdynamics_set_roll_moment_coeffs.restype = None
 
-cukf.fixedwingdynamics_set_yaw_moment_coeffs.argtypes = [
-    POINTER(c_double * 6)]
-cukf.fixedwingdynamics_set_yaw_moment_coeffs.restype = None
+cukf.ukf_fixedwingdynamics_set_yaw_moment_coeffs.argtypes = [
+    POINTER(c_double * 2), POINTER(c_double * 4)]
+cukf.ukf_fixedwingdynamics_set_yaw_moment_coeffs.restype = None
 
 current = State()
 cukf.get_state(byref(current))

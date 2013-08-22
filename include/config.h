@@ -23,9 +23,6 @@ SOFTWARE.
 #ifndef CONFIG_H_
 #define CONFIG_H_
 
-/* Whether to use Eigen3 or architecture-specific implementations */
-#define UKF_USE_EIGEN
-
 /* Uncomment one of the following to select the float-point precision */
 /* #define UKF_SINGLE_PRECISION */
 #define UKF_DOUBLE_PRECISION
@@ -48,6 +45,6 @@ than UKF_STATE_DIM, as the attitude is stored as a quaternion.
 
 #define UKF_CONTROL_DIM 4
 #define UKF_STATE_DIM 24
-#define UKF_MEASUREMENT_MAX_DIM 32
+#define UKF_MEASUREMENT_DIM 18
 
 #endif

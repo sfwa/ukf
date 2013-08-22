@@ -145,3 +145,18 @@ TEST(CentripetalModelTest, ZAxisNegative) {
     EXPECT_EQ(0, accelerations[4]);
     EXPECT_EQ(0, accelerations[5]);
 }
+
+TEST(FixedWingFlightDynamicsModelTest, Instantiation) {
+    FixedWingFlightDynamicsModel test = FixedWingFlightDynamicsModel();
+}
+
+TEST(FixedWingFlightDynamicsModelTest, AirframeProperties) {
+    FixedWingFlightDynamicsModel model = FixedWingFlightDynamicsModel();
+    model.set_mass(5.0);
+
+    Matrix3x3r tensor;
+    tensor << 2, 0, 0,
+              0, 1, 0,
+              0, 0, 3;
+    model.set_inertia_tensor(tensor);
+}

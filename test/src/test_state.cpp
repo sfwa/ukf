@@ -108,16 +108,16 @@ TEST(StateTest, AttitudeAccessor) {
             19, 20, 21,
             22, 23, 24;
 
-    EXPECT_EQ(9, test.attitude()(0));
-    EXPECT_EQ(10, test.attitude()(1));
-    EXPECT_EQ(11, test.attitude()(2));
-    EXPECT_EQ(12, test.attitude()(3));
+    EXPECT_EQ(9, test.attitude()[0]);
+    EXPECT_EQ(10, test.attitude()[1]);
+    EXPECT_EQ(11, test.attitude()[2]);
+    EXPECT_EQ(12, test.attitude()[3]);
 
     test.attitude() << a.vec(), a.w();
-    EXPECT_EQ(0, test(9));
-    EXPECT_EQ(0, test(10));
-    EXPECT_EQ(0, test(11));
-    EXPECT_EQ(1, test(12));
+    EXPECT_EQ(0, test[9]);
+    EXPECT_EQ(0, test[10]);
+    EXPECT_EQ(0, test[11]);
+    EXPECT_EQ(1, test[12]);
 }
 
 TEST(StateTest, AngularVelocityAccessor) {

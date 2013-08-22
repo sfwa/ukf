@@ -30,7 +30,7 @@ SOFTWARE.
 extern "C" {
 
 /* Dynamics model types. */
-enum model_types {
+enum ukf_model_types {
     MODEL_NONE = 0,
     MODEL_CENTRIPETAL = 1,
     MODEL_FIXED_WING = 2
@@ -45,7 +45,7 @@ Members are as follows:
     - mag_orientation: Quaternion from body frame to magnetometer frame.
     - mag_field: Expected magnetic field in NED frame, µT.
 */
-struct ioboard_params {
+struct ukf_ioboard_params {
     real_t accel_orientation[4];
     real_t accel_offset[3];
     real_t gyro_orientation[4];
@@ -53,7 +53,7 @@ struct ioboard_params {
     real_t mag_field[3];
 };
 
-struct state {
+struct ukf_state {
     real_t position[3];
     real_t velocity[3];
     real_t acceleration[3];
@@ -65,57 +65,62 @@ struct state {
 };
 
 /* Functions for setting different parts of the state vector. */
-void set_position(real_t lat, real_t lon, real_t alt);
-void set_velocity(real_t x, real_t y, real_t z);
-void set_acceleration(real_t x, real_t y, real_t z);
-void set_attitude(real_t w, real_t x, real_t y, real_t z);
-void set_angular_velocity(real_t x, real_t y, real_t z);
-void set_angular_acceleration(real_t x, real_t y, real_t z);
-void set_wind_velocity(real_t x, real_t y, real_t z);
-void set_gyro_bias(real_t x, real_t y, real_t z);
+void ukf_set_position(real_t lat, real_t lon, real_t alt);
+void ukf_set_velocity(real_t x, real_t y, real_t z);
+void ukf_set_acceleration(real_t x, real_t y, real_t z);
+void ukf_set_attitude(real_t w, real_t x, real_t y, real_t z);
+void ukf_set_angular_velocity(real_t x, real_t y, real_t z);
+void ukf_set_angular_acceleration(real_t x, real_t y, real_t z);
+void ukf_set_wind_velocity(real_t x, real_t y, real_t z);
+void ukf_set_gyro_bias(real_t x, real_t y, real_t z);
 
 /* Functions for getting the state vector and covariance. */
-void get_state(struct state *in);
-void get_state_covariance(real_t state_covariance[24*24]);
+void ukf_get_state(struct ukf_state *in);
+void ukf_get_state_covariance(real_t state_covariance[24*24]);
 
 /*
 Functions for setting sensor data. Before each frame, call the sensor_clear()
 function to clear old sensor data. Note: this won't reset the sensor noise
 covariance values.
 */
-void sensor_clear();
-void sensor_set_covariance(real_t sensor_covariance[18]);
-void sensor_set_accelerometer(real_t x, real_t y, real_t z);
-void sensor_set_gyroscope(real_t x, real_t y, real_t z);
-void sensor_set_magnetometer(real_t x, real_t y, real_t z);
-void sensor_set_gps_position(real_t lat, real_t lon, real_t alt);
-void sensor_set_gps_velocity(real_t x, real_t y, real_t z);
-void sensor_set_pitot_tas(real_t tas);
-void sensor_set_barometer_amsl(real_t amsl);
-void sensor_set_barometer_roc(real_t roc);
+void ukf_sensor_clear();
+void ukf_sensor_set_covariance(real_t sensor_covariance[18]);
+void ukf_sensor_set_accelerometer(real_t x, real_t y, real_t z);
+void ukf_sensor_set_gyroscope(real_t x, real_t y, real_t z);
+void ukf_sensor_set_magnetometer(real_t x, real_t y, real_t z);
+void ukf_sensor_set_gps_position(real_t lat, real_t lon, real_t alt);
+void ukf_sensor_set_gps_velocity(real_t x, real_t y, real_t z);
+void ukf_sensor_set_pitot_tas(real_t tas);
+void ukf_sensor_set_barometer_amsl(real_t amsl);
+void ukf_sensor_set_barometer_roc(real_t roc);
 
 /*
 UKF-related functions.
 */
-void ukf_set_params(struct ioboard_params *in);
+void ukf_set_params(struct ukf_ioboard_params *in);
 void ukf_set_field(real_t x, real_t y, real_t z);
 void ukf_set_process_noise(real_t process_noise_covariance[24]);
-void ukf_choose_dynamics(enum model_types t);
+void ukf_choose_dynamics(enum ukf_model_types t);
 void ukf_iterate(float dt, real_t control_vector[4]);
 
 /*
 Functions to set airframe properties and coefficients for the fixed-wing
 dynamics model.
 */
-void fixedwingdynamics_set_mass(real_t mass);
-void fixedwingdynamics_set_inertia_tensor(real_t inertia_tensor[9]);
-void fixedwingdynamics_set_prop_coeffs(real_t in_prop_area, real_t in_prop_cve);
-void fixedwingdynamics_set_drag_coeffs(real_t coeffs[5]);
-void fixedwingdynamics_set_lift_coeffs(real_t coeffs[5]);
-void fixedwingdynamics_set_side_coeffs(real_t coeffs[12]);
-void fixedwingdynamics_set_pitch_moment_coeffs(real_t coeffs[6]);
-void fixedwingdynamics_set_roll_moment_coeffs(real_t coeffs[5]);
-void fixedwingdynamics_set_yaw_moment_coeffs(real_t coeffs[6]);
+void ukf_fixedwingdynamics_set_mass(real_t mass);
+void ukf_fixedwingdynamics_set_inertia_tensor(real_t inertia_tensor[9]);
+void ukf_fixedwingdynamics_set_prop_coeffs(real_t in_prop_area,
+    real_t in_prop_cve);
+void ukf_fixedwingdynamics_set_drag_coeffs(real_t coeffs[5]);
+void ukf_fixedwingdynamics_set_lift_coeffs(real_t coeffs[5]);
+void ukf_fixedwingdynamics_set_side_coeffs(real_t coeffs[8],
+    real_t control[4]);
+void ukf_fixedwingdynamics_set_pitch_moment_coeffs(real_t coeffs[2],
+    real_t control[4]);
+void ukf_fixedwingdynamics_set_roll_moment_coeffs(real_t coeffs[1],
+    real_t control[4]);
+void ukf_fixedwingdynamics_set_yaw_moment_coeffs(real_t coeffs[2],
+    real_t control[4]);
 
 }
 

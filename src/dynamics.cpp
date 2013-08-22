@@ -118,8 +118,7 @@ const State &in, const ControlVector &control) const {
     Set up a^4, a^3, a^2, a, 1 so that we can use dot product for the
     polynomial evaluation.
     */
-    Eigen::Matrix<real_t, 5, 1> alpha_coeffs;
-    alpha_coeffs << alpha2 * alpha2, alpha2 * alpha, alpha2, alpha, 1.0;
+    Vector5r alpha_coeffs(alpha2 * alpha2, alpha2 * alpha, alpha2, alpha, 1.0);
 
     /* Evaluate quartics in alpha to determine lift and drag */
     real_t lift = alpha_coeffs.dot(c_lift_alpha),
@@ -140,7 +139,7 @@ const State &in, const ControlVector &control) const {
     constant? If so, they're related by prop_ct.
     */
     real_t thrust = 0.0;
-    if (motor_idx < control.rows()) {
+    if (motor_idx < UKF_CONTROL_DIM) {
         real_t ve = prop_cve * control[motor_idx], v0 = airflow.x();
         thrust = 0.5 * RHO * prop_area * (ve * ve - v0 * v0);
         if (thrust < 0.0) {
@@ -152,41 +151,35 @@ const State &in, const ControlVector &control) const {
     /*
     Set up the side force coefficient vector, and calculate side force
     */
-    Eigen::Matrix<real_t, 8 + UKF_CONTROL_DIM, 1> side_coeffs;
-    side_coeffs.segment<8>(0) << alpha2, alpha, beta2, beta,
-                                 alpha2 * beta, alpha * beta,
-                                 yaw_rate, roll_rate;
-    side_coeffs.segment<UKF_CONTROL_DIM>(8) << control;
+    Vector8r side_coeffs(
+        alpha2, alpha, beta2, beta, alpha2 * beta, alpha * beta,
+        yaw_rate, roll_rate);
 
-    real_t side_force = side_coeffs.dot(c_side_force);
+    real_t side_force = side_coeffs.dot(c_side_force) +
+        control.dot(c_side_force_control);
 
     /*
     Calculate pitch moment
     */
-    Eigen::Matrix<real_t, 2 + UKF_CONTROL_DIM, 1> pitch_coeffs;
-    pitch_coeffs.segment<2>(0) <<
-        alpha, pitch_rate * pitch_rate * (pitch_rate < 0.0 ? -1.0 : 1.0);
-    pitch_coeffs.segment<UKF_CONTROL_DIM>(2) << control;
+    Vector2r pitch_coeffs(alpha,
+        pitch_rate * pitch_rate * (pitch_rate < 0.0 ? -1.0 : 1.0));
 
-    real_t pitch_moment = pitch_coeffs.dot(c_pitch_moment);
+    real_t pitch_moment = pitch_coeffs.dot(c_pitch_moment) +
+        control.dot(c_pitch_moment_control);
 
     /*
     Roll moment
     */
-    Eigen::Matrix<real_t, 1 + UKF_CONTROL_DIM, 1> roll_coeffs;
-    roll_coeffs[0] = roll_rate;
-    roll_coeffs.segment<UKF_CONTROL_DIM>(1) << control;
-
-    real_t roll_moment = roll_coeffs.dot(c_roll_moment);
+    Vector1r roll_coeffs(roll_rate);
+    real_t roll_moment = roll_coeffs.dot(c_roll_moment) +
+        control.dot(c_roll_moment_control);
 
     /*
     Yaw moment
     */
-    Eigen::Matrix<real_t, 2 + UKF_CONTROL_DIM, 1> yaw_coeffs;
-    yaw_coeffs.segment<2>(0) << beta, yaw_rate;
-    yaw_coeffs.segment<UKF_CONTROL_DIM>(2) << control;
-
-    real_t yaw_moment = yaw_coeffs.dot(c_yaw_moment);
+    Vector2r yaw_coeffs(beta, yaw_rate);
+    real_t yaw_moment = yaw_coeffs.dot(c_yaw_moment) +
+        control.dot(c_yaw_moment_control);
 
     /*
     Sum and apply forces and moments

@@ -20,9 +20,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include <Eigen/Core>
-#include <Eigen/Geometry>
-
 #include "types.h"
 #include "state.h"
 #include "integrator.h"
@@ -39,57 +36,58 @@ static IOBoardModel model = IOBoardModel(
     Vector3r(1, 0, 0));
 static UnscentedKalmanFilter ukf = UnscentedKalmanFilter(model);
 static CentripetalModel centripetal_model = CentripetalModel();
-static FixedWingFlightDynamicsModel fixed_wing_model = FixedWingFlightDynamicsModel();
+static FixedWingFlightDynamicsModel fixed_wing_model =
+    FixedWingFlightDynamicsModel();
 
-void set_position(real_t lat, real_t lon, real_t alt) {
+void ukf_set_position(real_t lat, real_t lon, real_t alt) {
     State temp = ukf.get_state();
     temp.position() << lat, lon, alt;
     ukf.set_state(temp);
 }
 
-void set_velocity(real_t x, real_t y, real_t z) {
+void ukf_set_velocity(real_t x, real_t y, real_t z) {
     State temp = ukf.get_state();
     temp.velocity() << x, y, z;
     ukf.set_state(temp);
 }
 
-void set_acceleration(real_t x, real_t y, real_t z) {
+void ukf_set_acceleration(real_t x, real_t y, real_t z) {
     State temp = ukf.get_state();
     temp.acceleration() << x, y, z;
     ukf.set_state(temp);
 }
 
-void set_attitude(real_t w, real_t x, real_t y, real_t z) {
+void ukf_set_attitude(real_t w, real_t x, real_t y, real_t z) {
     State temp = ukf.get_state();
     temp.attitude() << x, y, z, w;
     ukf.set_state(temp);
 }
 
-void set_angular_velocity(real_t x, real_t y, real_t z) {
+void ukf_set_angular_velocity(real_t x, real_t y, real_t z) {
     State temp = ukf.get_state();
     temp.angular_velocity() << x, y, z;
     ukf.set_state(temp);
 }
 
-void set_angular_acceleration(real_t x, real_t y, real_t z) {
+void ukf_set_angular_acceleration(real_t x, real_t y, real_t z) {
     State temp = ukf.get_state();
     temp.angular_acceleration() << x, y, z;
     ukf.set_state(temp);
 }
 
-void set_wind_velocity(real_t x, real_t y, real_t z) {
+void ukf_set_wind_velocity(real_t x, real_t y, real_t z) {
     State temp = ukf.get_state();
     temp.wind_velocity() << x, y, z;
     ukf.set_state(temp);
 }
 
-void set_gyro_bias(real_t x, real_t y, real_t z) {
+void ukf_set_gyro_bias(real_t x, real_t y, real_t z) {
     State temp = ukf.get_state();
     temp.gyro_bias() << x, y, z;
     ukf.set_state(temp);
 }
 
-void get_state(struct state *in) {
+void ukf_get_state(struct ukf_state *in) {
     State current = ukf.get_state();
     in->position[0] = current.position()[0];
     in->position[1] = current.position()[1];
@@ -118,51 +116,51 @@ void get_state(struct state *in) {
     in->gyro_bias[2] = current.gyro_bias()[2];
 }
 
-void get_state_covariance(real_t state_covariance[24*24]) {
-    Eigen::Map<StateVectorCovariance> covariance_map(state_covariance);
+void ukf_get_state_covariance(real_t state_covariance[24*24]) {
+    Eigen::Map<StateCovariance> covariance_map(state_covariance);
     covariance_map = ukf.get_state_covariance();
 }
 
-void sensor_clear() {
+void ukf_sensor_clear() {
     model.clear();
 }
 
-void sensor_set_accelerometer(real_t x, real_t y, real_t z) {
+void ukf_sensor_set_accelerometer(real_t x, real_t y, real_t z) {
     model.set_accelerometer(Vector3r(x, y, z));
 }
 
-void sensor_set_gyroscope(real_t x, real_t y, real_t z) {
+void ukf_sensor_set_gyroscope(real_t x, real_t y, real_t z) {
     model.set_gyroscope(Vector3r(x, y, z));
 }
 
-void sensor_set_magnetometer(real_t x, real_t y, real_t z) {
+void ukf_sensor_set_magnetometer(real_t x, real_t y, real_t z) {
     model.set_magnetometer(Vector3r(x, y, z));
 }
 
-void sensor_set_gps_position(real_t lat, real_t lon, real_t alt) {
+void ukf_sensor_set_gps_position(real_t lat, real_t lon, real_t alt) {
     model.set_gps_position(Vector3r(lat, lon, alt));
 }
 
-void sensor_set_gps_velocity(real_t x, real_t y, real_t z) {
+void ukf_sensor_set_gps_velocity(real_t x, real_t y, real_t z) {
     model.set_gps_velocity(Vector3r(x, y, z));
 }
 
-void sensor_set_pitot_tas(real_t tas) {
+void ukf_sensor_set_pitot_tas(real_t tas) {
     model.set_pitot_tas(tas);
 }
 
-void sensor_set_barometer_amsl(real_t amsl) {
+void ukf_sensor_set_barometer_amsl(real_t amsl) {
     model.set_barometer_amsl(amsl);
 }
 
-void sensor_set_covariance(real_t sensor_covariance[17]) {
+void ukf_sensor_set_covariance(real_t sensor_covariance[17]) {
     Eigen::Map< Eigen::Matrix<real_t, 17, 1> > covariance_map =
         Eigen::Map< Eigen::Matrix<real_t, 17, 1> >(sensor_covariance);
     MeasurementVector covariance = covariance_map;
     model.set_covariance(covariance);
 }
 
-void ukf_set_params(struct ioboard_params *in) {
+void ukf_set_params(struct ukf_ioboard_params *in) {
     model = IOBoardModel(
         Quaternionr(
             in->accel_orientation[0],
@@ -193,7 +191,7 @@ void ukf_set_field(real_t x, real_t y, real_t z) {
     model.set_magnetic_field(Vector3r(x, y, z));
 }
 
-void ukf_choose_dynamics(enum model_types t) {
+void ukf_choose_dynamics(enum ukf_model_types t) {
     switch(t) {
         case MODEL_NONE:
             ukf.set_dynamics_model((DynamicsModel *)NULL);
@@ -218,42 +216,46 @@ void ukf_set_process_noise(real_t process_noise_covariance[24]) {
     ukf.set_process_noise(covariance);
 }
 
-void fixedwingdynamics_set_mass(real_t mass) {
+void ukf_fixedwingdynamics_set_mass(real_t mass) {
     fixed_wing_model.set_mass(mass);
 }
 
-void fixedwingdynamics_set_inertia_tensor(real_t inertia_tensor[9]) {
-    fixed_wing_model.set_inertia_tensor(
-        Eigen::Matrix<real_t, 3, 3>(inertia_tensor));
+void ukf_fixedwingdynamics_set_inertia_tensor(real_t inertia_tensor[9]) {
+    fixed_wing_model.set_inertia_tensor(Matrix3x3r(inertia_tensor));
 }
 
-void fixedwingdynamics_set_prop_coeffs(real_t in_prop_area, real_t in_prop_cve){
+void ukf_fixedwingdynamics_set_prop_coeffs(real_t in_prop_area, real_t in_prop_cve){
     fixed_wing_model.set_prop_coeffs(in_prop_area, in_prop_cve);
 }
 
-void fixedwingdynamics_set_drag_coeffs(real_t coeffs[5]) {
-    fixed_wing_model.set_drag_coeffs(Eigen::Matrix<real_t, 5, 1>(coeffs));
+void ukf_fixedwingdynamics_set_drag_coeffs(real_t coeffs[5]) {
+    fixed_wing_model.set_drag_coeffs(Vector5r(coeffs));
 }
 
-void fixedwingdynamics_set_lift_coeffs(real_t coeffs[5]) {
-    fixed_wing_model.set_lift_coeffs(Eigen::Matrix<real_t, 5, 1>(coeffs));
+void ukf_fixedwingdynamics_set_lift_coeffs(real_t coeffs[5]) {
+    fixed_wing_model.set_lift_coeffs(Vector5r(coeffs));
 }
 
-void fixedwingdynamics_set_side_coeffs(real_t coeffs[12]) {
-    fixed_wing_model.set_side_coeffs(Eigen::Matrix<real_t, 12, 1>(coeffs));
+void ukf_fixedwingdynamics_set_side_coeffs(real_t coeffs[8],
+real_t control[4]) {
+    fixed_wing_model.set_side_coeffs(Vector8r(coeffs),
+        Vector4r(control));
 }
 
-void fixedwingdynamics_set_pitch_moment_coeffs(real_t coeffs[6]) {
-    fixed_wing_model.set_pitch_moment_coeffs(
-        Eigen::Matrix<real_t, 6, 1>(coeffs));
+void ukf_fixedwingdynamics_set_pitch_moment_coeffs(real_t coeffs[2],
+real_t control[4]) {
+    fixed_wing_model.set_pitch_moment_coeffs(Vector2r(coeffs),
+        Vector4r(control));
 }
 
-void fixedwingdynamics_set_roll_moment_coeffs(real_t coeffs[5]) {
-    fixed_wing_model.set_roll_moment_coeffs(
-        Eigen::Matrix<real_t, 5, 1>(coeffs));
+void ukf_fixedwingdynamics_set_roll_moment_coeffs(real_t coeffs[1],
+real_t control[4]) {
+    fixed_wing_model.set_roll_moment_coeffs(Vector1r(coeffs),
+        Vector4r(control));
 }
 
-void fixedwingdynamics_set_yaw_moment_coeffs(real_t coeffs[6]) {
-    fixed_wing_model.set_yaw_moment_coeffs(
-        Eigen::Matrix<real_t, 6, 1>(coeffs));
+void ukf_fixedwingdynamics_set_yaw_moment_coeffs(real_t coeffs[2],
+real_t control[4]) {
+    fixed_wing_model.set_yaw_moment_coeffs(Vector2r(coeffs),
+        Vector4r(control));
 }

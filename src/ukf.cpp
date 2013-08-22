@@ -67,7 +67,7 @@ sensor(sensor_model) {
         1e-6, 1e-6, 1e-6,
         1e-6, 1e-6, 1e-6;
 
-    state_covariance = StateVectorCovariance::Zero();
+    state_covariance = StateCovariance::Zero();
     state_covariance.diagonal() <<
         M_PI * M_PI * 0.0625, M_PI * M_PI * 0.0625, 1000,
         50, 50, 50,
@@ -242,7 +242,7 @@ void UnscentedKalmanFilter::measurement_estimate() {
         Eigen::Dynamic,
         UKF_NUM_SIGMA,
         0,
-        UKF_MEASUREMENT_MAX_DIM> measurement_sigma_points(
+        UKF_MEASUREMENT_DIM> measurement_sigma_points(
             (MeasurementVector::Index)sensor.size(), UKF_NUM_SIGMA);
 
     /*

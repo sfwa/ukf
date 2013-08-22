@@ -71,7 +71,7 @@ Unscented Kalman Filter object.
 class UnscentedKalmanFilter {
     /* State information and parameters. */
     State state;
-    StateVectorCovariance state_covariance;
+    StateCovariance state_covariance;
     ProcessCovariance process_noise_covariance;
 
     /*
@@ -82,14 +82,13 @@ class UnscentedKalmanFilter {
     SensorModel &sensor;
     DynamicsModel *dynamics;
 
-#ifdef UKF_USE_EIGEN
     /* Intermediate variables used during filter iteration. */
     Eigen::Matrix<
         real_t,
         StateVector::RowsAtCompileTime,
         UKF_NUM_SIGMA> sigma_points;
     State apriori_mean;
-    StateVectorCovariance apriori_covariance;
+    StateCovariance apriori_covariance;
 
     Eigen::Matrix<
         real_t,
@@ -101,7 +100,7 @@ class UnscentedKalmanFilter {
         Eigen::Dynamic,
         UKF_NUM_SIGMA,
         0,
-        UKF_MEASUREMENT_MAX_DIM> z_prime;
+        UKF_MEASUREMENT_DIM> z_prime;
 
     MeasurementVector measurement_estimate_mean;
     Eigen::Matrix<
@@ -109,8 +108,8 @@ class UnscentedKalmanFilter {
         Eigen::Dynamic,
         Eigen::Dynamic,
         0,
-        UKF_MEASUREMENT_MAX_DIM,
-        UKF_MEASUREMENT_MAX_DIM> measurement_estimate_covariance;
+        UKF_MEASUREMENT_DIM,
+        UKF_MEASUREMENT_DIM> measurement_estimate_covariance;
 
     MeasurementVector innovation;
     Eigen::Matrix<
@@ -118,8 +117,8 @@ class UnscentedKalmanFilter {
         Eigen::Dynamic,
         Eigen::Dynamic,
         0,
-        UKF_MEASUREMENT_MAX_DIM,
-        UKF_MEASUREMENT_MAX_DIM> innovation_covariance;
+        UKF_MEASUREMENT_DIM,
+        UKF_MEASUREMENT_DIM> innovation_covariance;
 
     Eigen::Matrix<
         real_t,
@@ -127,7 +126,7 @@ class UnscentedKalmanFilter {
         Eigen::Dynamic,
         0,
         UKF_STATE_DIM,
-        UKF_MEASUREMENT_MAX_DIM> cross_correlation;
+        UKF_MEASUREMENT_DIM> cross_correlation;
 
     Eigen::Matrix<
         real_t,
@@ -135,7 +134,7 @@ class UnscentedKalmanFilter {
         Eigen::Dynamic,
         0,
         UKF_STATE_DIM,
-        UKF_MEASUREMENT_MAX_DIM> kalman_gain;
+        UKF_MEASUREMENT_DIM> kalman_gain;
 
     /* Integrator object, depends on selection in `config.h`. */
 #ifdef UKF_INTEGRATOR_RK4
@@ -156,13 +155,12 @@ class UnscentedKalmanFilter {
     void calculate_innovation();
     void calculate_kalman_gain();
     void aposteriori_estimate();
-#endif
 
 public:
     UnscentedKalmanFilter(SensorModel &sensor_model);
     const State& get_state() const { return state; }
     void set_state(const State &in) { state = in; }
-    const StateVectorCovariance& get_state_covariance() const {
+    const StateCovariance& get_state_covariance() const {
         return state_covariance;
     }
     SensorModel* get_sensor_model() { return &sensor; }

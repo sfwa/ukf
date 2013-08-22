@@ -44,12 +44,17 @@ typedef double real_t;
 #define WGS84_B2 (WGS84_B*WGS84_B)
 #define WGS84_AB2 (WGS84_A2*WGS84_B2)
 
-#ifdef UKF_USE_EIGEN
-
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
+typedef Eigen::Matrix<real_t, 1, 1> Vector1r;
+typedef Eigen::Matrix<real_t, 2, 1> Vector2r;
 typedef Eigen::Matrix<real_t, 3, 1> Vector3r;
+typedef Eigen::Matrix<real_t, 4, 1> Vector4r;
+typedef Eigen::Matrix<real_t, 5, 1> Vector5r;
+typedef Eigen::Matrix<real_t, 6, 1> Vector6r;
+typedef Eigen::Matrix<real_t, 7, 1> Vector7r;
+typedef Eigen::Matrix<real_t, 8, 1> Vector8r;
 typedef Eigen::Quaternion<real_t> Quaternionr;
 typedef Eigen::Matrix<real_t, 3, 3> Matrix3x3r;
 typedef Eigen::Matrix<real_t, Eigen::Dynamic, Eigen::Dynamic> MatrixXr;
@@ -63,7 +68,7 @@ typedef Eigen::Matrix<real_t, UKF_STATE_DIM+1, 1> StateVector;
 typedef Eigen::Matrix<real_t, UKF_STATE_DIM+1, 1> StateVectorDerivative;
 
 typedef Eigen::Matrix<real_t, UKF_STATE_DIM, 1> ProcessCovariance;
-typedef Eigen::Matrix<real_t, UKF_STATE_DIM, UKF_STATE_DIM> StateVectorCovariance;
+typedef Eigen::Matrix<real_t, UKF_STATE_DIM, UKF_STATE_DIM> StateCovariance;
 
 /*
 Typedef for measurement vector. It is dynamic in order to allow sensor values
@@ -77,7 +82,7 @@ typedef Eigen::Matrix<
     Eigen::Dynamic,
     1,
     0,
-    UKF_MEASUREMENT_MAX_DIM> MeasurementVector;
+    UKF_MEASUREMENT_DIM> MeasurementVector;
 
 /*
 Typedef for control vector. It is dynamic in order to allow different dynamics
@@ -91,11 +96,5 @@ typedef Eigen::Matrix<
     UKF_CONTROL_DIM> ControlVector;
 
 typedef Eigen::Matrix<real_t, 6, 1> AccelerationVector;
-
-#else
-
-
-
-#endif
 
 #endif
