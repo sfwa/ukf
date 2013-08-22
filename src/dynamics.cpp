@@ -21,8 +21,6 @@ SOFTWARE.
 */
 
 #include <cmath>
-#include <Eigen/Core>
-#include <Eigen/Geometry>
 
 #include "types.h"
 #include "dynamics.h"
@@ -84,10 +82,10 @@ const State &in, const ControlVector &control) const {
     airflow = attitude * (in.wind_velocity() - in.velocity());
     v = airflow.norm();
 
-    if (v < DYNAMICS_MIN_V || v > DYNAMICS_MAX_V ||
-            std::abs(yaw_rate) > DYNAMICS_MAX_RATE ||
-            std::abs(roll_rate) > DYNAMICS_MAX_RATE ||
-            std::abs(pitch_rate) > DYNAMICS_MAX_RATE) {
+    if (v < UKF_DYNAMICS_MIN_V || v > UKF_DYNAMICS_MAX_V ||
+            std::abs(yaw_rate) > UKF_DYNAMICS_MAX_RATE ||
+            std::abs(roll_rate) > UKF_DYNAMICS_MAX_RATE ||
+            std::abs(pitch_rate) > UKF_DYNAMICS_MAX_RATE) {
         /* Airflow too slow or too fast for any of this to work */
         return AccelerationVector();
     }
@@ -154,39 +152,39 @@ const State &in, const ControlVector &control) const {
     /*
     Set up the side force coefficient vector, and calculate side force
     */
-    Eigen::Matrix<real_t, 8 + CONTROL_MAX_DIM, 1> side_coeffs;
+    Eigen::Matrix<real_t, 8 + UKF_CONTROL_DIM, 1> side_coeffs;
     side_coeffs.segment<8>(0) << alpha2, alpha, beta2, beta,
                                  alpha2 * beta, alpha * beta,
                                  yaw_rate, roll_rate;
-    side_coeffs.segment<CONTROL_MAX_DIM>(8) << control;
+    side_coeffs.segment<UKF_CONTROL_DIM>(8) << control;
 
     real_t side_force = side_coeffs.dot(c_side_force);
 
     /*
     Calculate pitch moment
     */
-    Eigen::Matrix<real_t, 2 + CONTROL_MAX_DIM, 1> pitch_coeffs;
+    Eigen::Matrix<real_t, 2 + UKF_CONTROL_DIM, 1> pitch_coeffs;
     pitch_coeffs.segment<2>(0) <<
         alpha, pitch_rate * pitch_rate * (pitch_rate < 0.0 ? -1.0 : 1.0);
-    pitch_coeffs.segment<CONTROL_MAX_DIM>(2) << control;
+    pitch_coeffs.segment<UKF_CONTROL_DIM>(2) << control;
 
     real_t pitch_moment = pitch_coeffs.dot(c_pitch_moment);
 
     /*
     Roll moment
     */
-    Eigen::Matrix<real_t, 1 + CONTROL_MAX_DIM, 1> roll_coeffs;
+    Eigen::Matrix<real_t, 1 + UKF_CONTROL_DIM, 1> roll_coeffs;
     roll_coeffs[0] = roll_rate;
-    roll_coeffs.segment<CONTROL_MAX_DIM>(1) << control;
+    roll_coeffs.segment<UKF_CONTROL_DIM>(1) << control;
 
     real_t roll_moment = roll_coeffs.dot(c_roll_moment);
 
     /*
     Yaw moment
     */
-    Eigen::Matrix<real_t, 2 + CONTROL_MAX_DIM, 1> yaw_coeffs;
+    Eigen::Matrix<real_t, 2 + UKF_CONTROL_DIM, 1> yaw_coeffs;
     yaw_coeffs.segment<2>(0) << beta, yaw_rate;
-    yaw_coeffs.segment<CONTROL_MAX_DIM>(2) << control;
+    yaw_coeffs.segment<UKF_CONTROL_DIM>(2) << control;
 
     real_t yaw_moment = yaw_coeffs.dot(c_yaw_moment);
 

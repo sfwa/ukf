@@ -21,8 +21,6 @@ SOFTWARE.
 */
 
 #include <cmath>
-#include <Eigen/Core>
-#include <Eigen/Geometry>
 
 #include "types.h"
 #include "state.h"

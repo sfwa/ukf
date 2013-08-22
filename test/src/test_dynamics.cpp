@@ -1,9 +1,8 @@
 #include <gtest/gtest.h>
-#include <Eigen/Core>
-#include <Eigen/Geometry>
 #include "types.h"
 #include "state.h"
 #include "dynamics.h"
+#include "comparisons.h"
 
 TEST(CentripetalModelTest, Instantiation) {
     CentripetalModel test = CentripetalModel();
@@ -24,12 +23,12 @@ TEST(CentripetalModelTest, XAxisPositive) {
 
     accelerations = model.evaluate(test, ControlVector());
 
-    EXPECT_EQ(accelerations(0), 0);
-    EXPECT_EQ(accelerations(1), 0);
-    EXPECT_EQ(accelerations(2), -10);
-    EXPECT_EQ(accelerations(3), 0);
-    EXPECT_EQ(accelerations(4), 0);
-    EXPECT_EQ(accelerations(5), 0);
+    EXPECT_EQ(0, accelerations[0]);
+    EXPECT_EQ(0, accelerations[1]);
+    EXPECT_EQ(-10, accelerations[2]);
+    EXPECT_EQ(0, accelerations[3]);
+    EXPECT_EQ(0, accelerations[4]);
+    EXPECT_EQ(0, accelerations[5]);
 }
 
 TEST(CentripetalModelTest, XAxisNegative) {
@@ -47,12 +46,12 @@ TEST(CentripetalModelTest, XAxisNegative) {
 
     accelerations = model.evaluate(test, ControlVector());
 
-    EXPECT_EQ(accelerations(0), 0);
-    EXPECT_EQ(accelerations(1), 0);
-    EXPECT_EQ(accelerations(2), 10);
-    EXPECT_EQ(accelerations(3), 0);
-    EXPECT_EQ(accelerations(4), 0);
-    EXPECT_EQ(accelerations(5), 0);
+    EXPECT_EQ(0, accelerations[0]);
+    EXPECT_EQ(0, accelerations[1]);
+    EXPECT_EQ(10, accelerations[2]);
+    EXPECT_EQ(0, accelerations[3]);
+    EXPECT_EQ(0, accelerations[4]);
+    EXPECT_EQ(0, accelerations[5]);
 }
 
 TEST(CentripetalModelTest, YAxisPositive) {
@@ -70,12 +69,12 @@ TEST(CentripetalModelTest, YAxisPositive) {
 
     accelerations = model.evaluate(test, ControlVector());
 
-    EXPECT_EQ(accelerations(0), 10);
-    EXPECT_EQ(accelerations(1), 0);
-    EXPECT_EQ(accelerations(2), 0);
-    EXPECT_EQ(accelerations(3), 0);
-    EXPECT_EQ(accelerations(4), 0);
-    EXPECT_EQ(accelerations(5), 0);
+    EXPECT_EQ(10, accelerations[0]);
+    EXPECT_EQ(0, accelerations[1]);
+    EXPECT_EQ(0, accelerations[2]);
+    EXPECT_EQ(0, accelerations[3]);
+    EXPECT_EQ(0, accelerations[4]);
+    EXPECT_EQ(0, accelerations[5]);
 }
 
 TEST(CentripetalModelTest, YAxisNegative) {
@@ -93,12 +92,12 @@ TEST(CentripetalModelTest, YAxisNegative) {
 
     accelerations = model.evaluate(test, ControlVector());
 
-    EXPECT_EQ(accelerations(0), -10);
-    EXPECT_EQ(accelerations(1), 0);
-    EXPECT_EQ(accelerations(2), 0);
-    EXPECT_EQ(accelerations(3), 0);
-    EXPECT_EQ(accelerations(4), 0);
-    EXPECT_EQ(accelerations(5), 0);
+    EXPECT_EQ(-10, accelerations[0]);
+    EXPECT_EQ(0, accelerations[1]);
+    EXPECT_EQ(0, accelerations[2]);
+    EXPECT_EQ(0, accelerations[3]);
+    EXPECT_EQ(0, accelerations[4]);
+    EXPECT_EQ(0, accelerations[5]);
 }
 
 TEST(CentripetalModelTest, ZAxisPositive) {
@@ -116,12 +115,12 @@ TEST(CentripetalModelTest, ZAxisPositive) {
 
     accelerations = model.evaluate(test, ControlVector());
 
-    EXPECT_EQ(accelerations(0), 0);
-    EXPECT_EQ(accelerations(1), -10);
-    EXPECT_EQ(accelerations(2), 0);
-    EXPECT_EQ(accelerations(3), 0);
-    EXPECT_EQ(accelerations(4), 0);
-    EXPECT_EQ(accelerations(5), 0);
+    EXPECT_EQ(0, accelerations[0]);
+    EXPECT_EQ(-10, accelerations[1]);
+    EXPECT_EQ(0, accelerations[2]);
+    EXPECT_EQ(0, accelerations[3]);
+    EXPECT_EQ(0, accelerations[4]);
+    EXPECT_EQ(0, accelerations[5]);
 }
 
 TEST(CentripetalModelTest, ZAxisNegative) {
@@ -139,10 +138,10 @@ TEST(CentripetalModelTest, ZAxisNegative) {
 
     accelerations = model.evaluate(test, ControlVector());
 
-    EXPECT_EQ(accelerations(0), 0);
-    EXPECT_EQ(accelerations(1), 10);
-    EXPECT_EQ(accelerations(2), 0);
-    EXPECT_EQ(accelerations(3), 0);
-    EXPECT_EQ(accelerations(4), 0);
-    EXPECT_EQ(accelerations(5), 0);
+    EXPECT_EQ(0, accelerations[0]);
+    EXPECT_EQ(10, accelerations[1]);
+    EXPECT_EQ(0, accelerations[2]);
+    EXPECT_EQ(0, accelerations[3]);
+    EXPECT_EQ(0, accelerations[4]);
+    EXPECT_EQ(0, accelerations[5]);
 }

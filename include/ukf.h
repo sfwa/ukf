@@ -23,16 +23,13 @@ SOFTWARE.
 #ifndef UKF_H
 #define UKF_H
 
-#include <Eigen/Core>
-
 #include "types.h"
 #include "state.h"
 #include "sensors.h"
 #include "integrator.h"
 #include "dynamics.h"
 
-#define UKF_DIM (StateCovarianceVector::RowsAtCompileTime)
-#define UKF_NUM_SIGMA (2*UKF_DIM + 1)
+#define UKF_NUM_SIGMA (2*UKF_STATE_DIM + 1)
 
 /*
 Definitions for parameters of the Scaled Unscented Transform.
@@ -47,8 +44,8 @@ Change Point Detection" by Ryan Tuner (2011) provide a more stable filter.
 #define UKF_ALPHA_2 (1.0)
 #define UKF_BETA (0.0)
 #define UKF_KAPPA (3.0)
-#define UKF_LAMBDA (UKF_ALPHA_2*(UKF_DIM + UKF_KAPPA) - UKF_DIM)
-#define UKF_DIM_PLUS_LAMBDA (UKF_ALPHA_2*(UKF_DIM + UKF_KAPPA))
+#define UKF_LAMBDA (UKF_ALPHA_2*(UKF_STATE_DIM + UKF_KAPPA) - UKF_STATE_DIM)
+#define UKF_DIM_PLUS_LAMBDA (UKF_ALPHA_2*(UKF_STATE_DIM + UKF_KAPPA))
 
 /*
 Definitions for parameters used to calculated MRP vectors.
@@ -75,8 +72,17 @@ class UnscentedKalmanFilter {
     /* State information and parameters. */
     State state;
     StateVectorCovariance state_covariance;
-    StateCovarianceVector process_noise_covariance;
+    ProcessCovariance process_noise_covariance;
 
+    /*
+    Reference to sensor model and pointer to dynamics model.
+    A dynamics model isn't required – if not provided, the filter will assume
+    constant angular and linear velocity for the process model.
+    */
+    SensorModel &sensor;
+    DynamicsModel *dynamics;
+
+#ifdef UKF_USE_EIGEN
     /* Intermediate variables used during filter iteration. */
     Eigen::Matrix<
         real_t,
@@ -87,7 +93,7 @@ class UnscentedKalmanFilter {
 
     Eigen::Matrix<
         real_t,
-        StateCovarianceVector::RowsAtCompileTime,
+        UKF_STATE_DIM,
         UKF_NUM_SIGMA> w_prime;
 
     Eigen::Matrix<
@@ -95,7 +101,7 @@ class UnscentedKalmanFilter {
         Eigen::Dynamic,
         UKF_NUM_SIGMA,
         0,
-        MEASUREMENT_MAX_DIM> z_prime;
+        UKF_MEASUREMENT_MAX_DIM> z_prime;
 
     MeasurementVector measurement_estimate_mean;
     Eigen::Matrix<
@@ -103,8 +109,8 @@ class UnscentedKalmanFilter {
         Eigen::Dynamic,
         Eigen::Dynamic,
         0,
-        MEASUREMENT_MAX_DIM,
-        MEASUREMENT_MAX_DIM> measurement_estimate_covariance;
+        UKF_MEASUREMENT_MAX_DIM,
+        UKF_MEASUREMENT_MAX_DIM> measurement_estimate_covariance;
 
     MeasurementVector innovation;
     Eigen::Matrix<
@@ -112,41 +118,33 @@ class UnscentedKalmanFilter {
         Eigen::Dynamic,
         Eigen::Dynamic,
         0,
-        MEASUREMENT_MAX_DIM,
-        MEASUREMENT_MAX_DIM> innovation_covariance;
+        UKF_MEASUREMENT_MAX_DIM,
+        UKF_MEASUREMENT_MAX_DIM> innovation_covariance;
 
     Eigen::Matrix<
         real_t,
-        StateCovarianceVector::RowsAtCompileTime,
+        UKF_STATE_DIM,
         Eigen::Dynamic,
         0,
-        StateCovarianceVector::RowsAtCompileTime,
-        MEASUREMENT_MAX_DIM> cross_correlation;
+        UKF_STATE_DIM,
+        UKF_MEASUREMENT_MAX_DIM> cross_correlation;
 
     Eigen::Matrix<
         real_t,
-        StateCovarianceVector::RowsAtCompileTime,
+        UKF_STATE_DIM,
         Eigen::Dynamic,
         0,
-        StateCovarianceVector::RowsAtCompileTime,
-        MEASUREMENT_MAX_DIM> kalman_gain;
-
-    /*
-    Reference to sensor model and pointer to dynamics model.
-    A dynamics model isn't required – if not provided, the filter will assume
-    constant angular and linear velocity for the process model.
-    */
-    SensorModel &sensor;
-    DynamicsModel *dynamics;
+        UKF_STATE_DIM,
+        UKF_MEASUREMENT_MAX_DIM> kalman_gain;
 
     /* Integrator object, depends on selection in `config.h`. */
-#ifdef INTEGRATOR_RK4
+#ifdef UKF_INTEGRATOR_RK4
     IntegratorRK4 integrator;
 #else
-#ifdef INTEGRATOR_HEUN
+#ifdef UKF_INTEGRATOR_HEUN
     IntegratorHeun integrator;
 #else
-#ifdef INTEGRATOR_EULER
+#ifdef UKF_INTEGRATOR_EULER
     IntegratorEuler integrator;
 #endif
 #endif
@@ -158,6 +156,8 @@ class UnscentedKalmanFilter {
     void calculate_innovation();
     void calculate_kalman_gain();
     void aposteriori_estimate();
+#endif
+
 public:
     UnscentedKalmanFilter(SensorModel &sensor_model);
     const State& get_state() const { return state; }
@@ -166,7 +166,7 @@ public:
         return state_covariance;
     }
     SensorModel* get_sensor_model() { return &sensor; }
-    void set_process_noise(StateCovarianceVector in) {
+    void set_process_noise(ProcessCovariance in) {
         process_noise_covariance = in;
     }
     void set_dynamics_model(DynamicsModel *in) { dynamics = in; }

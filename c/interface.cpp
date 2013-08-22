@@ -214,7 +214,7 @@ void ukf_iterate(float dt, real_t control_vector[4]) {
 void ukf_set_process_noise(real_t process_noise_covariance[24]) {
     Eigen::Map< Eigen::Matrix<real_t, 24, 1> > covariance_map =
         Eigen::Map< Eigen::Matrix<real_t, 24, 1> >(process_noise_covariance);
-    StateCovarianceVector covariance = covariance_map;
+    ProcessCovariance covariance = covariance_map;
     ukf.set_process_noise(covariance);
 }
 

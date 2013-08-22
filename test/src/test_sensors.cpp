@@ -1,9 +1,8 @@
 #include <gtest/gtest.h>
-#include <Eigen/Core>
-#include <Eigen/Geometry>
 #include "types.h"
 #include "state.h"
 #include "sensors.h"
+#include "comparisons.h"
 
 TEST(IOBoardModelTest, Instantiation) {
     IOBoardModel test = IOBoardModel(
@@ -13,7 +12,7 @@ TEST(IOBoardModelTest, Instantiation) {
         Quaternionr(1, 0, 0, 0),
         Vector3r(0, 0, 0));
 
-    EXPECT_EQ(test.collate(), MeasurementVector());
+    EXPECT_EQ(MeasurementVector(), test.collate());
 }
 
 TEST(IOBoardModelTest, SetAccelerometer) {
@@ -28,7 +27,7 @@ TEST(IOBoardModelTest, SetAccelerometer) {
     test.set_accelerometer(Vector3r(1, 2, 3));
     target << 1, 2, 3;
 
-    EXPECT_EQ(test.collate(), target);
+    EXPECT_EQ(target, test.collate());
 }
 
 TEST(IOBoardModelTest, SetGyroscope) {
@@ -43,7 +42,7 @@ TEST(IOBoardModelTest, SetGyroscope) {
     test.set_gyroscope(Vector3r(1, 2, 3));
     target << 1, 2, 3;
 
-    EXPECT_EQ(test.collate(), target);
+    EXPECT_EQ(target, test.collate());
 }
 
 TEST(IOBoardModelTest, SetMagnetometer) {
@@ -58,7 +57,7 @@ TEST(IOBoardModelTest, SetMagnetometer) {
     test.set_magnetometer(Vector3r(1, 2, 3));
     target << 1, 2, 3;
 
-    EXPECT_EQ(test.collate(), target);
+    EXPECT_EQ(target, test.collate());
 }
 
 TEST(IOBoardModelTest, SetGPSPosition) {
@@ -73,7 +72,7 @@ TEST(IOBoardModelTest, SetGPSPosition) {
     test.set_gps_position(Vector3r(1, 2, 3));
     target << 1, 2, 3;
 
-    EXPECT_EQ(test.collate(), target);
+    EXPECT_EQ(target, test.collate());
 }
 
 TEST(IOBoardModelTest, SetGPSVelocity) {
@@ -88,7 +87,7 @@ TEST(IOBoardModelTest, SetGPSVelocity) {
     test.set_gps_velocity(Vector3r(1, 2, 3));
     target << 1, 2, 3;
 
-    EXPECT_EQ(test.collate(), target);
+    EXPECT_EQ(target, test.collate());
 }
 
 TEST(IOBoardModelTest, SetPitotTAS) {
@@ -103,7 +102,7 @@ TEST(IOBoardModelTest, SetPitotTAS) {
     test.set_pitot_tas(1);
     target << 1;
 
-    EXPECT_EQ(test.collate(), target);
+    EXPECT_EQ(target, test.collate());
 }
 
 TEST(IOBoardModelTest, SetBarometerAMSL) {
@@ -118,7 +117,7 @@ TEST(IOBoardModelTest, SetBarometerAMSL) {
     test.set_barometer_amsl(1);
     target << 1;
 
-    EXPECT_EQ(test.collate(), target);
+    EXPECT_EQ(target, test.collate());
 }
 
 TEST(IOBoardModelTest, SetMultipleInOrder) {
@@ -135,7 +134,7 @@ TEST(IOBoardModelTest, SetMultipleInOrder) {
     test.set_barometer_amsl(7);
     target << 1, 2, 3, 4, 5, 6, 7;
 
-    EXPECT_EQ(test.collate(), target);
+    EXPECT_EQ(target, test.collate());
 }
 
 TEST(IOBoardModelTest, SetMultipleOutOfOrder) {
@@ -153,7 +152,7 @@ TEST(IOBoardModelTest, SetMultipleOutOfOrder) {
     test.set_gps_velocity(Vector3r(7, 8, 9));
     target << 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
 
-    EXPECT_EQ(test.collate(), target);
+    EXPECT_EQ(target, test.collate());
 }
 
 TEST(IOBoardModelTest, SetThenClear) {
@@ -169,7 +168,7 @@ TEST(IOBoardModelTest, SetThenClear) {
     test.set_barometer_amsl(7);
     test.clear();
 
-    EXPECT_EQ(test.collate(), MeasurementVector());
+    EXPECT_EQ(MeasurementVector(), test.collate());
 }
 
 TEST(IOBoardModelTest, PredictAccelerometer) {
@@ -193,7 +192,7 @@ TEST(IOBoardModelTest, PredictAccelerometer) {
     test.set_accelerometer(Vector3r(0, 0, 0));
 
     target << 1, 2, 3, 0, G_ACCEL, 0;
-    EXPECT_TRUE(test.predict(test_state).isApprox(target, 0.001));
+    EXPECT_MEASUREMENT_EQ(target, test.predict(test_state));
 
     test = IOBoardModel(
         Quaternionr(1, 0, 0, 0),
@@ -213,7 +212,7 @@ TEST(IOBoardModelTest, PredictAccelerometer) {
     test.set_accelerometer(Vector3r(0, 0, 0));
 
     target << -1, 1, 0, 0, 0, -G_ACCEL;
-    EXPECT_TRUE(test.predict(test_state).isApprox(target, 0.001));
+    EXPECT_MEASUREMENT_EQ(target, test.predict(test_state));
 }
 
 TEST(IOBoardModelTest, PredictGyroscope) {
@@ -235,7 +234,7 @@ TEST(IOBoardModelTest, PredictGyroscope) {
 
     test.set_gyroscope(Vector3r(0, 0, 0));
 
-    EXPECT_EQ(test.predict(test_state), Vector3r(4, 5, 6));
+    EXPECT_MEASUREMENT_EQ(Vector3r(4, 5, 6), test.predict(test_state));
 }
 
 TEST(IOBoardModelTest, PredictMagnetometer) {
@@ -257,8 +256,7 @@ TEST(IOBoardModelTest, PredictMagnetometer) {
 
     test.set_magnetometer(Vector3r(0, 0, 0));
 
-    EXPECT_TRUE(test.predict(test_state).isApprox(
-        Vector3r(7, -9, 8), 0.001));
+    EXPECT_MEASUREMENT_EQ(Vector3r(7, -9, 8), test.predict(test_state));
 }
 
 TEST(IOBoardModelTest, PredictGPSPosition) {
@@ -280,8 +278,7 @@ TEST(IOBoardModelTest, PredictGPSPosition) {
 
     test.set_gps_position(Vector3r(0, 0, 0));
 
-    EXPECT_TRUE(test.predict(test_state).isApprox(
-        Vector3r(-37, 145, 0), 0.001));
+    EXPECT_MEASUREMENT_EQ(Vector3r(-37, 145, 0), test.predict(test_state));
 }
 
 TEST(IOBoardModelTest, PredictGPSVelocity) {
@@ -303,8 +300,7 @@ TEST(IOBoardModelTest, PredictGPSVelocity) {
 
     test.set_gps_velocity(Vector3r(0, 0, 0));
 
-    EXPECT_TRUE(test.predict(test_state).isApprox(
-        Vector3r(7, 8, 9), 0.001));
+    EXPECT_MEASUREMENT_EQ(Vector3r(7, 8, 9), test.predict(test_state));
 }
 
 TEST(IOBoardModelTest, PredictPitotTAS) {
@@ -326,7 +322,7 @@ TEST(IOBoardModelTest, PredictPitotTAS) {
 
     test.set_pitot_tas(0);
 
-    EXPECT_EQ(test.predict(test_state)(0), 6);
+    EXPECT_EQ(6, test.predict(test_state)(0));
 }
 
 TEST(IOBoardModelTest, PredictBarometerAMSL) {
@@ -348,5 +344,5 @@ TEST(IOBoardModelTest, PredictBarometerAMSL) {
 
     test.set_barometer_amsl(0);
 
-    EXPECT_TRUE(abs(test.predict(test_state)(0) - 150) < 0.1);
+    EXPECT_GE(0.1, std::abs(test.predict(test_state)(0) - 150));
 }

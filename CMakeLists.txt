@@ -28,9 +28,7 @@ ADD_LIBRARY(ukf STATIC
     src/state.cpp
     src/dynamics.cpp
     src/sensors.cpp
-    src/ukf.cpp
-    src/ukf-estimates.cpp
-    src/ukf-gain.cpp)
+    src/ukf.cpp)
 
 ADD_SUBDIRECTORY(c EXCLUDE_FROM_ALL)
 

@@ -23,22 +23,31 @@ SOFTWARE.
 #ifndef CONFIG_H_
 #define CONFIG_H_
 
-/* Uncomment one of the following to select the float-point precision */
-/* #define SINGLE_PRECISION */
-#define DOUBLE_PRECISION
+/* Whether to use Eigen3 or architecture-specific implementations */
+#define UKF_USE_EIGEN
 
-/* Precision limit for certain calculations. */
-#define TOOSMALL 1e-20
+/* Uncomment one of the following to select the float-point precision */
+/* #define UKF_SINGLE_PRECISION */
+#define UKF_DOUBLE_PRECISION
 
 /*
 Choose the integration method here:
-    - INTEGRATOR_RK4: 4th-order integration method. Requires most CPU time.
-    - INTEGRATOR_HEUN: 2nd-order Heun's method. Requires middle CPU time.
-    - INTEGRATOR_EULER: 1st-orer Euler's method. Requires least CPU time.
+    - UKF_INTEGRATOR_RK4: 4th-order integration method. Requires most CPU time.
+    - UKF_INTEGRATOR_HEUN: 2nd-order Heun's method. Requires middle CPU time.
+    - UKF_INTEGRATOR_EULER: 1st-orer Euler's method. Requires least CPU time.
 */
 
-#define INTEGRATOR_RK4
-//#define INTEGRATOR_HEUN
-//#define INTEGRATOR_EULER
+#define UKF_INTEGRATOR_RK4
+/* #define UKF_INTEGRATOR_HEUN */
+/* #define UKF_INTEGRATOR_EULER */
+
+/*
+UKF vector dimensioning: note that the UKF state vector is one element larger
+than UKF_STATE_DIM, as the attitude is stored as a quaternion.
+*/
+
+#define UKF_CONTROL_DIM 4
+#define UKF_STATE_DIM 24
+#define UKF_MEASUREMENT_MAX_DIM 32
 
 #endif

@@ -1,13 +1,11 @@
 #include <gtest/gtest.h>
-#include <Eigen/Core>
-#include <Eigen/Geometry>
 #include "types.h"
 #include "state.h"
 #include "sensors.h"
 #include "dynamics.h"
 #include "ukf.h"
+#include "comparisons.h"
 
-#include <iostream>
 #include <xmmintrin.h>
 
 TEST(UKFTest, Instantiation) {
@@ -49,17 +47,14 @@ TEST(UKFTest, NoSensorConstantVelocity) {
         ukf.iterate(0.001, ControlVector());
     }
 
-    EXPECT_TRUE(ukf.get_state().position().isApprox(
-        Eigen::Matrix<real_t, 3, 1>(1.5785803e-05, 0, 0), 1e-7));
-    EXPECT_TRUE(ukf.get_state().velocity().isApprox(
-        Eigen::Matrix<real_t, 3, 1>(10, 0, 0), 0.001));
-    EXPECT_TRUE(ukf.get_state().acceleration().isApprox(
-        Eigen::Matrix<real_t, 3, 1>(0, 0, 0), 0.001));
-    EXPECT_TRUE(ukf.get_state().attitude().isApprox(
-        Eigen::Matrix<real_t, 4, 1>(0, 0, 0.958924, 0.283662), 0.01));
-    EXPECT_TRUE(ukf.get_state().angular_velocity().isApprox(
-        Eigen::Matrix<real_t, 3, 1>(0, 0, 1), 0.001));
-    EXPECT_TRUE(ukf.get_state().angular_acceleration().isZero(0.001));
+    EXPECT_VECTOR_EQ(Vector3r(1.5785803e-05, 0, 0),
+        ukf.get_state().position());
+    EXPECT_VECTOR_EQ(Vector3r(10, 0, 0), ukf.get_state().velocity());
+    EXPECT_VECTOR_EQ(Vector3r(0, 0, 0), ukf.get_state().acceleration());
+    EXPECT_QUATERNION_EQ(Quaternionr(0.283662, 0, 0, 0.958924),
+        Quaternionr(ukf.get_state().attitude()));
+    EXPECT_VECTOR_EQ(Vector3r(0, 0, 1), ukf.get_state().angular_velocity());
+    EXPECT_GE(0.001, ukf.get_state().angular_acceleration().norm());
 }
 
 TEST(UKFTest, NoSensorCircularMotion) {
@@ -88,18 +83,14 @@ TEST(UKFTest, NoSensorCircularMotion) {
         ukf.iterate(0.001, ControlVector());
     }
 
-    EXPECT_TRUE(
-        (ukf.get_state().position() - Vector3r(0, 0, 0)).isZero(1));
-    EXPECT_TRUE(ukf.get_state().velocity().isApprox(
-        Eigen::Matrix<real_t, 3, 1>(10, 0, 0), 0.05));
-    EXPECT_TRUE(ukf.get_state().acceleration().isApprox(
-        Eigen::Matrix<real_t, 3, 1>(0, 6.283, 0), 0.001));
-    Quaternionr attitude = Quaternionr(ukf.get_state().attitude());
-    EXPECT_TRUE(ukf.get_state().attitude().isApprox(
-        Eigen::Matrix<real_t, 4, 1>(0, 0, 0, 1), 0.01));
-    EXPECT_TRUE(ukf.get_state().angular_velocity().isApprox(
-        Eigen::Matrix<real_t, 3, 1>(0, 0, 0.6283), 0.001));
-    EXPECT_TRUE(ukf.get_state().angular_acceleration().isZero(0.001));
+    EXPECT_VECTOR_EQ(Vector3r(0, 0, 0), ukf.get_state().position());
+    EXPECT_VECTOR_EQ(Vector3r(10, 0, 0), ukf.get_state().velocity());
+    EXPECT_VECTOR_EQ(Vector3r(0, 6.283, 0), ukf.get_state().acceleration());
+    EXPECT_QUATERNION_EQ(Quaternionr(1, 0, 0, 0),
+        Quaternionr(ukf.get_state().attitude()));
+    EXPECT_VECTOR_EQ(Vector3r(0, 0, 0.6283),
+        ukf.get_state().angular_velocity());
+    EXPECT_GE(0.001, ukf.get_state().angular_acceleration().norm());
 }
 
 TEST(UKFTest, AccelerometerConstantAngularVelocity) {
@@ -153,8 +144,8 @@ TEST(UKFTest, AccelerometerConstantAngularVelocity) {
         ukf.iterate(0.001, ControlVector());
     }
 
-    EXPECT_TRUE(ukf.get_state().attitude().isApprox(
-        Eigen::Matrix<real_t, 4, 1>(0, 0.958924, 0, 0.283662), 0.1));
+    EXPECT_QUATERNION_EQ(Quaternionr(0.283662, 0, 0.958924, 0),
+        Quaternionr(ukf.get_state().attitude()));
 }
 
 TEST(UKFTest, GyroscopeConstantAngularVelocity) {
@@ -194,8 +185,8 @@ TEST(UKFTest, GyroscopeConstantAngularVelocity) {
         ukf.iterate(0.01, ControlVector());
     }
 
-    EXPECT_TRUE(ukf.get_state().attitude().isApprox(
-        Eigen::Matrix<real_t, 4, 1>(0, 0.958924, 0, 0.283662), 0.01));
+    EXPECT_QUATERNION_EQ(Quaternionr(0.283662, 0, 0.958924, 0),
+        Quaternionr(ukf.get_state().attitude()));
 }
 
 TEST(UKFTest, AngularSensorsConstantAngularVelocity) {
@@ -250,8 +241,8 @@ TEST(UKFTest, AngularSensorsConstantAngularVelocity) {
         ukf.iterate(0.01, ControlVector());
     }
 
-    EXPECT_TRUE(ukf.get_state().attitude().isApprox(
-        Eigen::Matrix<real_t, 4, 1>(0, 0.958924, 0, 0.283662), 0.01));
+    EXPECT_QUATERNION_EQ(Quaternionr(0.283662, 0, 0.958924, 0),
+        Quaternionr(ukf.get_state().attitude()));
 }
 
 TEST(UKFTest, MagnetometerAccelerometerAtRest) {
@@ -298,6 +289,6 @@ TEST(UKFTest, MagnetometerAccelerometerAtRest) {
         ukf.iterate(0.001, ControlVector());
     }
 
-    EXPECT_TRUE(ukf.get_state().attitude().isApprox(
-        Eigen::Matrix<real_t, 4, 1>(0, 0, 0.707107, 0.707107), 0.01));
+    EXPECT_QUATERNION_EQ(Quaternionr(0.707107, 0, 0, 0.707107),
+        Quaternionr(ukf.get_state().attitude()));
 }

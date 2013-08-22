@@ -23,23 +23,7 @@ SOFTWARE.
 #ifndef STATE_H
 #define STATE_H
 
-#include <Eigen/Core>
-
 #include "types.h"
-
-/* WGS84 reference ellipsoid constants */
-#define WGS84_A (6378137.0)
-#define WGS84_B (6356752.314245)
-#define WGS84_E2 (0.0066943799901975848)
-#define WGS84_A2 (WGS84_A*WGS84_A)
-#define WGS84_B2 (WGS84_B*WGS84_B)
-#define WGS84_AB2 (WGS84_A2*WGS84_B2)
-
-typedef Eigen::Matrix<real_t, 25, 1> StateVector;
-typedef Eigen::Matrix<real_t, 25, 1> StateVectorDerivative;
-
-typedef Eigen::Matrix<real_t, 24, 1> StateCovarianceVector;
-typedef Eigen::Matrix<real_t, 24, 24> StateVectorCovariance;
 
 /*
 Definition for filter state vector.

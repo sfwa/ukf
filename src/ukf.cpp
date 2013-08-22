@@ -20,8 +20,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include <Eigen/Core>
-#include <Eigen/Geometry>
 #include <cmath>
 
 #include "types.h"
@@ -44,13 +42,13 @@ and F. Landis Markley.
 
 UnscentedKalmanFilter::UnscentedKalmanFilter(SensorModel &sensor_model) :
 sensor(sensor_model) {
-#ifdef INTEGRATOR_RK4
+#ifdef UKF_INTEGRATOR_RK4
     integrator = IntegratorRK4();
 #else
-#ifdef INTEGRATOR_HEUN
+#ifdef UKF_INTEGRATOR_RK4
     integrator = IntegratorHeun();
 #else
-#ifdef INTEGRATOR_EULER
+#ifdef UKF_INTEGRATOR_RK4
     integrator = IntegratorEuler();
 #endif
 #endif
@@ -84,7 +82,7 @@ sensor(sensor_model) {
 
 /* Follows section 3.1, however we're using the scaled unscented transform. */
 void UnscentedKalmanFilter::create_sigma_points() {
-    Eigen::Matrix<real_t, UKF_DIM, UKF_DIM> S;
+    Eigen::Matrix<real_t, UKF_STATE_DIM, UKF_STATE_DIM> S;
 
     AssertNormalized(Quaternionr(state.attitude()));
 
@@ -101,7 +99,7 @@ void UnscentedKalmanFilter::create_sigma_points() {
     sigma_points.col(0) = state;
 
     /* For each column in S, create the two complementary sigma points. */
-    for(uint8_t i = 0; i < UKF_DIM; i++) {
+    for(uint8_t i = 0; i < UKF_STATE_DIM; i++) {
         /*
         Construct error quaternions using the MRP method, equation 34 from the
         Markley paper.
@@ -128,12 +126,13 @@ void UnscentedKalmanFilter::create_sigma_points() {
             state.segment<12>(13) + S.col(i).segment<12>(12);
 
         /* Create negative sigma point. */
-        sigma_points.col(i+1 + UKF_DIM).segment<9>(0) =
+        sigma_points.col(i+1 + UKF_STATE_DIM).segment<9>(0) =
             state.segment<9>(0) - S.col(i).segment<9>(0);
         temp = noise.conjugate() * Quaternionr(state.attitude());
         AssertNormalized(temp);
-        sigma_points.col(i+1 + UKF_DIM).segment<4>(9) << temp.vec(), temp.w();
-        sigma_points.col(i+1 + UKF_DIM).segment<12>(13) =
+        sigma_points.col(i+1 + UKF_STATE_DIM).segment<4>(9) <<
+            temp.vec(), temp.w();
+        sigma_points.col(i+1 + UKF_STATE_DIM).segment<12>(13) =
             state.segment<12>(13) - S.col(i).segment<12>(12);
     }
 }
@@ -192,9 +191,9 @@ void UnscentedKalmanFilter::apriori_estimate(real_t dt, ControlVector c) {
     Quaternion Space for Spacecraft Attitude Estimation" by Yee-Jin Cheon.
     The following algorithm implements equation (41d) from that paper.
     */
-    apriori_mean.segment<UKF_DIM+1>(0) =
+    apriori_mean.segment<UKF_STATE_DIM+1>(0) =
         UKF_SIGMA_WMI*sigma_points.block<
-            UKF_DIM+1, UKF_NUM_SIGMA-1>(0, 1).rowwise().sum() +
+            UKF_STATE_DIM+1, UKF_NUM_SIGMA-1>(0, 1).rowwise().sum() +
         UKF_SIGMA_WM0*sigma_points.col(0);
 
     /*
@@ -243,8 +242,8 @@ void UnscentedKalmanFilter::measurement_estimate() {
         Eigen::Dynamic,
         UKF_NUM_SIGMA,
         0,
-        MEASUREMENT_MAX_DIM> measurement_sigma_points(
-            sensor.size(), UKF_NUM_SIGMA);
+        UKF_MEASUREMENT_MAX_DIM> measurement_sigma_points(
+            (MeasurementVector::Index)sensor.size(), UKF_NUM_SIGMA);
 
     /*
     Run the a priori sigma points through the measurement model as per
@@ -314,7 +313,7 @@ The final update step is calculated using section 3.6, specifically with
 equations 74 and 75.
 */
 void UnscentedKalmanFilter::aposteriori_estimate() {
-    StateCovarianceVector update_temp;
+    ProcessCovariance update_temp;
 
     /*
     The update_temp vector will contain the attitude update as a vector, which

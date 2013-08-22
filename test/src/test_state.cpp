@@ -1,8 +1,7 @@
 #include <gtest/gtest.h>
-#include <Eigen/Core>
-#include <Eigen/Geometry>
 #include "types.h"
 #include "state.h"
+#include "comparisons.h"
 
 TEST(StateTest, Instantiation) {
     State test = State();
@@ -18,31 +17,31 @@ TEST(StateTest, Initialisation) {
             16, 17, 18,
             19, 20, 21,
             22, 23, 24;
-    EXPECT_EQ(test(0), 0);
-    EXPECT_EQ(test(1), 1);
-    EXPECT_EQ(test(2), 2);
-    EXPECT_EQ(test(3), 3);
-    EXPECT_EQ(test(4), 4);
-    EXPECT_EQ(test(5), 5);
-    EXPECT_EQ(test(6), 6);
-    EXPECT_EQ(test(7), 7);
-    EXPECT_EQ(test(8), 8);
-    EXPECT_EQ(test(9), 9);
-    EXPECT_EQ(test(10), 10);
-    EXPECT_EQ(test(11), 11);
-    EXPECT_EQ(test(12), 12);
-    EXPECT_EQ(test(13), 13);
-    EXPECT_EQ(test(14), 14);
-    EXPECT_EQ(test(15), 15);
-    EXPECT_EQ(test(16), 16);
-    EXPECT_EQ(test(17), 17);
-    EXPECT_EQ(test(18), 18);
-    EXPECT_EQ(test(19), 19);
-    EXPECT_EQ(test(20), 20);
-    EXPECT_EQ(test(21), 21);
-    EXPECT_EQ(test(22), 22);
-    EXPECT_EQ(test(23), 23);
-    EXPECT_EQ(test(24), 24);
+    EXPECT_EQ(0, test[0]);
+    EXPECT_EQ(1, test[1]);
+    EXPECT_EQ(2, test[2]);
+    EXPECT_EQ(3, test[3]);
+    EXPECT_EQ(4, test[4]);
+    EXPECT_EQ(5, test[5]);
+    EXPECT_EQ(6, test[6]);
+    EXPECT_EQ(7, test[7]);
+    EXPECT_EQ(8, test[8]);
+    EXPECT_EQ(9, test[9]);
+    EXPECT_EQ(10, test[10]);
+    EXPECT_EQ(11, test[11]);
+    EXPECT_EQ(12, test[12]);
+    EXPECT_EQ(13, test[13]);
+    EXPECT_EQ(14, test[14]);
+    EXPECT_EQ(15, test[15]);
+    EXPECT_EQ(16, test[16]);
+    EXPECT_EQ(17, test[17]);
+    EXPECT_EQ(18, test[18]);
+    EXPECT_EQ(19, test[19]);
+    EXPECT_EQ(20, test[20]);
+    EXPECT_EQ(21, test[21]);
+    EXPECT_EQ(22, test[22]);
+    EXPECT_EQ(23, test[23]);
+    EXPECT_EQ(24, test[24]);
 }
 
 TEST(StateTest, PositionAccessor) {
@@ -56,14 +55,10 @@ TEST(StateTest, PositionAccessor) {
             19, 20, 21,
             22, 23, 24;
 
-    EXPECT_EQ(test.position()(0), 0);
-    EXPECT_EQ(test.position()(1), 1);
-    EXPECT_EQ(test.position()(2), 2);
+    EXPECT_VECTOR_EQ(Vector3r(0, 1, 2), test.position());
 
     test.position() *= 2;
-    EXPECT_EQ(test(0), 0);
-    EXPECT_EQ(test(1), 2);
-    EXPECT_EQ(test(2), 4);
+    EXPECT_VECTOR_EQ(Vector3r(0, 2, 4), Vector3r(test[0], test[1], test[2]));
 }
 
 TEST(StateTest, VelocityAccessor) {
@@ -77,14 +72,10 @@ TEST(StateTest, VelocityAccessor) {
             19, 20, 21,
             22, 23, 24;
 
-    EXPECT_EQ(test.velocity()(0), 3);
-    EXPECT_EQ(test.velocity()(1), 4);
-    EXPECT_EQ(test.velocity()(2), 5);
+    EXPECT_VECTOR_EQ(Vector3r(3, 4, 5), test.velocity());
 
     test.velocity() *= 2;
-    EXPECT_EQ(test(3), 6);
-    EXPECT_EQ(test(4), 8);
-    EXPECT_EQ(test(5), 10);
+    EXPECT_VECTOR_EQ(Vector3r(6, 8, 10), Vector3r(test[3], test[4], test[5]));
 }
 
 TEST(StateTest, AccelerationAccessor) {
@@ -98,14 +89,11 @@ TEST(StateTest, AccelerationAccessor) {
             19, 20, 21,
             22, 23, 24;
 
-    EXPECT_EQ(test.acceleration()(0), 6);
-    EXPECT_EQ(test.acceleration()(1), 7);
-    EXPECT_EQ(test.acceleration()(2), 8);
+    EXPECT_VECTOR_EQ(Vector3r(6, 7, 8), test.acceleration());
 
     test.acceleration() *= 2;
-    EXPECT_EQ(test(6), 12);
-    EXPECT_EQ(test(7), 14);
-    EXPECT_EQ(test(8), 16);
+    EXPECT_VECTOR_EQ(Vector3r(12, 14, 16),
+        Vector3r(test[6], test[7], test[8]));
 }
 
 TEST(StateTest, AttitudeAccessor) {
@@ -120,16 +108,16 @@ TEST(StateTest, AttitudeAccessor) {
             19, 20, 21,
             22, 23, 24;
 
-    EXPECT_EQ(test.attitude()(0), 9);
-    EXPECT_EQ(test.attitude()(1), 10);
-    EXPECT_EQ(test.attitude()(2), 11);
-    EXPECT_EQ(test.attitude()(3), 12);
+    EXPECT_EQ(9, test.attitude()(0));
+    EXPECT_EQ(10, test.attitude()(1));
+    EXPECT_EQ(11, test.attitude()(2));
+    EXPECT_EQ(12, test.attitude()(3));
 
     test.attitude() << a.vec(), a.w();
-    EXPECT_EQ(test(9), 0);
-    EXPECT_EQ(test(10), 0);
-    EXPECT_EQ(test(11), 0);
-    EXPECT_EQ(test(12), 1);
+    EXPECT_EQ(0, test(9));
+    EXPECT_EQ(0, test(10));
+    EXPECT_EQ(0, test(11));
+    EXPECT_EQ(1, test(12));
 }
 
 TEST(StateTest, AngularVelocityAccessor) {
@@ -143,14 +131,11 @@ TEST(StateTest, AngularVelocityAccessor) {
             19, 20, 21,
             22, 23, 24;
 
-    EXPECT_EQ(test.angular_velocity()(0), 13);
-    EXPECT_EQ(test.angular_velocity()(1), 14);
-    EXPECT_EQ(test.angular_velocity()(2), 15);
+    EXPECT_VECTOR_EQ(Vector3r(13, 14, 15), test.angular_velocity());
 
     test.angular_velocity() *= 2;
-    EXPECT_EQ(test(13), 26);
-    EXPECT_EQ(test(14), 28);
-    EXPECT_EQ(test(15), 30);
+    EXPECT_VECTOR_EQ(Vector3r(26, 28, 30),
+        Vector3r(test[13], test[14], test[15]));
 }
 
 TEST(StateTest, AngularAccelerationAccessor) {
@@ -164,14 +149,11 @@ TEST(StateTest, AngularAccelerationAccessor) {
             19, 20, 21,
             22, 23, 24;
 
-    EXPECT_EQ(test.angular_acceleration()(0), 16);
-    EXPECT_EQ(test.angular_acceleration()(1), 17);
-    EXPECT_EQ(test.angular_acceleration()(2), 18);
+    EXPECT_VECTOR_EQ(Vector3r(16, 17, 18), test.angular_acceleration());
 
     test.angular_acceleration() *= 2;
-    EXPECT_EQ(test(16), 32);
-    EXPECT_EQ(test(17), 34);
-    EXPECT_EQ(test(18), 36);
+    EXPECT_VECTOR_EQ(Vector3r(32, 34, 36),
+        Vector3r(test[16], test[17], test[18]));
 }
 
 TEST(StateTest, WindVelocityAccessor) {
@@ -185,14 +167,11 @@ TEST(StateTest, WindVelocityAccessor) {
             19, 20, 21,
             22, 23, 24;
 
-    EXPECT_EQ(test.wind_velocity()(0), 19);
-    EXPECT_EQ(test.wind_velocity()(1), 20);
-    EXPECT_EQ(test.wind_velocity()(2), 21);
+    EXPECT_VECTOR_EQ(Vector3r(19, 20, 21), test.wind_velocity());
 
     test.wind_velocity() *= 2;
-    EXPECT_EQ(test(19), 38);
-    EXPECT_EQ(test(20), 40);
-    EXPECT_EQ(test(21), 42);
+    EXPECT_VECTOR_EQ(Vector3r(38, 40, 42),
+        Vector3r(test[19], test[20], test[21]));
 }
 
 TEST(StateTest, GyroBiasAccessor) {
@@ -206,14 +185,11 @@ TEST(StateTest, GyroBiasAccessor) {
             19, 20, 21,
             22, 23, 24;
 
-    EXPECT_EQ(test.gyro_bias()(0), 22);
-    EXPECT_EQ(test.gyro_bias()(1), 23);
-    EXPECT_EQ(test.gyro_bias()(2), 24);
+    EXPECT_VECTOR_EQ(Vector3r(22, 23, 24), test.gyro_bias());
 
     test.gyro_bias() *= 2;
-    EXPECT_EQ(test(22), 44);
-    EXPECT_EQ(test(23), 46);
-    EXPECT_EQ(test(24), 48);
+    EXPECT_VECTOR_EQ(Vector3r(44, 46, 48),
+        Vector3r(test[22], test[23], test[24]));
 }
 
 
@@ -231,22 +207,17 @@ TEST(StateTest, KinematicsModelBasic) {
 
     derivatives = test.model();
 
-    EXPECT_FLOAT_EQ(derivatives(0), 0);
-    EXPECT_FLOAT_EQ(derivatives(1), 1.5678559e-07);
-    EXPECT_EQ(derivatives(2), -2);
+    EXPECT_VECTOR_EQ(Vector3r(0, 1.5678559e-07, -2),
+        Vector3r(derivatives[0], derivatives[1], derivatives[2]));
+    EXPECT_VECTOR_EQ(Vector3r(3, 4, 5),
+        Vector3r(derivatives[3], derivatives[4], derivatives[5]));
+    EXPECT_VECTOR_EQ(Vector3r(6, 7, 8),
+        Vector3r(derivatives[13], derivatives[14], derivatives[15]));
 
-    EXPECT_EQ(derivatives(3), 3);
-    EXPECT_EQ(derivatives(4), 4);
-    EXPECT_EQ(derivatives(5), 5);
-
-    EXPECT_EQ(derivatives(9), -0.5);
-    EXPECT_EQ(derivatives(10), 0);
-    EXPECT_EQ(derivatives(11), 0);
-    EXPECT_EQ(derivatives(12), 0);
-
-    EXPECT_EQ(derivatives(13), 6);
-    EXPECT_EQ(derivatives(14), 7);
-    EXPECT_EQ(derivatives(15), 8);
+    EXPECT_FLOAT_EQ(-0.5, derivatives[9]);
+    EXPECT_FLOAT_EQ(0, derivatives[10]);
+    EXPECT_FLOAT_EQ(0, derivatives[11]);
+    EXPECT_FLOAT_EQ(0, derivatives[12]);
 }
 
 TEST(StateTest, KinematicsModelRotated) {
@@ -263,17 +234,16 @@ TEST(StateTest, KinematicsModelRotated) {
 
     derivatives = test.model();
 
-    EXPECT_FLOAT_EQ(derivatives(0), 0);
-    EXPECT_FLOAT_EQ(derivatives(1), 1.5678559e-07);
-    EXPECT_EQ(derivatives(2), -2);
+    EXPECT_VECTOR_EQ(Vector3r(0, 1.5678559e-07, -2),
+        Vector3r(derivatives[0], derivatives[1], derivatives[2]));
+    EXPECT_VECTOR_EQ(Vector3r(3, 5, -4),
+        Vector3r(derivatives[3], derivatives[4], derivatives[5]));
 
-    EXPECT_TRUE(derivatives.segment<3>(3).isApprox(
-        Eigen::Matrix<real_t, 3, 1>(3, 5, -4), 0.01));
+    EXPECT_QUATERNION_EQ(
+        Quaternionr(derivatives[12], derivatives[9], derivatives[10],
+            derivatives[11]),
+        Quaternionr(0.3535, -0.3535, 0, 0));
 
-    EXPECT_TRUE(derivatives.segment<4>(9).isApprox(
-        Eigen::Matrix<real_t, 4, 1>(-0.3535, 0, 0, 0.3535)));
-
-    EXPECT_EQ(derivatives(13), 6);
-    EXPECT_EQ(derivatives(14), 7);
-    EXPECT_EQ(derivatives(15), 8);
+    EXPECT_VECTOR_EQ(Vector3r(6, 7, 8),
+        Vector3r(derivatives[13], derivatives[14], derivatives[15]));
 }

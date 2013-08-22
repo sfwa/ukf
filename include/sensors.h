@@ -23,29 +23,8 @@ SOFTWARE.
 #ifndef SENSORS_H
 #define SENSORS_H
 
-#include <stdint.h>
-#include <string.h>
-#include <Eigen/Core>
-#include <Eigen/Geometry>
-
 #include "types.h"
 #include "state.h"
-
-#define MEASUREMENT_MAX_DIM (32)
-
-/*
-Typedef for measurement vector. It is dynamic in order to allow sensor values
-to be 'left out' if they're not available, but to avoid dynamic memory
-allocation, the MaxRowsAtCompileTime parameter is set to be equal to or
-greater than the largest possible measurement vector (if all sensor readings
-are available this time step).
-*/
-typedef Eigen::Matrix<
-    real_t,
-    Eigen::Dynamic,
-    1,
-    0,
-    MEASUREMENT_MAX_DIM> MeasurementVector;
 
 /*
 Sensor model base class. The public interface consists of the following:
@@ -61,7 +40,7 @@ Sensor model base class. The public interface consists of the following:
 class SensorModel {
 public:
     virtual ~SensorModel();
-    virtual MeasurementVector::Index size() const = 0;
+    virtual size_t size() const = 0;
     virtual MeasurementVector collate() const = 0;
     virtual MeasurementVector predict(const State &in) const = 0;
     virtual MeasurementVector get_covariance() const = 0;
@@ -152,7 +131,7 @@ public:
         clear();
     }
     void clear() { memset(&flags, 0, sizeof(flags)); }
-    MeasurementVector::Index size() const;
+    size_t size() const;
     MeasurementVector collate() const;
     MeasurementVector predict(const State &in) const;
     MeasurementVector get_covariance() const;

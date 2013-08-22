@@ -23,37 +23,20 @@ SOFTWARE.
 #ifndef DYNAMICS_H
 #define DYNAMICS_H
 
-#include <Eigen/Core>
-#include <Eigen/Geometry>
 #include <stdint.h>
 #include <cmath>
-
 
 #include "types.h"
 #include "state.h"
 
-#define CONTROL_MAX_DIM 4
 /* Disable dynamics model if velocity is less than 1m/s or greater than 100m/s */
-#define DYNAMICS_MIN_V 1.0
-#define DYNAMICS_MAX_V 100.0
+#define UKF_DYNAMICS_MIN_V 1.0
+#define UKF_DYNAMICS_MAX_V 100.0
 /* Disable dynamics model if angular velocity exceeds ~120deg/s */
-#define DYNAMICS_MAX_RATE (M_PI*0.63)
+#define UKF_DYNAMICS_MAX_RATE (M_PI*0.63)
 /* Airframe minimums */
-#define AIRFRAME_MIN_MASS 0.1
-#define AIRFRAME_MIN_MOMENT 1e-6
-
-/*
-Typedef for control vector. It is dynamic in order to allow different dynamics
-models to accept different numbers of control inputs.
-*/
-typedef Eigen::Matrix<
-    real_t,
-    Eigen::Dynamic,
-    1,
-    0,
-    CONTROL_MAX_DIM> ControlVector;
-
-typedef Eigen::Matrix<real_t, 6, 1> AccelerationVector;
+#define UKF_AIRFRAME_MIN_MASS 0.1
+#define UKF_AIRFRAME_MIN_MOMENT 1e-6
 
 /*
 Dynamics model base class. The public interface is via the evaluate() method,
@@ -103,7 +86,7 @@ class FixedWingFlightDynamicsModel: public DynamicsModel {
         yaw rate * qbar, roll rate * qbar,
         [control 0-3] * qbar
     */
-    Eigen::Matrix<real_t, 8 + CONTROL_MAX_DIM, 1> c_side_force;
+    Eigen::Matrix<real_t, 8 + UKF_CONTROL_DIM, 1> c_side_force;
 
     /*
     Coefficient vectors for aerodynamic moments:
@@ -112,7 +95,7 @@ class FixedWingFlightDynamicsModel: public DynamicsModel {
         Q^2 * sign(Q) * qbar
         control[0-3] * qbar
     */
-    Eigen::Matrix<real_t, 2 + CONTROL_MAX_DIM, 1> c_pitch_moment;
+    Eigen::Matrix<real_t, 2 + UKF_CONTROL_DIM, 1> c_pitch_moment;
 
     /*
     CN (yaw) -
@@ -120,17 +103,17 @@ class FixedWingFlightDynamicsModel: public DynamicsModel {
         R * qbar
         control[0-3] * qbar
     */
-    Eigen::Matrix<real_t, 2 + CONTROL_MAX_DIM, 1> c_yaw_moment;
+    Eigen::Matrix<real_t, 2 + UKF_CONTROL_DIM, 1> c_yaw_moment;
 
     /*
     CL (roll) -
         P * qbar
         control[0-3] * qbar
     */
-    Eigen::Matrix<real_t, 1 + CONTROL_MAX_DIM, 1> c_roll_moment;
+    Eigen::Matrix<real_t, 1 + UKF_CONTROL_DIM, 1> c_roll_moment;
 
     /* Store inverse inertia tensor for performance */
-    Eigen::Matrix<real_t, 3, 3> inertia_tensor_inv;
+    Matrix3x3r inertia_tensor_inv;
 
     /*
     Polynomial coefficients for varying alpha:
@@ -144,7 +127,7 @@ class FixedWingFlightDynamicsModel: public DynamicsModel {
     Vector3r motor_thrust;
 
     /* Motor control channel index */
-    ControlVector::Index motor_idx;
+    int8_t motor_idx;
 
 public:
     FixedWingFlightDynamicsModel(void) {
@@ -170,12 +153,12 @@ public:
 
     /* Airframe property and coefficient setters */
     void set_mass(real_t in_mass) {
-        assert(std::abs(in_mass) > AIRFRAME_MIN_MASS);
+        assert(std::abs(in_mass) > UKF_AIRFRAME_MIN_MASS);
         mass_inv = 1.0 / in_mass;
     }
 
     void set_inertia_tensor(
-    const Eigen::Matrix<real_t, 3, 3>& in_inertia_tensor) {
+    const Matrix3x3r& in_inertia_tensor) {
         inertia_tensor_inv = in_inertia_tensor.inverse();
     }
 
@@ -193,26 +176,26 @@ public:
     }
 
     void set_side_coeffs(
-    const Eigen::Matrix<real_t, 8 + CONTROL_MAX_DIM, 1>& in_coeffs) {
+    const Eigen::Matrix<real_t, 8 + UKF_CONTROL_DIM, 1>& in_coeffs) {
         c_side_force << in_coeffs;
     }
 
     void set_pitch_moment_coeffs(
-    const Eigen::Matrix<real_t, 2 + CONTROL_MAX_DIM, 1>& in_coeffs) {
+    const Eigen::Matrix<real_t, 2 + UKF_CONTROL_DIM, 1>& in_coeffs) {
         c_pitch_moment << in_coeffs;
     }
 
     void set_roll_moment_coeffs(
-    const Eigen::Matrix<real_t, 1 + CONTROL_MAX_DIM, 1>& in_coeffs) {
+    const Eigen::Matrix<real_t, 1 + UKF_CONTROL_DIM, 1>& in_coeffs) {
         c_roll_moment << in_coeffs;
     }
 
     void set_yaw_moment_coeffs(
-    const Eigen::Matrix<real_t, 2 + CONTROL_MAX_DIM, 1>& in_coeffs) {
+    const Eigen::Matrix<real_t, 2 + UKF_CONTROL_DIM, 1>& in_coeffs) {
         c_yaw_moment << in_coeffs;
     }
 
-    void set_motor_index(ControlVector::Index idx) {
+    void set_motor_index(int8_t idx) {
         motor_idx = idx;
     }
 };

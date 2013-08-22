@@ -13,7 +13,7 @@ SET_DIRECTORY_PROPERTIES(PROPERTIES EP_PREFIX .)
 ExternalProject_Add(
 googletest
 SVN_REPOSITORY http://googletest.googlecode.com/svn/trunk/
-TIMEOUT 10
+TIMEOUT 30
 # Disable install step
 INSTALL_COMMAND ""
 # Wrap download, configure and build steps in a script to log output
