@@ -42,4 +42,11 @@ SOFTWARE.
     assert(_res); \
 }
 
+typedef uint64_t cycles_t;
+inline cycles_t rdtsc() {
+    cycles_t result;
+    __asm__ __volatile__ ("rdtsc" : "=A" (result));
+    return result;
+}
+
 #endif

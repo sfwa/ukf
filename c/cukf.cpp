@@ -40,6 +40,10 @@ static CentripetalModel centripetal_model = CentripetalModel();
 static FixedWingFlightDynamicsModel fixed_wing_model =
     FixedWingFlightDynamicsModel();
 
+void ukf_init(void) {
+
+}
+
 void ukf_set_position(real_t lat, real_t lon, real_t alt) {
     State temp = ukf.get_state();
     temp.position() << lat, lon, alt;
@@ -99,10 +103,10 @@ void ukf_get_state(struct ukf_state_t *in) {
     in->acceleration[0] = current.acceleration()[0];
     in->acceleration[1] = current.acceleration()[1];
     in->acceleration[2] = current.acceleration()[2];
-    in->attitude[0] = current.attitude()[3];
-    in->attitude[1] = current.attitude()[0];
-    in->attitude[2] = current.attitude()[1];
-    in->attitude[3] = current.attitude()[2];
+    in->attitude[0] = current.attitude()[0];
+    in->attitude[1] = current.attitude()[1];
+    in->attitude[2] = current.attitude()[2];
+    in->attitude[3] = current.attitude()[3];
     in->angular_velocity[0] = current.angular_velocity()[0];
     in->angular_velocity[1] = current.angular_velocity()[1];
     in->angular_velocity[2] = current.angular_velocity()[2];
@@ -129,10 +133,10 @@ void ukf_set_state(struct ukf_state_t *in) {
         in->acceleration[0],
         in->acceleration[1],
         in->acceleration[2],
+        in->attitude[0],
         in->attitude[1],
         in->attitude[2],
         in->attitude[3],
-        in->attitude[0],
         in->angular_velocity[0],
         in->angular_velocity[1],
         in->angular_velocity[2],
@@ -189,24 +193,24 @@ void ukf_sensor_set_barometer_amsl(real_t amsl) {
 void ukf_set_params(struct ukf_ioboard_params_t *in) {
     model = IOBoardModel(
         Quaternionr(
+            in->accel_orientation[3],
             in->accel_orientation[0],
             in->accel_orientation[1],
-            in->accel_orientation[2],
-            in->accel_orientation[3]),
+            in->accel_orientation[2]),
         Vector3r(
             in->accel_offset[0],
             in->accel_offset[1],
             in->accel_offset[2]),
         Quaternionr(
+            in->gyro_orientation[3],
             in->gyro_orientation[0],
             in->gyro_orientation[1],
-            in->gyro_orientation[2],
-            in->gyro_orientation[3]),
+            in->gyro_orientation[2]),
         Quaternionr(
+            in->mag_orientation[3],
             in->mag_orientation[0],
             in->mag_orientation[1],
-            in->mag_orientation[2],
-            in->mag_orientation[3]),
+            in->mag_orientation[2]),
         Vector3r(
             in->mag_field[0],
             in->mag_field[1],

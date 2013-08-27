@@ -54,21 +54,21 @@ sensor(sensor_model) {
     state.attitude() << 0, 0, 0, 1;
 
     process_noise_covariance <<
-        1e-6, 1e-6, 1e-6,
-        1e-6, 1e-6, 1e-6,
-        1e-6, 1e-6, 1e-6,
-        1e-6, 1e-6, 1e-6,
-        1e-6, 1e-6, 1e-6,
-        1e-6, 1e-6, 1e-6,
-        1e-6, 1e-6, 1e-6,
-        1e-6, 1e-6, 1e-6;
+        (real_t)1e-6, (real_t)1e-6, (real_t)1e-6,
+        (real_t)1e-6, (real_t)1e-6, (real_t)1e-6,
+        (real_t)1e-6, (real_t)1e-6, (real_t)1e-6,
+        (real_t)1e-6, (real_t)1e-6, (real_t)1e-6,
+        (real_t)1e-6, (real_t)1e-6, (real_t)1e-6,
+        (real_t)1e-6, (real_t)1e-6, (real_t)1e-6,
+        (real_t)1e-6, (real_t)1e-6, (real_t)1e-6,
+        (real_t)1e-6, (real_t)1e-6, (real_t)1e-6;
 
     state_covariance = StateCovariance::Zero();
     state_covariance.diagonal() <<
-        M_PI * M_PI * 0.0625, M_PI * M_PI * 0.0625, 1000,
+        (real_t)M_PI * (real_t)M_PI * (real_t)0.0625, (real_t)M_PI * (real_t)M_PI * (real_t)0.0625, 1000,
         50, 50, 50,
         10, 10, 10,
-        M_PI * 0.25, M_PI * 0.25, M_PI * 0.25,
+        (real_t)M_PI * (real_t)0.25, (real_t)M_PI * (real_t)0.25, (real_t)M_PI * (real_t)0.25,
         2, 2, 2,
         5, 5, 5,
         20, 20, 20,
@@ -103,9 +103,9 @@ void UnscentedKalmanFilter::create_sigma_points() {
         Vector3r d_p = S.col(i).segment<3>(9);
         real_t x_2 = d_p.squaredNorm();
         real_t err_w = (-UKF_MRP_A * x_2 +
-            UKF_MRP_F * std::sqrt(UKF_MRP_F_2 + (1.0 - UKF_MRP_A_2) * x_2)) /
+            UKF_MRP_F * std::sqrt(UKF_MRP_F_2 + ((real_t)1.0 - UKF_MRP_A_2) * x_2)) /
             (UKF_MRP_F_2 + x_2);
-        Vector3r err_xyz = ((1.0 / UKF_MRP_F) * (UKF_MRP_A + err_w)) * d_p;
+        Vector3r err_xyz = (((real_t)1.0 / UKF_MRP_F) * (UKF_MRP_A + err_w)) * d_p;
         Quaternionr noise;
         noise.vec() = err_xyz;
         noise.w() = err_w;
@@ -122,13 +122,13 @@ void UnscentedKalmanFilter::create_sigma_points() {
             state.segment<12>(13) + S.col(i).segment<12>(12);
 
         /* Create negative sigma point. */
-        sigma_points.col(i+1 + UKF_STATE_DIM).segment<9>(0) =
+        sigma_points.col(i+1+UKF_STATE_DIM).segment<9>(0) =
             state.segment<9>(0) - S.col(i).segment<9>(0);
         temp = noise.conjugate() * Quaternionr(state.attitude());
         AssertNormalized(temp);
-        sigma_points.col(i+1 + UKF_STATE_DIM).segment<4>(9) <<
+        sigma_points.col(i+1+UKF_STATE_DIM).segment<4>(9) <<
             temp.vec(), temp.w();
-        sigma_points.col(i+1 + UKF_STATE_DIM).segment<12>(13) =
+        sigma_points.col(i+1+UKF_STATE_DIM).segment<12>(13) =
             state.segment<12>(13) - S.col(i).segment<12>(12);
     }
 }
@@ -324,9 +324,9 @@ void UnscentedKalmanFilter::aposteriori_estimate() {
     Vector3r d_p = update_temp.segment<3>(9);
     real_t x_2 = d_p.squaredNorm();
     real_t d_q_w = (-UKF_MRP_A * x_2 +
-        UKF_MRP_F * std::sqrt(UKF_MRP_F_2 + (1.0 - UKF_MRP_A_2) * x_2)) /
+        UKF_MRP_F * std::sqrt(UKF_MRP_F_2 + ((real_t)1.0 - UKF_MRP_A_2) * x_2)) /
         (UKF_MRP_F_2 + x_2);
-    Vector3r d_q_xyz = ((1.0 / UKF_MRP_F) * (UKF_MRP_A + d_q_w)) * d_p;
+    Vector3r d_q_xyz = (((real_t)1.0 / UKF_MRP_F) * (UKF_MRP_A + d_q_w)) * d_p;
     Quaternionr d_q;
     d_q.vec() = d_q_xyz;
     d_q.w() = d_q_w;

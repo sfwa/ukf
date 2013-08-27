@@ -41,9 +41,9 @@ Most literature seems to quote about 1e-3 for alpha (1e-6 for alpha^2), but
 the parameters suggested in "Gaussian Processes for State Space Models and
 Change Point Detection" by Ryan Tuner (2011) provide a more stable filter.
 */
-#define UKF_ALPHA_2 (1.0)
-#define UKF_BETA (0.0)
-#define UKF_KAPPA (3.0)
+#define UKF_ALPHA_2 ((real_t)1.0)
+#define UKF_BETA ((real_t)0.0)
+#define UKF_KAPPA ((real_t)3.0)
 #define UKF_LAMBDA (UKF_ALPHA_2*(UKF_STATE_DIM + UKF_KAPPA) - UKF_STATE_DIM)
 #define UKF_DIM_PLUS_LAMBDA (UKF_ALPHA_2*(UKF_STATE_DIM + UKF_KAPPA))
 
@@ -51,9 +51,9 @@ Change Point Detection" by Ryan Tuner (2011) provide a more stable filter.
 Definitions for parameters used to calculated MRP vectors.
 See the Markley paper for further details.
 */
-#define UKF_MRP_A (1.0)
+#define UKF_MRP_A ((real_t)1.0)
 #define UKF_MRP_A_2 (UKF_MRP_A*UKF_MRP_A)
-#define UKF_MRP_F (2.0*(UKF_MRP_A + 1))
+#define UKF_MRP_F ((real_t)2.0*(UKF_MRP_A + 1))
 #define UKF_MRP_F_2 (UKF_MRP_F*UKF_MRP_F)
 
 /*
@@ -61,8 +61,8 @@ Definitions for sigma point weights. The naming convention follows that used
 in in the paper given above.
 */
 #define UKF_SIGMA_WM0 (UKF_LAMBDA/(UKF_DIM_PLUS_LAMBDA))
-#define UKF_SIGMA_WC0 (UKF_SIGMA_WM0 + (1.0 - UKF_ALPHA_2 + UKF_BETA))
-#define UKF_SIGMA_WMI (1.0/(2.0*(UKF_DIM_PLUS_LAMBDA)))
+#define UKF_SIGMA_WC0 (UKF_SIGMA_WM0 + ((real_t)1.0 - UKF_ALPHA_2 + UKF_BETA))
+#define UKF_SIGMA_WMI ((real_t)1.0/((real_t)2.0*(UKF_DIM_PLUS_LAMBDA)))
 #define UKF_SIGMA_WCI (UKF_SIGMA_WMI)
 
 /*

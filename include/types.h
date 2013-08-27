@@ -37,9 +37,9 @@ typedef double real_t;
 #define RHO ((real_t)1.225)
 
 /* WGS84 reference ellipsoid constants */
-#define WGS84_A (6378137.0)
-#define WGS84_B (6356752.314245)
-#define WGS84_E2 (0.0066943799901975848)
+#define WGS84_A ((real_t)6378137.0)
+#define WGS84_B ((real_t)6356752.314245)
+#define WGS84_E2 ((real_t)0.0066943799901975848)
 #define WGS84_A2 (WGS84_A*WGS84_A)
 #define WGS84_B2 (WGS84_B*WGS84_B)
 #define WGS84_AB2 (WGS84_A2*WGS84_B2)

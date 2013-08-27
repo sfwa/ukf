@@ -216,7 +216,6 @@ MeasurementVector IOBoardModel::get_covariance() const {
         max_size -= 3;
     }
     MeasurementVector out_covariance(max_size);
-    Vector3r temp_3d;
 
     if(flags.accelerometer) {
         out_covariance.segment<3>(i) << covariance.segment<3>(0);

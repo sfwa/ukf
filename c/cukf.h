@@ -88,6 +88,8 @@ struct ukf_state_t {
     real_t gyro_bias[3];
 };
 
+void ukf_init(void);
+
 /* Functions for setting different parts of the state vector. */
 void ukf_set_position(real_t lat, real_t lon, real_t alt);
 void ukf_set_velocity(real_t x, real_t y, real_t z);

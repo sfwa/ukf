@@ -6,7 +6,7 @@ Quaternionr a, Quaternionr b) {
     a.normalize();
     b.normalize();
 
-    real_t angle = 2.0 * acos(std::abs(a.dot(b)));
+    real_t angle = (real_t)2.0 * acos(std::abs(a.dot(b)));
 
     if (angle < 0.02) {
         return ::testing::AssertionSuccess();
@@ -25,7 +25,7 @@ const char* expected_expression, const char* actual_expression,
 Vector3r a, Vector3r b) {
     real_t d = (a - b).norm(), an = a.norm();
 
-    if (d / std::max(an, 1e-3) < 0.01) {
+    if (d / std::max(an, (real_t)1e-3) < 0.01) {
         return ::testing::AssertionSuccess();
     } else {
         return ::testing::AssertionFailure() <<

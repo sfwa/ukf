@@ -90,7 +90,7 @@ const State &in, const ControlVector &control) const {
         return AccelerationVector();
     }
 
-    v_inv = 1.0 / v;
+    v_inv = (real_t)1.0 / v;
 
     /*
     Lift is always perpendicular to airflow, drag is always parallel, and
@@ -102,7 +102,7 @@ const State &in, const ControlVector &control) const {
 
     /* Determine alpha and beta: alpha = atan(wz/wx), beta = atan(wy/|wxz|) */
     real_t alpha, beta, qbar, alpha2, beta2;
-    qbar = RHO * v * v * 0.5;
+    qbar = RHO * v * v * (real_t)0.5;
     alpha = std::atan2(-airflow.z(), -airflow.x());
     beta = std::asin(airflow.y() * v_inv);
 
@@ -142,7 +142,7 @@ const State &in, const ControlVector &control) const {
     real_t thrust = 0.0;
     if (motor_idx < UKF_CONTROL_DIM) {
         real_t ve = prop_cve * control[motor_idx], v0 = airflow.x();
-        thrust = 0.5 * RHO * prop_area * (ve * ve - v0 * v0);
+        thrust = (real_t)0.5 * RHO * prop_area * (ve * ve - v0 * v0);
         if (thrust < 0.0) {
             /* Folding prop, so assume no drag */
             thrust = 0.0;
@@ -164,7 +164,7 @@ const State &in, const ControlVector &control) const {
     */
     Vector2r pitch_coeffs;
     pitch_coeffs << alpha,
-        pitch_rate * pitch_rate * (pitch_rate < 0.0 ? -1.0 : 1.0);
+        pitch_rate * (pitch_rate < 0.0 ? -pitch_rate : pitch_rate);
 
     real_t pitch_moment = pitch_coeffs.dot(c_pitch_moment) +
         control.dot(c_pitch_moment_control);
@@ -190,8 +190,9 @@ const State &in, const ControlVector &control) const {
     */
     Vector3r sum_force, sum_torque;
 
-    sum_force = qbar * (lift * lift_axis + drag * drag_axis +
-                side_force * side_axis) + thrust * motor_thrust;
+    sum_force = qbar * (lift * Vector3r(0, 0, -1) + drag * Vector3r(-1, 0, 0)
+                        + side_force * Vector3r(0, 1, 0))
+                + thrust * Vector3r(1, 0, 0);
     sum_torque = qbar * Vector3r(roll_moment, pitch_moment, yaw_moment);
 
     /* Calculate linear acceleration (F / m) */

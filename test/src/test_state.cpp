@@ -240,9 +240,9 @@ TEST(StateTest, KinematicsModelRotated) {
         Vector3r(derivatives[3], derivatives[4], derivatives[5]));
 
     EXPECT_QUATERNION_EQ(
+        Quaternionr(0.3535, -0.3535, 0, 0),
         Quaternionr(derivatives[12], derivatives[9], derivatives[10],
-            derivatives[11]),
-        Quaternionr(0.3535, -0.3535, 0, 0));
+            derivatives[11]));
 
     EXPECT_VECTOR_EQ(Vector3r(6, 7, 8),
         Vector3r(derivatives[13], derivatives[14], derivatives[15]));

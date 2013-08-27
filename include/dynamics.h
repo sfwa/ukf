@@ -158,7 +158,7 @@ public:
     /* Airframe property and coefficient setters */
     void set_mass(real_t in_mass) {
         assert(std::abs(in_mass) > UKF_AIRFRAME_MIN_MASS);
-        mass_inv = 1.0 / in_mass;
+        mass_inv = (real_t)1.0 / in_mass;
     }
 
     void set_inertia_tensor(

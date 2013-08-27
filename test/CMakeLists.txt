@@ -4,7 +4,8 @@ PROJECT(unittest)
 # Enable ExternalProject CMake module
 INCLUDE(ExternalProject)
 
-set(CMAKE_CXX_FLAGS "-O3")
+set(CMAKE_CXX_FLAGS "-O3 -mssse3 -oaddmul")
+set(CMAKE_C_FLAGS "-O3 -mssse3 -oaddmul")
 
 # Set default ExternalProject root directory
 SET_DIRECTORY_PROPERTIES(PROPERTIES EP_PREFIX .)
