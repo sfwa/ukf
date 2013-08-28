@@ -5,6 +5,8 @@
 #include <stdbool.h>
 #include <math.h>
 
+#define UKF_DEBUG
+
 #include "config.h"
 #include "cukf.h"
 #include "cukfmath.h"
@@ -42,6 +44,7 @@
 #define UKF_MRP_A_2 (UKF_MRP_A*UKF_MRP_A)
 #define UKF_MRP_F (2.0*(UKF_MRP_A + 1))
 #define UKF_MRP_F_2 (UKF_MRP_F*UKF_MRP_F)
+#define UKF_MRP_F_RECIP (1.0/UKF_MRP_F)
 
 #define UKF_SIGMA_WM0 (UKF_LAMBDA/(UKF_DIM_PLUS_LAMBDA))
 #define UKF_SIGMA_WC0 (UKF_SIGMA_WM0 + (1.0 - UKF_ALPHA_2 + UKF_BETA))
@@ -108,13 +111,13 @@ static real_t state_covariance[UKF_STATE_DIM * UKF_STATE_DIM]; /* 4608B */
 /*
 UKF temporaries -- global to avoid blowing up function stack.
 w_prime is 9408 bytes, measurement_estimate_sigma is 7840 bytes,
-measurement_estimate_covariance is 3200 bytes, cross_correlation is 3840 bytes
+measurement_estimate_covariance is 2312 bytes, cross_correlation is 3264 bytes
 */
 real_t w_prime[UKF_STATE_DIM * UKF_NUM_SIGMA];
 real_t measurement_estimate_sigma[UKF_MEASUREMENT_DIM * UKF_NUM_SIGMA];
-real_t measurement_estimate_covariance[UKF_MEASUREMENT_DIM *
-                                       UKF_MEASUREMENT_DIM];
-real_t cross_correlation[UKF_STATE_DIM * UKF_MEASUREMENT_DIM];
+real_t measurement_estimate_covariance[(UKF_MEASUREMENT_DIM - 3) *
+                                       (UKF_MEASUREMENT_DIM - 3)];
+real_t cross_correlation[UKF_STATE_DIM * (UKF_MEASUREMENT_DIM - 3)];
 
 /* Dynamics model configuration */
 static enum ukf_model_t dynamics_model = UKF_MODEL_NONE;
@@ -131,11 +134,11 @@ void _ukf_state_model(struct ukf_state_t *in) {
            tempB = WGS84_B * sin(in->position[0]),
            temp = tempA * tempA + tempB * tempB,
            temp_sqrt_inv = sqrt_inv(temp);
-    real_t M = WGS84_AB2 * (temp_sqrt_inv / temp);
-    real_t N = WGS84_A2 * temp_sqrt_inv;
+    real_t M = WGS84_AB2 * divide(temp_sqrt_inv, temp) + in->position[2];
+    real_t N = WGS84_A2 * temp_sqrt_inv + in->position[2];
 
-    in->position[0] = in->velocity[X] / (M + in->position[2]);
-    in->position[1] = (in->velocity[Y] / (N + in->position[2])) * cos_lat;
+    in->position[0] = divide(in->velocity[X], M);
+    in->position[1] = divide(cos_lat * in->velocity[Y], N);
     in->position[2] = -in->velocity[Z];
 
     /* Change in velocity */
@@ -147,7 +150,9 @@ void _ukf_state_model(struct ukf_state_t *in) {
     _mul_quat_vec3(in->velocity, a, in->acceleration);
 
     /* No change in acceleration */
-    memset(in->acceleration, 0, sizeof(in->acceleration));
+    in->acceleration[0] = 0;
+    in->acceleration[1] = 0;
+    in->acceleration[2] = 0;
 
     /*
     Change in attitude (XYZW): delta_att = 0.5 * (omega_v.conj() * att)
@@ -168,16 +173,23 @@ void _ukf_state_model(struct ukf_state_t *in) {
     in->attitude[W] *= 0.5;
 
     /* Change in angular velocity */
-    memcpy(in->angular_velocity, in->angular_acceleration,
-        sizeof(in->angular_velocity));
+    in->angular_velocity[0] = in->angular_acceleration[0];
+    in->angular_velocity[1] = in->angular_acceleration[1];
+    in->angular_velocity[2] = in->angular_acceleration[2];
 
     /* No change in angular acceleration, wind velocity or gyro bias */
-    memset(in->angular_acceleration, 0, sizeof(in->angular_acceleration));
-    memset(in->wind_velocity, 0, sizeof(in->wind_velocity));
-    memset(in->gyro_bias, 0, sizeof(in->gyro_bias));
+    in->angular_acceleration[0] = 0;
+    in->angular_acceleration[1] = 0;
+    in->angular_acceleration[2] = 0;
+    in->wind_velocity[0] = 0;
+    in->wind_velocity[1] = 0;
+    in->wind_velocity[2] = 0;
+    in->gyro_bias[0] = 0;
+    in->gyro_bias[1] = 0;
+    in->gyro_bias[2] = 0;
 }
 
-void _ukf_state_integrate_rk4(struct ukf_state_t *in, real_t delta) {
+void _ukf_state_integrate_rk4(struct ukf_state_t *restrict in, real_t delta) {
     assert(in);
     if (delta < 1e-6) {
         return;
@@ -203,36 +215,26 @@ void _ukf_state_integrate_rk4(struct ukf_state_t *in, real_t delta) {
     _ukf_state_model(&d);
 
     /* in = in + (delta / 6.0) * (a + (b * 2.0) + (c * 2.0) + d) */
-    delta = delta / 6.0;
-    in->position[0] += delta * (a.position[0] + b.position[0] * 2.0 +
-        c.position[0] * 2.0 + d.position[0]);
-    in->position[1] += delta * (a.position[1] + b.position[1] * 2.0 +
-        c.position[1] * 2.0 + d.position[1]);
-    in->position[2] += delta * (a.position[2] + b.position[2] * 2.0 +
-        c.position[2] * 2.0 + d.position[2]);
-    in->velocity[0] += delta * (a.velocity[0] + b.velocity[0] * 2.0 +
-        c.velocity[0] * 2.0 + d.velocity[0]);
-    in->velocity[1] += delta * (a.velocity[1] + b.velocity[1] * 2.0 +
-        c.velocity[1] * 2.0 + d.velocity[1]);
-    in->velocity[2] += delta * (a.velocity[2] + b.velocity[2] * 2.0 +
-        c.velocity[2] * 2.0 + d.velocity[2]);
-    in->attitude[0] += delta * (a.attitude[0] + b.attitude[0] * 2.0 +
-        c.attitude[0] * 2.0 + d.attitude[0]);
-    in->attitude[1] += delta * (a.attitude[1] + b.attitude[1] * 2.0 +
-        c.attitude[1] * 2.0 + d.attitude[1]);
-    in->attitude[2] += delta * (a.attitude[2] + b.attitude[2] * 2.0 +
-        c.attitude[2] * 2.0 + d.attitude[2]);
-    in->attitude[3] += delta * (a.attitude[3] + b.attitude[3] * 2.0 +
-        c.attitude[3] * 2.0 + d.attitude[3]);
-    in->angular_velocity[0] += delta * (a.angular_velocity[0] +
-        b.angular_velocity[0] * 2.0 + c.angular_velocity[0] * 2.0 +
-        d.angular_velocity[0]);
-    in->angular_velocity[1] += delta * (a.angular_velocity[1] +
-        b.angular_velocity[1] * 2.0 + c.angular_velocity[1] * 2.0 +
-        d.angular_velocity[1]);
-    in->angular_velocity[2] += delta * (a.angular_velocity[2] +
-        b.angular_velocity[2] * 2.0 + c.angular_velocity[2] * 2.0 +
-        d.angular_velocity[2]);
+    real_t *const restrict aptr = (real_t*)&a,
+           *const restrict bptr = (real_t*)&b,
+           *const restrict cptr = (real_t*)&c,
+           *const restrict dptr = (real_t*)&d,
+           *const restrict iptr = (real_t*)in;
+
+    real_t delta2 = delta * (1.0/3.0);
+    delta = delta * (1.0/6.0);
+
+    uint32_t i;
+    #pragma MUST_ITERATE(6)
+    for (i = 0; i < 6; i++) {
+        iptr[i] += delta2 * (bptr[i] + cptr[i]);
+        iptr[i] += delta * (aptr[i] + dptr[i]);
+
+        iptr[i + 9] += delta2 * (bptr[i + 9] + cptr[i + 9]);
+        iptr[i + 9] += delta * (aptr[i + 9] + dptr[i + 9]);
+    }
+    iptr[15] += delta2 * (bptr[15] + cptr[15]);
+    iptr[15] += delta * (aptr[15] + dptr[15]);
 }
 
 void _ukf_state_centripetal_dynamics(struct ukf_state_t *in,
@@ -691,68 +693,49 @@ void _ukf_sensor_get_covariance(real_t covariance[UKF_MEASUREMENT_DIM]) {
 }
 
 void _ukf_sensor_calculate_deltas(
-real_t measurement_estimate[UKF_MEASUREMENT_DIM],
-real_t measurement_estimate_mean[UKF_MEASUREMENT_DIM - 3],
+real_t *restrict measurement_estimate,
+real_t *restrict measurement_estimate_mean,
 uint32_t sigma_idx) {
     assert(measurement_estimate && measurement_estimate_mean &&
            sigma_idx < UKF_NUM_SIGMA);
+    uint32_t i, sidx = sigma_idx*UKF_MEASUREMENT_DIM;
+
+    real_t *restrict sigma = (real_t*)(&measurement_estimate_sigma[sidx]);
 
     #define E measurement_estimate
     #define M measurement_estimate_mean
-    #define sigma (&measurement_estimate_sigma[sigma_idx*UKF_MEASUREMENT_DIM])
     if (sensor_model.flags.accelerometer) {
         E[0] = sigma[0] + sigma[3] - M[0];
         E[1] = sigma[1] + sigma[4] - M[1];
         E[2] = sigma[2] + sigma[5] - M[2];
-        E[3] = sigma[6] - M[3];
-        E[4] = sigma[7] - M[4];
-        E[5] = sigma[8] - M[5];
-        E[6] = sigma[9] - M[6];
-        E[7] = sigma[10] - M[7];
-        E[8] = sigma[11] - M[8];
-        E[9] = sigma[12] - M[9];
-        E[10] = sigma[13] - M[10];
-        E[11] = sigma[14] - M[11];
-        E[12] = sigma[15] - M[12];
-        E[13] = sigma[16] - M[13];
-        E[14] = sigma[17] - M[14];
-        E[15] = sigma[18] - M[15];
-        E[16] = sigma[19] - M[16];
+
+        #pragma MUST_ITERATE(12)
+        #pragma UNROLL(2)
+        for (i = 0; i < 12; i++) {
+            E[i + 3] = sigma[i + 6] - M[i + 3];
+        }
+        E[i + 3] = sigma[i + 6] - M[i + 3];
     } else {
-        E[0] = sigma[0] - M[0];
-        E[1] = sigma[1] - M[1];
-        E[2] = sigma[2] - M[2];
-        E[3] = sigma[3] - M[3];
-        E[4] = sigma[4] - M[4];
-        E[5] = sigma[5] - M[5];
-        E[6] = sigma[6] - M[6];
-        E[7] = sigma[7] - M[7];
-        E[8] = sigma[8] - M[8];
-        E[9] = sigma[9] - M[9];
-        E[10] = sigma[10] - M[10];
-        E[11] = sigma[11] - M[11];
-        E[12] = sigma[12] - M[12];
-        E[13] = sigma[13] - M[13];
-        E[14] = sigma[14] - M[14];
-        E[15] = sigma[15] - M[15];
-        E[16] = sigma[16] - M[16];
-        E[17] = sigma[17] - M[17];
-        E[18] = sigma[18] - M[18];
-        E[19] = sigma[19] - M[19];
+        #pragma MUST_ITERATE(20)
+        #pragma UNROLL(2)
+        for (i = 0; i < 20; i++) {
+            E[i] = sigma[i] - M[i];
+        }
     }
     #undef E
     #undef M
-    #undef sigma
 }
 
 void _ukf_process_sigma(struct ukf_state_t *sigma, uint32_t idx, real_t dt,
 real_t control[4], struct ukf_state_t *apriori_mean,
 real_t w_prime[UKF_STATE_DIM * UKF_NUM_SIGMA],
-real_t measurement_estimate_mean[UKF_MEASUREMENT_DIM],
-real_t measurement_estimate[UKF_MEASUREMENT_DIM],
+real_t *restrict measurement_estimate_mean,
+real_t *restrict measurement_estimate,
 struct ukf_state_t *central_sigma) {
     assert(sigma && control && apriori_mean && w_prime &&
-        measurement_estimate_mean && measurement_estimate && control);
+        measurement_estimate && control);
+
+    uint32_t i, j;
 
     /*
     This function handles a number of sequential steps from ukf.cpp in an
@@ -778,44 +761,23 @@ struct ukf_state_t *central_sigma) {
     }
 
     /* save offset from central point to w_prime, src/ukf.cpp line 192 */
-    _add_state_accum(apriori_mean, sigma);
+    _add_state_inplace(apriori_mean, sigma);
 
     if (idx == 0) {
         /* Processing the centre point, so w_prime is 0 */
         memset(w_prime, 0, sizeof(real_t) * UKF_STATE_DIM);
     } else {
-        #define Sd(x) (sigma->x - central_sigma->x)
-        w_prime[idx*UKF_STATE_DIM + 0] = Sd(position[0]);
-        w_prime[idx*UKF_STATE_DIM + 1] = Sd(position[1]);
-        w_prime[idx*UKF_STATE_DIM + 2] = Sd(position[2]);
-        w_prime[idx*UKF_STATE_DIM + 3] = Sd(velocity[X]);
-        w_prime[idx*UKF_STATE_DIM + 4] = Sd(velocity[Y]);
-        w_prime[idx*UKF_STATE_DIM + 5] = Sd(velocity[Z]);
-        w_prime[idx*UKF_STATE_DIM + 6] = Sd(acceleration[X]);
-        w_prime[idx*UKF_STATE_DIM + 7] = Sd(acceleration[Y]);
-        w_prime[idx*UKF_STATE_DIM + 8] = Sd(acceleration[Z]);
+        /* Set sigma points up based on offset from the central point */
+        uint32_t widx = idx * UKF_STATE_DIM;
+        real_t *const sptr = (real_t*)sigma,
+               *const cptr = (real_t*)central_sigma;
 
-        w_prime[idx*UKF_STATE_DIM + 12] = Sd(angular_velocity[X]);
-        w_prime[idx*UKF_STATE_DIM + 13] = Sd(angular_velocity[Y]);
-        w_prime[idx*UKF_STATE_DIM + 14] = Sd(angular_velocity[Z]);
-        w_prime[idx*UKF_STATE_DIM + 15] = Sd(angular_acceleration[X]);
-        w_prime[idx*UKF_STATE_DIM + 16] = Sd(angular_acceleration[Y]);
-        w_prime[idx*UKF_STATE_DIM + 17] = Sd(angular_acceleration[Z]);
-        w_prime[idx*UKF_STATE_DIM + 18] = Sd(wind_velocity[X]);
-        w_prime[idx*UKF_STATE_DIM + 19] = Sd(wind_velocity[Y]);
-        w_prime[idx*UKF_STATE_DIM + 20] = Sd(wind_velocity[Z]);
-        w_prime[idx*UKF_STATE_DIM + 21] = Sd(gyro_bias[X]);
-        w_prime[idx*UKF_STATE_DIM + 22] = Sd(gyro_bias[Y]);
-        w_prime[idx*UKF_STATE_DIM + 23] = Sd(gyro_bias[Z]);
-        #undef Sd
-    }
+        #pragma MUST_ITERATE(12)
+        for (i = 0, j = widx; i < 12; i++, j++) {
+            w_prime[j + 0] = sptr[i] - cptr[i];
+            w_prime[j + 12] = sptr[i + 13] - cptr[i + 13];
+        }
 
-    /* src/ukf.cpp line 213 */
-    if (idx == 0) {
-        w_prime[idx*UKF_STATE_DIM + 9] = 0;
-        w_prime[idx*UKF_STATE_DIM + 10] = 0;
-        w_prime[idx*UKF_STATE_DIM + 11] = 0;
-    } else {
         real_t err_q[4], cs_conj[4] = {
             -central_sigma->attitude[X],
             -central_sigma->attitude[Y],
@@ -824,14 +786,18 @@ struct ukf_state_t *central_sigma) {
         };
         _mul_quat_quat(err_q, sigma->attitude, cs_conj);
 
-        real_t qw_recip = 1.0 / (UKF_MRP_A + err_q[W]);
-        w_prime[idx*UKF_STATE_DIM + 9] = UKF_MRP_F * err_q[X] * qw_recip;
-        w_prime[idx*UKF_STATE_DIM + 10] = UKF_MRP_F * err_q[Y] * qw_recip;
-        w_prime[idx*UKF_STATE_DIM + 11] = UKF_MRP_F * err_q[Z] * qw_recip;
+        real_t qw_recip = recip(UKF_MRP_A + err_q[W]);
+        w_prime[widx + 9] = UKF_MRP_F * err_q[X] * qw_recip;
+        w_prime[widx + 10] = UKF_MRP_F * err_q[Y] * qw_recip;
+        w_prime[widx + 11] = UKF_MRP_F * err_q[Z] * qw_recip;
     }
 
     /* measurement_estimate, src/ukf.cpp line 250 */
     _ukf_sensor_predict(measurement_estimate, sigma);
+
+    if (!measurement_estimate_mean) {
+        return;
+    }
 
     /*
     mean calculation -- straight weighted arithmetic mean for most sensors,
@@ -840,26 +806,11 @@ struct ukf_state_t *central_sigma) {
 
     src/ukf.cpp line 258; src/sensors.cpp line 265
     */
-    measurement_estimate_mean[0] += measurement_estimate[0];
-    measurement_estimate_mean[1] += measurement_estimate[1];
-    measurement_estimate_mean[2] += measurement_estimate[2];
-    measurement_estimate_mean[3] += measurement_estimate[3];
-    measurement_estimate_mean[4] += measurement_estimate[4];
-    measurement_estimate_mean[5] += measurement_estimate[5];
-    measurement_estimate_mean[6] += measurement_estimate[6];
-    measurement_estimate_mean[7] += measurement_estimate[7];
-    measurement_estimate_mean[8] += measurement_estimate[8];
-    measurement_estimate_mean[9] += measurement_estimate[9];
-    measurement_estimate_mean[10] += measurement_estimate[10];
-    measurement_estimate_mean[11] += measurement_estimate[11];
-    measurement_estimate_mean[12] += measurement_estimate[12];
-    measurement_estimate_mean[13] += measurement_estimate[13];
-    measurement_estimate_mean[14] += measurement_estimate[14];
-    measurement_estimate_mean[15] += measurement_estimate[15];
-    measurement_estimate_mean[16] += measurement_estimate[16];
-    measurement_estimate_mean[17] += measurement_estimate[17];
-    measurement_estimate_mean[18] += measurement_estimate[18];
-    measurement_estimate_mean[19] += measurement_estimate[19];
+    #pragma MUST_ITERATE(UKF_MEASUREMENT_DIM)
+    #pragma UNROLL(2)
+    for (i = 0; i < UKF_MEASUREMENT_DIM; i++) {
+        measurement_estimate_mean[i] += measurement_estimate[i];
+    }
 }
 
 void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
@@ -871,39 +822,21 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
 */
 
     /* See src/ukf.cpp, line 85 */
-    state_covariance[0] += process_noise[0];
-    state_covariance[25] += process_noise[1];
-    state_covariance[50] += process_noise[2];
-    state_covariance[75] += process_noise[3];
-    state_covariance[100] += process_noise[4];
-    state_covariance[125] += process_noise[5];
-    state_covariance[150] += process_noise[6];
-    state_covariance[175] += process_noise[7];
-    state_covariance[200] += process_noise[8];
-    state_covariance[225] += process_noise[9];
-    state_covariance[250] += process_noise[10];
-    state_covariance[275] += process_noise[11];
-    state_covariance[300] += process_noise[12];
-    state_covariance[325] += process_noise[13];
-    state_covariance[350] += process_noise[14];
-    state_covariance[375] += process_noise[15];
-    state_covariance[400] += process_noise[16];
-    state_covariance[425] += process_noise[17];
-    state_covariance[450] += process_noise[18];
-    state_covariance[475] += process_noise[19];
-    state_covariance[500] += process_noise[20];
-    state_covariance[525] += process_noise[21];
-    state_covariance[550] += process_noise[22];
-    state_covariance[575] += process_noise[23];
+    uint32_t i, j, k, l;
+    #pragma MUST_ITERATE(24)
+    #pragma UNROLL(2)
+    for (i = 0, j = 0; i < UKF_STATE_DIM; i++, j += 25) {
+        state_covariance[j] += process_noise[i];
+    }
 
     /* In-place LLT on state covariance matrix times UKF_DIM_PLUS_LAMBDA */
     _cholesky_mat_mul(state_covariance, state_covariance, UKF_DIM_PLUS_LAMBDA,
         24);
     /* Clear out the upper triangle */
-    uint32_t i, j;
     for (i = 0; i < UKF_STATE_DIM; i++) {
-        for (j = i + 1; j < UKF_STATE_DIM; j++) {
-            state_covariance[j*UKF_STATE_DIM + i] = 0.0;
+        for (j = (i + 1) * UKF_STATE_DIM; j < UKF_STATE_DIM * UKF_STATE_DIM;
+             j += UKF_STATE_DIM) {
+            state_covariance[j + i] = 0.0;
         }
     }
 
@@ -916,21 +849,18 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
     Keep central sigma point means separate from the rest, since the high
     weight will otherwise reduce precision
     */
-    struct ukf_state_t sigma, central_sigma, apriori_mean, apriori_central;
-    real_t measurement_estimate_mean[UKF_MEASUREMENT_DIM],
-           measurement_estimate_central[UKF_MEASUREMENT_DIM];
+    struct ukf_state_t sigma_pos, sigma_neg, central_sigma, apriori_mean,
+           apriori_central;
+    real_t measurement_estimate_mean[UKF_MEASUREMENT_DIM];
 
     memset(&apriori_mean, 0, sizeof(apriori_mean));
     memset(&apriori_central, 0, sizeof(apriori_central));
     memset(measurement_estimate_mean, 0, sizeof(measurement_estimate_mean));
-    memset(measurement_estimate_central, 0,
-           sizeof(measurement_estimate_central));
 
     /* Central point */
     memcpy(&central_sigma, &state, sizeof(central_sigma));
     _ukf_process_sigma(&central_sigma, 0, dt, control, &apriori_central,
-        w_prime, measurement_estimate_central,
-        &measurement_estimate_sigma[0*UKF_MEASUREMENT_DIM], &central_sigma);
+        w_prime, NULL, &measurement_estimate_sigma[0], &central_sigma);
 
     /* Other points */
     uint32_t col;
@@ -942,99 +872,49 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
             state_covariance[col + 11]
         };
         real_t x_2 = (d_p[X]*d_p[X] + d_p[Y]*d_p[Y] + d_p[Z]*d_p[Z]);
-        real_t err_w = (-UKF_MRP_A * x_2 +
-            UKF_MRP_F * sqrt(UKF_MRP_F_2 + (1.0 - UKF_MRP_A_2) * x_2)) /
-            (UKF_MRP_F_2 + x_2);
-        real_t err_scale = (1.0 / UKF_MRP_F) * (UKF_MRP_A + err_w);
+        real_t err_w = divide(-UKF_MRP_A * x_2 + UKF_MRP_F *
+                              sqrt(UKF_MRP_F_2 + (1.0 - UKF_MRP_A_2) * x_2),
+                              (UKF_MRP_F_2 + x_2));
+        real_t err_scale = UKF_MRP_F_RECIP * (UKF_MRP_A + err_w);
         real_t noise_q[4] = {
-            err_scale * d_p[X], err_scale * d_p[Y], err_scale * d_p[Z], err_w
+            err_scale * d_p[X],
+            err_scale * d_p[Y],
+            err_scale * d_p[Z],
+            err_w
         };
 
-        /* Create positive sigma point. */
-        sigma.position[0] = state.position[0] + state_covariance[col + 0];
-        sigma.position[1] = state.position[1] + state_covariance[col + 1];
-        sigma.position[2] = state.position[2] + state_covariance[col + 2];
-        sigma.velocity[0] = state.velocity[0] + state_covariance[col + 3];
-        sigma.velocity[1] = state.velocity[1] + state_covariance[col + 4];
-        sigma.velocity[2] = state.velocity[2] + state_covariance[col + 5];
-        sigma.acceleration[0] = state.acceleration[0] +
-            state_covariance[col + 6];
-        sigma.acceleration[1] = state.acceleration[1] +
-            state_covariance[col + 7];
-        sigma.acceleration[2] = state.acceleration[2] +
-            state_covariance[col + 8];
+        /* Set sigma points up based on offset from the central point */
+        real_t *const st = (real_t*)&state,
+               *const sp = (real_t*)&sigma_pos,
+               *const sn = (real_t*)&sigma_neg;
 
-        _mul_quat_quat(sigma.attitude, noise_q, state.attitude);
+        #pragma MUST_ITERATE(12)
+        for (j = 0, k = col, l = 0; j < 12; j++, k++, l++) {
+            sp[l] = st[l] + state_covariance[k];
+            sn[l] = st[l] - state_covariance[k];
 
-        sigma.angular_velocity[0] = state.angular_velocity[0] +
-            state_covariance[col + 12];
-        sigma.angular_velocity[1] = state.angular_velocity[1] +
-            state_covariance[col + 13];
-        sigma.angular_velocity[2] = state.angular_velocity[2] +
-            state_covariance[col + 14];
-        sigma.angular_acceleration[0] = state.angular_acceleration[0] +
-            state_covariance[col + 15];
-        sigma.angular_acceleration[1] = state.angular_acceleration[1] +
-            state_covariance[col + 16];
-        sigma.angular_acceleration[2] = state.angular_acceleration[2] +
-            state_covariance[col + 17];
-        sigma.wind_velocity[0] = state.wind_velocity[0] +
-            state_covariance[col + 18];
-        sigma.wind_velocity[1] = state.wind_velocity[1] +
-            state_covariance[col + 19];
-        sigma.wind_velocity[2] = state.wind_velocity[2] +
-            state_covariance[col + 20];
-        sigma.gyro_bias[0] = state.gyro_bias[0] + state_covariance[col + 21];
-        sigma.gyro_bias[1] = state.gyro_bias[1] + state_covariance[col + 22];
-        sigma.gyro_bias[2] = state.gyro_bias[2] + state_covariance[col + 23];
+            /*
+            This overwrites 3 of the 4 attitude values, but it's more
+            efficient to do it this way than to special-case
+            */
+            sp[l+12] = st[l+12] + state_covariance[k+11];
+            sn[l+12] = st[l+12] - state_covariance[k+11];
+        }
 
-        _ukf_process_sigma(&sigma, i + 1, dt, control, &apriori_mean,
+        _mul_quat_quat(sigma_pos.attitude, noise_q, state.attitude);
+        noise_q[X] = -noise_q[X];
+        noise_q[Y] = -noise_q[Y];
+        noise_q[Z] = -noise_q[Z];
+        _mul_quat_quat(sigma_neg.attitude, noise_q, state.attitude);
+
+        /* Process positive sigma point. */
+        _ukf_process_sigma(&sigma_pos, i + 1, dt, control, &apriori_mean,
             w_prime, measurement_estimate_mean,
             &measurement_estimate_sigma[(i + 1)*UKF_MEASUREMENT_DIM],
             &central_sigma);
 
-        /* Create negative sigma point. */
-        sigma.position[0] = state.position[0] - state_covariance[col + 0];
-        sigma.position[1] = state.position[1] - state_covariance[col + 1];
-        sigma.position[2] = state.position[2] - state_covariance[col + 2];
-        sigma.velocity[0] = state.velocity[0] - state_covariance[col + 3];
-        sigma.velocity[1] = state.velocity[1] - state_covariance[col + 4];
-        sigma.velocity[2] = state.velocity[2] - state_covariance[col + 5];
-        sigma.acceleration[0] = state.acceleration[0] -
-            state_covariance[col + 6];
-        sigma.acceleration[1] = state.acceleration[1] -
-            state_covariance[col + 7];
-        sigma.acceleration[2] = state.acceleration[2] -
-            state_covariance[col + 8];
-
-        noise_q[X] *= -1.0;
-        noise_q[Y] *= -1.0;
-        noise_q[Z] *= -1.0;
-        _mul_quat_quat(sigma.attitude, noise_q, state.attitude);
-
-        sigma.angular_velocity[0] = state.angular_velocity[0] -
-            state_covariance[col + 12];
-        sigma.angular_velocity[1] = state.angular_velocity[1] -
-            state_covariance[col + 13];
-        sigma.angular_velocity[2] = state.angular_velocity[2] -
-            state_covariance[col + 14];
-        sigma.angular_acceleration[0] = state.angular_acceleration[0] -
-            state_covariance[col + 15];
-        sigma.angular_acceleration[1] = state.angular_acceleration[1] -
-            state_covariance[col + 16];
-        sigma.angular_acceleration[2] = state.angular_acceleration[2] -
-            state_covariance[col + 17];
-        sigma.wind_velocity[0] = state.wind_velocity[0] -
-            state_covariance[col + 18];
-        sigma.wind_velocity[1] = state.wind_velocity[1] -
-            state_covariance[col + 19];
-        sigma.wind_velocity[2] = state.wind_velocity[2] -
-            state_covariance[col + 20];
-        sigma.gyro_bias[0] = state.gyro_bias[0] - state_covariance[col + 21];
-        sigma.gyro_bias[1] = state.gyro_bias[1] - state_covariance[col + 22];
-        sigma.gyro_bias[2] = state.gyro_bias[2] - state_covariance[col + 23];
-
-        _ukf_process_sigma(&sigma, i + 1 + UKF_STATE_DIM, dt, control,
+        /* Process negative sigma point. */
+        _ukf_process_sigma(&sigma_neg, i + 1 + UKF_STATE_DIM, dt, control,
             &apriori_mean, w_prime, measurement_estimate_mean,
             &measurement_estimate_sigma[
                 (i + 1 + UKF_STATE_DIM)*UKF_MEASUREMENT_DIM],
@@ -1042,40 +922,17 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
     }
 
     /* Add central sigma points to the means */
+    #pragma MUST_ITERATE(24)
+    #pragma UNROLL(2)
     for (i = 0; i < UKF_MEASUREMENT_DIM; i++) {
         measurement_estimate_mean[i] =
             measurement_estimate_mean[i] * UKF_SIGMA_WMI
-            + measurement_estimate_central[i] * UKF_SIGMA_WM0;
+            + measurement_estimate_sigma[i] * UKF_SIGMA_WM0;
     }
 
-    apriori_central.position[0] *= UKF_SIGMA_WM0;
-    apriori_central.position[1] *= UKF_SIGMA_WM0;
-    apriori_central.position[2] *= UKF_SIGMA_WM0;
-    apriori_central.velocity[0] *= UKF_SIGMA_WM0;
-    apriori_central.velocity[1] *= UKF_SIGMA_WM0;
-    apriori_central.velocity[2] *= UKF_SIGMA_WM0;
-    apriori_central.acceleration[0] *= UKF_SIGMA_WM0;
-    apriori_central.acceleration[1] *= UKF_SIGMA_WM0;
-    apriori_central.acceleration[2] *= UKF_SIGMA_WM0;
-    apriori_central.attitude[0] *= UKF_SIGMA_WM0;
-    apriori_central.attitude[1] *= UKF_SIGMA_WM0;
-    apriori_central.attitude[2] *= UKF_SIGMA_WM0;
-    apriori_central.attitude[3] *= UKF_SIGMA_WM0;
-    apriori_central.angular_velocity[0] *= UKF_SIGMA_WM0;
-    apriori_central.angular_velocity[1] *= UKF_SIGMA_WM0;
-    apriori_central.angular_velocity[2] *= UKF_SIGMA_WM0;
-    apriori_central.angular_acceleration[0] *= UKF_SIGMA_WM0;
-    apriori_central.angular_acceleration[1] *= UKF_SIGMA_WM0;
-    apriori_central.angular_acceleration[2] *= UKF_SIGMA_WM0;
-    apriori_central.wind_velocity[0] *= UKF_SIGMA_WM0;
-    apriori_central.wind_velocity[1] *= UKF_SIGMA_WM0;
-    apriori_central.wind_velocity[2] *= UKF_SIGMA_WM0;
-    apriori_central.gyro_bias[0] *= UKF_SIGMA_WM0;
-    apriori_central.gyro_bias[1] *= UKF_SIGMA_WM0;
-    apriori_central.gyro_bias[2] *= UKF_SIGMA_WM0;
-
-    _mul_state_scalar_add_state(&apriori_mean, &apriori_mean, UKF_SIGMA_WMI,
-                                &apriori_central);
+    _mul_state_inplace(&apriori_central, UKF_SIGMA_WM0);
+    _mul_state_inplace(&apriori_mean, UKF_SIGMA_WMI);
+    _add_state_inplace(&apriori_mean, &apriori_central);
 
 /*
     printf("Apriori mean:\n");
@@ -1094,8 +951,8 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
     j = 0;
     if (sensor_model.flags.accelerometer) {
         #define G(x) measurement_estimate_mean[3 + x]
-        real_t g_norm = G_ACCEL /
-            sqrt(G(X)*G(X) + G(Y)*G(Y) + G(Z)*G(Z));
+        real_t g_norm = G_ACCEL *
+            sqrt_inv(G(X)*G(X) + G(Y)*G(Y) + G(Z)*G(Z));
         measurement_estimate_mean[X] += G(X) * g_norm;
         measurement_estimate_mean[Y] += G(Y) * g_norm;
         measurement_estimate_mean[Z] += G(Z) * g_norm;
@@ -1110,8 +967,8 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
     }
     if (sensor_model.flags.magnetometer) {
         #define B(x) measurement_estimate_mean[j + x]
-        real_t mag_norm = sensor_model_mag_field_norm /
-            sqrt(B(X)*B(X) + B(Y)*B(Y) + B(Z)*B(Z));
+        real_t mag_norm = sensor_model_mag_field_norm *
+            sqrt_inv(B(X)*B(X) + B(Y)*B(Y) + B(Z)*B(Z));
         B(X) *= mag_norm;
         B(Y) *= mag_norm;
         B(Z) *= mag_norm;
@@ -1142,20 +999,12 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
         Remove separate accelerometer reading due to gravity values; these
         will always be measurement_estimate_mean[3:6]
         */
-        measurement_estimate_mean[3] = measurement_estimate_mean[6];
-        measurement_estimate_mean[4] = measurement_estimate_mean[7];
-        measurement_estimate_mean[5] = measurement_estimate_mean[8];
-        measurement_estimate_mean[6] = measurement_estimate_mean[9];
-        measurement_estimate_mean[7] = measurement_estimate_mean[10];
-        measurement_estimate_mean[8] = measurement_estimate_mean[11];
-        measurement_estimate_mean[9] = measurement_estimate_mean[12];
-        measurement_estimate_mean[10] = measurement_estimate_mean[13];
-        measurement_estimate_mean[11] = measurement_estimate_mean[14];
-        measurement_estimate_mean[12] = measurement_estimate_mean[15];
-        measurement_estimate_mean[13] = measurement_estimate_mean[16];
-        measurement_estimate_mean[14] = measurement_estimate_mean[17];
-        measurement_estimate_mean[15] = measurement_estimate_mean[18];
-        measurement_estimate_mean[16] = measurement_estimate_mean[19];
+        #pragma MUST_ITERATE(12)
+        #pragma UNROLL(2)
+        for (i = 0; i < 12; i++) {
+            measurement_estimate_mean[i+3] = measurement_estimate_mean[i+6];
+        }
+        measurement_estimate_mean[i+3] = measurement_estimate_mean[i+6];
     }
 
 /*
@@ -1176,36 +1025,39 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
     */
     _ukf_sensor_calculate_deltas(z_prime_col, measurement_estimate_mean, 1);
 
-    _mul_mat(cross_correlation, &w_prime[1 * UKF_STATE_DIM], z_prime_col, 1,
-             measurement_dim, UKF_STATE_DIM, 1, UKF_SIGMA_WCI);
-    _mul_mat(measurement_estimate_covariance, z_prime_col, z_prime_col, 1,
-             measurement_dim, measurement_dim, 1, UKF_SIGMA_WCI);
-    _mul_mat(state_covariance, &w_prime[1 * UKF_STATE_DIM],
-             &w_prime[1 * UKF_STATE_DIM], 1, UKF_STATE_DIM,
-             UKF_STATE_DIM, 1, UKF_SIGMA_WCI);
+    _mul_vec_outer(cross_correlation, z_prime_col,
+                   &w_prime[1 * UKF_STATE_DIM], measurement_dim,
+                   UKF_STATE_DIM, UKF_SIGMA_WCI);
+    _mul_vec_outer(measurement_estimate_covariance, z_prime_col, z_prime_col,
+                   measurement_dim, measurement_dim, UKF_SIGMA_WCI);
+    _mul_wprime(state_covariance, &w_prime[1 * UKF_STATE_DIM], UKF_SIGMA_WCI);
 
     for (i = 2; i < UKF_NUM_SIGMA; i++) {
         _ukf_sensor_calculate_deltas(z_prime_col, measurement_estimate_mean,
                                      i);
 
-        _mul_mat_accum(cross_correlation, &w_prime[i * UKF_STATE_DIM],
-                       z_prime_col, 1, measurement_dim, UKF_STATE_DIM, 1,
-                       UKF_SIGMA_WCI);
-        _mul_mat_accum(measurement_estimate_covariance, z_prime_col,
-                       z_prime_col, 1, measurement_dim, measurement_dim, 1,
-                       UKF_SIGMA_WCI);
-        _mul_mat_accum(state_covariance, &w_prime[i * UKF_STATE_DIM],
-                       &w_prime[i * UKF_STATE_DIM], 1, UKF_STATE_DIM,
-                       UKF_STATE_DIM, 1, UKF_SIGMA_WCI);
+        _mul_vec_outer_accum(cross_correlation, z_prime_col,
+                             &w_prime[i * UKF_STATE_DIM], measurement_dim,
+                             UKF_STATE_DIM, UKF_SIGMA_WCI);
+        _mul_vec_outer_accum(measurement_estimate_covariance, z_prime_col,
+                             z_prime_col, measurement_dim, measurement_dim,
+                             UKF_SIGMA_WCI);
+        _mul_wprime_accum(state_covariance, &w_prime[i * UKF_STATE_DIM],
+                          UKF_SIGMA_WCI);
     }
 
     _ukf_sensor_calculate_deltas(z_prime_col, measurement_estimate_mean, 0);
-    _mul_mat_accum(cross_correlation, w_prime, z_prime_col, 1,
-                   measurement_dim, UKF_STATE_DIM, 1, UKF_SIGMA_WC0);
-    _mul_mat_accum(measurement_estimate_covariance, z_prime_col, z_prime_col,
-                   1, measurement_dim, measurement_dim, 1, UKF_SIGMA_WC0);
-    _mul_mat_accum(state_covariance, w_prime, w_prime, 1, UKF_STATE_DIM,
-                   UKF_STATE_DIM, 1, UKF_SIGMA_WC0);
+    _mul_vec_outer_accum(cross_correlation, z_prime_col, w_prime,
+                         measurement_dim, UKF_STATE_DIM, UKF_SIGMA_WC0);
+    _mul_vec_outer_accum(measurement_estimate_covariance, z_prime_col,
+                         z_prime_col, measurement_dim, measurement_dim,
+                         UKF_SIGMA_WC0);
+    _mul_wprime_accum(state_covariance, w_prime, UKF_SIGMA_WC0);
+
+/*
+    printf("Apriori covariance:\n");
+    _print_matrix(state_covariance, UKF_STATE_DIM, UKF_STATE_DIM);
+*/
 
     /* Easy case if no measurements */
     if (measurement_dim == 0) {
@@ -1238,9 +1090,6 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
     }
 
 /*
-    printf("Apriori covariance:\n");
-    _print_matrix(state_covariance, UKF_STATE_DIM, UKF_STATE_DIM);
-
     printf("Measurement estimate covariance:\n");
     _print_matrix(measurement_estimate_covariance, measurement_dim,
                   measurement_dim);
@@ -1307,53 +1156,30 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
 */
 
     /* Update the state */
-    state.position[0] = apriori_mean.position[0] + update_temp[0];
-    state.position[1] = apriori_mean.position[1] + update_temp[1];
-    state.position[2] = apriori_mean.position[2] + update_temp[2];
-    state.velocity[X] = apriori_mean.velocity[X] + update_temp[3];
-    state.velocity[Y] = apriori_mean.velocity[Y] + update_temp[4];
-    state.velocity[Z] = apriori_mean.velocity[Z] + update_temp[5];
-    state.acceleration[X] = apriori_mean.acceleration[X] + update_temp[6];
-    state.acceleration[Y] = apriori_mean.acceleration[Y] + update_temp[7];
-    state.acceleration[Z] = apriori_mean.acceleration[Z] + update_temp[8];
+    real_t *const mptr = (real_t*)&apriori_mean,
+           *const sptr = (real_t*)&state;
+
+    #pragma MUST_ITERATE(12)
+    for (i = 0; i < 12; i++) {
+        sptr[i + 0] = mptr[i] + update_temp[i];
+        sptr[i + 13] = mptr[i + 13] + update_temp[i + 12];
+    }
 
     real_t d_p[3] = { update_temp[9], update_temp[10], update_temp[11] };
     real_t x_2 = d_p[X]*d_p[X] + d_p[Y]*d_p[Y] + d_p[Z]*d_p[Z];
-    real_t d_q_w = (-UKF_MRP_A * x_2 + UKF_MRP_F *
-                sqrt(UKF_MRP_F_2 + ((real_t)1.0 - UKF_MRP_A_2) * x_2)) /
-                (UKF_MRP_F_2 + x_2);
-    real_t d_q_scale = (1.0 / UKF_MRP_F) * (UKF_MRP_A + d_q_w);
+    real_t d_q_w = divide(-UKF_MRP_A * x_2 + UKF_MRP_F *
+                       sqrt(UKF_MRP_F_2 + ((real_t)1.0 - UKF_MRP_A_2) * x_2),
+                       UKF_MRP_F_2 + x_2);
+    real_t d_q_scale = UKF_MRP_F_RECIP * (UKF_MRP_A + d_q_w);
     real_t d_q[4] = {
-        d_q_scale * d_p[X], d_q_scale * d_p[Y], d_q_scale * d_p[Z], d_q_w
+        d_q_scale * d_p[X],
+        d_q_scale * d_p[Y],
+        d_q_scale * d_p[Z],
+        d_q_w
     };
 
     _mul_quat_quat(state.attitude, d_q, central_sigma.attitude);
-
-/*
-    printf("Attitude:\n");
-    _print_matrix(state.attitude, 4, 1);
-*/
-
     _normalize_quat(state.attitude, state.attitude, true);
-
-    state.angular_velocity[X] = apriori_mean.angular_velocity[X] +
-        update_temp[12];
-    state.angular_velocity[Y] = apriori_mean.angular_velocity[Y] +
-        update_temp[13];
-    state.angular_velocity[Z] = apriori_mean.angular_velocity[Z] +
-        update_temp[14];
-    state.angular_acceleration[X] = apriori_mean.angular_acceleration[X] +
-        update_temp[15];
-    state.angular_acceleration[Y] = apriori_mean.angular_acceleration[Y] +
-        update_temp[16];
-    state.angular_acceleration[Z] = apriori_mean.angular_acceleration[Z] +
-        update_temp[17];
-    state.wind_velocity[X] = apriori_mean.wind_velocity[X] + update_temp[18];
-    state.wind_velocity[Y] = apriori_mean.wind_velocity[Y] + update_temp[19];
-    state.wind_velocity[Z] = apriori_mean.wind_velocity[Z] + update_temp[20];
-    state.gyro_bias[X] = apriori_mean.gyro_bias[X] + update_temp[21];
-    state.gyro_bias[Y] = apriori_mean.gyro_bias[Y] + update_temp[22];
-    state.gyro_bias[Z] = apriori_mean.gyro_bias[Z] + update_temp[23];
 
     /* Update the state covariance; src/ukf.cpp line 352 */
     _mul_mat(state_temp1, kalman_gain, measurement_estimate_covariance,

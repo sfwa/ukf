@@ -1,6 +1,10 @@
 #include <gtest/gtest.h>
 #include <math.h>
 #include <stdint.h>
+
+#define UKF_DEBUG
+#define restrict
+
 #include "cukf.h"
 #include "cukfmath.h"
 
@@ -45,7 +49,7 @@ TEST(C66xMathTest, QuaternionVectorMultiplication) {
 }
 
 TEST(C66xMathTest, StateAxPlusB) {
-    struct ukf_state_t a, b, c;
+    struct ukf_state_t a, b, c, res;
 
     a.position[X] = 1;
     a.position[Y] = 2;
@@ -101,59 +105,59 @@ TEST(C66xMathTest, StateAxPlusB) {
 
     memcpy(&c, &a, sizeof(c));
 
-    _mul_state_scalar_add_state(&c, &c, -1.0, &a);
-    EXPECT_FLOAT_EQ(0, c.position[X]);
-    EXPECT_FLOAT_EQ(0, c.position[Y]);
-    EXPECT_FLOAT_EQ(0, c.position[Z]);
-    EXPECT_FLOAT_EQ(0, c.velocity[X]);
-    EXPECT_FLOAT_EQ(0, c.velocity[Y]);
-    EXPECT_FLOAT_EQ(0, c.velocity[Z]);
-    EXPECT_FLOAT_EQ(0, c.acceleration[X]);
-    EXPECT_FLOAT_EQ(0, c.acceleration[Y]);
-    EXPECT_FLOAT_EQ(0, c.acceleration[Z]);
-    EXPECT_FLOAT_EQ(0, c.attitude[X]);
-    EXPECT_FLOAT_EQ(0, c.attitude[Y]);
-    EXPECT_FLOAT_EQ(0, c.attitude[Z]);
-    EXPECT_FLOAT_EQ(0, c.attitude[W]);
-    EXPECT_FLOAT_EQ(0, c.angular_velocity[X]);
-    EXPECT_FLOAT_EQ(0, c.angular_velocity[Y]);
-    EXPECT_FLOAT_EQ(0, c.angular_velocity[Z]);
-    EXPECT_FLOAT_EQ(0, c.angular_acceleration[X]);
-    EXPECT_FLOAT_EQ(0, c.angular_acceleration[Y]);
-    EXPECT_FLOAT_EQ(0, c.angular_acceleration[Z]);
-    EXPECT_FLOAT_EQ(0, c.wind_velocity[X]);
-    EXPECT_FLOAT_EQ(0, c.wind_velocity[Y]);
-    EXPECT_FLOAT_EQ(0, c.wind_velocity[Z]);
-    EXPECT_FLOAT_EQ(0, c.gyro_bias[X]);
-    EXPECT_FLOAT_EQ(0, c.gyro_bias[Y]);
-    EXPECT_FLOAT_EQ(0, c.gyro_bias[Z]);
+    _mul_state_scalar_add_state(&res, &c, -1.0, &a);
+    EXPECT_FLOAT_EQ(0, res.position[X]);
+    EXPECT_FLOAT_EQ(0, res.position[Y]);
+    EXPECT_FLOAT_EQ(0, res.position[Z]);
+    EXPECT_FLOAT_EQ(0, res.velocity[X]);
+    EXPECT_FLOAT_EQ(0, res.velocity[Y]);
+    EXPECT_FLOAT_EQ(0, res.velocity[Z]);
+    EXPECT_FLOAT_EQ(0, res.acceleration[X]);
+    EXPECT_FLOAT_EQ(0, res.acceleration[Y]);
+    EXPECT_FLOAT_EQ(0, res.acceleration[Z]);
+    EXPECT_FLOAT_EQ(0, res.attitude[X]);
+    EXPECT_FLOAT_EQ(0, res.attitude[Y]);
+    EXPECT_FLOAT_EQ(0, res.attitude[Z]);
+    EXPECT_FLOAT_EQ(0, res.attitude[W]);
+    EXPECT_FLOAT_EQ(0, res.angular_velocity[X]);
+    EXPECT_FLOAT_EQ(0, res.angular_velocity[Y]);
+    EXPECT_FLOAT_EQ(0, res.angular_velocity[Z]);
+    EXPECT_FLOAT_EQ(0, res.angular_acceleration[X]);
+    EXPECT_FLOAT_EQ(0, res.angular_acceleration[Y]);
+    EXPECT_FLOAT_EQ(0, res.angular_acceleration[Z]);
+    EXPECT_FLOAT_EQ(0, res.wind_velocity[X]);
+    EXPECT_FLOAT_EQ(0, res.wind_velocity[Y]);
+    EXPECT_FLOAT_EQ(0, res.wind_velocity[Z]);
+    EXPECT_FLOAT_EQ(0, res.gyro_bias[X]);
+    EXPECT_FLOAT_EQ(0, res.gyro_bias[Y]);
+    EXPECT_FLOAT_EQ(0, res.gyro_bias[Z]);
 
-    _mul_state_scalar_add_state(&a, &a, 0.5, &b);
-    EXPECT_FLOAT_EQ(26.5, a.position[X]);
-    EXPECT_FLOAT_EQ(28.0, a.position[Y]);
-    EXPECT_FLOAT_EQ(29.5, a.position[Z]);
-    EXPECT_FLOAT_EQ(31.0, a.velocity[X]);
-    EXPECT_FLOAT_EQ(32.5, a.velocity[Y]);
-    EXPECT_FLOAT_EQ(34.0, a.velocity[Z]);
-    EXPECT_FLOAT_EQ(35.5, a.acceleration[X]);
-    EXPECT_FLOAT_EQ(37.0, a.acceleration[Y]);
-    EXPECT_FLOAT_EQ(38.5, a.acceleration[Z]);
-    EXPECT_FLOAT_EQ(40.0, a.attitude[X]);
-    EXPECT_FLOAT_EQ(41.5, a.attitude[Y]);
-    EXPECT_FLOAT_EQ(43.0, a.attitude[Z]);
-    EXPECT_FLOAT_EQ(44.5, a.attitude[W]);
-    EXPECT_FLOAT_EQ(46.0, a.angular_velocity[X]);
-    EXPECT_FLOAT_EQ(47.5, a.angular_velocity[Y]);
-    EXPECT_FLOAT_EQ(49.0, a.angular_velocity[Z]);
-    EXPECT_FLOAT_EQ(50.5, a.angular_acceleration[X]);
-    EXPECT_FLOAT_EQ(52.0, a.angular_acceleration[Y]);
-    EXPECT_FLOAT_EQ(53.5, a.angular_acceleration[Z]);
-    EXPECT_FLOAT_EQ(55.0, a.wind_velocity[X]);
-    EXPECT_FLOAT_EQ(56.5, a.wind_velocity[Y]);
-    EXPECT_FLOAT_EQ(58.0, a.wind_velocity[Z]);
-    EXPECT_FLOAT_EQ(59.5, a.gyro_bias[X]);
-    EXPECT_FLOAT_EQ(61.0, a.gyro_bias[Y]);
-    EXPECT_FLOAT_EQ(62.5, a.gyro_bias[Z]);
+    _mul_state_scalar_add_state(&res, &a, 0.5, &b);
+    EXPECT_FLOAT_EQ(26.5, res.position[X]);
+    EXPECT_FLOAT_EQ(28.0, res.position[Y]);
+    EXPECT_FLOAT_EQ(29.5, res.position[Z]);
+    EXPECT_FLOAT_EQ(31.0, res.velocity[X]);
+    EXPECT_FLOAT_EQ(32.5, res.velocity[Y]);
+    EXPECT_FLOAT_EQ(34.0, res.velocity[Z]);
+    EXPECT_FLOAT_EQ(35.5, res.acceleration[X]);
+    EXPECT_FLOAT_EQ(37.0, res.acceleration[Y]);
+    EXPECT_FLOAT_EQ(38.5, res.acceleration[Z]);
+    EXPECT_FLOAT_EQ(40.0, res.attitude[X]);
+    EXPECT_FLOAT_EQ(41.5, res.attitude[Y]);
+    EXPECT_FLOAT_EQ(43.0, res.attitude[Z]);
+    EXPECT_FLOAT_EQ(44.5, res.attitude[W]);
+    EXPECT_FLOAT_EQ(46.0, res.angular_velocity[X]);
+    EXPECT_FLOAT_EQ(47.5, res.angular_velocity[Y]);
+    EXPECT_FLOAT_EQ(49.0, res.angular_velocity[Z]);
+    EXPECT_FLOAT_EQ(50.5, res.angular_acceleration[X]);
+    EXPECT_FLOAT_EQ(52.0, res.angular_acceleration[Y]);
+    EXPECT_FLOAT_EQ(53.5, res.angular_acceleration[Z]);
+    EXPECT_FLOAT_EQ(55.0, res.wind_velocity[X]);
+    EXPECT_FLOAT_EQ(56.5, res.wind_velocity[Y]);
+    EXPECT_FLOAT_EQ(58.0, res.wind_velocity[Z]);
+    EXPECT_FLOAT_EQ(59.5, res.gyro_bias[X]);
+    EXPECT_FLOAT_EQ(61.0, res.gyro_bias[Y]);
+    EXPECT_FLOAT_EQ(62.5, res.gyro_bias[Z]);
 }
 
 TEST(C66xMathTest, Matrix3x3Inverse) {
