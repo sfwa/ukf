@@ -25,6 +25,7 @@ SOFTWARE.
 
 #include <cassert>
 #include <iostream>
+#include <stdint.h>
 
 #define AssertPositiveDefinite(m) { \
     bool _res = (m).llt().info() == Eigen::Success; \
