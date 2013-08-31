@@ -842,10 +842,7 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
         }
     }
 
-/*
-    printf("S:\n");
-    _print_matrix(state_covariance, UKF_STATE_DIM, UKF_STATE_DIM);
-*/
+    _print_matrix("S:\n", state_covariance, UKF_STATE_DIM, UKF_STATE_DIM);
 
     /*
     Keep central sigma point means separate from the rest, since the high
@@ -934,11 +931,6 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
     _mul_state_inplace(&apriori_mean, UKF_SIGMA_WMI);
     _add_state_inplace(&apriori_mean, &apriori_central);
 
-/*
-    printf("Apriori mean:\n");
-    _print_matrix(apriori_mean.position, UKF_STATE_DIM, 1);
-*/
-
     /*
     The initial mean estimate includes acceleration due to gravity separately,
     and both it and field strength need to be normalised to the expected
@@ -1006,10 +998,8 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
         }
     }
 
-/*
-    printf("Measurement estimate mean:\n");
-    _print_matrix(measurement_estimate_mean, measurement_dim, 1);
-*/
+    _print_matrix("Measurement estimate mean:\n", measurement_estimate_mean,
+                  measurement_dim, 1);
 
     /*
     Calculate z_prime columns for each sigma point in sequence;
@@ -1031,19 +1021,9 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
                    measurement_dim, measurement_dim, UKF_SIGMA_WCI);
     _mul_wprime(state_covariance, &w_prime[1 * UKF_STATE_DIM], UKF_SIGMA_WCI);
 
-/*
-    printf("z_prime %d:\n", 1);
-    _print_matrix(z_prime_col, measurement_dim, 1);
-*/
-
     for (i = 2; i < UKF_NUM_SIGMA; i++) {
         _ukf_sensor_calculate_deltas(z_prime_col, measurement_estimate_mean,
                                      i);
-
-/*
-        printf("z_prime %d:\n", i);
-        _print_matrix(z_prime_col, measurement_dim, 1);
-*/
 
         _mul_vec_outer_accum(cross_correlation, z_prime_col,
                              &w_prime[i * UKF_STATE_DIM], measurement_dim,
@@ -1057,11 +1037,6 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
 
     _ukf_sensor_calculate_deltas(z_prime_col, measurement_estimate_mean, 0);
 
-/*
-    printf("z_prime %d:\n", 0);
-    _print_matrix(z_prime_col, measurement_dim, 1);
-*/
-
     _mul_vec_outer_accum(cross_correlation, z_prime_col, w_prime,
                          measurement_dim, UKF_STATE_DIM, UKF_SIGMA_WC0);
     _mul_vec_outer_accum(measurement_estimate_covariance, z_prime_col,
@@ -1069,10 +1044,8 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
                          UKF_SIGMA_WC0);
     _mul_wprime_accum(state_covariance, w_prime, UKF_SIGMA_WC0);
 
-/*
-    printf("Apriori covariance:\n");
-    _print_matrix(state_covariance, UKF_STATE_DIM, UKF_STATE_DIM);
-*/
+    _print_matrix("Apriori covariance:\n", state_covariance, UKF_STATE_DIM,
+                  UKF_STATE_DIM);
 
     /* Easy case if no measurements */
     if (measurement_dim == 0) {
@@ -1104,14 +1077,12 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
             sensor_covariance[i];
     }
 
-/*
-    printf("Measurement estimate covariance:\n");
-    _print_matrix(measurement_estimate_covariance, measurement_dim,
+    _print_matrix("Measurement estimate covariance:\n",
+                  measurement_estimate_covariance, measurement_dim,
                   measurement_dim);
 
-    printf("Cross correlation:\n");
-    _print_matrix(cross_correlation, measurement_dim, UKF_STATE_DIM);
-*/
+    _print_matrix("Cross correlation:\n", cross_correlation, measurement_dim,
+                  UKF_STATE_DIM);
 
     /*
     Use w_prime (9408 bytes) and measurement_estimate_sigma (7840 bytes)
@@ -1138,37 +1109,23 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
         measurement_estimate_covariance, measurement_dim,
         kalman_gain);
 
-/*
-    printf("Measurement estimate covariance inverse:\n");
-    _print_matrix(measurement_estimate_covariance_i, measurement_dim,
+    _print_matrix("Measurement estimate covariance inverse:\n",
+                  measurement_estimate_covariance_i, measurement_dim,
                   measurement_dim);
-
-    printf("Innovation:\n");
-    _print_matrix(innovation, measurement_dim, 1);
-*/
+    _print_matrix("Innovation:\n", innovation, measurement_dim, 1);
 
     _mul_mat(kalman_gain, cross_correlation,
         measurement_estimate_covariance_i, measurement_dim,
         measurement_dim, UKF_STATE_DIM, measurement_dim, 1.0);
 
-/*
-    printf("Kalman gain:\n");
-    _print_matrix(kalman_gain, measurement_dim, UKF_STATE_DIM);
-    printf("Measurement estimate covariance:\n");
-    _print_matrix(measurement_estimate_covariance, measurement_dim,
-                  measurement_dim);
-*/
+    _print_matrix("Kalman gain:\n", kalman_gain, measurement_dim,
+                  UKF_STATE_DIM);
 
     _mul_mat(update_temp, kalman_gain, innovation, measurement_dim,
         1, UKF_STATE_DIM, measurement_dim, 1.0);
 
-/*
-    printf("Update temp:\n");
-    _print_matrix(update_temp, UKF_STATE_DIM, 1);
-
-    printf("Apriori mean:\n");
-    _print_matrix(apriori_mean.position, UKF_STATE_DIM, 1);
-*/
+    _print_matrix("Update temp:\n", update_temp, UKF_STATE_DIM, 1);
+    _print_matrix("Apriori mean:\n", apriori_mean.position, UKF_STATE_DIM, 1);
 
     /* Update the state */
     real_t *const mptr = (real_t*)&apriori_mean,
@@ -1191,12 +1148,6 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
         d_q_w
     };
 
-/*
-    printf("x_2: %12.6g\nd_q_w: %12.6g\n", x_2, d_q_w);
-
-    printf("d_q:\n%12.6g %12.6g %12.6g %12.6g\n", d_q[0], d_q[1], d_q[2], d_q[3]);
-*/
-
     _mul_quat_quat(state.attitude, d_q, central_sigma.attitude);
     _normalize_quat(state.attitude, state.attitude, true);
 
@@ -1204,10 +1155,6 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
     _mul_mat(state_temp1, kalman_gain, measurement_estimate_covariance,
         measurement_dim, measurement_dim, UKF_STATE_DIM, measurement_dim,
         1.0);
-/*
-    printf("Update matrix:\n");
-    _print_matrix(state_temp1, measurement_dim, UKF_STATE_DIM);
-*/
 
     _transpose_mat(kalman_gain_t, kalman_gain, measurement_dim,
         UKF_STATE_DIM);
@@ -1223,16 +1170,9 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
     _add_mat_accum(state_covariance, state_temp2,
                    UKF_STATE_DIM * UKF_STATE_DIM);
 
-/*
-    printf("State covariance:\n");
-    _print_matrix(state_covariance, UKF_STATE_DIM, UKF_STATE_DIM);
-
-    printf("Delta cycles: %llu\n", rdtsc() - t);
-
-
-    printf("State:\n");
-    _print_matrix(state.position, UKF_STATE_DIM + 1, 1);
-*/
+    _print_matrix("State covariance:\n", state_covariance, UKF_STATE_DIM,
+                  UKF_STATE_DIM);
+    _print_matrix("State:\n", state.position, UKF_STATE_DIM + 1, 1);
 }
 
 void ukf_init(void) {

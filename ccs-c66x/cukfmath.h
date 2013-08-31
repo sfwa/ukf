@@ -58,7 +58,9 @@ static inline double recip(double b) {
 #ifdef UKF_DEBUG
 #include <stdio.h>
 
-void _print_matrix(real_t mat[], size_t rows, size_t cols) {
+void _print_matrix(const char *label, real_t mat[], size_t rows,
+size_t cols) {
+    printf(label);
     for (size_t i = 0; i < cols; i++) {
         for (size_t j = 0; j < rows; j++) {
             printf("%12.6g ", mat[j*cols + i]);
@@ -67,9 +69,8 @@ void _print_matrix(real_t mat[], size_t rows, size_t cols) {
     }
 }
 
-typedef uint64_t cycles_t;
-static inline cycles_t rdtsc() {
-    cycles_t result;
+static inline uint64_t rdtsc() {
+    uint64_t result;
     __asm__ __volatile__ (
         "rdtsc" \
         : "=A" (result) \
@@ -79,6 +80,12 @@ static inline cycles_t rdtsc() {
 }
 
 #define _nassert assert
+#else
+
+#define rdtsc() 0
+#define _print_matrix(x, y, z) 0
+#define assert(x) 0
+
 #endif
 /* END DEBUG */
 
