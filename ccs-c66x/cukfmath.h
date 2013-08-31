@@ -8,29 +8,6 @@
 
 #ifdef UKF_USE_DSP_INTRINSICS
 
-#undef sqrt
-static inline double sqrt(double a) {
-    double  y, x0, x1, x2, x4;
-    int     upper;
-
-    if (a <= 0.0) {
-        x4 = 0.0;
-    } else if (a > 1.7976931348623157E+308) {
-        x4 = 1.7976931348623157E+308;
-    } else {
-        y = a;
-        upper = _clr(_hi(y), 31, 31);
-        y = _itod(upper, _lo(y));
-
-        x0 = _rsqrdp(Y);
-        x1 = x0 * (1.5 - (y*x0*x0*0.5));
-        x2 = x1 * (1.5 - (y*x1*x1*0.5));
-        x4 = y * x2 * (1.5 - (y*x2*x2*0.5));
-    }
-
-    return x4;
-}
-
 static inline double sqrt_inv(double a) {
     double X0, X1, X2, X3;
 

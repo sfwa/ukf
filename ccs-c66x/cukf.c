@@ -40,11 +40,16 @@
 #define UKF_LAMBDA (UKF_ALPHA_2*(UKF_STATE_DIM + UKF_KAPPA) - UKF_STATE_DIM)
 #define UKF_DIM_PLUS_LAMBDA (UKF_ALPHA_2*(UKF_STATE_DIM + UKF_KAPPA))
 
+/*
+Some code has the A = 1.0 assumption baked in, so MRP will need to be updated
+from src/ukf.cpp if this changes.
+
 #define UKF_MRP_A (1.0)
 #define UKF_MRP_A_2 (UKF_MRP_A*UKF_MRP_A)
-#define UKF_MRP_F (2.0*(UKF_MRP_A + 1))
-#define UKF_MRP_F_2 (UKF_MRP_F*UKF_MRP_F)
-#define UKF_MRP_F_RECIP (1.0/UKF_MRP_F)
+*/
+#define UKF_MRP_F 4.0
+#define UKF_MRP_F_2 16.0
+#define UKF_MRP_F_RECIP 0.25
 
 #define UKF_SIGMA_WM0 (UKF_LAMBDA/(UKF_DIM_PLUS_LAMBDA))
 #define UKF_SIGMA_WC0 (UKF_SIGMA_WM0 + (1.0 - UKF_ALPHA_2 + UKF_BETA))
@@ -711,10 +716,9 @@ uint32_t sigma_idx) {
 
         #pragma MUST_ITERATE(12)
         #pragma UNROLL(2)
-        for (i = 0; i < 12; i++) {
+        for (i = 0; i < 14; i++) {
             E[i + 3] = sigma[i + 6] - M[i + 3];
         }
-        E[i + 3] = sigma[i + 6] - M[i + 3];
     } else {
         #pragma MUST_ITERATE(20)
         #pragma UNROLL(2)
@@ -786,7 +790,7 @@ struct ukf_state_t *central_sigma) {
         };
         _mul_quat_quat(err_q, sigma->attitude, cs_conj);
 
-        real_t qw_recip = recip(UKF_MRP_A + err_q[W]);
+        real_t qw_recip = recip(1.0 + err_q[W]);
         w_prime[widx + 9] = UKF_MRP_F * err_q[X] * qw_recip;
         w_prime[widx + 10] = UKF_MRP_F * err_q[Y] * qw_recip;
         w_prime[widx + 11] = UKF_MRP_F * err_q[Z] * qw_recip;
@@ -817,9 +821,7 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
     assert(control);
     assert(UKF_STATE_DIM == 24);
 
-/*
     uint64_t t = rdtsc();
-*/
 
     /* See src/ukf.cpp, line 85 */
     uint32_t i, j, k, l;
@@ -872,10 +874,8 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
             state_covariance[col + 11]
         };
         real_t x_2 = (d_p[X]*d_p[X] + d_p[Y]*d_p[Y] + d_p[Z]*d_p[Z]);
-        real_t err_w = divide(-UKF_MRP_A * x_2 + UKF_MRP_F *
-                              sqrt(UKF_MRP_F_2 + (1.0 - UKF_MRP_A_2) * x_2),
-                              (UKF_MRP_F_2 + x_2));
-        real_t err_scale = UKF_MRP_F_RECIP * (UKF_MRP_A + err_w);
+        real_t err_w = divide(UKF_MRP_F_2 - x_2, UKF_MRP_F_2 + x_2);
+        real_t err_scale = UKF_MRP_F_RECIP + UKF_MRP_F_RECIP * err_w;
         real_t noise_q[4] = {
             err_scale * d_p[X],
             err_scale * d_p[Y],
@@ -897,8 +897,8 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
             This overwrites 3 of the 4 attitude values, but it's more
             efficient to do it this way than to special-case
             */
-            sp[l+12] = st[l+12] + state_covariance[k+11];
-            sn[l+12] = st[l+12] - state_covariance[k+11];
+            sp[l+13] = st[l+13] + state_covariance[k+12];
+            sn[l+13] = st[l+13] - state_covariance[k+12];
         }
 
         _mul_quat_quat(sigma_pos.attitude, noise_q, state.attitude);
@@ -1001,10 +1001,9 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
         */
         #pragma MUST_ITERATE(12)
         #pragma UNROLL(2)
-        for (i = 0; i < 12; i++) {
+        for (i = 0; i < 14; i++) {
             measurement_estimate_mean[i+3] = measurement_estimate_mean[i+6];
         }
-        measurement_estimate_mean[i+3] = measurement_estimate_mean[i+6];
     }
 
 /*
@@ -1032,9 +1031,19 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
                    measurement_dim, measurement_dim, UKF_SIGMA_WCI);
     _mul_wprime(state_covariance, &w_prime[1 * UKF_STATE_DIM], UKF_SIGMA_WCI);
 
+/*
+    printf("z_prime %d:\n", 1);
+    _print_matrix(z_prime_col, measurement_dim, 1);
+*/
+
     for (i = 2; i < UKF_NUM_SIGMA; i++) {
         _ukf_sensor_calculate_deltas(z_prime_col, measurement_estimate_mean,
                                      i);
+
+/*
+        printf("z_prime %d:\n", i);
+        _print_matrix(z_prime_col, measurement_dim, 1);
+*/
 
         _mul_vec_outer_accum(cross_correlation, z_prime_col,
                              &w_prime[i * UKF_STATE_DIM], measurement_dim,
@@ -1047,6 +1056,12 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
     }
 
     _ukf_sensor_calculate_deltas(z_prime_col, measurement_estimate_mean, 0);
+
+/*
+    printf("z_prime %d:\n", 0);
+    _print_matrix(z_prime_col, measurement_dim, 1);
+*/
+
     _mul_vec_outer_accum(cross_correlation, z_prime_col, w_prime,
                          measurement_dim, UKF_STATE_DIM, UKF_SIGMA_WC0);
     _mul_vec_outer_accum(measurement_estimate_covariance, z_prime_col,
@@ -1167,16 +1182,20 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
 
     real_t d_p[3] = { update_temp[9], update_temp[10], update_temp[11] };
     real_t x_2 = d_p[X]*d_p[X] + d_p[Y]*d_p[Y] + d_p[Z]*d_p[Z];
-    real_t d_q_w = divide(-UKF_MRP_A * x_2 + UKF_MRP_F *
-                       sqrt(UKF_MRP_F_2 + ((real_t)1.0 - UKF_MRP_A_2) * x_2),
-                       UKF_MRP_F_2 + x_2);
-    real_t d_q_scale = UKF_MRP_F_RECIP * (UKF_MRP_A + d_q_w);
+    real_t d_q_w = divide(UKF_MRP_F_2 - x_2, UKF_MRP_F_2 + x_2);
+    real_t d_q_scale = UKF_MRP_F_RECIP + UKF_MRP_F_RECIP * d_q_w;
     real_t d_q[4] = {
         d_q_scale * d_p[X],
         d_q_scale * d_p[Y],
         d_q_scale * d_p[Z],
         d_q_w
     };
+
+/*
+    printf("x_2: %12.6g\nd_q_w: %12.6g\n", x_2, d_q_w);
+
+    printf("d_q:\n%12.6g %12.6g %12.6g %12.6g\n", d_q[0], d_q[1], d_q[2], d_q[3]);
+*/
 
     _mul_quat_quat(state.attitude, d_q, central_sigma.attitude);
     _normalize_quat(state.attitude, state.attitude, true);
@@ -1210,8 +1229,9 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
 
     printf("Delta cycles: %llu\n", rdtsc() - t);
 
+
     printf("State:\n");
-    _print_matrix(state.position, UKF_STATE_DIM, 1);
+    _print_matrix(state.position, UKF_STATE_DIM + 1, 1);
 */
 }
 
