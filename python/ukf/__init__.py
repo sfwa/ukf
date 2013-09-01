@@ -198,8 +198,9 @@ def init(implementation="c"):
     # Load the requested library and determine configuration parameters
     if implementation == "c":
         lib = os.path.join(os.path.dirname(__file__), "c", "libcukf.dylib")
-    elif implementation == "dsp":
-        lib = os.path.join(os.path.dirname(__file__), "c66x", "libcukf.dylib")
+    elif implementation == "c66x":
+        lib = os.path.join(os.path.dirname(__file__), "ccs-c66x",
+                           "libc66ukf.dylib")
     else:
         raise NameError(
             "Unknown UKF implementation: %s (options are 'c', 'dsp')" %
