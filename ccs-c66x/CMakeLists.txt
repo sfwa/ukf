@@ -3,6 +3,6 @@ PROJECT(c66ukf)
 
 INCLUDE_DIRECTORIES(../include ../c)
 
-set(CMAKE_C_FLAGS "-O3")
+set(CMAKE_C_FLAGS "-O3 -Weverything -Werror -Wno-documentation -Wno-padded -Wno-unknown-pragmas")
 
 ADD_LIBRARY(c66ukf SHARED cukf.c)

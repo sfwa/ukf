@@ -262,31 +262,6 @@ TEST(C66xMathTest, MatrixMultiply) {
     EXPECT_NEAR(32.0, c[15], 1e-12);
 }
 
-TEST(C66xMathTest, MatrixMultiplyAccum) {
-    real_t c[16], d[4] = { 1, 2, 3, 4}, e[4] = { 5, 6, 7, 8 };
-
-    memset(c, 0, sizeof(c));
-    c[0] = c[5] = c[10] = c[15] = 1.0;
-
-    _mul_mat_accum(c, d, e, 1, 4, 4, 1, 1.0);
-    EXPECT_NEAR(6.0, c[0], 1e-12);
-    EXPECT_NEAR(10.0, c[1], 1e-12);
-    EXPECT_NEAR(15.0, c[2], 1e-12);
-    EXPECT_NEAR(20.0, c[3], 1e-12);
-    EXPECT_NEAR(6.0, c[4], 1e-12);
-    EXPECT_NEAR(13.0, c[5], 1e-12);
-    EXPECT_NEAR(18.0, c[6], 1e-12);
-    EXPECT_NEAR(24.0, c[7], 1e-12);
-    EXPECT_NEAR(7.0, c[8], 1e-12);
-    EXPECT_NEAR(14.0, c[9], 1e-12);
-    EXPECT_NEAR(22.0, c[10], 1e-12);
-    EXPECT_NEAR(28.0, c[11], 1e-12);
-    EXPECT_NEAR(8.0, c[12], 1e-12);
-    EXPECT_NEAR(16.0, c[13], 1e-12);
-    EXPECT_NEAR(24.0, c[14], 1e-12);
-    EXPECT_NEAR(33.0, c[15], 1e-12);
-}
-
 TEST(C66xMathTest, VectorCross) {
     real_t v1[3] = { 1, 2, 3 }, v2[3] = { 6, 5, 4}, result[3];
 

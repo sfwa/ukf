@@ -9,18 +9,19 @@
 #ifdef UKF_USE_DSP_INTRINSICS
 
 static inline double sqrt_inv(double a) {
-    double X0, X1, X2, X3;
+    double x, half_a;
 
     if (a < 0) {
-        X3 = _lltod(0x7FEFFFFFFFFFFFFF);
+        x = _lltod(0x7FEFFFFFFFFFFFFF);
     } else {
-        X0 = _rsqrdp(a);
-        X1 = X0 * (1.5 - (a*X0) * (X0*0.5));
-        X2 = X1 * (1.5 - (a*X1) * (X1*0.5));
-        X3 = X2 * (1.5 - (a*X2) * (X2*0.5));
+        half_a = a * 0.5;
+        x = _rsqrdp(a);
+        x = x * (1.5 - half_a*x*x);
+        x = x * (1.5 - half_a*x*x);
+        x = x * (1.5 - half_a*x*x);
     }
 
-    return X3;
+    return x;
 }
 
 static inline double divide(double a, double b) {
@@ -60,7 +61,7 @@ static inline double recip(double b) {
 
 void _print_matrix(const char *label, real_t mat[], size_t rows,
 size_t cols) {
-    printf(label);
+    printf("%s", label);
     for (size_t i = 0; i < cols; i++) {
         for (size_t j = 0; j < rows; j++) {
             printf("%12.6g ", mat[j*cols + i]);
@@ -79,15 +80,20 @@ static inline uint64_t rdtsc() {
     return result;
 }
 
-#define _nassert assert
 #else
 
 #define rdtsc() 0
-#define _print_matrix(x, y, z) 0
-#define assert(x) 0
+#define _print_matrix(a, b, c, d)
+
+#undef assert
+#define assert(x)
 
 #endif
 /* END DEBUG */
+
+#ifndef _nassert
+#define _nassert assert
+#endif
 
 #ifndef M_PI
 #define M_PI ((real_t)3.14159265358979323846)
@@ -95,7 +101,7 @@ static inline uint64_t rdtsc() {
 #define M_PI_4 (M_PI * 0.25)
 #endif
 
-static void _cross_vec3(real_t *restrict res, real_t *restrict v1,
+static inline void _cross_vec3(real_t *restrict res, real_t *restrict v1,
 real_t *restrict v2) {
     assert(res && v1 && v2 && res != v1 && res != v2 && v1 != v2);
     _nassert((size_t)res % 8 == 0);
@@ -116,7 +122,7 @@ real_t *restrict v2) {
     res[Z] = r4 - r5;
 }
 
-static void _mul_quat_vec3(real_t *restrict res, real_t *restrict q,
+static inline void _mul_quat_vec3(real_t *restrict res, real_t *restrict q,
 real_t *restrict v) {
     /*
     Multiply a quaternion by a vector (i.e. transform a vectory by a
@@ -164,7 +170,7 @@ real_t *restrict v) {
     res[Z] = rz;
 }
 
-static void _mul_quat_quat(real_t res[4], real_t q1[4], real_t q2[4]) {
+static inline void _mul_quat_quat(real_t res[4], real_t q1[4], real_t q2[4]) {
     assert(res && q1 && q2 && res != q1 && res != q2);
     _nassert((size_t)res % 8 == 0);
     _nassert((size_t)q1 % 8 == 0);
@@ -176,7 +182,7 @@ static void _mul_quat_quat(real_t res[4], real_t q1[4], real_t q2[4]) {
     res[Z] = q1[W]*q2[Z] + q1[X]*q2[Y] - q1[Y]*q2[X] + q1[Z]*q2[W];
 }
 
-static void _normalize_quat(real_t res[4], real_t q[4],
+static inline void _normalize_quat(real_t res[4], real_t q[4],
 bool force_pos) {
     assert(res && q);
     _nassert((size_t)res % 8 == 0);
@@ -193,7 +199,7 @@ bool force_pos) {
     res[W] = q[W] * q_norm;
 }
 
-static void _mul_state_scalar_add_state(
+static inline void _mul_state_scalar_add_state(
 struct ukf_state_t *restrict res,
 const struct ukf_state_t *restrict s1, const real_t a,
 const struct ukf_state_t *restrict s2) {
@@ -215,7 +221,7 @@ const struct ukf_state_t *restrict s2) {
     rptr[i] = s1ptr[i] * a + s2ptr[i];
 }
 
-static void _mul_state_inplace(struct ukf_state_t *restrict res,
+static inline void _mul_state_inplace(struct ukf_state_t *restrict res,
 real_t a) {
     assert(res);
     _nassert((size_t)res % 8 == 0);
@@ -231,7 +237,7 @@ real_t a) {
     rptr[i] *= a;
 }
 
-static void _add_state_inplace(struct ukf_state_t *restrict res,
+static inline void _add_state_inplace(struct ukf_state_t *restrict res,
 struct ukf_state_t *restrict s1) {
     assert(res && s1 && res != s1);
     _nassert((size_t)res % 8 == 0);
@@ -274,7 +280,7 @@ static void _inv_mat3x3(real_t out[9], real_t M[9]) {
     out[8] =  (M[4]*M[0] - M[1]*M[3]) * det;
 }
 
-static void _mul_wprime(real_t *restrict out, real_t *const restrict in,
+static inline void _mul_wprime(real_t *restrict out, real_t *const restrict in,
 const real_t weight) {
     /*
     Multiply a column of wprime by its transpose, and add it to the state
@@ -308,7 +314,7 @@ const real_t weight) {
     }
 }
 
-static void _mul_wprime_accum(real_t *restrict out, real_t *const restrict in,
+static inline void _mul_wprime_accum(real_t *restrict out, real_t *const restrict in,
 const real_t weight) {
     /*
     Multiply a column of wprime by its transpose, and add it to the state
@@ -342,7 +348,7 @@ const real_t weight) {
     }
 }
 
-static void _mul_vec_outer(real_t *restrict out, real_t *const restrict in1,
+static inline void _mul_vec_outer(real_t *restrict out, real_t *const restrict in1,
 real_t *const restrict in2, const size_t r1, const size_t c2,
 const real_t weight) {
     /*
@@ -369,7 +375,7 @@ const real_t weight) {
     }
 }
 
-static void _mul_vec_outer_accum(real_t *restrict out,
+static inline void _mul_vec_outer_accum(real_t *restrict out,
 real_t *const restrict in1, real_t *const restrict in2, const size_t r1,
 const size_t c2, const real_t weight) {
     /*
@@ -399,6 +405,7 @@ const size_t c2, const real_t weight) {
 static void _mul_mat(real_t *restrict C, const real_t B[],
 const real_t A[], const size_t AR, const size_t AC, const size_t BR,
 const size_t BC, const real_t mul) {
+#pragma unused(BC)
     /*
     Calculate C = AB, where A has AN rows and AM columns, and B has BN rows
     and BM columns. C must be AN x BM.
@@ -407,12 +414,15 @@ const size_t BC, const real_t mul) {
     _nassert((size_t)C % 8 == 0);
     _nassert((size_t)B % 8 == 0);
     _nassert((size_t)A % 8 == 0);
-    uint32_t i, j, k;
 
+    size_t i, j, k;
+    #pragma MUST_ITERATE(1,24)
     for (i = 0; i < AC; i++) {
+        #pragma MUST_ITERATE(1,24)
         for (j = 0; j < BR; j++) {
-            real_t t = A[i * AR] * B[j];
-            for (k = 1; k < AR; k++) {
+            real_t t = 0.0;
+            #pragma MUST_ITERATE(1,24)
+            for (k = 0; k < AR; k++) {
                 t += A[i * AR + k] * B[k * BR + j];
             }
 
@@ -421,45 +431,41 @@ const size_t BC, const real_t mul) {
     }
 }
 
-static void _mul_mat_accum(real_t C[], real_t B[], real_t A[],
-size_t AR, size_t AC, size_t BR, size_t BC, real_t mul) {
-    /* Calculate C = C + AB */
-    assert(A && B && C && AR == BC);
-    uint32_t i, j, k, ci;
-    for (i = 0; i < AC; i++) {
-        for (j = 0; j < BR; j++) {
-            ci = i * BR + j;
-            for (k = 0; k < AR; k++) {
-                C[ci] += A[i * AR + k] * B[k * BR + j] * mul;
-            }
-        }
-    }
-}
-
 static void _add_mat_accum(real_t B[], real_t A[], size_t n) {
     /* Calculate B = B + A */
     assert(A && B);
+    _nassert((size_t)B % 8 == 0);
+    _nassert((size_t)A % 8 == 0);
+
     uint32_t i;
+    #pragma MUST_ITERATE(1,24*24)
     for (i = 0; i < n; i++) {
         B[i] += A[i];
     }
 }
 
-static void _transpose_mat(real_t B[], real_t A[], size_t rows,
-size_t cols) {
+static void _transpose_mat(real_t *restrict B, real_t *restrict const A,
+const size_t rows, const size_t cols) {
     /* Transpose the matrix A */
     assert(A && B && A != B && rows && cols);
-    uint32_t i, j;
-    for (i = 0; i < rows; i++) {
-        for (j = 0; j < cols; j++) {
-            B[j*rows + i] = A[i*cols + j];
+    _nassert((size_t)B % 8 == 0);
+    _nassert((size_t)A % 8 == 0);
+
+    uint32_t i, j, ic, jr;
+    #pragma MUST_ITERATE(1,24)
+    for (i = 0, ic = 0; i < rows; i++, ic += cols) {
+        #pragma MUST_ITERATE(1,24)
+        for (j = 0, jr = 0; j < cols; j++, jr += rows) {
+            B[jr + i] = A[ic + j];
         }
     }
 }
 
-static void _cholesky_mat_mul(real_t L[], real_t A[], real_t mul,
-size_t n) {
+static void _cholesky_mat_mul(real_t L[], real_t A[], const real_t mul,
+const size_t n) {
     assert(L && A && n);
+    _nassert((size_t)L % 8 == 0);
+    _nassert((size_t)A % 8 == 0);
 
     /*
     24x24:
@@ -470,21 +476,25 @@ size_t n) {
     ~ 110,000 cycles on C66x
     */
 
-    uint32_t i, j, k;
-    for (i = 0; i < n; i++) {
-        for (j = 0; j <= i; j++) {
+    size_t i, j, kn, in, jn;
+    for (i = 0, in = 0; i < n; i++, in += n) {
+        L[i + 0] = (i == 0) ? sqrt(A[i + in]*mul) : recip(L[0]) * (A[i]*mul);
+
+        for (j = 1, jn = n; j <= i; j++, jn += n) {
             real_t s = 0;
-            for (k = 0; k < j; k++) {
-                s += L[i + k*n] * L[j + k*n];
+            #pragma MUST_ITERATE(1,24)
+            for (kn = 0; kn < j*n; kn += n) {
+                s += L[i + kn] * L[j + kn];
             }
 
-            L[i + j*n] = (i == j) ? sqrt(A[i + i*n]*mul - s) :
-                recip(L[j + j*n]) * (A[i + j*n]*mul - s);
+            L[i + jn] = (i == j) ? sqrt(A[i + in]*mul - s) :
+                recip(L[j + jn]) * (A[i + jn]*mul - s);
         }
     }
 }
 
-static void _inv_mat(real_t out[], real_t M[], size_t n, real_t temp[]) {
+static void _inv_mat(real_t *restrict out, real_t *restrict const M,
+const size_t n, real_t *restrict temp) {
     /*
     Matrix inverse via Cholesky decomposition. Requires M is symmetric
     positive-definite.
@@ -493,28 +503,34 @@ static void _inv_mat(real_t out[], real_t M[], size_t n, real_t temp[]) {
     http://adorio-research.org/wordpress/?p=4560
     */
     assert(M && out && n && M != out && temp && M != temp && out != temp);
+    _nassert((size_t)out % 8 == 0);
+    _nassert((size_t)M % 8 == 0);
+    _nassert((size_t)temp % 8 == 0);
 
     _cholesky_mat_mul(temp, M, 1.0, n);
 
-    /* TODO: check if this is required */
-    memset(out, 0, sizeof(real_t) * n * n);
+    int32_t i, j;
+    size_t k, jn, in;
+    real_t tjj_recip, s;
+    for (j = (int32_t)n - 1; j >= 0; j--) {
+        jn = (size_t)j*n;
+        tjj_recip = recip(temp[jn + (size_t)j]);
+        s = 0.0;
 
-    int32_t i, j, k;
-    for (j = n - 1; j >= 0; j--) {
-        real_t tjj_recip = recip(temp[j*n + j]), s = 0.0;
-
-        for (k = j + 1; k < n; k++) {
-            s += temp[j*n + k] * out[j*n + k];
+        for (k = (size_t)j + 1; k < n; k++) {
+            s += temp[jn + k] * out[jn + k];
         }
 
-        out[j*n + j] = tjj_recip*tjj_recip - s * tjj_recip;
+        out[jn + (size_t)j] = tjj_recip*tjj_recip - s * tjj_recip;
 
         for (i = j - 1; i >= 0; i--) {
+            in = (size_t)i*n;
             s = 0.0;
-            for (k = i + 1; k < n; k++) {
-                s += temp[i*n + k] * out[k*n + j];
+            for (k = (size_t)i + 1; k < n; k++) {
+                s += temp[in + k] * out[k*n+ (size_t)j];
             }
-            out[j*n + i] = out[i*n + j] = divide(-s, temp[i*n + i]);
+            out[jn + (size_t)i] = out[in + (size_t)j] =
+                divide(-s, temp[in + (size_t)i]);
         }
     }
 }

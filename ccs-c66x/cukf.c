@@ -5,10 +5,8 @@
 #include <stdbool.h>
 #include <math.h>
 
-#define UKF_DEBUG
-
 #include "config.h"
-#include "cukf.h"
+#include "../c/cukf.h"
 #include "cukfmath.h"
 
 /* Disable dynamics model if velocity is less than 1m/s or greater than 100m/s */
@@ -16,9 +14,6 @@
 #define UKF_DYNAMICS_MAX_V 100.0
 /* Disable dynamics model if angular velocity exceeds ~120deg/s */
 #define UKF_DYNAMICS_MAX_RATE (M_PI*0.63)
-/* Airframe minimums */
-#define UKF_AIRFRAME_MIN_MASS 0.1
-#define UKF_AIRFRAME_MIN_MOMENT 1e-6
 
 #define G_ACCEL ((real_t)9.80665)
 #define RHO ((real_t)1.225)
@@ -26,7 +21,6 @@
 /* WGS84 reference ellipsoid constants */
 #define WGS84_A (6378137.0)
 #define WGS84_B (6356752.314245)
-#define WGS84_E2 (0.0066943799901975848)
 #define WGS84_A2 (WGS84_A*WGS84_A)
 #define WGS84_B2 (WGS84_B*WGS84_B)
 #define WGS84_AB2 (WGS84_A2*WGS84_B2)
@@ -104,14 +98,17 @@ struct _fixedwingdynamics_params_t {
     int8_t motor_idx;
 };
 
+
 /* Sensor and process configuration */
 static struct _ukf_ioboard_model_t sensor_model;
 static real_t process_noise[UKF_STATE_DIM];
 static real_t sensor_model_mag_field_norm;
 
+
 /* UKF state */
 static struct ukf_state_t state;
 static real_t state_covariance[UKF_STATE_DIM * UKF_STATE_DIM]; /* 4608B */
+
 
 /*
 UKF temporaries -- global to avoid blowing up function stack.
@@ -124,13 +121,36 @@ real_t measurement_estimate_covariance[(UKF_MEASUREMENT_DIM - 3) *
                                        (UKF_MEASUREMENT_DIM - 3)];
 real_t cross_correlation[UKF_STATE_DIM * (UKF_MEASUREMENT_DIM - 3)];
 
+
 /* Dynamics model configuration */
 static enum ukf_model_t dynamics_model = UKF_MODEL_NONE;
 static struct _fixedwingdynamics_params_t fixedwing_params;
 
-/* Private interface */
-void _ukf_state_model(struct ukf_state_t *in) {
+
+/* Private functions */
+void _ukf_state_model(struct ukf_state_t *restrict in);
+void _ukf_state_integrate_rk4(struct ukf_state_t *restrict in,
+const real_t delta);
+void _ukf_state_centripetal_dynamics(struct ukf_state_t *restrict in,
+real_t *restrict const control);
+void _ukf_state_fixed_wing_dynamics(struct ukf_state_t *restrict in,
+real_t *restrict const control);
+void _ukf_sensor_predict(real_t *restrict measurement_estimate,
+struct ukf_state_t *restrict const sigma);
+size_t _ukf_sensor_collate(real_t measurement_estimate[UKF_MEASUREMENT_DIM]);
+void _ukf_sensor_get_covariance(real_t covariance[UKF_MEASUREMENT_DIM]);
+void _ukf_sensor_calculate_deltas(real_t *restrict measurement_estimate,
+real_t *restrict measurement_estimate_mean, uint32_t sigma_idx);
+void _ukf_process_sigma(struct ukf_state_t *sigma, uint32_t idx, real_t dt,
+real_t control[4], struct ukf_state_t *apriori_mean,
+real_t *restrict measurement_estimate_mean,
+real_t *restrict measurement_estimate, struct ukf_state_t *central_sigma);
+
+
+void _ukf_state_model(struct ukf_state_t *restrict in) {
     assert(in);
+    _nassert((size_t)in % 8 == 0);
+
     /* See src/state.cpp */
 
     /* Change in position */
@@ -194,8 +214,11 @@ void _ukf_state_model(struct ukf_state_t *in) {
     in->gyro_bias[2] = 0;
 }
 
-void _ukf_state_integrate_rk4(struct ukf_state_t *restrict in, real_t delta) {
+void _ukf_state_integrate_rk4(struct ukf_state_t *restrict in,
+const real_t delta) {
     assert(in);
+    _nassert((size_t)in % 8 == 0);
+
     if (delta < 1e-6) {
         return;
     }
@@ -226,25 +249,27 @@ void _ukf_state_integrate_rk4(struct ukf_state_t *restrict in, real_t delta) {
            *const restrict dptr = (real_t*)&d,
            *const restrict iptr = (real_t*)in;
 
-    real_t delta2 = delta * (1.0/3.0);
-    delta = delta * (1.0/6.0);
+    real_t delta_on_3 = delta * (1.0/3.0), delta_on_6 = delta * (1.0/6.0);
 
     uint32_t i;
     #pragma MUST_ITERATE(6)
     for (i = 0; i < 6; i++) {
-        iptr[i] += delta2 * (bptr[i] + cptr[i]);
-        iptr[i] += delta * (aptr[i] + dptr[i]);
+        iptr[i] += delta_on_3 * (bptr[i] + cptr[i]);
+        iptr[i] += delta_on_6 * (aptr[i] + dptr[i]);
 
-        iptr[i + 9] += delta2 * (bptr[i + 9] + cptr[i + 9]);
-        iptr[i + 9] += delta * (aptr[i + 9] + dptr[i + 9]);
+        iptr[i + 9] += delta_on_3 * (bptr[i + 9] + cptr[i + 9]);
+        iptr[i + 9] += delta_on_6 * (aptr[i + 9] + dptr[i + 9]);
     }
-    iptr[15] += delta2 * (bptr[15] + cptr[15]);
-    iptr[15] += delta * (aptr[15] + dptr[15]);
+    iptr[15] += delta_on_3 * (bptr[15] + cptr[15]);
+    iptr[15] += delta_on_6 * (aptr[15] + dptr[15]);
 }
 
-void _ukf_state_centripetal_dynamics(struct ukf_state_t *in,
-real_t control[UKF_CONTROL_DIM]) {
+void _ukf_state_centripetal_dynamics(struct ukf_state_t *restrict in,
+real_t *restrict const control) {
+#pragma unused(control)
     assert(in && control);
+    _nassert((size_t)in % 8 == 0);
+    _nassert((size_t)control % 8 == 0);
 
     real_t velocity_body[3];
     _mul_quat_vec3(velocity_body, in->attitude, in->velocity);
@@ -252,11 +277,11 @@ real_t control[UKF_CONTROL_DIM]) {
     memset(in->angular_acceleration, 0, sizeof(in->angular_acceleration));
 }
 
-void _ukf_state_fixed_wing_dynamics(struct ukf_state_t *in,
-real_t control[UKF_CONTROL_DIM]) {
+void _ukf_state_fixed_wing_dynamics(struct ukf_state_t *restrict in,
+real_t *restrict const control) {
     assert(in && control);
-    /* FIXME */
-    assert(UKF_CONTROL_DIM == 4);
+    _nassert((size_t)in % 8 == 0);
+    _nassert((size_t)control % 8 == 0);
 
     /* See src/dynamics.cpp */
     memset(in->acceleration, 0, sizeof(in->acceleration));
@@ -289,6 +314,8 @@ real_t control[UKF_CONTROL_DIM]) {
 
     v_inv = sqrt_inv(v2);
 
+    uint32_t i;
+
     /* Determine alpha and beta: alpha = atan(wz/wx), beta = atan(wy/|wxz|) */
     real_t alpha, beta, qbar, alpha2, beta2;
     qbar = RHO * v2 * 0.5;
@@ -302,18 +329,6 @@ real_t control[UKF_CONTROL_DIM]) {
     alpha2 = alpha * alpha;
     beta2 = beta * beta;
 
-    /* Evaluate quartics in alpha to determine lift and drag */
-    real_t lift = fixedwing_params.c_lift_alpha[0]*alpha2*alpha2 +
-                  fixedwing_params.c_lift_alpha[1]*alpha2*alpha +
-                  fixedwing_params.c_lift_alpha[2]*alpha2 +
-                  fixedwing_params.c_lift_alpha[3]*alpha +
-                  fixedwing_params.c_lift_alpha[4];
-    real_t drag = fixedwing_params.c_drag_alpha[0]*alpha2*alpha2 +
-                  fixedwing_params.c_drag_alpha[1]*alpha2*alpha +
-                  fixedwing_params.c_drag_alpha[2]*alpha2 +
-                  fixedwing_params.c_drag_alpha[3]*alpha +
-                  fixedwing_params.c_drag_alpha[4];
-
     real_t thrust = 0.0;
     if (fixedwing_params.motor_idx < UKF_CONTROL_DIM) {
         real_t ve = fixedwing_params.prop_cve *
@@ -325,43 +340,66 @@ real_t control[UKF_CONTROL_DIM]) {
         }
     }
 
-    real_t side_force;
-    side_force = fixedwing_params.c_side_force[0]*alpha2 +
-                 fixedwing_params.c_side_force[1]*alpha +
-                 fixedwing_params.c_side_force[2]*beta2 +
-                 fixedwing_params.c_side_force[3]*beta +
-                 fixedwing_params.c_side_force[4]*alpha2*beta +
-                 fixedwing_params.c_side_force[5]*alpha*beta +
-                 fixedwing_params.c_side_force[6]*yaw_rate +
-                 fixedwing_params.c_side_force[7]*roll_rate +
-                 fixedwing_params.c_side_force_control[0]*control[0] +
-                 fixedwing_params.c_side_force_control[1]*control[1] +
-                 fixedwing_params.c_side_force_control[2]*control[2] +
-                 fixedwing_params.c_side_force_control[3]*control[3];
+    /* Help compiler determine pointer aligment, aliasing etc */
+    real_t *restrict const c_lift_alpha = fixedwing_params.c_lift_alpha,
+           *restrict const c_drag_alpha = fixedwing_params.c_drag_alpha,
+           *restrict const c_side_force = fixedwing_params.c_side_force,
+           *restrict const c_yaw_moment = fixedwing_params.c_yaw_moment,
+           *restrict const c_pitch_moment = fixedwing_params.c_pitch_moment,
+           *restrict const c_roll_moment = fixedwing_params.c_roll_moment,
+           *restrict const c_side_force_control =
+                fixedwing_params.c_side_force_control,
+           *restrict const c_pitch_moment_control =
+                fixedwing_params.c_pitch_moment_control,
+           *restrict const c_yaw_moment_control =
+                fixedwing_params.c_yaw_moment_control,
+           *restrict const c_roll_moment_control =
+                fixedwing_params.c_roll_moment_control;
 
-    real_t pitch_moment;
-    pitch_moment = fixedwing_params.c_pitch_moment[0]*alpha +
-                   fixedwing_params.c_pitch_moment[1]*pitch_rate*pitch_rate*
-                        (pitch_rate < 0.0 ? -1.0 : 1.0) +
-                   fixedwing_params.c_pitch_moment_control[0]*control[0] +
-                   fixedwing_params.c_pitch_moment_control[1]*control[1] +
-                   fixedwing_params.c_pitch_moment_control[2]*control[2] +
-                   fixedwing_params.c_pitch_moment_control[3]*control[3];
+    real_t lift, drag, side_force, pitch_moment, yaw_moment, roll_moment;
 
-    real_t roll_moment;
-    roll_moment = fixedwing_params.c_roll_moment[0]*roll_rate +
-                  fixedwing_params.c_roll_moment_control[0]*control[0] +
-                  fixedwing_params.c_roll_moment_control[1]*control[1] +
-                  fixedwing_params.c_roll_moment_control[2]*control[2] +
-                  fixedwing_params.c_roll_moment_control[3]*control[3];
+    /* Evaluate quartics in alpha to determine lift and drag */
+    lift = c_lift_alpha[0]*alpha2*alpha2 +
+           c_lift_alpha[1]*alpha2*alpha +
+           c_lift_alpha[2]*alpha2 +
+           c_lift_alpha[3]*alpha +
+           c_lift_alpha[4];
 
-    real_t yaw_moment;
-    yaw_moment = fixedwing_params.c_yaw_moment[0]*beta +
-                 fixedwing_params.c_yaw_moment[1]*yaw_rate +
-                 fixedwing_params.c_yaw_moment_control[0]*control[0] +
-                 fixedwing_params.c_yaw_moment_control[1]*control[1] +
-                 fixedwing_params.c_yaw_moment_control[2]*control[2] +
-                 fixedwing_params.c_yaw_moment_control[3]*control[3];
+    drag = c_drag_alpha[0]*alpha2*alpha2 +
+           c_drag_alpha[1]*alpha2*alpha +
+           c_drag_alpha[2]*alpha2 +
+           c_drag_alpha[3]*alpha +
+           c_drag_alpha[4];
+
+    side_force = c_side_force[0]*alpha2 +
+                 c_side_force[1]*alpha +
+                 c_side_force[2]*beta2 +
+                 c_side_force[3]*beta +
+                 c_side_force[4]*alpha2*beta +
+                 c_side_force[5]*alpha*beta +
+                 c_side_force[6]*yaw_rate +
+                 c_side_force[7]*roll_rate;
+
+    pitch_moment = c_pitch_moment[0]*alpha +
+                   c_pitch_moment[1]*pitch_rate*pitch_rate*
+                        (pitch_rate < 0.0 ? -1.0 : 1.0);
+
+    roll_moment = c_roll_moment[0]*roll_rate;
+
+    yaw_moment = c_yaw_moment[0]*beta +
+                 c_yaw_moment[1]*yaw_rate;
+
+    /*
+    Add control forces
+    */
+    #pragma MUST_ITERATE(UKF_CONTROL_DIM)
+    for (i = 0; i < UKF_CONTROL_DIM; i++) {
+        real_t ci = control[i];
+        side_force += c_side_force_control[i] * ci;
+        pitch_moment += c_pitch_moment_control[i] * ci;
+        roll_moment += c_roll_moment_control[i] * ci;
+        yaw_moment += c_yaw_moment_control[i] * ci;
+    }
 
     /*
     Rotate G_ACCEL by current attitude and add to body-frame force components
@@ -387,143 +425,15 @@ real_t control[UKF_CONTROL_DIM]) {
     #undef M
 }
 
-/* Public interface */
-void ukf_set_position(real_t lat, real_t lon, real_t alt) {
-    state.position[0] = lat;
-    state.position[1] = lon;
-    state.position[2] = alt;
-}
-
-void ukf_set_velocity(real_t x, real_t y, real_t z) {
-    state.velocity[X] = x;
-    state.velocity[Y] = y;
-    state.velocity[Z] = z;
-}
-
-void ukf_set_acceleration(real_t x, real_t y, real_t z) {
-    state.acceleration[X] = x;
-    state.acceleration[Y] = y;
-    state.acceleration[Z] = z;
-}
-
-void ukf_set_attitude(real_t w, real_t x, real_t y, real_t z) {
-    state.attitude[X] = x;
-    state.attitude[Y] = y;
-    state.attitude[Z] = z;
-    state.attitude[W] = w;
-}
-
-void ukf_set_angular_velocity(real_t x, real_t y, real_t z) {
-    state.angular_velocity[X] = x;
-    state.angular_velocity[Y] = y;
-    state.angular_velocity[Z] = z;
-}
-
-void ukf_set_angular_acceleration(real_t x, real_t y, real_t z) {
-    state.angular_acceleration[X] = x;
-    state.angular_acceleration[Y] = y;
-    state.angular_acceleration[Z] = z;
-}
-
-void ukf_set_wind_velocity(real_t x, real_t y, real_t z) {
-    state.wind_velocity[X] = x;
-    state.wind_velocity[Y] = y;
-    state.wind_velocity[Z] = z;
-}
-
-void ukf_set_gyro_bias(real_t x, real_t y, real_t z) {
-    state.gyro_bias[X] = x;
-    state.gyro_bias[Y] = y;
-    state.gyro_bias[Z] = z;
-}
-
-void ukf_get_state(struct ukf_state_t *in) {
-    assert(in);
-    memcpy(in, &state, sizeof(state));
-}
-
-void ukf_set_state(struct ukf_state_t *in) {
-    assert(in);
-    memcpy(&state, in, sizeof(state));
-}
-
-void ukf_get_state_covariance(real_t in[UKF_STATE_DIM * UKF_STATE_DIM]) {
-    assert(in);
-    memcpy(in, state_covariance, sizeof(state_covariance));
-}
-
-void ukf_sensor_clear() {
-    memset(&sensor_model.flags, 0, sizeof(sensor_model.flags));
-}
-
-void ukf_sensor_set_accelerometer(real_t x, real_t y, real_t z) {
-    sensor_model.accelerometer[X] = x;
-    sensor_model.accelerometer[Y] = y;
-    sensor_model.accelerometer[Z] = z;
-    sensor_model.flags.accelerometer = true;
-}
-
-void ukf_sensor_set_gyroscope(real_t x, real_t y, real_t z) {
-    sensor_model.gyroscope[X] = x;
-    sensor_model.gyroscope[Y] = y;
-    sensor_model.gyroscope[Z] = z;
-    sensor_model.flags.gyroscope = true;
-}
-
-void ukf_sensor_set_magnetometer(real_t x, real_t y, real_t z) {
-    sensor_model.magnetometer[X] = x;
-    sensor_model.magnetometer[Y] = y;
-    sensor_model.magnetometer[Z] = z;
-    sensor_model.flags.magnetometer = true;
-}
-
-void ukf_sensor_set_gps_position(real_t lat, real_t lon, real_t alt) {
-    sensor_model.gps_position[X] = lat;
-    sensor_model.gps_position[Y] = lon;
-    sensor_model.gps_position[Z] = alt;
-    sensor_model.flags.gps_position = true;
-}
-
-void ukf_sensor_set_gps_velocity(real_t x, real_t y, real_t z) {
-    sensor_model.gps_velocity[X] = x;
-    sensor_model.gps_velocity[Y] = y;
-    sensor_model.gps_velocity[Z] = z;
-    sensor_model.flags.gps_velocity = true;
-}
-
-void ukf_sensor_set_pitot_tas(real_t tas) {
-    sensor_model.pitot_tas = tas;
-    sensor_model.flags.pitot_tas = true;
-}
-
-void ukf_sensor_set_barometer_amsl(real_t amsl) {
-    sensor_model.barometer_amsl = amsl;
-    sensor_model.flags.barometer_amsl = true;
-}
-
-void ukf_set_params(struct ukf_ioboard_params_t *in) {
-    assert(in);
-    memcpy(&sensor_model.configuration, in,
-        sizeof(sensor_model.configuration));
-
-    #define B sensor_model.configuration.mag_field
-    sensor_model_mag_field_norm = sqrt(B[X]*B[X] + B[Y]*B[Y] + B[Z]*B[Z]);
-    #undef B
-}
-
-void ukf_choose_dynamics(enum ukf_model_t t) {
-    assert(t == UKF_MODEL_NONE || t == UKF_MODEL_CENTRIPETAL ||
-        t == UKF_MODEL_FIXED_WING);
-    dynamics_model = t;
-}
-
-void _ukf_sensor_predict(real_t measurement_estimate[UKF_MEASUREMENT_DIM],
-struct ukf_state_t *sigma) {
+void _ukf_sensor_predict(real_t *restrict measurement_estimate,
+struct ukf_state_t *restrict const sigma) {
     assert(measurement_estimate && sigma);
     assert(fabs(sigma->attitude[X]*sigma->attitude[X] +
                 sigma->attitude[Y]*sigma->attitude[Y] +
                 sigma->attitude[Z]*sigma->attitude[Z] +
                 sigma->attitude[W]*sigma->attitude[W] - 1.0) < 1e-6);
+    _nassert((size_t)measurement_estimate % 8 == 0);
+    _nassert((size_t)sigma % 8 == 0);
 
     /* see src/sensors.cpp line 123 */
 
@@ -697,10 +607,8 @@ void _ukf_sensor_get_covariance(real_t covariance[UKF_MEASUREMENT_DIM]) {
     #undef C
 }
 
-void _ukf_sensor_calculate_deltas(
-real_t *restrict measurement_estimate,
-real_t *restrict measurement_estimate_mean,
-uint32_t sigma_idx) {
+void _ukf_sensor_calculate_deltas(real_t *restrict measurement_estimate,
+real_t *restrict measurement_estimate_mean, uint32_t sigma_idx) {
     assert(measurement_estimate && measurement_estimate_mean &&
            sigma_idx < UKF_NUM_SIGMA);
     uint32_t i, sidx = sigma_idx*UKF_MEASUREMENT_DIM;
@@ -732,10 +640,8 @@ uint32_t sigma_idx) {
 
 void _ukf_process_sigma(struct ukf_state_t *sigma, uint32_t idx, real_t dt,
 real_t control[4], struct ukf_state_t *apriori_mean,
-real_t w_prime[UKF_STATE_DIM * UKF_NUM_SIGMA],
 real_t *restrict measurement_estimate_mean,
-real_t *restrict measurement_estimate,
-struct ukf_state_t *central_sigma) {
+real_t *restrict measurement_estimate, struct ukf_state_t *central_sigma) {
     assert(sigma && control && apriori_mean && w_prime &&
         measurement_estimate && control);
 
@@ -817,11 +723,140 @@ struct ukf_state_t *central_sigma) {
     }
 }
 
+
+/* Public interface */
+void ukf_set_position(real_t lat, real_t lon, real_t alt) {
+    state.position[0] = lat;
+    state.position[1] = lon;
+    state.position[2] = alt;
+}
+
+void ukf_set_velocity(real_t x, real_t y, real_t z) {
+    state.velocity[X] = x;
+    state.velocity[Y] = y;
+    state.velocity[Z] = z;
+}
+
+void ukf_set_acceleration(real_t x, real_t y, real_t z) {
+    state.acceleration[X] = x;
+    state.acceleration[Y] = y;
+    state.acceleration[Z] = z;
+}
+
+void ukf_set_attitude(real_t w, real_t x, real_t y, real_t z) {
+    state.attitude[X] = x;
+    state.attitude[Y] = y;
+    state.attitude[Z] = z;
+    state.attitude[W] = w;
+}
+
+void ukf_set_angular_velocity(real_t x, real_t y, real_t z) {
+    state.angular_velocity[X] = x;
+    state.angular_velocity[Y] = y;
+    state.angular_velocity[Z] = z;
+}
+
+void ukf_set_angular_acceleration(real_t x, real_t y, real_t z) {
+    state.angular_acceleration[X] = x;
+    state.angular_acceleration[Y] = y;
+    state.angular_acceleration[Z] = z;
+}
+
+void ukf_set_wind_velocity(real_t x, real_t y, real_t z) {
+    state.wind_velocity[X] = x;
+    state.wind_velocity[Y] = y;
+    state.wind_velocity[Z] = z;
+}
+
+void ukf_set_gyro_bias(real_t x, real_t y, real_t z) {
+    state.gyro_bias[X] = x;
+    state.gyro_bias[Y] = y;
+    state.gyro_bias[Z] = z;
+}
+
+void ukf_get_state(struct ukf_state_t *in) {
+    assert(in);
+    memcpy(in, &state, sizeof(state));
+}
+
+void ukf_set_state(struct ukf_state_t *in) {
+    assert(in);
+    memcpy(&state, in, sizeof(state));
+}
+
+void ukf_get_state_covariance(real_t in[UKF_STATE_DIM * UKF_STATE_DIM]) {
+    assert(in);
+    memcpy(in, state_covariance, sizeof(state_covariance));
+}
+
+void ukf_sensor_clear() {
+    memset(&sensor_model.flags, 0, sizeof(sensor_model.flags));
+}
+
+void ukf_sensor_set_accelerometer(real_t x, real_t y, real_t z) {
+    sensor_model.accelerometer[X] = x;
+    sensor_model.accelerometer[Y] = y;
+    sensor_model.accelerometer[Z] = z;
+    sensor_model.flags.accelerometer = true;
+}
+
+void ukf_sensor_set_gyroscope(real_t x, real_t y, real_t z) {
+    sensor_model.gyroscope[X] = x;
+    sensor_model.gyroscope[Y] = y;
+    sensor_model.gyroscope[Z] = z;
+    sensor_model.flags.gyroscope = true;
+}
+
+void ukf_sensor_set_magnetometer(real_t x, real_t y, real_t z) {
+    sensor_model.magnetometer[X] = x;
+    sensor_model.magnetometer[Y] = y;
+    sensor_model.magnetometer[Z] = z;
+    sensor_model.flags.magnetometer = true;
+}
+
+void ukf_sensor_set_gps_position(real_t lat, real_t lon, real_t alt) {
+    sensor_model.gps_position[X] = lat;
+    sensor_model.gps_position[Y] = lon;
+    sensor_model.gps_position[Z] = alt;
+    sensor_model.flags.gps_position = true;
+}
+
+void ukf_sensor_set_gps_velocity(real_t x, real_t y, real_t z) {
+    sensor_model.gps_velocity[X] = x;
+    sensor_model.gps_velocity[Y] = y;
+    sensor_model.gps_velocity[Z] = z;
+    sensor_model.flags.gps_velocity = true;
+}
+
+void ukf_sensor_set_pitot_tas(real_t tas) {
+    sensor_model.pitot_tas = tas;
+    sensor_model.flags.pitot_tas = true;
+}
+
+void ukf_sensor_set_barometer_amsl(real_t amsl) {
+    sensor_model.barometer_amsl = amsl;
+    sensor_model.flags.barometer_amsl = true;
+}
+
+void ukf_set_params(struct ukf_ioboard_params_t *in) {
+    assert(in);
+    memcpy(&sensor_model.configuration, in,
+        sizeof(sensor_model.configuration));
+
+    #define B sensor_model.configuration.mag_field
+    sensor_model_mag_field_norm = sqrt(B[X]*B[X] + B[Y]*B[Y] + B[Z]*B[Z]);
+    #undef B
+}
+
+void ukf_choose_dynamics(enum ukf_model_t t) {
+    assert(t == UKF_MODEL_NONE || t == UKF_MODEL_CENTRIPETAL ||
+        t == UKF_MODEL_FIXED_WING);
+    dynamics_model = t;
+}
+
 void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
     assert(control);
     assert(UKF_STATE_DIM == 24);
-
-    uint64_t t = rdtsc();
 
     /* See src/ukf.cpp, line 85 */
     uint32_t i, j, k, l;
@@ -859,7 +894,7 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
     /* Central point */
     memcpy(&central_sigma, &state, sizeof(central_sigma));
     _ukf_process_sigma(&central_sigma, 0, dt, control, &apriori_central,
-        w_prime, NULL, &measurement_estimate_sigma[0], &central_sigma);
+        NULL, &measurement_estimate_sigma[0], &central_sigma);
 
     /* Other points */
     uint32_t col;
@@ -906,13 +941,13 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
 
         /* Process positive sigma point. */
         _ukf_process_sigma(&sigma_pos, i + 1, dt, control, &apriori_mean,
-            w_prime, measurement_estimate_mean,
+            measurement_estimate_mean,
             &measurement_estimate_sigma[(i + 1)*UKF_MEASUREMENT_DIM],
             &central_sigma);
 
         /* Process negative sigma point. */
         _ukf_process_sigma(&sigma_neg, i + 1 + UKF_STATE_DIM, dt, control,
-            &apriori_mean, w_prime, measurement_estimate_mean,
+            &apriori_mean, measurement_estimate_mean,
             &measurement_estimate_sigma[
                 (i + 1 + UKF_STATE_DIM)*UKF_MEASUREMENT_DIM],
             &central_sigma);

@@ -113,7 +113,7 @@ void ukf_get_state_covariance(
 Functions for setting sensor data. Before each frame, call the sensor_clear()
 function to clear old sensor data.
 */
-void ukf_sensor_clear();
+void ukf_sensor_clear(void);
 void ukf_sensor_set_accelerometer(real_t x, real_t y, real_t z);
 void ukf_sensor_set_gyroscope(real_t x, real_t y, real_t z);
 void ukf_sensor_set_magnetometer(real_t x, real_t y, real_t z);
@@ -157,10 +157,10 @@ enum ukf_precision_t {
     UKF_PRECISION_DOUBLE = 1
 };
 
-uint32_t ukf_config_get_state_dim();
-uint32_t ukf_config_get_measurement_dim();
-uint32_t ukf_config_get_control_dim();
-enum ukf_precision_t ukf_config_get_precision();
+uint32_t ukf_config_get_state_dim(void);
+uint32_t ukf_config_get_measurement_dim(void);
+uint32_t ukf_config_get_control_dim(void);
+enum ukf_precision_t ukf_config_get_precision(void);
 
 #ifdef __cplusplus
 }
