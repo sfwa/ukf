@@ -44,10 +44,10 @@ public:
     template<typename StateModel>
     const StateModel integrate(StateModel in, real_t delta) const {
         StateModel a = in.model();
-        StateModel b = static_cast<StateModel>(in + 0.5 * delta * a).model();
-        StateModel c = static_cast<StateModel>(in + 0.5 * delta * b).model();
+        StateModel b = static_cast<StateModel>(in + (real_t)0.5 * delta * a).model();
+        StateModel c = static_cast<StateModel>(in + (real_t)0.5 * delta * b).model();
         StateModel d = static_cast<StateModel>(in + delta * c).model();
-        return in + (delta / 6.0) * (a + (b * 2.0) + (c * 2.0) + d);
+        return in + (delta / (real_t)6.0) * (a + (b * (real_t)2.0) + (c * (real_t)2.0) + d);
     }
 };
 
@@ -57,7 +57,7 @@ public:
     const StateModel integrate(StateModel in, real_t delta) const {
         StateModel initial = in.model();
         StateModel predictor = in + delta * initial;
-        return in + (delta * 0.5) * (initial + predictor.model());
+        return in + (delta * (real_t)0.5) * (initial + predictor.model());
     }
 };
 

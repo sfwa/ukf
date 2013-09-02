@@ -5,7 +5,7 @@ INCLUDE_DIRECTORIES(../include)
 
 set(CMAKE_CXX_FLAGS "-O3")
 
-ADD_LIBRARY(cukf SHARED interface.cpp)
+ADD_LIBRARY(cukf SHARED cukf.cpp)
 
 ADD_DEPENDENCIES(cukf ukf)
 

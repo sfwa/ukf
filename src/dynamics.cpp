@@ -21,8 +21,6 @@ SOFTWARE.
 */
 
 #include <cmath>
-#include <Eigen/Core>
-#include <Eigen/Geometry>
 
 #include "types.h"
 #include "dynamics.h"
@@ -84,15 +82,15 @@ const State &in, const ControlVector &control) const {
     airflow = attitude * (in.wind_velocity() - in.velocity());
     v = airflow.norm();
 
-    if (v < DYNAMICS_MIN_V || v > DYNAMICS_MAX_V ||
-            std::abs(yaw_rate) > DYNAMICS_MAX_RATE ||
-            std::abs(roll_rate) > DYNAMICS_MAX_RATE ||
-            std::abs(pitch_rate) > DYNAMICS_MAX_RATE) {
+    if (v < UKF_DYNAMICS_MIN_V || v > UKF_DYNAMICS_MAX_V ||
+            std::abs(yaw_rate) > UKF_DYNAMICS_MAX_RATE ||
+            std::abs(roll_rate) > UKF_DYNAMICS_MAX_RATE ||
+            std::abs(pitch_rate) > UKF_DYNAMICS_MAX_RATE) {
         /* Airflow too slow or too fast for any of this to work */
         return AccelerationVector();
     }
 
-    v_inv = 1.0 / v;
+    v_inv = (real_t)1.0 / v;
 
     /*
     Lift is always perpendicular to airflow, drag is always parallel, and
@@ -104,7 +102,7 @@ const State &in, const ControlVector &control) const {
 
     /* Determine alpha and beta: alpha = atan(wz/wx), beta = atan(wy/|wxz|) */
     real_t alpha, beta, qbar, alpha2, beta2;
-    qbar = RHO * v * v * 0.5;
+    qbar = RHO * v * v * (real_t)0.5;
     alpha = std::atan2(-airflow.z(), -airflow.x());
     beta = std::asin(airflow.y() * v_inv);
 
@@ -120,7 +118,7 @@ const State &in, const ControlVector &control) const {
     Set up a^4, a^3, a^2, a, 1 so that we can use dot product for the
     polynomial evaluation.
     */
-    Eigen::Matrix<real_t, 5, 1> alpha_coeffs;
+    Vector5r alpha_coeffs;
     alpha_coeffs << alpha2 * alpha2, alpha2 * alpha, alpha2, alpha, 1.0;
 
     /* Evaluate quartics in alpha to determine lift and drag */
@@ -142,9 +140,9 @@ const State &in, const ControlVector &control) const {
     constant? If so, they're related by prop_ct.
     */
     real_t thrust = 0.0;
-    if (motor_idx < control.rows()) {
+    if (motor_idx < UKF_CONTROL_DIM) {
         real_t ve = prop_cve * control[motor_idx], v0 = airflow.x();
-        thrust = 0.5 * RHO * prop_area * (ve * ve - v0 * v0);
+        thrust = (real_t)0.5 * RHO * prop_area * (ve * ve - v0 * v0);
         if (thrust < 0.0) {
             /* Folding prop, so assume no drag */
             thrust = 0.0;
@@ -154,49 +152,47 @@ const State &in, const ControlVector &control) const {
     /*
     Set up the side force coefficient vector, and calculate side force
     */
-    Eigen::Matrix<real_t, 8 + CONTROL_MAX_DIM, 1> side_coeffs;
-    side_coeffs.segment<8>(0) << alpha2, alpha, beta2, beta,
-                                 alpha2 * beta, alpha * beta,
-                                 yaw_rate, roll_rate;
-    side_coeffs.segment<CONTROL_MAX_DIM>(8) << control;
+    Vector8r side_coeffs;
+    side_coeffs << alpha2, alpha, beta2, beta, alpha2 * beta, alpha * beta,
+                   yaw_rate, roll_rate;
 
-    real_t side_force = side_coeffs.dot(c_side_force);
+    real_t side_force = side_coeffs.dot(c_side_force) +
+        control.dot(c_side_force_control);
 
     /*
     Calculate pitch moment
     */
-    Eigen::Matrix<real_t, 2 + CONTROL_MAX_DIM, 1> pitch_coeffs;
-    pitch_coeffs.segment<2>(0) <<
-        alpha, pitch_rate * pitch_rate * (pitch_rate < 0.0 ? -1.0 : 1.0);
-    pitch_coeffs.segment<CONTROL_MAX_DIM>(2) << control;
+    Vector2r pitch_coeffs;
+    pitch_coeffs << alpha,
+        pitch_rate * (pitch_rate < 0.0 ? -pitch_rate : pitch_rate);
 
-    real_t pitch_moment = pitch_coeffs.dot(c_pitch_moment);
+    real_t pitch_moment = pitch_coeffs.dot(c_pitch_moment) +
+        control.dot(c_pitch_moment_control);
 
     /*
     Roll moment
     */
-    Eigen::Matrix<real_t, 1 + CONTROL_MAX_DIM, 1> roll_coeffs;
-    roll_coeffs[0] = roll_rate;
-    roll_coeffs.segment<CONTROL_MAX_DIM>(1) << control;
-
-    real_t roll_moment = roll_coeffs.dot(c_roll_moment);
+    Vector1r roll_coeffs;
+    roll_coeffs << roll_rate;
+    real_t roll_moment = roll_coeffs.dot(c_roll_moment) +
+        control.dot(c_roll_moment_control);
 
     /*
     Yaw moment
     */
-    Eigen::Matrix<real_t, 2 + CONTROL_MAX_DIM, 1> yaw_coeffs;
-    yaw_coeffs.segment<2>(0) << beta, yaw_rate;
-    yaw_coeffs.segment<CONTROL_MAX_DIM>(2) << control;
-
-    real_t yaw_moment = yaw_coeffs.dot(c_yaw_moment);
+    Vector2r yaw_coeffs;
+    yaw_coeffs << beta, yaw_rate;
+    real_t yaw_moment = yaw_coeffs.dot(c_yaw_moment) +
+        control.dot(c_yaw_moment_control);
 
     /*
     Sum and apply forces and moments
     */
     Vector3r sum_force, sum_torque;
 
-    sum_force = qbar * (lift * lift_axis + drag * drag_axis +
-                side_force * side_axis) + thrust * motor_thrust;
+    sum_force = qbar * (lift * Vector3r(0, 0, -1) + drag * Vector3r(-1, 0, 0)
+                        + side_force * Vector3r(0, 1, 0))
+                + thrust * Vector3r(1, 0, 0);
     sum_torque = qbar * Vector3r(roll_moment, pitch_moment, yaw_moment);
 
     /* Calculate linear acceleration (F / m) */

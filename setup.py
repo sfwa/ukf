@@ -24,7 +24,7 @@ setup(
     version="1.0.0",
     description="UKF library for UAV state estimation",
     long_description=open("README.md").read(),
-    package_dir={"ukf": "python/ukf"},
+    package_dir={"": "python"},
     packages=["ukf"],
     package_data={"ukf": ["c/cukf.dll", "c/libcukf.so", "c/libcukf.dylib"]},
     license="MIT License",
