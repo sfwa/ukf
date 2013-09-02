@@ -497,7 +497,7 @@ static void _inv_mat(real_t *restrict out, real_t *restrict const M,
 const size_t n, real_t *restrict temp) {
     /*
     Matrix inverse via Cholesky decomposition. Requires M is symmetric
-    positive-definite.
+    positive-definite, and temp is a scratch space the same size as M.
 
     Follows algorithm suggested in
     http://adorio-research.org/wordpress/?p=4560

@@ -113,13 +113,12 @@ static real_t state_covariance[UKF_STATE_DIM * UKF_STATE_DIM]; /* 4608B */
 /*
 UKF temporaries -- global to avoid blowing up function stack.
 w_prime is 9408 bytes, measurement_estimate_sigma is 7840 bytes,
-measurement_estimate_covariance is 2312 bytes, cross_correlation is 3264 bytes
+measurement_estimate_covariance is 2312 bytes
 */
 real_t w_prime[UKF_STATE_DIM * UKF_NUM_SIGMA];
 real_t measurement_estimate_sigma[UKF_MEASUREMENT_DIM * UKF_NUM_SIGMA];
 real_t measurement_estimate_covariance[(UKF_MEASUREMENT_DIM - 3) *
                                        (UKF_MEASUREMENT_DIM - 3)];
-real_t cross_correlation[UKF_STATE_DIM * (UKF_MEASUREMENT_DIM - 3)];
 
 
 /* Dynamics model configuration */
@@ -145,6 +144,7 @@ void _ukf_process_sigma(struct ukf_state_t *sigma, uint32_t idx, real_t dt,
 real_t control[4], struct ukf_state_t *apriori_mean,
 real_t *restrict measurement_estimate_mean,
 real_t *restrict measurement_estimate, struct ukf_state_t *central_sigma);
+void _ukf_calculate_state_covariance(void);
 
 
 void _ukf_state_model(struct ukf_state_t *restrict in) {
@@ -723,6 +723,20 @@ real_t *restrict measurement_estimate, struct ukf_state_t *central_sigma) {
     }
 }
 
+void _ukf_calculate_state_covariance() {
+    /* Calculate state covariance from wprime */
+    uint32_t i;
+    _mul_wprime(state_covariance, &w_prime[1 * UKF_STATE_DIM], UKF_SIGMA_WCI);
+    for (i = 2; i < UKF_NUM_SIGMA; i++) {
+        _mul_wprime_accum(state_covariance, &w_prime[i * UKF_STATE_DIM],
+                          UKF_SIGMA_WCI);
+    }
+    _mul_wprime_accum(state_covariance, w_prime, UKF_SIGMA_WC0);
+
+    _print_matrix("Apriori covariance:\n", state_covariance, UKF_STATE_DIM,
+                  UKF_STATE_DIM);
+}
+
 
 /* Public interface */
 void ukf_set_position(real_t lat, real_t lon, real_t alt) {
@@ -916,21 +930,26 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
         };
 
         /* Set sigma points up based on offset from the central point */
-        real_t *const st = (real_t*)&state,
-               *const sp = (real_t*)&sigma_pos,
-               *const sn = (real_t*)&sigma_neg;
+        {
+            real_t *restrict const st = (real_t*)&state,
+                   *restrict const sp = (real_t*)&sigma_pos,
+                   *restrict const sn = (real_t*)&sigma_neg;
+            _nassert((size_t)st % 8 == 0);
+            _nassert((size_t)sp % 8 == 0);
+            _nassert((size_t)sn % 8 == 0);
 
-        #pragma MUST_ITERATE(12)
-        for (j = 0, k = col, l = 0; j < 12; j++, k++, l++) {
-            sp[l] = st[l] + state_covariance[k];
-            sn[l] = st[l] - state_covariance[k];
+            #pragma MUST_ITERATE(12)
+            for (j = 0, k = col, l = 0; j < 12; j++, k++, l++) {
+                sp[l] = st[l] + state_covariance[k];
+                sn[l] = st[l] - state_covariance[k];
 
-            /*
-            This overwrites 3 of the 4 attitude values, but it's more
-            efficient to do it this way than to special-case
-            */
-            sp[l+13] = st[l+13] + state_covariance[k+12];
-            sn[l+13] = st[l+13] - state_covariance[k+12];
+                /*
+                This overwrites 3 of the 4 attitude values, but it's more
+                efficient to do it this way than to special-case
+                */
+                sp[l+13] = st[l+13] + state_covariance[k+12];
+                sn[l+13] = st[l+13] - state_covariance[k+12];
+            }
         }
 
         _mul_quat_quat(sigma_pos.attitude, noise_q, state.attitude);
@@ -1037,6 +1056,32 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
                   measurement_dim, 1);
 
     /*
+    MEASUREMENT_DIM - 3 because we always remove the extra 3 accelerometer
+    readings for the gravity component above
+    */
+    assert(measurement_dim <= UKF_MEASUREMENT_DIM - 3);
+
+    /*
+    Easy case if no measurements -- just need to calculate state_covariance
+    and the output state.
+    */
+    if (measurement_dim == 0) {
+        _ukf_calculate_state_covariance();
+
+        memcpy(&state, &central_sigma, sizeof(state));
+        _normalize_quat(state.attitude, state.attitude, true);
+        return;
+    }
+
+    /*
+    We no longer need the values in state_covariance, and the entire matrix
+    has been overwritten by the L matrix from the Cholesky decomposition
+    anyway. So, we use it as a temporary area to store the cross_correlation
+    matrix, before calculating its new value.
+    */
+    real_t *cross_correlation = state_covariance;
+
+    /*
     Calculate z_prime columns for each sigma point in sequence;
     src/ukf.cpp line 265
 
@@ -1054,7 +1099,7 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
                    UKF_STATE_DIM, UKF_SIGMA_WCI);
     _mul_vec_outer(measurement_estimate_covariance, z_prime_col, z_prime_col,
                    measurement_dim, measurement_dim, UKF_SIGMA_WCI);
-    _mul_wprime(state_covariance, &w_prime[1 * UKF_STATE_DIM], UKF_SIGMA_WCI);
+
 
     for (i = 2; i < UKF_NUM_SIGMA; i++) {
         _ukf_sensor_calculate_deltas(z_prime_col, measurement_estimate_mean,
@@ -1064,10 +1109,8 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
                              &w_prime[i * UKF_STATE_DIM], measurement_dim,
                              UKF_STATE_DIM, UKF_SIGMA_WCI);
         _mul_vec_outer_accum(measurement_estimate_covariance, z_prime_col,
-                             z_prime_col, measurement_dim, measurement_dim,
-                             UKF_SIGMA_WCI);
-        _mul_wprime_accum(state_covariance, &w_prime[i * UKF_STATE_DIM],
-                          UKF_SIGMA_WCI);
+                             z_prime_col, measurement_dim,
+                             measurement_dim, UKF_SIGMA_WCI);
     }
 
     _ukf_sensor_calculate_deltas(z_prime_col, measurement_estimate_mean, 0);
@@ -1077,32 +1120,16 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
     _mul_vec_outer_accum(measurement_estimate_covariance, z_prime_col,
                          z_prime_col, measurement_dim, measurement_dim,
                          UKF_SIGMA_WC0);
-    _mul_wprime_accum(state_covariance, w_prime, UKF_SIGMA_WC0);
-
-    _print_matrix("Apriori covariance:\n", state_covariance, UKF_STATE_DIM,
-                  UKF_STATE_DIM);
-
-    /* Easy case if no measurements */
-    if (measurement_dim == 0) {
-        memcpy(&state, &central_sigma, sizeof(state));
-        _normalize_quat(state.attitude, state.attitude, true);
-        return;
-    }
 
     /*
     Done with w_prime and measurement_sigma_points, so we can use them for
-    other variables as necessary
-    */
-
-    assert(measurement_dim <= UKF_MEASUREMENT_DIM - 3);
-    /*
-    MEASUREMENT_DIM - 3 because we always remove the extra 3 accelerometer
-    readings for the gravity component above
+    other variables as necessary.
 
     src/ukf.cpp line 282
     */
     real_t innovation[UKF_MEASUREMENT_DIM - 3],
-           sensor_covariance[UKF_MEASUREMENT_DIM - 3];
+           sensor_covariance[UKF_MEASUREMENT_DIM - 3],
+           update_temp[UKF_MEASUREMENT_DIM - 3];
     _ukf_sensor_collate(innovation);
     _ukf_sensor_get_covariance(sensor_covariance);
 
@@ -1115,56 +1142,92 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
     _print_matrix("Measurement estimate covariance:\n",
                   measurement_estimate_covariance, measurement_dim,
                   measurement_dim);
-
-    _print_matrix("Cross correlation:\n", cross_correlation, measurement_dim,
-                  UKF_STATE_DIM);
-
-    /*
-    Use w_prime (9408 bytes) and measurement_estimate_sigma (7840 bytes)
-    for temporary variable storage.
-    update_temp is 17 bytes, measurement_estimate_covariance_i is 2312 bytes,
-    kalman_gain is 3264 bytes (5593 bytes used from w_prime);
-    kalman_gain_t is 3264 bytes, state_temp1 is 3264 bytes (6528 bytes used
-    from measurement_estimate_sigma).
-
-    src/ukf.cpp line 306, 313
-    */
-    real_t *update_temp = w_prime,
-           *measurement_estimate_covariance_i = &w_prime[UKF_MEASUREMENT_DIM - 3],
-           *kalman_gain = &measurement_estimate_covariance_i[
-                (UKF_MEASUREMENT_DIM - 3)*(UKF_MEASUREMENT_DIM - 3)],
-           *kalman_gain_t = measurement_estimate_sigma,
-           *state_temp1 = &measurement_estimate_sigma[
-                UKF_STATE_DIM*(UKF_MEASUREMENT_DIM - 3)];
-
-    /*
-    use kalman_gain as temporary working space required by the invert function
-    */
-    _inv_mat(measurement_estimate_covariance_i,
-        measurement_estimate_covariance, measurement_dim,
-        kalman_gain);
-
-    _print_matrix("Measurement estimate covariance inverse:\n",
-                  measurement_estimate_covariance_i, measurement_dim,
-                  measurement_dim);
+    _print_matrix("Cross correlation:\n", cross_correlation,
+                  measurement_dim, UKF_STATE_DIM);
     _print_matrix("Innovation:\n", innovation, measurement_dim, 1);
 
-    _mul_mat(kalman_gain, cross_correlation,
-        measurement_estimate_covariance_i, measurement_dim,
-        measurement_dim, UKF_STATE_DIM, measurement_dim, 1.0);
+    /*
+    src/ukf.cpp line 306, 313
+    */
+
+    /*
+    measurement_estimate_sigma is 7840 bytes; will not be used again until
+    the next frame.
+
+    Re-assign as follows:
+    0000-3263: kalman_gain
+    3264-5575: meas_est_covariance_i
+    0000-2311: meas_est_inv_temp (not used at same time as kalman_gain)
+    */
+    real_t *kalman_gain = measurement_estimate_sigma,
+           *meas_est_inv_temp = measurement_estimate_sigma,
+           *meas_est_covariance_i = &measurement_estimate_sigma[408];
+    _inv_mat(meas_est_covariance_i, measurement_estimate_covariance,
+             measurement_dim, meas_est_inv_temp);
+    meas_est_inv_temp = NULL; /* no need for this now */
+
+    _print_matrix("Measurement estimate covariance inverse:\n",
+                  meas_est_covariance_i, measurement_dim, measurement_dim);
+
+    _mul_mat(kalman_gain, cross_correlation, meas_est_covariance_i,
+             measurement_dim, measurement_dim, UKF_STATE_DIM, measurement_dim,
+             1.0);
+    meas_est_covariance_i = NULL; /* no need for this now */
 
     _print_matrix("Kalman gain:\n", kalman_gain, measurement_dim,
                   UKF_STATE_DIM);
 
     _mul_mat(update_temp, kalman_gain, innovation, measurement_dim,
-        1, UKF_STATE_DIM, measurement_dim, 1.0);
+             1, UKF_STATE_DIM, measurement_dim, 1.0);
 
     _print_matrix("Update temp:\n", update_temp, UKF_STATE_DIM, 1);
     _print_matrix("Apriori mean:\n", apriori_mean.position, UKF_STATE_DIM, 1);
 
+    /*
+    Now that we have kalman_gain, there's no need for cross_correlation. We
+    can go back to using state_covariance for its
+    original purpose, and calculate the new covariance from w_prime.
+    */
+    cross_correlation = NULL;
+    _ukf_calculate_state_covariance();
+
+    /*
+    Since we've just calculated the new state covariance we don't need w_prime
+    until next frame, so we can use it as temporary storage for the state
+    covariance update calculations.
+
+    w_prime is 9408 bytes, and re-assigned as follows:
+    0000-3263: kalman_gain_t
+    3264-6527: state_temp1
+    */
+    real_t *kalman_gain_t = w_prime,
+           *state_temp1 = &w_prime[408];
+
+    /* Update the state covariance; src/ukf.cpp line 352 */
+    _mul_mat(state_temp1, kalman_gain, measurement_estimate_covariance,
+             measurement_dim, measurement_dim, UKF_STATE_DIM, measurement_dim,
+             1.0);
+    _transpose_mat(kalman_gain_t, kalman_gain, measurement_dim,
+                   UKF_STATE_DIM);
+
+    /*
+    Now we're done with kalman_gain, so use it as another temporary matrix in
+    the state covariance update step (same dimensions)
+    */
+    kalman_gain = NULL;
+    real_t *state_temp2 = measurement_estimate_sigma;
+
+    _mul_mat(state_temp2, state_temp1, kalman_gain_t, measurement_dim,
+             UKF_STATE_DIM, UKF_STATE_DIM, measurement_dim, -1.0);
+    _add_mat_accum(state_covariance, state_temp2,
+                   UKF_STATE_DIM * UKF_STATE_DIM);
+
+    _print_matrix("State covariance:\n", state_covariance, UKF_STATE_DIM,
+                  UKF_STATE_DIM);
+
     /* Update the state */
-    real_t *const mptr = (real_t*)&apriori_mean,
-           *const sptr = (real_t*)&state;
+    real_t *restrict const mptr = (real_t*)&apriori_mean,
+           *restrict const sptr = (real_t*)&state;
 
     #pragma MUST_ITERATE(12)
     for (i = 0; i < 12; i++) {
@@ -1186,27 +1249,6 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
     _mul_quat_quat(state.attitude, d_q, central_sigma.attitude);
     _normalize_quat(state.attitude, state.attitude, true);
 
-    /* Update the state covariance; src/ukf.cpp line 352 */
-    _mul_mat(state_temp1, kalman_gain, measurement_estimate_covariance,
-        measurement_dim, measurement_dim, UKF_STATE_DIM, measurement_dim,
-        1.0);
-
-    _transpose_mat(kalman_gain_t, kalman_gain, measurement_dim,
-        UKF_STATE_DIM);
-
-    /*
-    All we need now is kalman_gain_t and state_temp1, both of which are stored
-    in measurement_estimate_sigma's space. Thus, we can re-use the w_prime
-    allocation
-    */
-    real_t *state_temp2 = w_prime;
-    _mul_mat(state_temp2, state_temp1, kalman_gain_t, measurement_dim,
-             UKF_STATE_DIM, UKF_STATE_DIM, measurement_dim, -1.0);
-    _add_mat_accum(state_covariance, state_temp2,
-                   UKF_STATE_DIM * UKF_STATE_DIM);
-
-    _print_matrix("State covariance:\n", state_covariance, UKF_STATE_DIM,
-                  UKF_STATE_DIM);
     _print_matrix("State:\n", state.position, UKF_STATE_DIM + 1, 1);
 }
 
