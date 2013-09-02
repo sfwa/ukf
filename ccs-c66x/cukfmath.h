@@ -70,6 +70,7 @@ size_t cols) {
     }
 }
 
+#ifndef __TI_COMPILER_VERSION__
 static inline uint64_t rdtsc() {
     uint64_t result;
     __asm__ __volatile__ (
@@ -79,6 +80,9 @@ static inline uint64_t rdtsc() {
         : "%eax", "%edx", "memory");
     return result;
 }
+#else
+#define rdtsc() 0
+#endif
 
 #else
 
@@ -91,8 +95,9 @@ static inline uint64_t rdtsc() {
 #endif
 /* END DEBUG */
 
-#ifndef _nassert
-#define _nassert assert
+/* Non-TI compatibility */
+#ifndef __TI_COMPILER_VERSION__
+#define _nassert(x)
 #endif
 
 #ifndef M_PI
