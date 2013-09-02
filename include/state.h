@@ -23,23 +23,7 @@ SOFTWARE.
 #ifndef STATE_H
 #define STATE_H
 
-#include <Eigen/Core>
-
 #include "types.h"
-
-/* WGS84 reference ellipsoid constants */
-#define WGS84_A (6378137.0)
-#define WGS84_B (6356752.314245)
-#define WGS84_E2 (0.0066943799901975848)
-#define WGS84_A2 (WGS84_A*WGS84_A)
-#define WGS84_B2 (WGS84_B*WGS84_B)
-#define WGS84_AB2 (WGS84_A2*WGS84_B2)
-
-typedef Eigen::Matrix<real_t, 25, 1> StateVector;
-typedef Eigen::Matrix<real_t, 25, 1> StateVectorDerivative;
-
-typedef Eigen::Matrix<real_t, 24, 1> StateCovarianceVector;
-typedef Eigen::Matrix<real_t, 24, 24> StateVectorCovariance;
 
 /*
 Definition for filter state vector.
@@ -69,63 +53,73 @@ public:
         return *this;
     }
 
-    Eigen::VectorBlock<StateVector, 3> position() {
+    const StateVectorDerivative model();
+
+    /* Read-only accessors */
+    const Vector3r position() const {
         return segment<3>(0);
     }
-    const Vector3r position() const {
+
+    const Vector3r velocity() const {
+        return segment<3>(3);
+    }
+
+    const Vector3r acceleration() const {
+        return segment<3>(6);
+    }
+
+    const Vector4r attitude() const {
+        return segment<4>(9);
+    }
+
+    const Vector3r angular_velocity() const {
+        return segment<3>(13);
+    }
+
+    const Vector3r angular_acceleration() const {
+        return segment<3>(16);
+    }
+
+    const Vector3r wind_velocity() const {
+        return segment<3>(19);
+    }
+
+    const Vector3r gyro_bias() const {
+        return segment<3>(22);
+    }
+
+    /* Mutable accessors */
+    Eigen::VectorBlock<StateVector, 3> position() {
         return segment<3>(0);
     }
 
     Eigen::VectorBlock<StateVector, 3> velocity() {
         return segment<3>(3);
     }
-    const Vector3r velocity() const {
-        return segment<3>(3);
-    }
 
     Eigen::VectorBlock<StateVector, 3> acceleration() {
-        return segment<3>(6);
-    }
-    const Vector3r acceleration() const {
         return segment<3>(6);
     }
 
     Eigen::VectorBlock<StateVector, 4> attitude() {
         return segment<4>(9);
     }
-    const Eigen::Matrix<real_t, 4, 1> attitude() const {
-        return segment<4>(9);
-    }
 
     Eigen::VectorBlock<StateVector, 3> angular_velocity() {
-        return segment<3>(13);
-    }
-    const Vector3r angular_velocity() const {
         return segment<3>(13);
     }
 
     Eigen::VectorBlock<StateVector, 3> angular_acceleration() {
         return segment<3>(16);
     }
-    const Vector3r angular_acceleration() const {
-        return segment<3>(16);
-    }
 
     Eigen::VectorBlock<StateVector, 3> wind_velocity() {
-        return segment<3>(19);
-    }
-    const Vector3r wind_velocity() const {
         return segment<3>(19);
     }
 
     Eigen::VectorBlock<StateVector, 3> gyro_bias() {
         return segment<3>(22);
     }
-    const Vector3r gyro_bias() const {
-        return segment<3>(22);
-    }
-
-    const StateVectorDerivative model();
 };
 
 #endif

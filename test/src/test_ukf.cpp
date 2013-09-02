@@ -1,13 +1,12 @@
 #include <gtest/gtest.h>
-#include <Eigen/Core>
-#include <Eigen/Geometry>
 #include "types.h"
 #include "state.h"
 #include "sensors.h"
 #include "dynamics.h"
 #include "ukf.h"
+#include "comparisons.h"
 
-#include <iostream>
+#include <Eigen/Core>
 #include <xmmintrin.h>
 
 TEST(UKFTest, Instantiation) {
@@ -49,17 +48,14 @@ TEST(UKFTest, NoSensorConstantVelocity) {
         ukf.iterate(0.001, ControlVector());
     }
 
-    EXPECT_TRUE(ukf.get_state().position().isApprox(
-        Eigen::Matrix<real_t, 3, 1>(1.5785803e-05, 0, 0), 1e-7));
-    EXPECT_TRUE(ukf.get_state().velocity().isApprox(
-        Eigen::Matrix<real_t, 3, 1>(10, 0, 0), 0.001));
-    EXPECT_TRUE(ukf.get_state().acceleration().isApprox(
-        Eigen::Matrix<real_t, 3, 1>(0, 0, 0), 0.001));
-    EXPECT_TRUE(ukf.get_state().attitude().isApprox(
-        Eigen::Matrix<real_t, 4, 1>(0, 0, 0.958924, 0.283662), 0.01));
-    EXPECT_TRUE(ukf.get_state().angular_velocity().isApprox(
-        Eigen::Matrix<real_t, 3, 1>(0, 0, 1), 0.001));
-    EXPECT_TRUE(ukf.get_state().angular_acceleration().isZero(0.001));
+    EXPECT_VECTOR_EQ(Vector3r(1.5785803e-05, 0, 0),
+        ukf.get_state().position());
+    EXPECT_VECTOR_EQ(Vector3r(10, 0, 0), ukf.get_state().velocity());
+    EXPECT_VECTOR_EQ(Vector3r(0, 0, 0), ukf.get_state().acceleration());
+    EXPECT_QUATERNION_EQ(Quaternionr(0.283662, 0, 0, 0.958924),
+        Quaternionr(ukf.get_state().attitude()));
+    EXPECT_VECTOR_EQ(Vector3r(0, 0, 1), ukf.get_state().angular_velocity());
+    EXPECT_GE(0.001, ukf.get_state().angular_acceleration().norm());
 }
 
 TEST(UKFTest, NoSensorCircularMotion) {
@@ -88,18 +84,14 @@ TEST(UKFTest, NoSensorCircularMotion) {
         ukf.iterate(0.001, ControlVector());
     }
 
-    EXPECT_TRUE(
-        (ukf.get_state().position() - Vector3r(0, 0, 0)).isZero(1));
-    EXPECT_TRUE(ukf.get_state().velocity().isApprox(
-        Eigen::Matrix<real_t, 3, 1>(10, 0, 0), 0.05));
-    EXPECT_TRUE(ukf.get_state().acceleration().isApprox(
-        Eigen::Matrix<real_t, 3, 1>(0, 6.283, 0), 0.001));
-    Quaternionr attitude = Quaternionr(ukf.get_state().attitude());
-    EXPECT_TRUE(ukf.get_state().attitude().isApprox(
-        Eigen::Matrix<real_t, 4, 1>(0, 0, 0, 1), 0.01));
-    EXPECT_TRUE(ukf.get_state().angular_velocity().isApprox(
-        Eigen::Matrix<real_t, 3, 1>(0, 0, 0.6283), 0.001));
-    EXPECT_TRUE(ukf.get_state().angular_acceleration().isZero(0.001));
+    EXPECT_VECTOR_EQ(Vector3r(0, 0, 0), ukf.get_state().position());
+    EXPECT_VECTOR_EQ(Vector3r(10, 0, 0), ukf.get_state().velocity());
+    EXPECT_VECTOR_EQ(Vector3r(0, 6.283, 0), ukf.get_state().acceleration());
+    EXPECT_QUATERNION_EQ(Quaternionr(1, 0, 0, 0),
+        Quaternionr(ukf.get_state().attitude()));
+    EXPECT_VECTOR_EQ(Vector3r(0, 0, 0.6283),
+        ukf.get_state().angular_velocity());
+    EXPECT_GE(0.001, ukf.get_state().angular_acceleration().norm());
 }
 
 TEST(UKFTest, AccelerometerConstantAngularVelocity) {
@@ -121,14 +113,13 @@ TEST(UKFTest, AccelerometerConstantAngularVelocity) {
                   0, 0, 0,
                   0, 0, 0;
     ukf.set_state(test_state);
-    MeasurementVector sensor_covariance(18);
+    MeasurementVector sensor_covariance(17);
     sensor_covariance <<
         10, 10, 10,
         0.01, 0.01, 0.01,
         0.01, 0.01, 0.01,
         5, 5, 5,
         5, 5, 5,
-        1,
         1,
         1;
     test_model.set_covariance(sensor_covariance);
@@ -153,8 +144,8 @@ TEST(UKFTest, AccelerometerConstantAngularVelocity) {
         ukf.iterate(0.001, ControlVector());
     }
 
-    EXPECT_TRUE(ukf.get_state().attitude().isApprox(
-        Eigen::Matrix<real_t, 4, 1>(0, 0.958924, 0, 0.283662), 0.1));
+    EXPECT_QUATERNION_EQ(Quaternionr(0.283662, 0, 0.958924, 0),
+        Quaternionr(ukf.get_state().attitude()));
 }
 
 TEST(UKFTest, GyroscopeConstantAngularVelocity) {
@@ -176,14 +167,13 @@ TEST(UKFTest, GyroscopeConstantAngularVelocity) {
                   0, 0, 0,
                   0, 0, 0;
     ukf.set_state(test_state);
-    MeasurementVector sensor_covariance(18);
+    MeasurementVector sensor_covariance(17);
     sensor_covariance <<
         0.001, 0.001, 0.001,
         0.01, 0.01, 0.01,
         0.01, 0.01, 0.01,
         5, 5, 5,
         5, 5, 5,
-        1,
         1,
         1;
     test_model.set_covariance(sensor_covariance);
@@ -194,8 +184,8 @@ TEST(UKFTest, GyroscopeConstantAngularVelocity) {
         ukf.iterate(0.01, ControlVector());
     }
 
-    EXPECT_TRUE(ukf.get_state().attitude().isApprox(
-        Eigen::Matrix<real_t, 4, 1>(0, 0.958924, 0, 0.283662), 0.01));
+    EXPECT_QUATERNION_EQ(Quaternionr(0.283662, 0, 0.958924, 0),
+        Quaternionr(ukf.get_state().attitude()));
 }
 
 TEST(UKFTest, AngularSensorsConstantAngularVelocity) {
@@ -217,7 +207,7 @@ TEST(UKFTest, AngularSensorsConstantAngularVelocity) {
                   0, 0, 0,
                   0, 0, 0;
     ukf.set_state(test_state);
-    MeasurementVector sensor_covariance(18);
+    MeasurementVector sensor_covariance(17);
     sensor_covariance <<
         0.001, 0.001, 0.001,
         0.01, 0.01, 0.01,
@@ -225,12 +215,11 @@ TEST(UKFTest, AngularSensorsConstantAngularVelocity) {
         5, 5, 5,
         5, 5, 5,
         1,
-        1,
         1;
     test_model.set_covariance(sensor_covariance);
     Eigen::Matrix<real_t, 4, 1> ref = Eigen::Matrix<real_t, 4, 1>(0, 0, 0, 1);
 
-    for(real_t i = 0; i < 10; i += 0.01) {
+    for(real_t i = 0; i < 10.0; i += 0.01) {
         Quaternionr temp_q =
             (Quaternionr(0, 0, 1, 0).conjugate()*Quaternionr(ref));
         Eigen::Matrix<real_t, 4, 1> temp_v;
@@ -250,8 +239,8 @@ TEST(UKFTest, AngularSensorsConstantAngularVelocity) {
         ukf.iterate(0.01, ControlVector());
     }
 
-    EXPECT_TRUE(ukf.get_state().attitude().isApprox(
-        Eigen::Matrix<real_t, 4, 1>(0, 0.958924, 0, 0.283662), 0.01));
+    EXPECT_QUATERNION_EQ(Quaternionr(0.283662, 0, 0.958924, 0),
+        Quaternionr(ukf.get_state().attitude()));
 }
 
 TEST(UKFTest, MagnetometerAccelerometerAtRest) {
@@ -274,7 +263,7 @@ TEST(UKFTest, MagnetometerAccelerometerAtRest) {
                   0, 0, 0;
     IntegratorRK4 test_integrator = IntegratorRK4();
     ukf.set_state(test_state);
-    MeasurementVector sensor_covariance(18);
+    MeasurementVector sensor_covariance(17);
     sensor_covariance <<
         10, 10, 10,
         0.01, 0.01, 0.01,
@@ -282,13 +271,13 @@ TEST(UKFTest, MagnetometerAccelerometerAtRest) {
         5, 5, 5,
         5, 5, 5,
         1,
-        1,
         1;
     test.set_covariance(sensor_covariance);
     CentripetalModel model = CentripetalModel();
     ukf.set_dynamics_model(&model);
 
-    for(real_t i = 0; i < 10; i += 0.001) {
+    for(real_t i = 0; i < 10.0; i += 0.001) {
+        //std::cout << "*** i = " << i << "***\n";
         test.clear();
         test.set_magnetometer(
             Vector3r(-4.4132, 21.2578, -55.9578));
@@ -298,6 +287,59 @@ TEST(UKFTest, MagnetometerAccelerometerAtRest) {
         ukf.iterate(0.001, ControlVector());
     }
 
-    EXPECT_TRUE(ukf.get_state().attitude().isApprox(
-        Eigen::Matrix<real_t, 4, 1>(0, 0, 0.707107, 0.707107), 0.01));
+    EXPECT_QUATERNION_EQ(Quaternionr(0.707107, 0, 0, 0.707107),
+        Quaternionr(ukf.get_state().attitude()));
+}
+
+TEST(UKFTest, AllSensorsAtRest) {
+    _MM_SET_EXCEPTION_MASK(_MM_GET_EXCEPTION_MASK() & ~_MM_MASK_INVALID);
+    IOBoardModel test = IOBoardModel(
+        Quaternionr(1, 0, 0, 0),
+        Vector3r(0, 0, 0),
+        Quaternionr(1, 0, 0, 0),
+        Quaternionr(1, 0, 0, 0),
+        Vector3r(21.2578, 4.4132, -55.9578));
+    UnscentedKalmanFilter ukf = UnscentedKalmanFilter(test);
+    State test_state;
+    test_state << 0, 0, 0,
+                  0, 0, 0,
+                  0, 0, 0,
+                  0, 0, 0, 1,
+                  0, 0, 0,
+                  0, 0, 0,
+                  0, 0, 0,
+                  0, 0, 0;
+    IntegratorRK4 test_integrator = IntegratorRK4();
+    ukf.set_state(test_state);
+    MeasurementVector sensor_covariance(17);
+    sensor_covariance <<
+        10, 10, 10,
+        0.01, 0.01, 0.01,
+        25, 25, 25,
+        5, 5, 5,
+        5, 5, 5,
+        1,
+        1;
+    test.set_covariance(sensor_covariance);
+    CentripetalModel model = CentripetalModel();
+    ukf.set_dynamics_model(&model);
+
+    for(real_t i = 0; i < 10.0; i += 0.001) {
+        //std::cout << "*** i = " << i << "***\n";
+        test.clear();
+        test.set_gyroscope(Vector3r(0, 0, 0));
+        test.set_magnetometer(
+            Vector3r(-4.4132, 21.2578, -55.9578));
+        test.set_accelerometer(
+            Vector3r(0, 0, -G_ACCEL));
+        test.set_gps_velocity(Vector3r(0, 0, 0));
+        test.set_gps_position(Vector3r(
+            145.0 / 180.0 * M_PI, 37.0 / 180.0 * M_PI, 50));
+        test.set_barometer_amsl(53);
+        test.set_pitot_tas(3);
+        ukf.iterate(0.001, ControlVector());
+    }
+
+    EXPECT_QUATERNION_EQ(Quaternionr(0.707107, 0, 0, 0.707107),
+        Quaternionr(ukf.get_state().attitude()));
 }

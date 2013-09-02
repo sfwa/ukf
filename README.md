@@ -6,26 +6,40 @@ Unscented Kalman filter library.
 ## Structure
 
 `ukf/include` contains the header files, divided into the following:
-* `state.h` declares the `State` type, a 22-dimensional column vector
+* `dynamics.h`: Dynamics models. A simple centripetal model and a fixed-wing
+aerodynamic model are provided.
+* `integrator.h`: Integration routines. A 4th-order Runge-Kutta,
+2nd-order Heun method, or 1st-order Euler method can be selected.
+* `sensors.h`: Defines the `SensorModel` interface and a model of the I/O
+board's sensors.
+* `state.h`: Declares the `State` type, a 22-dimensional column vector
 used to represent the state of the Kalman filter. Individual components of
-the `State` type can be accessed using the accessor methods provided;
-* `types.h` defines the `real_t` type (either a single- or double-precision
-floating-point, depending on the precision selected in `config.h`).
+the `State` type can be accessed using the accessor methods provided.
+* `types.h`: Defines the `real_t` type (either a single- or double-precision
+floating-point, depending on the precision selected in `config.h`), and a few
+required constants.
+* `ukf.h`: Defines the interface to the Unscented Kalman Filter, along with
+sigma point scaling constants, MRP parameters and sigma point weights.
 
 `ukf/src` contains source files, hopefully divided into logical components:
-* `integrator.h` contains the integration routines. A 4th-order Runge-Kutta,
-2nd-order Heun method, or 1st-order Euler method can be selected.
-* `state.cpp` contains the kinematic state transition function, expressed as
-a series of ordinary differential equations.
-* `dynamics.cpp` defines a number of dynamics model. Currently, the only
-model implemented simply estimates centripetal acceleration.
-* `ukf.cpp` contains the various filter steps.
+* `dynamics.cpp`: Functions relating a state vector to the linear and angular
+acceleration.
+* `sensors.cpp`: The I/O board sensor model, including measurement prediction
+and mean finding functions.
+* `state.cpp`: Kinematic state transition function.
+* `ukf.cpp`: The Kalman filter proper.
+* `ukf-estimates.cpp`: Kalman filter estimation functions, broken out into a
+separate file to work around issues in the Texas Instruments CCS compiler.
 
 `ukf/test` contains unit tests, built using the googletest framework.
 
-`ukf/c` provides a dynamic library with a C interface to the UKF library.
+`ukf/c` is the source to `libcukf`, a C interface to the C++ UKF static library.
 
-`ukf/python` contains ctypes-based Python code for using the C interface.
+`ukf/python` contains a ctypes-based Python wrapper for `libcukf`.
+
+`ukf/ccs-c66x` contains a project for Texas Instruments Code Composer Studio 5,
+targeting the Keystone DSP platform (C66x cores). Includes a modified version
+of Eigen.
 
 
 ## Configuration
@@ -81,4 +95,7 @@ Python interface (the `ukf` module) in your `site-packages` directory.
 
 Alternatively, just run `pip install https://github.com/sfwa/ukf/archive/master.zip#egg=ukf-1.0.0`
 to download and install.
+
+
+## Compiling with CCS5
 

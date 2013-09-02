@@ -25,6 +25,7 @@ SOFTWARE.
 
 #include <cassert>
 #include <iostream>
+#include <stdint.h>
 
 #define AssertPositiveDefinite(m) { \
     bool _res = (m).llt().info() == Eigen::Success; \
@@ -40,6 +41,13 @@ SOFTWARE.
         std::cout << "Quaternion not normalized:\n" << (v).norm(); \
     }\
     assert(_res); \
+}
+
+typedef uint64_t cycles_t;
+inline cycles_t rdtsc() {
+    cycles_t result;
+    __asm__ __volatile__ ("rdtsc" : "=A" (result));
+    return result;
 }
 
 #endif

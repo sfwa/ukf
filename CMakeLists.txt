@@ -28,10 +28,11 @@ ADD_LIBRARY(ukf STATIC
     src/state.cpp
     src/dynamics.cpp
     src/sensors.cpp
-    src/ukf.cpp
-    src/ukf-estimates.cpp)
+    src/ukf.cpp)
 
 ADD_SUBDIRECTORY(c EXCLUDE_FROM_ALL)
+
+ADD_SUBDIRECTORY(ccs-c66x EXCLUDE_FROM_ALL)
 
 ADD_DEPENDENCIES(ukf eigen3)
 

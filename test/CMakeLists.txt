@@ -4,7 +4,8 @@ PROJECT(unittest)
 # Enable ExternalProject CMake module
 INCLUDE(ExternalProject)
 
-set(CMAKE_CXX_FLAGS "-O3")
+set(CMAKE_CXX_FLAGS "-O3 -mssse3 -oaddmul")
+set(CMAKE_C_FLAGS "-O3 -mssse3 -oaddmul")
 
 # Set default ExternalProject root directory
 SET_DIRECTORY_PROPERTIES(PROPERTIES EP_PREFIX .)
@@ -13,7 +14,7 @@ SET_DIRECTORY_PROPERTIES(PROPERTIES EP_PREFIX .)
 ExternalProject_Add(
 googletest
 SVN_REPOSITORY http://googletest.googlecode.com/svn/trunk/
-TIMEOUT 10
+TIMEOUT 30
 # Disable install step
 INSTALL_COMMAND ""
 # Wrap download, configure and build steps in a script to log output
@@ -25,7 +26,7 @@ LOG_BUILD ON)
 ExternalProject_Get_Property(googletest source_dir)
 SET(googletest_dir ${source_dir})
 
-INCLUDE_DIRECTORIES(${googletest_dir}/include ../include ${eigen_dir})
+INCLUDE_DIRECTORIES(${googletest_dir}/include ../include ${eigen_dir} ../c ../ccs-c66x)
 
 # Add test executable target
 ADD_EXECUTABLE(unittest
@@ -33,7 +34,9 @@ ADD_EXECUTABLE(unittest
     src/test_dynamics.cpp
     src/test_integrator.cpp
     src/test_sensors.cpp
-    src/test_ukf.cpp)
+    src/test_ukf.cpp
+    ../ccs-c66x/cukf.c
+    ccs-c66x/test_cukf.cpp)
 
 # Create dependency of test on googletest
 ADD_DEPENDENCIES(unittest googletest ukf)
