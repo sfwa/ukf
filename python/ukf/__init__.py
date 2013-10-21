@@ -175,7 +175,7 @@ def configure_airframe(mass=None, inertia_tensor=None, prop_coeffs=None,
     _cukf.ukf_fixedwingdynamics_set_lift_coeffs((_REAL_T * 5)(*lift_coeffs))
     _cukf.ukf_fixedwingdynamics_set_drag_coeffs((_REAL_T * 5)(*drag_coeffs))
     _cukf.ukf_fixedwingdynamics_set_side_coeffs(
-        (_REAL_T * 8)(*side_coeffs[0:-_CONTROL_DIM]),
+        (_REAL_T * 4)(*side_coeffs[0:-_CONTROL_DIM]),
         (_REAL_T * _CONTROL_DIM)(*side_coeffs[-_CONTROL_DIM:]))
     _cukf.ukf_fixedwingdynamics_set_pitch_moment_coeffs(
         (_REAL_T * 2)(*pitch_moment_coeffs[0:-_CONTROL_DIM]),
@@ -203,7 +203,7 @@ def init(implementation="c"):
                            "libc66ukf.dylib")
     else:
         raise NameError(
-            "Unknown UKF implementation: %s (options are 'c', 'dsp')" %
+            "Unknown UKF implementation: %s (options are 'c', 'c66x')" %
             implementation)
 
     _cukf = cdll.LoadLibrary(lib)
@@ -346,7 +346,7 @@ def init(implementation="c"):
     _cukf.ukf_fixedwingdynamics_set_lift_coeffs.restype = None
 
     _cukf.ukf_fixedwingdynamics_set_side_coeffs.argtypes = [
-        POINTER(_REAL_T * 8),
+        POINTER(_REAL_T * 4),
         POINTER(_REAL_T * _CONTROL_DIM)]
     _cukf.ukf_fixedwingdynamics_set_side_coeffs.restype = None
 

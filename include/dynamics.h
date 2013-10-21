@@ -77,16 +77,12 @@ class FixedWingFlightDynamicsModel: public DynamicsModel {
 
     /*
     Coefficient vector for side force:
-        alpha^2 * qbar,
-        alpha * qbar,
         beta^2 * qbar,
         beta * qbar,
-        alpha^2 * beta * qbar,
-        alpha * beta * qbar,
         yaw rate * qbar, roll rate * qbar,
         [control 0-3] * qbar
     */
-    Vector8r c_side_force;
+    Vector4r c_side_force;
     ControlVector c_side_force_control;
 
     /*
@@ -179,7 +175,7 @@ public:
         c_lift_alpha = in_coeffs;
     }
 
-    void set_side_coeffs(const Vector8r& in_coeffs,
+    void set_side_coeffs(const Vector4r& in_coeffs,
     const ControlVector& in_control) {
         c_side_force = in_coeffs;
         c_side_force_control = in_control;

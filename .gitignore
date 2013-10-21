@@ -3,6 +3,7 @@
 
 # C extensions
 *.so
+*.dylib
 a.out
 
 # Packages
@@ -43,3 +44,4 @@ nosetests.xml
 
 # Symlink to dynamic library for development
 python/ukf/c
+python/ukf/ccs-c66x

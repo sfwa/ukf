@@ -81,7 +81,7 @@ struct _fixedwingdynamics_params_t {
     real_t mass_inv;
     real_t inertia_tensor_inv[9];
 
-    real_t c_side_force[8];
+    real_t c_side_force[4];
     real_t c_side_force_control[UKF_CONTROL_DIM];
 
     real_t c_pitch_moment[2];
@@ -371,14 +371,10 @@ real_t *restrict const control) {
            c_drag_alpha[3]*alpha +
            c_drag_alpha[4];
 
-    side_force = c_side_force[0]*alpha2 +
-                 c_side_force[1]*alpha +
-                 c_side_force[2]*beta2 +
-                 c_side_force[3]*beta +
-                 c_side_force[4]*alpha2*beta +
-                 c_side_force[5]*alpha*beta +
-                 c_side_force[6]*yaw_rate +
-                 c_side_force[7]*roll_rate;
+    side_force = c_side_force[0]*beta2 +
+                 c_side_force[1]*beta +
+                 c_side_force[2]*yaw_rate +
+                 c_side_force[3]*roll_rate;
 
     pitch_moment = c_pitch_moment[0]*alpha +
                    c_pitch_moment[1]*pitch_rate*pitch_rate*
@@ -1337,7 +1333,7 @@ void ukf_fixedwingdynamics_set_lift_coeffs(real_t coeffs[5]) {
         sizeof(fixedwing_params.c_lift_alpha));
 }
 
-void ukf_fixedwingdynamics_set_side_coeffs(real_t coeffs[8],
+void ukf_fixedwingdynamics_set_side_coeffs(real_t coeffs[4],
 real_t control[UKF_CONTROL_DIM]) {
     assert(coeffs);
     assert(control);

@@ -280,9 +280,9 @@ void ukf_fixedwingdynamics_set_lift_coeffs(real_t coeffs[5]) {
     fixed_wing_model.set_lift_coeffs(Vector5r(coeffs));
 }
 
-void ukf_fixedwingdynamics_set_side_coeffs(real_t coeffs[8],
+void ukf_fixedwingdynamics_set_side_coeffs(real_t coeffs[4],
 real_t control[UKF_CONTROL_DIM]) {
-    fixed_wing_model.set_side_coeffs(Vector8r(coeffs),
+    fixed_wing_model.set_side_coeffs(Vector4r(coeffs),
         Vector4r(control));
 }
 
