@@ -140,7 +140,7 @@ void ukf_fixedwingdynamics_set_prop_coeffs(real_t in_prop_area,
     real_t in_prop_cve);
 void ukf_fixedwingdynamics_set_drag_coeffs(real_t coeffs[5]);
 void ukf_fixedwingdynamics_set_lift_coeffs(real_t coeffs[5]);
-void ukf_fixedwingdynamics_set_side_coeffs(real_t coeffs[8],
+void ukf_fixedwingdynamics_set_side_coeffs(real_t coeffs[4],
     real_t control[UKF_CONTROL_DIM]);
 void ukf_fixedwingdynamics_set_pitch_moment_coeffs(real_t coeffs[2],
     real_t control[UKF_CONTROL_DIM]);

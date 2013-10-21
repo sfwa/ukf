@@ -152,9 +152,8 @@ const State &in, const ControlVector &control) const {
     /*
     Set up the side force coefficient vector, and calculate side force
     */
-    Vector8r side_coeffs;
-    side_coeffs << alpha2, alpha, beta2, beta, alpha2 * beta, alpha * beta,
-                   yaw_rate, roll_rate;
+    Vector4r side_coeffs;
+    side_coeffs << beta2, beta, yaw_rate, roll_rate;
 
     real_t side_force = side_coeffs.dot(c_side_force) +
         control.dot(c_side_force_control);
