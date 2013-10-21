@@ -203,7 +203,7 @@ def init(implementation="c"):
                            "libc66ukf.dylib")
     else:
         raise NameError(
-            "Unknown UKF implementation: %s (options are 'c', 'dsp')" %
+            "Unknown UKF implementation: %s (options are 'c', 'c66x')" %
             implementation)
 
     _cukf = cdll.LoadLibrary(lib)

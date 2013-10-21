@@ -10,10 +10,12 @@ class build_cukf(distutils.command.build_py.build_py):
     description = """Build the CUKF shared library"""
 
     def run(self):
-        subprocess.call("cmake . && make cukf && mv ./c ./python/ukf/",
-                        shell=True, cwd=os.path.dirname(__file__))
-        subprocess.call("cmake . && make c66ukf && mv ./ccs-c66x ./python/ukf/",
-                        shell=True, cwd=os.path.dirname(__file__))
+        subprocess.call("cmake . && make cukf && cp -r c ./python/ukf/",
+                        shell=True,
+                        cwd=os.path.dirname(os.path.abspath(__file__)))
+        subprocess.call("cmake . && make c66ukf && cp -r ccs-c66x ./python/ukf/",
+                        shell=True,
+                        cwd=os.path.dirname(os.path.abspath(__file__)))
         self.data_files = self.get_data_files()
         distutils.command.build_py.build_py.run(self)
 
