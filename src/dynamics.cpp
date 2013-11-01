@@ -112,11 +112,16 @@ const State &in, const ControlVector &control) const {
     real_t lift = alpha_coeffs.dot(c_lift_alpha),
            drag = alpha_coeffs.dot(c_drag_alpha);
 
+    /*
+    Assume lift is somewhat well-behaved for alpha in the range [-0.25, 0.25].
+    If outside that range, clamp it to 0 so that the polynomial doesn't have
+    to model the full possible range.
+    */
     if (std::abs(alpha) > 1.0) {
         lift = 0.0;
-    } else if (alpha > 0.0) {
+    } else if (alpha > 0.25) {
         lift = std::max(lift, 0.0);
-    } else if (alpha < 0.0) {
+    } else if (alpha < -0.25) {
         lift = std::min(lift, 0.0);
     }
 
