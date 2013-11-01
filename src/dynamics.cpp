@@ -92,24 +92,11 @@ const State &in, const ControlVector &control) const {
 
     v_inv = (real_t)1.0 / v;
 
-    /*
-    Lift is always perpendicular to airflow, drag is always parallel, and
-    side is always towards the starboard wing of the aircraft.
-    */
-    drag_axis = airflow * v_inv;
-    lift_axis = drag_axis.cross(Vector3r(0, 1, 0));
-    side_axis = drag_axis.cross(lift_axis);
-
     /* Determine alpha and beta: alpha = atan(wz/wx), beta = atan(wy/|wxz|) */
     real_t alpha, beta, qbar, alpha2, beta2;
     qbar = RHO * v * v * (real_t)0.5;
     alpha = std::atan2(-airflow.z(), -airflow.x());
     beta = std::asin(airflow.y() * v_inv);
-
-    if (std::abs(alpha) > M_PI * 0.63 || std::abs(beta) > M_PI * 0.63) {
-        /* Alpha or beta completely out of range */
-        return AccelerationVector();
-    }
 
     alpha2 = alpha * alpha;
     beta2 = beta * beta;
@@ -124,6 +111,14 @@ const State &in, const ControlVector &control) const {
     /* Evaluate quartics in alpha to determine lift and drag */
     real_t lift = alpha_coeffs.dot(c_lift_alpha),
            drag = alpha_coeffs.dot(c_drag_alpha);
+
+    if (std::abs(alpha) > 1.0) {
+        lift = 0.0;
+    } else if (alpha > 0.0) {
+        lift = std::max(lift, 0.0);
+    } else if (alpha < 0.0) {
+        lift = std::min(lift, 0.0);
+    }
 
     /*
     Determine motor thrust and torque:
@@ -189,9 +184,12 @@ const State &in, const ControlVector &control) const {
     */
     Vector3r sum_force, sum_torque;
 
-    sum_force = qbar * (lift * Vector3r(0, 0, -1) + drag * Vector3r(-1, 0, 0)
-                        + side_force * Vector3r(0, 1, 0))
-                + thrust * Vector3r(1, 0, 0);
+    sum_force = qbar * (
+            (lift * std::cos(alpha) + drag * std::sin(alpha)) * Vector3r(0, 0, -1) +
+            (lift * std::sin(alpha) - drag * std::cos(alpha) - side_force * std::sin(beta)) * Vector3r(1, 0, 0) +
+            side_force * std::cos(beta) * Vector3r(0, 1, 0)
+        ) +
+        thrust * Vector3r(1, 0, 0);
     sum_torque = qbar * Vector3r(roll_moment, pitch_moment, yaw_moment);
 
     /* Calculate linear acceleration (F / m) */

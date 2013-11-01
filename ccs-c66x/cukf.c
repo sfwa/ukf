@@ -115,10 +115,10 @@ UKF temporaries -- global to avoid blowing up function stack.
 w_prime is 9408 bytes, measurement_estimate_sigma is 7840 bytes,
 measurement_estimate_covariance is 2312 bytes
 */
-real_t w_prime[UKF_STATE_DIM * UKF_NUM_SIGMA];
-real_t measurement_estimate_sigma[UKF_MEASUREMENT_DIM * UKF_NUM_SIGMA];
-real_t measurement_estimate_covariance[(UKF_MEASUREMENT_DIM - 3) *
-                                       (UKF_MEASUREMENT_DIM - 3)];
+static real_t w_prime[UKF_STATE_DIM * UKF_NUM_SIGMA];
+static real_t measurement_estimate_sigma[UKF_MEASUREMENT_DIM * UKF_NUM_SIGMA];
+static real_t measurement_estimate_covariance[(UKF_MEASUREMENT_DIM - 3) *
+                                              (UKF_MEASUREMENT_DIM - 3)];
 
 
 /* Dynamics model configuration */
