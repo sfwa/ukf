@@ -82,12 +82,17 @@ const State &in, const ControlVector &control) const {
     airflow = attitude * (in.wind_velocity() - in.velocity());
     v = airflow.norm();
 
-    if (v < UKF_DYNAMICS_MIN_V || v > UKF_DYNAMICS_MAX_V ||
-            std::abs(yaw_rate) > UKF_DYNAMICS_MAX_RATE ||
-            std::abs(roll_rate) > UKF_DYNAMICS_MAX_RATE ||
-            std::abs(pitch_rate) > UKF_DYNAMICS_MAX_RATE) {
-        /* Airflow too slow or too fast for any of this to work */
-        return AccelerationVector();
+    if (v < UKF_DYNAMICS_MIN_V) {
+        /*
+        Airflow too slow for any of this to work; just return acceleration
+        due to gravity
+        */
+        AccelerationVector output;
+        output.segment<3>(0) = attitude * Vector3r(0, 0, G_ACCEL);
+
+        /* No angular acceleration */
+        output.segment<3>(3) << 0, 0, 0;
+        return output;
     }
 
     v_inv = (real_t)1.0 / v;

@@ -29,11 +29,8 @@ SOFTWARE.
 #include "types.h"
 #include "state.h"
 
-/* Disable dynamics model if velocity is less than 1m/s or greater than 100m/s */
+/* Disable dynamics model if velocity is less than 1m/s */
 #define UKF_DYNAMICS_MIN_V 1.0
-#define UKF_DYNAMICS_MAX_V 100.0
-/* Disable dynamics model if angular velocity exceeds ~120deg/s */
-#define UKF_DYNAMICS_MAX_RATE (M_PI*0.63)
 /* Airframe minimums */
 #define UKF_AIRFRAME_MIN_MASS 0.1
 #define UKF_AIRFRAME_MIN_MOMENT 1e-6
