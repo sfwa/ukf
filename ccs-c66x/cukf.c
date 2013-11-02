@@ -9,11 +9,8 @@
 #include "../c/cukf.h"
 #include "cukfmath.h"
 
-/* Disable dynamics model if velocity is less than 1m/s or greater than 100m/s */
+/* Disable dynamics model if velocity is less than 1m/s  */
 #define UKF_DYNAMICS_MIN_V 1.0
-#define UKF_DYNAMICS_MAX_V 100.0
-/* Disable dynamics model if angular velocity exceeds ~120deg/s */
-#define UKF_DYNAMICS_MAX_RATE (M_PI*0.63)
 
 #define G_ACCEL ((real_t)9.80665)
 #define RHO ((real_t)1.225)
@@ -287,15 +284,15 @@ real_t *restrict const control) {
     memset(in->acceleration, 0, sizeof(in->acceleration));
     memset(in->angular_acceleration, 0, sizeof(in->angular_acceleration));
 
+    /*
+    Rotate G_ACCEL by current attitude
+    */
+    real_t g_accel[3], g[3] = { 0, 0, G_ACCEL };
+    _mul_quat_vec3(g_accel, in->attitude, g);
+
     real_t yaw_rate = in->angular_velocity[Z],
            pitch_rate = in->angular_velocity[Y],
            roll_rate = in->angular_velocity[X];
-
-    if (fabs(yaw_rate) > UKF_DYNAMICS_MAX_RATE ||
-            fabs(pitch_rate) > UKF_DYNAMICS_MAX_RATE ||
-            fabs(roll_rate) > UKF_DYNAMICS_MAX_RATE) {
-        return;
-    }
 
     /* External axes */
     real_t ned_airflow[3], airflow[3];
@@ -307,8 +304,18 @@ real_t *restrict const control) {
     _mul_quat_vec3(airflow, in->attitude, ned_airflow);
 
     v2 = airflow[X]*airflow[X] + airflow[Y]*airflow[Y] + airflow[Z]*airflow[Z];
-    if (v2 < UKF_DYNAMICS_MIN_V * UKF_DYNAMICS_MIN_V ||
-            v2 > UKF_DYNAMICS_MAX_V * UKF_DYNAMICS_MAX_V) {
+    if (v2 < UKF_DYNAMICS_MIN_V * UKF_DYNAMICS_MIN_V) {
+        /*
+        Airflow too slow for any of this to work; just return acceleration
+        due to gravity
+        */
+        in->acceleration[X] = g_accel[X];
+        in->acceleration[Y] = g_accel[Y];
+        in->acceleration[Z] = g_accel[Z];
+
+        in->angular_acceleration[X] = 0;
+        in->angular_acceleration[Y] = 0;
+        in->angular_acceleration[Z] = 0;
         return;
     }
 
@@ -405,12 +412,6 @@ real_t *restrict const control) {
         roll_moment += c_roll_moment_control[i] * ci;
         yaw_moment += c_yaw_moment_control[i] * ci;
     }
-
-    /*
-    Rotate G_ACCEL by current attitude and add to body-frame force components
-    */
-    real_t g_accel[3], g[3] = { 0, 0, G_ACCEL };
-    _mul_quat_vec3(g_accel, in->attitude, g);
 
     /* Convert aerodynamic forces from wind frame to body frame */
     real_t sin_alpha = sin(alpha), sin_beta = sin(beta),
