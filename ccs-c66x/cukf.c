@@ -898,7 +898,8 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
         24);
     /* Clear out the upper triangle */
     for (i = 0; i < UKF_STATE_DIM; i++) {
-        for (j = (i + 1) * UKF_STATE_DIM; j < UKF_STATE_DIM * UKF_STATE_DIM;
+        for (j = (i + 1) * UKF_STATE_DIM;
+             j <= UKF_STATE_DIM * (UKF_STATE_DIM - 1);
              j += UKF_STATE_DIM) {
             state_covariance[j + i] = 0.0;
         }
