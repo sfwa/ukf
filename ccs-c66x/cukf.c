@@ -115,10 +115,10 @@ UKF temporaries -- global to avoid blowing up function stack.
 w_prime is 9408 bytes, measurement_estimate_sigma is 7840 bytes,
 measurement_estimate_covariance is 2312 bytes
 */
-real_t w_prime[UKF_STATE_DIM * UKF_NUM_SIGMA];
-real_t measurement_estimate_sigma[UKF_MEASUREMENT_DIM * UKF_NUM_SIGMA];
-real_t measurement_estimate_covariance[(UKF_MEASUREMENT_DIM - 3) *
-                                       (UKF_MEASUREMENT_DIM - 3)];
+static real_t w_prime[UKF_STATE_DIM * UKF_NUM_SIGMA];
+static real_t measurement_estimate_sigma[UKF_MEASUREMENT_DIM * UKF_NUM_SIGMA];
+static real_t measurement_estimate_covariance[(UKF_MEASUREMENT_DIM - 3) *
+                                              (UKF_MEASUREMENT_DIM - 3)];
 
 
 /* Dynamics model configuration */
@@ -322,10 +322,6 @@ real_t *restrict const control) {
     alpha = atan2(-airflow[Z], -airflow[X]);
     beta = asin(airflow[Y] * v_inv);
 
-    if (fabs(alpha) > M_PI * 0.63 || fabs(beta) > M_PI * 0.63) {
-        return;
-    }
-
     alpha2 = alpha * alpha;
     beta2 = beta * beta;
 
@@ -365,6 +361,19 @@ real_t *restrict const control) {
            c_lift_alpha[3]*alpha +
            c_lift_alpha[4];
 
+    /*
+    Assume lift is somewhat well-behaved for alpha in the range [-0.25, 0.25].
+    If outside that range, clamp it to 0 so that the polynomial doesn't have
+    to model the full possible range.
+    */
+    if (fabs(alpha) > 1.0) {
+        lift = 0.0;
+    } else if (alpha > 0.25 && lift < 0.0) {
+        lift = 0.0;
+    } else if (alpha < -0.25 && lift > 0.0) {
+        lift = 0.0;
+    }
+
     drag = c_drag_alpha[0]*alpha2*alpha2 +
            c_drag_alpha[1]*alpha2*alpha +
            c_drag_alpha[2]*alpha2 +
@@ -403,11 +412,19 @@ real_t *restrict const control) {
     real_t g_accel[3], g[3] = { 0, 0, G_ACCEL };
     _mul_quat_vec3(g_accel, in->attitude, g);
 
-    in->acceleration[X] = (thrust - qbar * drag) * fixedwing_params.mass_inv +
+    /* Convert aerodynamic forces from wind frame to body frame */
+    real_t sin_alpha = sin(alpha), sin_beta = sin(beta),
+           cos_alpha = cos(alpha), cos_beta = cos(beta),
+           x_aero_f = qbar * (lift * sin_alpha - drag * cos_alpha -
+                              side_force * sin_beta),
+           y_aero_f = qbar * side_force * cos_beta,
+           z_aero_f = qbar * (lift * cos_alpha + drag * sin_alpha);
+
+    in->acceleration[X] = (thrust + x_aero_f) * fixedwing_params.mass_inv +
                             g_accel[X];
-    in->acceleration[Y] = (qbar * side_force) * fixedwing_params.mass_inv +
+    in->acceleration[Y] = y_aero_f * fixedwing_params.mass_inv +
                             g_accel[Y];
-    in->acceleration[Z] = -(qbar * lift) * fixedwing_params.mass_inv +
+    in->acceleration[Z] = -z_aero_f * fixedwing_params.mass_inv +
                             g_accel[Z];
 
     /* Calculate angular acceleration (tau / inertia tensor) */
