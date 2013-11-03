@@ -77,56 +77,46 @@ const State &in, const ControlVector &control) const {
 
     /* External axes */
     Vector3r airflow;
-    real_t v, v_inv, horizontal_v2, vertical_v2;
+    real_t v, v_inv, horizontal_v2, vertical_v2, vertical_v, vertical_v_inv;
 
     airflow = attitude * (in.wind_velocity() - in.velocity());
     v = airflow.norm();
     horizontal_v2 = airflow.y() * airflow.y() + airflow.x() * airflow.x();
     vertical_v2 = airflow.z() * airflow.z() + airflow.x() * airflow.x();
 
-    if (horizontal_v2 < UKF_DYNAMICS_MIN_V) {
-        /*
-        Airflow too slow for any of this to work; just return acceleration
-        due to gravity
-        */
-        AccelerationVector output;
-        output.segment<3>(0) = attitude * Vector3r(0, 0, G_ACCEL);
-
-        /* No angular acceleration */
-        output.segment<3>(3) << 0, 0, 0;
-        return output;
-    }
-
-    v_inv = (real_t)1.0 / v;
+    v_inv = (real_t)1.0 / std::max(v, 1.0);
+    vertical_v = std::sqrt(vertical_v2);
+    vertical_v_inv = (real_t)1.0 / std::max(vertical_v, 1.0);
 
     /* Determine alpha and beta: alpha = atan(wz/wx), beta = atan(wy/|wxz|) */
-    real_t alpha, beta, qbar, sin_alpha, cos_alpha, sin_beta, cos_beta,
+    real_t alpha, qbar, sin_alpha, cos_alpha, sin_beta, cos_beta,
            lift, drag, side_force, roll_moment, pitch_moment, yaw_moment,
-           a2;
+           a2, sin_cos_alpha;
     qbar = RHO * horizontal_v2 * (real_t)0.5;
     alpha = std::atan2(-airflow.z(), -airflow.x());
-    beta = std::asin(airflow.y() * v_inv);
 
-    sin_alpha = std::sin(alpha);
-    cos_alpha = std::cos(alpha);
-    sin_beta = std::sin(beta);
-    cos_beta = std::cos(beta);
+    sin_alpha = -airflow.z() * vertical_v_inv;
+    cos_alpha = -airflow.x() * vertical_v_inv;
+    sin_cos_alpha = sin_alpha * cos_alpha;
+    sin_beta = airflow.y() * v_inv;
+    cos_beta = vertical_v * v_inv;
 
     a2 = alpha * alpha;
 
     lift = -5 * a2 * alpha + a2 + 2.5 * alpha + 0.12;
     if (alpha < 0.0) {
-        lift = std::min(lift, 0.8 * sin_alpha * cos_alpha);
+        lift = std::min(lift, 0.8 * sin_cos_alpha);
     } else {
-        lift = std::max(lift, 0.8 * sin_alpha * cos_alpha);
+        lift = std::max(lift, 0.8 * sin_cos_alpha);
     }
 
-    drag = 0.05 + 0.7 * sin_alpha * sin_alpha + 0.2 * sin_beta * sin_beta;
-    side_force = 0.3 * sin_beta;
+    drag = 0.05 + 0.7 * sin_alpha * sin_alpha;
+    side_force = 0.3 * sin_beta * cos_beta;
 
-    pitch_moment = 0.001 - 0.1 * sin_alpha * cos_alpha - 0.003 * pitch_rate -
+    pitch_moment = 0.001 - 0.1 * sin_cos_alpha - 0.003 * pitch_rate -
                    0.01 * control[1] - 0.01 * control[2];
-    roll_moment = -0.015 * roll_rate + 0.025 * control[1] - 0.025 * control[2];
+    roll_moment = -0.03 * sin_beta - 0.015 * roll_rate +
+                  0.025 * control[1] - 0.025 * control[2];
     yaw_moment = -0.02 * sin_beta - 0.05 * yaw_rate -
                  0.01 * std::abs(control[1]) + 0.01 * std::abs(control[2]);
 
@@ -144,14 +134,11 @@ const State &in, const ControlVector &control) const {
     Presumably the relationship between thrust and torque on airframe is
     constant? If so, they're related by prop_ct.
     */
-    real_t thrust = 0.0;
-    if (motor_idx < UKF_CONTROL_DIM) {
-        real_t ve = prop_cve * control[motor_idx], v0 = airflow.x();
-        thrust = (real_t)0.5 * RHO * prop_area * (ve * ve - v0 * v0);
-        if (thrust < 0.0) {
-            /* Folding prop, so assume no drag */
-            thrust = 0.0;
-        }
+    real_t thrust, ve = prop_cve * control[0], v0 = airflow.x();
+    thrust = (real_t)0.5 * RHO * prop_area * (ve * ve - v0 * v0);
+    if (thrust < 0.0) {
+        /* Folding prop, so assume no drag */
+        thrust = 0.0;
     }
 
     /*
