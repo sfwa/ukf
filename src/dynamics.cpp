@@ -99,7 +99,7 @@ const State &in, const ControlVector &control) const {
 
     /* Determine alpha and beta: alpha = atan(wz/wx), beta = atan(wy/|wxz|) */
     real_t alpha, beta, qbar, alpha2, beta2;
-    qbar = RHO * v * v * (real_t)0.5;
+    qbar = RHO * (airflow.y()*airflow.y() + airflow.x()*airflow.x()) * (real_t)0.5;
     alpha = std::atan2(-airflow.z(), -airflow.x());
     beta = std::asin(airflow.y() * v_inv);
 
@@ -167,8 +167,7 @@ const State &in, const ControlVector &control) const {
     Calculate pitch moment
     */
     Vector2r pitch_coeffs;
-    pitch_coeffs << alpha,
-        pitch_rate * (pitch_rate < 0.0 ? -pitch_rate : pitch_rate);
+    pitch_coeffs << alpha, pitch_rate;
 
     real_t pitch_moment = pitch_coeffs.dot(c_pitch_moment) +
         control.dot(c_pitch_moment_control);
