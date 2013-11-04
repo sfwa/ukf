@@ -39,6 +39,7 @@ static UnscentedKalmanFilter ukf = UnscentedKalmanFilter(model);
 static CentripetalModel centripetal_model = CentripetalModel();
 static FixedWingFlightDynamicsModel fixed_wing_model =
     FixedWingFlightDynamicsModel();
+static X8DynamicsModel x8_model = X8DynamicsModel();
 
 void ukf_init(void) {
 
@@ -242,6 +243,9 @@ void ukf_choose_dynamics(enum ukf_model_t t) {
             break;
         case UKF_MODEL_FIXED_WING:
             ukf.set_dynamics_model(&fixed_wing_model);
+            break;
+        case UKF_MODEL_X8:
+            ukf.set_dynamics_model(&x8_model);
             break;
     }
 }

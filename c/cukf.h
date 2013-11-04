@@ -42,7 +42,8 @@ extern "C" {
 enum ukf_model_t {
     UKF_MODEL_NONE = 0,
     UKF_MODEL_CENTRIPETAL = 1,
-    UKF_MODEL_FIXED_WING = 2
+    UKF_MODEL_FIXED_WING = 2,
+    UKF_MODEL_X8 = 3
 };
 
 /*

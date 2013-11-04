@@ -106,6 +106,18 @@ static inline uint64_t rdtsc() {
 #define M_PI_4 (M_PI * 0.25)
 #endif
 
+#ifndef absval
+#define absval(x) ((x) < 0 ? -x : x)
+#endif
+
+#ifndef min
+#define min(a,b) (((a) < (b)) ? (a) : (b))
+#endif
+
+#ifndef max
+#define max(a,b) (((a) > (b)) ? (a) : (b))
+#endif
+
 static inline void _cross_vec3(real_t *restrict res, real_t *restrict v1,
 real_t *restrict v2) {
     assert(res && v1 && v2 && res != v1 && res != v2 && v1 != v2);

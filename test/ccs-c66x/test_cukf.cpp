@@ -180,6 +180,26 @@ TEST(C66xMathTest, Matrix3x3Inverse) {
     EXPECT_FLOAT_EQ(0.676724137931, result[8]);
 }
 
+TEST(C66xMathTest, Matrix3x3Inverse2) {
+    real_t m1[9] = {
+                3.0e-1, 0, -0.334e-1,
+                0, 1.7e-1, 0,
+                -0.334e-1, 0, 4.05e-1
+           },
+           result[9];
+
+    _inv_mat3x3(result, m1);
+    EXPECT_FLOAT_EQ(3.364222, result[0]);
+    EXPECT_FLOAT_EQ(0, result[1]);
+    EXPECT_FLOAT_EQ(0.27744448, result[2]);
+    EXPECT_FLOAT_EQ(0, result[3]);
+    EXPECT_FLOAT_EQ(5.8823528, result[4]);
+    EXPECT_FLOAT_EQ(0, result[5]);
+    EXPECT_FLOAT_EQ(0.27744448, result[6]);
+    EXPECT_FLOAT_EQ(0, result[7]);
+    EXPECT_FLOAT_EQ(2.4920163, result[8]);
+}
+
 TEST(C66xMathTest, MatrixCholeskyLLT) {
     real_t m1[16] = {
         18, 22,  54,  42,

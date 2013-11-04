@@ -201,4 +201,30 @@ public:
     }
 };
 
+/*
+Dynamics model tuned for the X8
+*/
+class X8DynamicsModel: public DynamicsModel {
+    /* Use reciprocal of mass for performance */
+    real_t mass_inv;
+
+    /* Store inverse inertia tensor for performance */
+    Matrix3x3r inertia_tensor_inv;
+
+public:
+    X8DynamicsModel(void) {
+        mass_inv = (real_t)1.0 / 3.8;
+
+        Matrix3x3r inertia_tensor;
+        inertia_tensor <<
+            3.0e-1, 0, -0.334e-1,
+            0, 1.7e-1, 0,
+            -0.334e-1, 0, 4.05e-1;
+        inertia_tensor_inv = inertia_tensor.inverse();
+    }
+
+    AccelerationVector evaluate(
+    const State &in, const ControlVector &control) const;
+};
+
 #endif
