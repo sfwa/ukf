@@ -131,6 +131,8 @@ void _ukf_state_centripetal_dynamics(struct ukf_state_t *restrict in,
 real_t *restrict const control);
 void _ukf_state_fixed_wing_dynamics(struct ukf_state_t *restrict in,
 real_t *restrict const control);
+void _ukf_state_x8_dynamics(struct ukf_state_t *restrict in,
+real_t *restrict const control);
 void _ukf_sensor_predict(real_t *restrict measurement_estimate,
 struct ukf_state_t *restrict const sigma);
 size_t _ukf_sensor_collate(real_t measurement_estimate[UKF_MEASUREMENT_DIM]);
@@ -439,6 +441,121 @@ real_t *restrict const control) {
     #undef M
 }
 
+void _ukf_state_x8_dynamics(struct ukf_state_t *restrict in,
+real_t *restrict const control) {
+    assert(in && control);
+    _nassert((size_t)in % 8 == 0);
+    _nassert((size_t)control % 8 == 0);
+
+    /* See src/dynamics.cpp */
+    memset(in->acceleration, 0, sizeof(in->acceleration));
+    memset(in->angular_acceleration, 0, sizeof(in->angular_acceleration));
+
+    real_t yaw_rate = in->angular_velocity[Z],
+           pitch_rate = in->angular_velocity[Y],
+           roll_rate = in->angular_velocity[X];
+
+    /* Work out airflow in NED, then transform to body frame */
+    real_t ned_airflow[3], airflow[3];
+    real_t v2, v_inv, horizontal_v2, vertical_v2, vertical_v, vertical_v_inv,
+           airflow_x2, airflow_y2, airflow_z2;
+
+    ned_airflow[X] = in->wind_velocity[X] - in->velocity[X];
+    ned_airflow[Y] = in->wind_velocity[Y] - in->velocity[Y];
+    ned_airflow[Z] = in->wind_velocity[Z] - in->velocity[Z];
+    _mul_quat_vec3(airflow, in->attitude, ned_airflow);
+
+    /*
+    Determine airflow magnitude, and the magnitudes of the components in
+    the vertical and horizontal planes
+    */
+    airflow_x2 = airflow[X]*airflow[X];
+    airflow_y2 = airflow[Y]*airflow[Y];
+    airflow_z2 = airflow[Z]*airflow[Z];
+
+    v2 = airflow_x2 + airflow_y2 + airflow_z2;
+    v_inv = sqrt_inv(fmax(1.0, v2));
+
+    horizontal_v2 = airflow_y2 + airflow_x2;
+    vertical_v2 = airflow_z2 + airflow_x2;
+    vertical_v = sqrt(vertical_v2);
+    vertical_v_inv = sqrt_inv(fmax(1.0, vertical_v2));
+
+    /* Calculate thrust */
+    real_t thrust, ve = 0.0025 * control[0];
+    thrust = 0.5 * RHO * 0.025 * (ve * ve - airflow_x2);
+    if (thrust < 0.0) {
+        thrust = 0.0;
+    }
+
+    /* Work out sin/cos of alpha and beta */
+    real_t alpha, sin_alpha, cos_alpha, sin_beta, cos_beta, a2, sin_cos_alpha;
+    alpha = atan2(-airflow[Z], -airflow[X]);
+
+    sin_alpha = -airflow[Z] * vertical_v_inv;
+    cos_alpha = -airflow[X] * vertical_v_inv;
+    sin_beta = airflow[Y] * v_inv;
+    cos_beta = vertical_v * v_inv;
+    sin_cos_alpha = sin_alpha * cos_alpha;
+
+    a2 = alpha * alpha;
+
+    /* Work out wind frame forces, as well as moments */
+    real_t lift, drag, side_force, pitch_moment, yaw_moment, roll_moment;
+
+    lift = -5 * a2 * alpha + a2 + 2.5 * alpha + 0.12;
+    if (alpha < 0.0) {
+        lift = min(lift, 0.8 * sin_cos_alpha);
+    } else {
+        lift = max(lift, 0.8 * sin_cos_alpha);
+    }
+
+    drag = 0.05 + 0.7 * sin_alpha * sin_alpha;
+    side_force = 0.3 * sin_beta * cos_beta;
+
+    pitch_moment = 0.001 - 0.1 * sin_cos_alpha - 0.003 * pitch_rate -
+                   0.01 * (control[1] + control[2]);
+    roll_moment = -0.03 * sin_beta - 0.015 * roll_rate +
+                  0.025 * (control[1] - control[2]);
+    yaw_moment = -0.02 * sin_beta - 0.05 * yaw_rate -
+                 0.01 * (absval(control[1]) + absval(control[2]));
+
+    /* Convert aerodynamic forces from wind frame to body frame */
+    real_t qbar = RHO * horizontal_v2 * 0.5,
+           x_aero_f = qbar * (lift * sin_alpha - drag * cos_alpha -
+                              side_force * sin_beta),
+           y_aero_f = qbar * side_force * cos_beta,
+           z_aero_f = qbar * (lift * cos_alpha + drag * sin_alpha);
+
+    /*
+    Rotate G_ACCEL by current attitude
+    */
+    real_t g_accel[3], g[3] = { 0, 0, G_ACCEL };
+    _mul_quat_vec3(g_accel, in->attitude, g);
+
+    /* 0.26315789473684 is the reciprocal of mass (3.8kg) */
+    in->acceleration[X] = (thrust + x_aero_f) * 0.26315789473684 + g_accel[X];
+    in->acceleration[Y] = y_aero_f * 0.26315789473684 + g_accel[Y];
+    in->acceleration[Z] = -z_aero_f * 0.26315789473684 + g_accel[Z];
+
+    /*
+    Calculate angular acceleration (tau / inertia tensor).
+    Inertia tensor is:
+        0.3 0 -0.0334
+        0 0.17 0
+        -0.0334 0 0.405
+    So inverse is:
+        3.36422 0 0.277444
+        0 5.88235 0
+        0.277444 0 2.49202
+    */
+    in->angular_acceleration[X] = qbar *
+        (3.364222 * roll_moment + 0.27744448 * yaw_moment);
+    in->angular_acceleration[Y] = qbar * 5.8823528 * pitch_moment;
+    in->angular_acceleration[Z] = qbar *
+        (0.27744448 * roll_moment + 2.4920163 * yaw_moment);
+}
+
 void _ukf_sensor_predict(real_t *restrict measurement_estimate,
 struct ukf_state_t *restrict const sigma) {
     assert(measurement_estimate && sigma);
@@ -674,7 +791,9 @@ real_t *restrict measurement_estimate, struct ukf_state_t *central_sigma) {
     _normalize_quat(sigma->attitude, sigma->attitude, false);
 
     /* src/ukf.cpp line 165 */
-    if (dynamics_model == UKF_MODEL_FIXED_WING) {
+    if (dynamics_model == UKF_MODEL_X8) {
+        _ukf_state_x8_dynamics(sigma, control);
+    } if (dynamics_model == UKF_MODEL_FIXED_WING) {
         _ukf_state_fixed_wing_dynamics(sigma, control);
     } else if (dynamics_model == UKF_MODEL_CENTRIPETAL) {
         _ukf_state_centripetal_dynamics(sigma, control);
