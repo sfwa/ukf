@@ -128,13 +128,13 @@ void _ukf_state_model(struct ukf_state_t *restrict in);
 void _ukf_state_integrate_rk4(struct ukf_state_t *restrict in,
 const real_t delta);
 void _ukf_state_centripetal_dynamics(struct ukf_state_t *restrict in,
-real_t *restrict const control);
+const real_t *restrict control);
 void _ukf_state_fixed_wing_dynamics(struct ukf_state_t *restrict in,
-real_t *restrict const control);
+const real_t *restrict control);
 void _ukf_state_x8_dynamics(struct ukf_state_t *restrict in,
-real_t *restrict const control);
+const real_t *restrict control);
 void _ukf_sensor_predict(real_t *restrict measurement_estimate,
-struct ukf_state_t *restrict const sigma);
+const struct ukf_state_t *restrict sigma);
 size_t _ukf_sensor_collate(real_t measurement_estimate[UKF_MEASUREMENT_DIM]);
 void _ukf_sensor_get_covariance(real_t covariance[UKF_MEASUREMENT_DIM]);
 void _ukf_sensor_calculate_deltas(real_t *restrict measurement_estimate,
@@ -218,10 +218,6 @@ const real_t delta) {
     assert(in);
     _nassert((size_t)in % 8 == 0);
 
-    if (delta < 1e-6) {
-        return;
-    }
-
     /* See include/integrator.h */
     struct ukf_state_t a, b, c, d;
 
@@ -264,7 +260,7 @@ const real_t delta) {
 }
 
 void _ukf_state_centripetal_dynamics(struct ukf_state_t *restrict in,
-real_t *restrict const control) {
+const real_t *restrict control) {
 #pragma unused(control)
     assert(in && control);
     _nassert((size_t)in % 8 == 0);
@@ -277,7 +273,7 @@ real_t *restrict const control) {
 }
 
 void _ukf_state_fixed_wing_dynamics(struct ukf_state_t *restrict in,
-real_t *restrict const control) {
+const real_t *restrict control) {
     assert(in && control);
     _nassert((size_t)in % 8 == 0);
     _nassert((size_t)control % 8 == 0);
@@ -346,20 +342,20 @@ real_t *restrict const control) {
     }
 
     /* Help compiler determine pointer aligment, aliasing etc */
-    real_t *restrict const c_lift_alpha = fixedwing_params.c_lift_alpha,
-           *restrict const c_drag_alpha = fixedwing_params.c_drag_alpha,
-           *restrict const c_side_force = fixedwing_params.c_side_force,
-           *restrict const c_yaw_moment = fixedwing_params.c_yaw_moment,
-           *restrict const c_pitch_moment = fixedwing_params.c_pitch_moment,
-           *restrict const c_roll_moment = fixedwing_params.c_roll_moment,
-           *restrict const c_side_force_control =
-                fixedwing_params.c_side_force_control,
-           *restrict const c_pitch_moment_control =
-                fixedwing_params.c_pitch_moment_control,
-           *restrict const c_yaw_moment_control =
-                fixedwing_params.c_yaw_moment_control,
-           *restrict const c_roll_moment_control =
-                fixedwing_params.c_roll_moment_control;
+    const real_t *restrict c_lift_alpha = fixedwing_params.c_lift_alpha,
+                 *restrict c_drag_alpha = fixedwing_params.c_drag_alpha,
+                 *restrict c_side_force = fixedwing_params.c_side_force,
+                 *restrict c_yaw_moment = fixedwing_params.c_yaw_moment,
+                 *restrict c_pitch_moment = fixedwing_params.c_pitch_moment,
+                 *restrict c_roll_moment = fixedwing_params.c_roll_moment,
+                 *restrict c_side_force_control =
+                      fixedwing_params.c_side_force_control,
+                 *restrict c_pitch_moment_control =
+                      fixedwing_params.c_pitch_moment_control,
+                 *restrict c_yaw_moment_control =
+                      fixedwing_params.c_yaw_moment_control,
+                 *restrict c_roll_moment_control =
+                      fixedwing_params.c_roll_moment_control;
 
     real_t lift, drag, side_force, pitch_moment, yaw_moment, roll_moment;
 
@@ -442,23 +438,13 @@ real_t *restrict const control) {
 }
 
 void _ukf_state_x8_dynamics(struct ukf_state_t *restrict in,
-real_t *restrict const control) {
+const real_t *restrict control) {
     assert(in && control);
     _nassert((size_t)in % 8 == 0);
     _nassert((size_t)control % 8 == 0);
 
-    /* See src/dynamics.cpp */
-    memset(in->acceleration, 0, sizeof(in->acceleration));
-    memset(in->angular_acceleration, 0, sizeof(in->angular_acceleration));
-
-    real_t yaw_rate = in->angular_velocity[Z],
-           pitch_rate = in->angular_velocity[Y],
-           roll_rate = in->angular_velocity[X];
-
     /* Work out airflow in NED, then transform to body frame */
     real_t ned_airflow[3], airflow[3];
-    real_t v2, v_inv, horizontal_v2, vertical_v2, vertical_v, vertical_v_inv,
-           airflow_x2, airflow_y2, airflow_z2;
 
     ned_airflow[X] = in->wind_velocity[X] - in->velocity[X];
     ned_airflow[Y] = in->wind_velocity[Y] - in->velocity[Y];
@@ -466,77 +452,108 @@ real_t *restrict const control) {
     _mul_quat_vec3(airflow, in->attitude, ned_airflow);
 
     /*
-    Determine airflow magnitude, and the magnitudes of the components in
-    the vertical and horizontal planes
+    Rotate G_ACCEL by current attitude, and set acceleration to that initially
+
+    Extracted out of _mul_quat_vec3 for g = {0, 0, G_ACCEL}
     */
+    real_t rx = 0, ry = 0, rz = 0, tx, ty;
+    tx = in->attitude[Y] * (G_ACCEL * 2.0);
+    ty = -in->attitude[X] * (G_ACCEL * 2.0);
+    rx = in->attitude[W] * tx;
+    ry = in->attitude[W] * ty;
+    ry += in->attitude[Z] * tx;
+    rx -= in->attitude[Z] * ty;
+    rz = G_ACCEL;
+    rz -= in->attitude[Y] * tx;
+    rz += in->attitude[X] * ty;
+
+    in->acceleration[X] = rx;
+    in->acceleration[Y] = ry;
+    in->acceleration[Z] = rz;
+
+    /*
+    Calculate axial airflow
+    */
+    real_t airflow_x2, airflow_y2, airflow_z2;
     airflow_x2 = airflow[X]*airflow[X];
     airflow_y2 = airflow[Y]*airflow[Y];
     airflow_z2 = airflow[Z]*airflow[Z];
 
-    v2 = airflow_x2 + airflow_y2 + airflow_z2;
-    v_inv = sqrt_inv(fmax(1.0, v2));
+    /*
+    Determine airflow magnitude, and the magnitudes of the components in
+    the vertical and horizontal planes
+    */
+    real_t thrust, ve2 = (0.0025 * 0.0025) * control[0] * control[0];
+    /* 1 / 3.8kg times area * density of air */
+    thrust = max(0.0, ve2 - airflow_x2) * (0.26315789473684 * 0.5 * RHO * 0.025);
 
-    horizontal_v2 = airflow_y2 + airflow_x2;
-    vertical_v2 = airflow_z2 + airflow_x2;
-    vertical_v = sqrt(vertical_v2);
-    vertical_v_inv = sqrt_inv(fmax(1.0, vertical_v2));
+    /*
+    Calculate airflow in the horizontal and vertical planes, as well as
+    pressure
+    */
+    real_t v_inv, horizontal_v2, vertical_v, vertical_v_inv, qbar;
 
-    /* Calculate thrust */
-    real_t thrust, ve = 0.0025 * control[0];
-    thrust = 0.5 * RHO * 0.025 * (ve * ve - airflow_x2);
-    if (thrust < 0.0) {
-        thrust = 0.0;
-    }
+    horizontal_v2 = airflow_x2 + airflow_y2;
+    qbar = (RHO * 0.5) * horizontal_v2;
+    v_inv = sqrt_inv(max(1.0, horizontal_v2 + airflow_z2));
+
+    vertical_v = sqrt(airflow_x2 + airflow_z2);
+    vertical_v_inv = recip(max(1.0, vertical_v));
 
     /* Work out sin/cos of alpha and beta */
     real_t alpha, sin_alpha, cos_alpha, sin_beta, cos_beta, a2, sin_cos_alpha;
+
+    sin_beta = airflow[Y] * v_inv;
+    cos_beta = vertical_v * v_inv;
+
     alpha = atan2(-airflow[Z], -airflow[X]);
+    a2 = alpha * alpha;
 
     sin_alpha = -airflow[Z] * vertical_v_inv;
     cos_alpha = -airflow[X] * vertical_v_inv;
-    sin_beta = airflow[Y] * v_inv;
-    cos_beta = vertical_v * v_inv;
+
+    /* Work out aerodynamic forces in wind frame */
+    real_t lift, alt_lift, drag, side_force;
+
+    lift = (-5 * alpha + 1) * a2 + 2.5 * alpha + 0.12;
+    /* Generalize lift force for very high / very low alpha */
     sin_cos_alpha = sin_alpha * cos_alpha;
-
-    a2 = alpha * alpha;
-
-    /* Work out wind frame forces, as well as moments */
-    real_t lift, drag, side_force, pitch_moment, yaw_moment, roll_moment;
-
-    lift = -5 * a2 * alpha + a2 + 2.5 * alpha + 0.12;
-    if (alpha < 0.0) {
-        lift = min(lift, 0.8 * sin_cos_alpha);
-    } else {
-        lift = max(lift, 0.8 * sin_cos_alpha);
+    alt_lift = 0.8 * sin_cos_alpha;
+    if ((alpha < 0.0 && lift > alt_lift) ||
+        (alpha > 0.0 && lift < alt_lift)) {
+        lift = alt_lift;
     }
 
-    drag = 0.05 + 0.7 * sin_alpha * sin_alpha;
-    side_force = 0.3 * sin_beta * cos_beta;
-
-    pitch_moment = 0.001 - 0.1 * sin_cos_alpha - 0.003 * pitch_rate -
-                   0.01 * (control[1] + control[2]);
-    roll_moment = -0.03 * sin_beta - 0.015 * roll_rate +
-                  0.025 * (control[1] - control[2]);
-    yaw_moment = -0.02 * sin_beta - 0.05 * yaw_rate -
-                 0.01 * (absval(control[1]) + absval(control[2]));
+    /* 0.26315789473684 is the reciprocal of mass (3.8kg) */
+    lift = (qbar * 0.26315789473684) * lift;
+    drag = (qbar * 0.26315789473684) * (0.05 + 0.7 * sin_alpha * sin_alpha);
+    side_force = (qbar * 0.26315789473684) * 0.3 * sin_beta * cos_beta;
 
     /* Convert aerodynamic forces from wind frame to body frame */
-    real_t qbar = RHO * horizontal_v2 * 0.5,
-           x_aero_f = qbar * (lift * sin_alpha - drag * cos_alpha -
-                              side_force * sin_beta),
-           y_aero_f = qbar * side_force * cos_beta,
-           z_aero_f = qbar * (lift * cos_alpha + drag * sin_alpha);
+    real_t x_aero_f = lift * sin_alpha - drag * cos_alpha -
+                             side_force * sin_beta,
+           z_aero_f = lift * cos_alpha + drag * sin_alpha,
+           y_aero_f = side_force * cos_beta;
 
-    /*
-    Rotate G_ACCEL by current attitude
-    */
-    real_t g_accel[3], g[3] = { 0, 0, G_ACCEL };
-    _mul_quat_vec3(g_accel, in->attitude, g);
+    in->acceleration[Y] += y_aero_f;
+    in->acceleration[X] += x_aero_f + thrust;
+    in->acceleration[Z] -= z_aero_f;
 
-    /* 0.26315789473684 is the reciprocal of mass (3.8kg) */
-    in->acceleration[X] = (thrust + x_aero_f) * 0.26315789473684 + g_accel[X];
-    in->acceleration[Y] = y_aero_f * 0.26315789473684 + g_accel[Y];
-    in->acceleration[Z] = -z_aero_f * 0.26315789473684 + g_accel[Z];
+    /* Determine moments */
+    real_t pitch_moment, yaw_moment, roll_moment,
+           yaw_rate = in->angular_velocity[Z],
+           pitch_rate = in->angular_velocity[Y],
+           roll_rate = in->angular_velocity[X],
+           left_aileron = control[1], right_aileron = control[2];
+    pitch_moment = 0.001 - 0.1 * sin_cos_alpha - 0.003 * pitch_rate -
+                   0.01 * (left_aileron + right_aileron);
+    roll_moment = -0.03 * sin_beta - 0.015 * roll_rate +
+                  0.025 * (left_aileron - right_aileron);
+    yaw_moment = -0.02 * sin_beta - 0.05 * yaw_rate -
+                 0.01 * (absval(left_aileron) + absval(right_aileron));
+    pitch_moment *= qbar;
+    roll_moment *= qbar;
+    yaw_moment *= qbar;
 
     /*
     Calculate angular acceleration (tau / inertia tensor).
@@ -549,15 +566,15 @@ real_t *restrict const control) {
         0 5.88235 0
         0.277444 0 2.49202
     */
-    in->angular_acceleration[X] = qbar *
-        (3.364222 * roll_moment + 0.27744448 * yaw_moment);
-    in->angular_acceleration[Y] = qbar * 5.8823528 * pitch_moment;
-    in->angular_acceleration[Z] = qbar *
-        (0.27744448 * roll_moment + 2.4920163 * yaw_moment);
+    in->angular_acceleration[Y] = 5.8823528 * pitch_moment;
+    in->angular_acceleration[X] =  (3.364222 * roll_moment +
+                                    0.27744448 * yaw_moment);
+    in->angular_acceleration[Z] =  (0.27744448 * roll_moment +
+                                    2.4920163 * yaw_moment);
 }
 
 void _ukf_sensor_predict(real_t *restrict measurement_estimate,
-struct ukf_state_t *restrict const sigma) {
+const struct ukf_state_t *restrict sigma) {
     assert(measurement_estimate && sigma);
     assert(fabs(sigma->attitude[X]*sigma->attitude[X] +
                 sigma->attitude[Y]*sigma->attitude[Y] +
@@ -997,7 +1014,7 @@ void ukf_set_params(struct ukf_ioboard_params_t *in) {
 
 void ukf_choose_dynamics(enum ukf_model_t t) {
     assert(t == UKF_MODEL_NONE || t == UKF_MODEL_CENTRIPETAL ||
-        t == UKF_MODEL_FIXED_WING);
+        t == UKF_MODEL_FIXED_WING || t == UKF_MODEL_X8);
     dynamics_model = t;
 }
 
@@ -1065,9 +1082,9 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
 
         /* Set sigma points up based on offset from the central point */
         {
-            real_t *restrict const st = (real_t*)&state,
-                   *restrict const sp = (real_t*)&sigma_pos,
-                   *restrict const sn = (real_t*)&sigma_neg;
+            real_t *const restrict st = (real_t*)&state,
+                   *const restrict sp = (real_t*)&sigma_pos,
+                   *const restrict sn = (real_t*)&sigma_neg;
             _nassert((size_t)st % 8 == 0);
             _nassert((size_t)sp % 8 == 0);
             _nassert((size_t)sn % 8 == 0);
@@ -1360,8 +1377,8 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
                   UKF_STATE_DIM);
 
     /* Update the state */
-    real_t *restrict const mptr = (real_t*)&apriori_mean,
-           *restrict const sptr = (real_t*)&state;
+    real_t *const restrict mptr = (real_t*)&apriori_mean,
+           *const restrict sptr = (real_t*)&state;
 
     #pragma MUST_ITERATE(12)
     for (i = 0; i < 12; i++) {
