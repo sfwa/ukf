@@ -506,7 +506,7 @@ const real_t *restrict control) {
     sin_beta = airflow[Y] * v_inv;
     cos_beta = vertical_v * v_inv;
 
-    alpha = atan2(-airflow[Z], -airflow[X]);
+    alpha = fatan2(-airflow[Z], -airflow[X]);
     a2 = alpha * alpha;
 
     sin_alpha = -airflow[Z] * vertical_v_inv;

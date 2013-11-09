@@ -6,6 +6,18 @@
 #define Z 2
 #define W 3
 
+#ifndef absval
+#define absval(x) ((x) < 0 ? -x : x)
+#endif
+
+#ifndef min
+#define min(a,b) (((a) < (b)) ? (a) : (b))
+#endif
+
+#ifndef max
+#define max(a,b) (((a) > (b)) ? (a) : (b))
+#endif
+
 #ifdef UKF_USE_DSP_INTRINSICS
 
 static inline double sqrt_inv(double a) {
@@ -71,109 +83,40 @@ static inline double recip(double b) {
     return x;
 }
 
-static inline double fatan(double a) {
-    double MIN = 1.490116119384e-8;
-    double p0 = -1.3688768894191926929e+1;
-    double p1 = -2.0505855195861651981e+1;
-    double p2 = -8.4946240351320683534e+0;
-    double p3 = -8.3758299368150059274e-1;
-    double q0 = 4.1066306682575781263e+1;
-    double q1 = 8.6157349597130242515e+1;
-    double q2 = 5.9578436142597344465e+1;
-    double q3 = 1.5024001160028576121e+1;
-    double sqrt3 = 1.7320508075688772935e+0;
-    double iims3 = 2.6794919243112270647e-1;
-    double V[4] = { 0.0, 0.52359877559829887308, 1.57079632679489661923,
-                    1.04719755119659774615 };
-    double F, G, H, R, RN, RD;
-    int N, Sign;
-
-    Sign = 0;
-    F = a;
-    N = 0;
-
-    if (F < 0.0) {
-        F = -F;
-        Sign = 1;
-    }
-
-    if (F > 1.0) {
-        F = recip(F);
-        N = 2;
-    }
-
-    if (F > iims3) {
-        N = N + 1;
-        F = divide(F * sqrt3 - 1.0, F + sqrt3);
-    }
-
-    H = F;
-
-    if (H < 0.0) {
-        H = -H;
-    }
-
-    if (H > MIN) {
-        G = H * H;
-        RN = (((p3*G + p2)*G + p1)*G + p0)*G;
-        RD = (((G + q3)*G + q2)*G + q1)*G + q0;
-        R = divide(RN, RD);
-        F = (F + F*R);
-    }
-
-    if (N > 1) {
-        F = -F;
-    }
-
-    H = F + V[N];
-
-    if (Sign == 1) {
-        H = -H;
-    }
-
-    return H;
-}
-
-static inline double fatan2(double a, double b) {
-    double x, y, z, w, res;
-
-    y = a;
-    x = b;
-    z = divide(y, x);
-    w = fatan(z);
-    res = w;
-
-    if (x < 0.0) {
-        res = 3.14159265358979323846 + w;
-        if (w > 0.0) {
-            res = w - 3.14159265358979323846;
-        }
-    }
-
-    if (x == 0.0) {
-        res = (y > 0.0 ? 1.57079632679489661923 : -1.57079632679489661923);
-    }
-    if (y == 0.0) {
-        res = (x >= 0.0 ? 0 : 3.14159265358979323846);
-    }
-    if (z > 1.7976931348623157e+308) {
-        res = 1.57079632679489661923;
-    }
-    if (z < -1.7976931348623157e+308) {
-        res = -1.57079632679489661923;
-    }
-
-    return res;
-}
-
 #else
+
 #define sqrt_inv(x) (1.0 / sqrt((x)))
 #define divide(a, b) ((a) / (b))
 #define recip(a) (1.0 / (a))
 #define fsqrt(a) sqrt((a))
-#define fatan(a) atan((a))
-#define fatan2(a) atan2((a))
+
 #endif
+
+static inline double fatan2(double y, double x) {
+#define PI_FLOAT     3.14159265
+#define PIBY2_FLOAT  1.5707963
+// |error| < 0.005
+    if (x == 0.0) {
+        if (y > 0.0) return PIBY2_FLOAT;
+        if (y == 0.0) return 0.0;
+        return -PIBY2_FLOAT;
+    }
+    double atan;
+    double z = divide(y, x);
+    if (absval(z) < 1.0) {
+        atan = divide(z, (1.0 + 0.28 * z * z));
+        if (x < 0.0) {
+            if (y < 0.0) return atan - PI_FLOAT;
+            return atan + PI_FLOAT;
+        }
+    } else {
+        atan = PIBY2_FLOAT - z / (z * z + 0.28);
+        if (y < 0.0f) return atan - PI_FLOAT;
+    }
+    return atan;
+#undef PI_FLOAT
+#undef PIBY2_FLOAT
+}
 
 /* DEBUG */
 #ifdef UKF_DEBUG
@@ -224,18 +167,6 @@ static inline uint64_t rdtsc() {
 #define M_PI ((real_t)3.14159265358979323846)
 #define M_PI_2 (M_PI * 0.5)
 #define M_PI_4 (M_PI * 0.25)
-#endif
-
-#ifndef absval
-#define absval(x) ((x) < 0 ? -x : x)
-#endif
-
-#ifndef min
-#define min(a,b) (((a) < (b)) ? (a) : (b))
-#endif
-
-#ifndef max
-#define max(a,b) (((a) > (b)) ? (a) : (b))
 #endif
 
 static inline void _cross_vec3(real_t *restrict res,
