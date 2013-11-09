@@ -24,6 +24,28 @@ static inline double sqrt_inv(double a) {
     return x;
 }
 
+static inline double fsqrt(double a) {
+    double  y, X0, X1, X2, X4;
+    int     upper;
+
+    upper = _clr(_hi(a), 31, 31);
+    y = _itod(upper, _lo(a));
+
+    X0 = _rsqrdp(y);
+    X1 = X0 * (1.5 - (y*X0*X0*0.5));
+    X2 = X1 * (1.5 - (y*X1*X1*0.5));
+    X4 = y * X2 * (1.5 - (y*X2*X2*0.5));
+
+    if (a <= 0.0) {
+        X4 = 0.0;
+    }
+    if (a > 1.7976931348623157E+308) {
+        X4 = 1.7976931348623157E+308;
+    }
+
+    return X4;
+}
+
 static inline double divide(double a, double b) {
     double  x;
     if (a == 0.0) {
@@ -49,10 +71,108 @@ static inline double recip(double b) {
     return x;
 }
 
+static inline double fatan(double a) {
+    double MIN = 1.490116119384e-8;
+    double p0 = -1.3688768894191926929e+1;
+    double p1 = -2.0505855195861651981e+1;
+    double p2 = -8.4946240351320683534e+0;
+    double p3 = -8.3758299368150059274e-1;
+    double q0 = 4.1066306682575781263e+1;
+    double q1 = 8.6157349597130242515e+1;
+    double q2 = 5.9578436142597344465e+1;
+    double q3 = 1.5024001160028576121e+1;
+    double sqrt3 = 1.7320508075688772935e+0;
+    double iims3 = 2.6794919243112270647e-1;
+    double V[4] = { 0.0, 0.52359877559829887308, 1.57079632679489661923,
+                    1.04719755119659774615 };
+    double F, G, H, R, RN, RD;
+    int N, Sign;
+
+    Sign = 0;
+    F = a;
+    N = 0;
+
+    if (F < 0.0) {
+        F = -F;
+        Sign = 1;
+    }
+
+    if (F > 1.0) {
+        F = recip(F);
+        N = 2;
+    }
+
+    if (F > iims3) {
+        N = N + 1;
+        F = divide(F * sqrt3 - 1.0, F + sqrt3);
+    }
+
+    H = F;
+
+    if (H < 0.0) {
+        H = -H;
+    }
+
+    if (H > MIN) {
+        G = H * H;
+        RN = (((p3*G + p2)*G + p1)*G + p0)*G;
+        RD = (((G + q3)*G + q2)*G + q1)*G + q0;
+        R = divide(RN, RD);
+        F = (F + F*R);
+    }
+
+    if (N > 1) {
+        F = -F;
+    }
+
+    H = F + V[N];
+
+    if (Sign == 1) {
+        H = -H;
+    }
+
+    return H;
+}
+
+static inline double fatan2(double a, double b) {
+    double x, y, z, w, res;
+
+    y = a;
+    x = b;
+    z = divide(y, x);
+    w = fatan(z);
+    res = w;
+
+    if (x < 0.0) {
+        res = 3.14159265358979323846 + w;
+        if (w > 0.0) {
+            res = w - 3.14159265358979323846;
+        }
+    }
+
+    if (x == 0.0) {
+        res = (y > 0.0 ? 1.57079632679489661923 : -1.57079632679489661923);
+    }
+    if (y == 0.0) {
+        res = (x >= 0.0 ? 0 : 3.14159265358979323846);
+    }
+    if (z > 1.7976931348623157e+308) {
+        res = 1.57079632679489661923;
+    }
+    if (z < -1.7976931348623157e+308) {
+        res = -1.57079632679489661923;
+    }
+
+    return res;
+}
+
 #else
 #define sqrt_inv(x) (1.0 / sqrt((x)))
 #define divide(a, b) ((a) / (b))
 #define recip(a) (1.0 / (a))
+#define fsqrt(a) sqrt((a))
+#define fatan(a) atan((a))
+#define fatan2(a) atan2((a))
 #endif
 
 /* DEBUG */
@@ -163,29 +283,30 @@ const real_t *restrict v) {
 
     tx = q[Y]*v[Z];
     ty = q[Z]*v[X];
-    rx = v[X];
-    ry = v[Y];
     tx -= q[Z]*v[Y];
     ty -= q[X]*v[Z];
-    rz = v[Z];
     tz = q[X]*v[Y];
     ty *= 2.0;
     tz -= q[Y]*v[X];
     tx *= 2.0;
     tz *= 2.0;
 
+    rx = v[X];
     rx += q[W]*tx;
-    ry += q[W]*ty;
     rx += q[Y]*tz;
-    ry += q[Z]*tx;
     rx -= q[Z]*ty;
+    res[X] = rx;
+
+    ry = v[Y];
+    ry += q[W]*ty;
+    ry += q[Z]*tx;
     ry -= q[X]*tz;
+    res[Y] = ry;
+
+    rz = v[Z];
     rz += q[W]*tz;
     rz -= q[Y]*tx;
     rz += q[X]*ty;
-
-    res[X] = rx;
-    res[Y] = ry;
     res[Z] = rz;
 }
 

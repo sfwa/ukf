@@ -497,7 +497,7 @@ const real_t *restrict control) {
     qbar = (RHO * 0.5) * horizontal_v2;
     v_inv = sqrt_inv(max(1.0, horizontal_v2 + airflow_z2));
 
-    vertical_v = sqrt(airflow_x2 + airflow_z2);
+    vertical_v = fsqrt(airflow_x2 + airflow_z2);
     vertical_v_inv = recip(max(1.0, vertical_v));
 
     /* Work out sin/cos of alpha and beta */
@@ -1033,13 +1033,15 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
     /* In-place LLT on state covariance matrix times UKF_DIM_PLUS_LAMBDA */
     _cholesky_mat_mul(state_covariance, state_covariance, UKF_DIM_PLUS_LAMBDA,
         24);
-    /* Clear out the upper triangle */
-    for (i = 0; i < UKF_STATE_DIM; i++) {
-        for (j = (i + 1) * UKF_STATE_DIM;
-             j <= UKF_STATE_DIM * (UKF_STATE_DIM - 1);
-             j += UKF_STATE_DIM) {
-            state_covariance[j + i] = 0.0;
-        }
+    /*
+    Clear out the upper triangle:
+    24 48 72 96 ...
+       49 73 97 ...
+          74 98 ...
+             99 ...
+    */
+    for (i = 1; i < UKF_STATE_DIM; i++) {
+        memset(&state_covariance[i * UKF_STATE_DIM], 0, i * sizeof(real_t));
     }
 
     _print_matrix("S:\n", state_covariance, UKF_STATE_DIM, UKF_STATE_DIM);
