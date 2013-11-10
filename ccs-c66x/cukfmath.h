@@ -551,7 +551,7 @@ const size_t n) {
 
     size_t i, j, kn, in, jn;
     for (i = 0, in = 0; i < n; i++, in += n) {
-        L[i + 0] = (i == 0) ? sqrt(A[i + in]*mul) : recip(L[0]) * (A[i]*mul);
+        L[i + 0] = (i == 0) ? fsqrt(A[i + in]*mul) : recip(L[0]) * (A[i]*mul);
 
         for (j = 1, jn = n; j <= i; j++, jn += n) {
             real_t s = 0;
@@ -560,7 +560,7 @@ const size_t n) {
                 s += L[i + kn] * L[j + kn];
             }
 
-            L[i + jn] = (i == j) ? sqrt(A[i + in]*mul - s) :
+            L[i + jn] = (i == j) ? fsqrt(A[i + in]*mul - s) :
                 recip(L[j + jn]) * (A[i + jn]*mul - s);
         }
     }
