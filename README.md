@@ -99,3 +99,12 @@ to download and install.
 
 ## Compiling with CCS5
 
+Unfortunately kind of a pain at the moment. The built-in project is mostly
+OK, but `ccs-c66x/cukf.c` needs to be modified as follows:
+
+* Add `#define UKF_USE_DSP_INTRINSICS` before `#include "config.h"` at the
+top of the file;
+* Change `#include "../c/cukf.h"` to `#include "cukf.h"`;
+* Initialize `dynamics_model` with the desired value (e.g. `UKF_MODEL_X8`) as
+there's a bug preventing this from being set properly at runtime.
+
