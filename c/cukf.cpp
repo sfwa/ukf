@@ -159,6 +159,14 @@ real_t state_covariance[UKF_STATE_DIM*UKF_STATE_DIM]) {
     covariance_map = ukf.get_state_covariance();
 }
 
+void ukf_get_state_covariance_diagonal(
+real_t state_covariance_diagonal[UKF_STATE_DIM]) {
+    Eigen::Map< Eigen::Matrix<real_t, UKF_STATE_DIM, 1> > covariance_map =
+        Eigen::Map< Eigen::Matrix<real_t, UKF_STATE_DIM, 1>
+            >(state_covariance_diagonal);
+    covariance_map = ukf.get_state_covariance().diagonal();
+}
+
 void ukf_sensor_clear() {
     model.clear();
 }

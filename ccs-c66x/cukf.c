@@ -953,6 +953,15 @@ void ukf_get_state_covariance(real_t in[UKF_STATE_DIM * UKF_STATE_DIM]) {
     memcpy(in, state_covariance, sizeof(state_covariance));
 }
 
+void ukf_get_state_covariance_diagonal(real_t in[UKF_STATE_DIM]) {
+    assert(in);
+    uint8_t i;
+    #pragma MUST_ITERATE(24)
+    for (i = 0; i < UKF_STATE_DIM; i++) {
+        in[i] = state_covariance[i*UKF_STATE_DIM + i];
+    }
+}
+
 void ukf_sensor_clear() {
     memset(&sensor_model.flags, 0, sizeof(sensor_model.flags));
 }
