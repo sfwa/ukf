@@ -109,6 +109,8 @@ void ukf_set_state(struct ukf_state_t *in);
 void ukf_get_state(struct ukf_state_t *in);
 void ukf_get_state_covariance(
     real_t state_covariance[UKF_STATE_DIM * UKF_STATE_DIM]);
+void ukf_get_state_covariance_diagonal(
+    real_t state_covariance_diagonal[UKF_STATE_DIM]);
 
 /*
 Functions for setting sensor data. Before each frame, call the sensor_clear()
