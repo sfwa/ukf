@@ -164,6 +164,12 @@ public:
         process_noise_covariance = in;
     }
     void set_dynamics_model(DynamicsModel *in) { dynamics = in; }
+
+    /*
+    Run one iteration of the filter and kinematics/dynamics model. "dt" is the
+    time delta/step size in seconds; "c" is the control vector in effect for
+    the entire time step
+    */
     void iterate(real_t dt, ControlVector c);
 };
 

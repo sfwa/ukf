@@ -132,6 +132,7 @@ UKF-related functions.
 void ukf_set_params(struct ukf_ioboard_params_t *in);
 void ukf_set_process_noise(real_t process_noise_covariance[UKF_STATE_DIM]);
 void ukf_choose_dynamics(enum ukf_model_t t);
+/* dt is the time delta in seconds */
 void ukf_iterate(float dt, real_t control_vector[UKF_CONTROL_DIM]);
 
 /*
