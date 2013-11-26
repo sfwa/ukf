@@ -1440,7 +1440,7 @@ void ukf_init(void) {
         {0, 0, 0},
         {0, 0, 0},
         {0, 0, 0},
-        {0, 0, 0, 1},
+        {0, 0, 0, 1}, /* x, y, z, W */
         {0, 0, 0},
         {0, 0, 0},
         {0, 0, 0},
@@ -1449,7 +1449,7 @@ void ukf_init(void) {
     ukf_set_state(&base_state);
 
     struct ukf_ioboard_params_t base_config = {
-        /* sensor offsets/orientations */
+        /* sensor offsets/orientations -- x, y, z, W */
         {0, 0, 0, 1},
         {0, 0, 0},
         {0, 0, 0, 1},

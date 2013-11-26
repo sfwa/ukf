@@ -30,10 +30,10 @@ SOFTWARE.
 #include "cukf.h"
 
 static IOBoardModel model = IOBoardModel(
-    Quaternionr(1, 0, 0, 0),
+    Quaternionr(1, 0, 0, 0), /* NOTE: W, x, y, z */
     Vector3r(0, 0, 0),
-    Quaternionr(1, 0, 0, 0),
-    Quaternionr(1, 0, 0, 0),
+    Quaternionr(1, 0, 0, 0), /* NOTE: W, x, y, z */
+    Quaternionr(1, 0, 0, 0), /* NOTE: W, x, y, z */
     Vector3r(1, 0, 0));
 static UnscentedKalmanFilter ukf = UnscentedKalmanFilter(model);
 static CentripetalModel centripetal_model = CentripetalModel();
@@ -104,6 +104,10 @@ void ukf_get_state(struct ukf_state_t *in) {
     in->acceleration[0] = current.acceleration()[0];
     in->acceleration[1] = current.acceleration()[1];
     in->acceleration[2] = current.acceleration()[2];
+    /*
+    Eigen stores quaternions in {x, y, z, W}, matching the order of the
+    output array
+    */
     in->attitude[0] = current.attitude()[0];
     in->attitude[1] = current.attitude()[1];
     in->attitude[2] = current.attitude()[2];
@@ -134,6 +138,10 @@ void ukf_set_state(struct ukf_state_t *in) {
         in->acceleration[0],
         in->acceleration[1],
         in->acceleration[2],
+        /*
+        Eigen stores quaternions in {x, y, z, W}, matching the order of the
+        input array
+        */
         in->attitude[0],
         in->attitude[1],
         in->attitude[2],
@@ -201,6 +209,10 @@ void ukf_sensor_set_barometer_amsl(real_t amsl) {
 
 void ukf_set_params(struct ukf_ioboard_params_t *in) {
     model = IOBoardModel(
+        /*
+        accel_orientation, gyro_orientation and mag_orientation are
+        {x, y, z, W}; Eigen's Quaternionr constructor is {W, x, y, z}.
+        */
         Quaternionr(
             in->accel_orientation[3],
             in->accel_orientation[0],

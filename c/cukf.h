@@ -66,11 +66,11 @@ Members are as follows:
         readings
 */
 struct ukf_ioboard_params_t {
-    real_t accel_orientation[4];
-    real_t accel_offset[3];
-    real_t gyro_orientation[4];
-    real_t mag_orientation[4];
-    real_t mag_field[3];
+    real_t accel_orientation[4]; /* x, y, z, W */
+    real_t accel_offset[3]; /* forwards, starboard, down from CoG (m) */
+    real_t gyro_orientation[4]; /* x, y, z, W */
+    real_t mag_orientation[4]; /* x, y, z, W */
+    real_t mag_field[3]; /* North, East, Down (µT) */
 
     real_t accel_covariance[3];
     real_t gyro_covariance[3];
@@ -82,14 +82,15 @@ struct ukf_ioboard_params_t {
 };
 
 struct ukf_state_t {
-    real_t position[3];
-    real_t velocity[3];
-    real_t acceleration[3];
-    real_t attitude[4]; /* w, x, y, z */
-    real_t angular_velocity[3];
+    real_t position[3]; /* lat (rad), lon (rad), alt (m above ellipsoid) */
+    real_t velocity[3]; /* North (m/s), East (m/s), Down (m/s) */
+    real_t acceleration[3]; /* forwards (m/s), starboard (m/s), down (m/s) */
+    real_t attitude[4]; /* x, y, z, W */
+    real_t angular_velocity[3]; /* rolling (rad/s), pitching (rad/s),
+                                   yawing (rad/s) */
     real_t angular_acceleration[3];
-    real_t wind_velocity[3];
-    real_t gyro_bias[3];
+    real_t wind_velocity[3]; /* North (m/s), East (m/s), Down (m/s) */
+    real_t gyro_bias[3]; /* X (rad/s), Y (rad/s), Z (rad/s) */
 };
 
 void ukf_init(void);

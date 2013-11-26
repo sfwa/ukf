@@ -170,8 +170,7 @@ static inline uint64_t rdtsc() {
 #endif
 
 static inline void _cross_vec3(real_t *restrict res,
-const real_t *restrict v1,
-const real_t *restrict v2) {
+const real_t *restrict v1, const real_t *restrict v2) {
     assert(res && v1 && v2 && res != v1 && res != v2 && v1 != v2);
     _nassert((size_t)res % 8 == 0);
     _nassert((size_t)v1 % 8 == 0);
@@ -192,8 +191,7 @@ const real_t *restrict v2) {
 }
 
 static inline void _mul_quat_vec3(real_t *restrict res,
-const real_t *restrict q,
-const real_t *restrict v) {
+const real_t *restrict q, const real_t *restrict v) {
     /*
     Multiply a quaternion by a vector (i.e. transform a vectory by a
     quaternion)
@@ -241,7 +239,8 @@ const real_t *restrict v) {
     res[Z] = rz;
 }
 
-static inline void _mul_quat_quat(real_t res[4], const real_t q1[4], const real_t q2[4]) {
+static inline void _mul_quat_quat(real_t res[4],
+const real_t q1[4], const real_t q2[4]) {
     assert(res && q1 && q2 && res != q1 && res != q2);
     _nassert((size_t)res % 8 == 0);
     _nassert((size_t)q1 % 8 == 0);
