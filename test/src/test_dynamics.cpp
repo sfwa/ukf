@@ -146,17 +146,42 @@ TEST(CentripetalModelTest, ZAxisNegative) {
     EXPECT_EQ(0, accelerations[5]);
 }
 
-TEST(FixedWingFlightDynamicsModelTest, Instantiation) {
-    FixedWingFlightDynamicsModel test = FixedWingFlightDynamicsModel();
+void _constant_dynamics(const real_t *state,
+const real_t *control, real_t *output) {
+    output[0] = 1.0;
+    output[1] = 2.0;
+    output[2] = 3.0;
+    output[3] = 4.0;
+    output[4] = 5.0;
+    output[5] = 6.0;
 }
 
-TEST(FixedWingFlightDynamicsModelTest, AirframeProperties) {
-    FixedWingFlightDynamicsModel model = FixedWingFlightDynamicsModel();
-    model.set_mass(5.0);
+TEST(CustomModelTest, Instantiation) {
+    CustomDynamicsModel model = CustomDynamicsModel();
+    model.set_function(_constant_dynamics);
+}
 
-    Matrix3x3r tensor;
-    tensor << 2, 0, 0,
-              0, 1, 0,
-              0, 0, 3;
-    model.set_inertia_tensor(tensor);
+TEST(CustomModelTest, Output) {
+    CustomDynamicsModel model = CustomDynamicsModel();
+    model.set_function(_constant_dynamics);
+
+    State test;
+    AccelerationVector accelerations;
+    test << 0, 0, 0,
+            0, 0, 10,
+            3, 4, 5,
+            0, 0, 0, 1,
+            -1, 0, 0,
+            6, 7, 8,
+            9, 10, 11,
+            12, 13, 14;
+
+    accelerations = model.evaluate(test, ControlVector());
+
+    EXPECT_EQ(1.0, accelerations[0]);
+    EXPECT_EQ(2.0, accelerations[1]);
+    EXPECT_EQ(3.0, accelerations[2]);
+    EXPECT_EQ(4.0, accelerations[3]);
+    EXPECT_EQ(5.0, accelerations[4]);
+    EXPECT_EQ(6.0, accelerations[5]);
 }

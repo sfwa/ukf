@@ -37,8 +37,7 @@ static IOBoardModel model = IOBoardModel(
     Vector3r(1, 0, 0));
 static UnscentedKalmanFilter ukf = UnscentedKalmanFilter(model);
 static CentripetalModel centripetal_model = CentripetalModel();
-static FixedWingFlightDynamicsModel fixed_wing_model =
-    FixedWingFlightDynamicsModel();
+static CustomDynamicsModel custom_model = CustomDynamicsModel();
 static X8DynamicsModel x8_model = X8DynamicsModel();
 
 void ukf_init(void) {
@@ -261,13 +260,22 @@ void ukf_choose_dynamics(enum ukf_model_t t) {
         case UKF_MODEL_CENTRIPETAL:
             ukf.set_dynamics_model(&centripetal_model);
             break;
-        case UKF_MODEL_FIXED_WING:
-            ukf.set_dynamics_model(&fixed_wing_model);
+        case UKF_MODEL_CUSTOM:
+            ukf.set_dynamics_model(&custom_model);
             break;
         case UKF_MODEL_X8:
             ukf.set_dynamics_model(&x8_model);
             break;
+        default:
+            assert(false);
+            break;
     }
+}
+
+void ukf_set_custom_dynamics_model(ukf_model_function_t func) {
+    assert(func);
+    custom_model.set_function(func);
+    ukf.set_dynamics_model(&custom_model);
 }
 
 void ukf_iterate(float dt, real_t control_vector[UKF_CONTROL_DIM]) {
@@ -281,51 +289,6 @@ void ukf_set_process_noise(real_t process_noise_covariance[UKF_STATE_DIM]) {
             >(process_noise_covariance);
     ProcessCovariance covariance = covariance_map;
     ukf.set_process_noise(covariance);
-}
-
-void ukf_fixedwingdynamics_set_mass(real_t mass) {
-    fixed_wing_model.set_mass(mass);
-}
-
-void ukf_fixedwingdynamics_set_inertia_tensor(real_t inertia_tensor[9]) {
-    fixed_wing_model.set_inertia_tensor(Matrix3x3r(inertia_tensor));
-}
-
-void ukf_fixedwingdynamics_set_prop_coeffs(real_t in_prop_area,
-real_t in_prop_cve){
-    fixed_wing_model.set_prop_coeffs(in_prop_area, in_prop_cve);
-}
-
-void ukf_fixedwingdynamics_set_drag_coeffs(real_t coeffs[5]) {
-    fixed_wing_model.set_drag_coeffs(Vector5r(coeffs));
-}
-
-void ukf_fixedwingdynamics_set_lift_coeffs(real_t coeffs[5]) {
-    fixed_wing_model.set_lift_coeffs(Vector5r(coeffs));
-}
-
-void ukf_fixedwingdynamics_set_side_coeffs(real_t coeffs[4],
-real_t control[UKF_CONTROL_DIM]) {
-    fixed_wing_model.set_side_coeffs(Vector4r(coeffs),
-        Vector4r(control));
-}
-
-void ukf_fixedwingdynamics_set_pitch_moment_coeffs(real_t coeffs[2],
-real_t control[UKF_CONTROL_DIM]) {
-    fixed_wing_model.set_pitch_moment_coeffs(Vector2r(coeffs),
-        Vector4r(control));
-}
-
-void ukf_fixedwingdynamics_set_roll_moment_coeffs(real_t coeffs[1],
-real_t control[UKF_CONTROL_DIM]) {
-    fixed_wing_model.set_roll_moment_coeffs(Vector1r(coeffs),
-        Vector4r(control));
-}
-
-void ukf_fixedwingdynamics_set_yaw_moment_coeffs(real_t coeffs[2],
-real_t control[UKF_CONTROL_DIM]) {
-    fixed_wing_model.set_yaw_moment_coeffs(Vector2r(coeffs),
-        Vector4r(control));
 }
 
 uint32_t ukf_config_get_state_dim() {

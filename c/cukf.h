@@ -42,7 +42,7 @@ extern "C" {
 enum ukf_model_t {
     UKF_MODEL_NONE = 0,
     UKF_MODEL_CENTRIPETAL = 1,
-    UKF_MODEL_FIXED_WING = 2,
+    UKF_MODEL_CUSTOM = 2,
     UKF_MODEL_X8 = 3
 };
 
@@ -93,6 +93,16 @@ struct ukf_state_t {
     real_t gyro_bias[3]; /* X (rad/s), Y (rad/s), Z (rad/s) */
 };
 
+/*
+Dynamics model function, for custom model support. These functions have to
+be compatible between the C++ and C versions of the UKF, so they take pointers
+to C arrays representing the state vector, the control vector, and the output
+vector.
+*/
+typedef void (*ukf_model_function_t)(const real_t *, const real_t *,
+                                     real_t *);
+
+
 void ukf_init(void);
 
 /* Functions for setting different parts of the state vector. */
@@ -132,27 +142,9 @@ UKF-related functions.
 void ukf_set_params(struct ukf_ioboard_params_t *in);
 void ukf_set_process_noise(real_t process_noise_covariance[UKF_STATE_DIM]);
 void ukf_choose_dynamics(enum ukf_model_t t);
+void ukf_set_custom_dynamics_model(ukf_model_function_t func);
 /* dt is the time delta in seconds */
 void ukf_iterate(float dt, real_t control_vector[UKF_CONTROL_DIM]);
-
-/*
-Functions to set airframe properties and coefficients for the fixed-wing
-dynamics model.
-*/
-void ukf_fixedwingdynamics_set_mass(real_t mass);
-void ukf_fixedwingdynamics_set_inertia_tensor(real_t inertia_tensor[9]);
-void ukf_fixedwingdynamics_set_prop_coeffs(real_t in_prop_area,
-    real_t in_prop_cve);
-void ukf_fixedwingdynamics_set_drag_coeffs(real_t coeffs[5]);
-void ukf_fixedwingdynamics_set_lift_coeffs(real_t coeffs[5]);
-void ukf_fixedwingdynamics_set_side_coeffs(real_t coeffs[4],
-    real_t control[UKF_CONTROL_DIM]);
-void ukf_fixedwingdynamics_set_pitch_moment_coeffs(real_t coeffs[2],
-    real_t control[UKF_CONTROL_DIM]);
-void ukf_fixedwingdynamics_set_roll_moment_coeffs(real_t coeffs[1],
-    real_t control[UKF_CONTROL_DIM]);
-void ukf_fixedwingdynamics_set_yaw_moment_coeffs(real_t coeffs[2],
-    real_t control[UKF_CONTROL_DIM]);
 
 /*
 Functions to access the compiled configuration

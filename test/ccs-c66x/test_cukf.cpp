@@ -160,46 +160,6 @@ TEST(C66xMathTest, StateAxPlusB) {
     EXPECT_FLOAT_EQ(62.5, res.gyro_bias[Z]);
 }
 
-TEST(C66xMathTest, Matrix3x3Inverse) {
-    real_t m1[9] = {
-                1.1, 0.2, 0.3,
-                0.4, 1.5, 0.6,
-                0.7, 0.8, 1.9
-           },
-           result[9];
-
-    _inv_mat3x3(result, m1);
-    EXPECT_FLOAT_EQ(1.021551724138, result[0]);
-    EXPECT_FLOAT_EQ(-0.060344827586, result[1]);
-    EXPECT_FLOAT_EQ(-0.142241379310, result[2]);
-    EXPECT_FLOAT_EQ(-0.146551724138, result[3]);
-    EXPECT_FLOAT_EQ(0.810344827586, result[4]);
-    EXPECT_FLOAT_EQ(-0.232758620690, result[5]);
-    EXPECT_FLOAT_EQ(-0.314655172414, result[6]);
-    EXPECT_FLOAT_EQ(-0.318965517241, result[7]);
-    EXPECT_FLOAT_EQ(0.676724137931, result[8]);
-}
-
-TEST(C66xMathTest, Matrix3x3Inverse2) {
-    real_t m1[9] = {
-                3.0e-1, 0, -0.334e-1,
-                0, 1.7e-1, 0,
-                -0.334e-1, 0, 4.05e-1
-           },
-           result[9];
-
-    _inv_mat3x3(result, m1);
-    EXPECT_FLOAT_EQ(3.364222, result[0]);
-    EXPECT_FLOAT_EQ(0, result[1]);
-    EXPECT_FLOAT_EQ(0.27744448, result[2]);
-    EXPECT_FLOAT_EQ(0, result[3]);
-    EXPECT_FLOAT_EQ(5.8823528, result[4]);
-    EXPECT_FLOAT_EQ(0, result[5]);
-    EXPECT_FLOAT_EQ(0.27744448, result[6]);
-    EXPECT_FLOAT_EQ(0, result[7]);
-    EXPECT_FLOAT_EQ(2.4920163, result[8]);
-}
-
 TEST(C66xMathTest, MatrixCholeskyLLT) {
     real_t m1[16] = {
         18, 22,  54,  42,
@@ -904,4 +864,50 @@ TEST(C66xUKFTest, AllSensorsAtRest) {
     EXPECT_NEAR(0, test_state.attitude[Y], 1e-3);
     EXPECT_NEAR(0.707107, test_state.attitude[Z], 1e-3);
     EXPECT_NEAR(0.707107, test_state.attitude[W], 1e-3);
+}
+
+void _control_linear_dynamics(const real_t *state,
+const real_t *control, real_t *output) {
+    output[0] = control[0];
+    output[1] = control[1];
+    output[2] = control[2];
+    output[3] = control[3];
+    output[4] = 0.0;
+    output[5] = 0.0;
+}
+
+TEST(C66xUKFTest, NoSensorsCustomDynamics) {
+    _MM_SET_EXCEPTION_MASK(_MM_GET_EXCEPTION_MASK() & ~_MM_MASK_INVALID);
+    struct ukf_state_t test_state = {
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0, 1},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0}
+    };
+    real_t control[4] = { 1.0, 0, 0, M_PI / 10.0 };
+
+    ukf_init();
+    ukf_set_state(&test_state);
+    ukf_set_custom_dynamics_model(_control_linear_dynamics);
+
+    for (float i = 0; i < 10; i += 0.001) {
+        ukf_sensor_clear();
+        ukf_iterate(0.001, control);
+    }
+
+    ukf_get_state(&test_state);
+
+    EXPECT_FLOAT_EQ(7.890535e-06, test_state.position[X]);
+    EXPECT_FLOAT_EQ(0, test_state.position[Y]);
+    EXPECT_FLOAT_EQ(0, test_state.position[Z]);
+    EXPECT_NEAR(10.0, test_state.velocity[X], 1e-3);
+    EXPECT_FLOAT_EQ(0.0, test_state.velocity[Y]);
+    EXPECT_FLOAT_EQ(0.0, test_state.velocity[Z]);
+    EXPECT_NEAR(M_PI, test_state.angular_velocity[X], 1e-3);
+    EXPECT_FLOAT_EQ(0.0, test_state.angular_velocity[Y]);
+    EXPECT_FLOAT_EQ(0.0, test_state.angular_velocity[Z]);
 }

@@ -9,9 +9,6 @@
 #include "../c/cukf.h"
 #include "cukfmath.h"
 
-/* Disable dynamics model if velocity is less than 1m/s  */
-#define UKF_DYNAMICS_MIN_V 1.0
-
 #define G_ACCEL ((real_t)9.80665)
 #define RHO ((real_t)1.225)
 
@@ -120,7 +117,7 @@ static real_t measurement_estimate_covariance[(UKF_MEASUREMENT_DIM - 3) *
 
 /* Dynamics model configuration */
 static enum ukf_model_t dynamics_model = UKF_MODEL_NONE;
-static struct _fixedwingdynamics_params_t fixedwing_params;
+static ukf_model_function_t dynamics_function = NULL;
 
 
 /* Private functions */
@@ -270,171 +267,6 @@ const real_t *restrict control) {
     _mul_quat_vec3(velocity_body, in->attitude, in->velocity);
     _cross_vec3(in->acceleration, in->angular_velocity, velocity_body);
     memset(in->angular_acceleration, 0, sizeof(in->angular_acceleration));
-}
-
-void _ukf_state_fixed_wing_dynamics(struct ukf_state_t *restrict in,
-const real_t *restrict control) {
-    assert(in && control);
-    _nassert((size_t)in % 8 == 0);
-    _nassert((size_t)control % 8 == 0);
-
-    /* See src/dynamics.cpp */
-    memset(in->acceleration, 0, sizeof(in->acceleration));
-    memset(in->angular_acceleration, 0, sizeof(in->angular_acceleration));
-
-    /*
-    Rotate G_ACCEL by current attitude
-    */
-    real_t g_accel[3], g[3] = { 0, 0, G_ACCEL };
-    _mul_quat_vec3(g_accel, in->attitude, g);
-
-    real_t yaw_rate = in->angular_velocity[Z],
-           pitch_rate = in->angular_velocity[Y],
-           roll_rate = in->angular_velocity[X];
-
-    /* External axes */
-    real_t ned_airflow[3], airflow[3];
-    real_t v2, v_inv;
-
-    ned_airflow[X] = in->wind_velocity[X] - in->velocity[X];
-    ned_airflow[Y] = in->wind_velocity[Y] - in->velocity[Y];
-    ned_airflow[Z] = in->wind_velocity[Z] - in->velocity[Z];
-    _mul_quat_vec3(airflow, in->attitude, ned_airflow);
-
-    v2 = airflow[X]*airflow[X] + airflow[Y]*airflow[Y] + airflow[Z]*airflow[Z];
-    if (v2 < UKF_DYNAMICS_MIN_V * UKF_DYNAMICS_MIN_V) {
-        /*
-        Airflow too slow for any of this to work; just return acceleration
-        due to gravity
-        */
-        in->acceleration[X] = g_accel[X];
-        in->acceleration[Y] = g_accel[Y];
-        in->acceleration[Z] = g_accel[Z];
-
-        in->angular_acceleration[X] = 0;
-        in->angular_acceleration[Y] = 0;
-        in->angular_acceleration[Z] = 0;
-        return;
-    }
-
-    v_inv = sqrt_inv(v2);
-
-    uint32_t i;
-
-    /* Determine alpha and beta: alpha = atan(wz/wx), beta = atan(wy/|wxz|) */
-    real_t alpha, beta, qbar, alpha2, beta2;
-    qbar = RHO * v2 * 0.5;
-    alpha = atan2(-airflow[Z], -airflow[X]);
-    beta = asin(airflow[Y] * v_inv);
-
-    alpha2 = alpha * alpha;
-    beta2 = beta * beta;
-
-    real_t thrust = 0.0;
-    if (fixedwing_params.motor_idx < UKF_CONTROL_DIM) {
-        real_t ve = fixedwing_params.prop_cve *
-                        control[fixedwing_params.motor_idx],
-               v0 = airflow[X];
-        thrust = 0.5 * RHO * fixedwing_params.prop_area * (ve * ve - v0 * v0);
-        if (thrust < 0.0) {
-            thrust = 0.0;
-        }
-    }
-
-    /* Help compiler determine pointer aligment, aliasing etc */
-    const real_t *restrict c_lift_alpha = fixedwing_params.c_lift_alpha,
-                 *restrict c_drag_alpha = fixedwing_params.c_drag_alpha,
-                 *restrict c_side_force = fixedwing_params.c_side_force,
-                 *restrict c_yaw_moment = fixedwing_params.c_yaw_moment,
-                 *restrict c_pitch_moment = fixedwing_params.c_pitch_moment,
-                 *restrict c_roll_moment = fixedwing_params.c_roll_moment,
-                 *restrict c_side_force_control =
-                      fixedwing_params.c_side_force_control,
-                 *restrict c_pitch_moment_control =
-                      fixedwing_params.c_pitch_moment_control,
-                 *restrict c_yaw_moment_control =
-                      fixedwing_params.c_yaw_moment_control,
-                 *restrict c_roll_moment_control =
-                      fixedwing_params.c_roll_moment_control;
-
-    real_t lift, drag, side_force, pitch_moment, yaw_moment, roll_moment;
-
-    /* Evaluate quartics in alpha to determine lift and drag */
-    lift = c_lift_alpha[0]*alpha2*alpha2 +
-           c_lift_alpha[1]*alpha2*alpha +
-           c_lift_alpha[2]*alpha2 +
-           c_lift_alpha[3]*alpha +
-           c_lift_alpha[4];
-
-    /*
-    Assume lift is somewhat well-behaved for alpha in the range [-0.25, 0.25].
-    If outside that range, clamp it to 0 so that the polynomial doesn't have
-    to model the full possible range.
-    */
-    if (fabs(alpha) > 1.0) {
-        lift = 0.0;
-    } else if (alpha > 0.25 && lift < 0.0) {
-        lift = 0.0;
-    } else if (alpha < -0.25 && lift > 0.0) {
-        lift = 0.0;
-    }
-
-    drag = c_drag_alpha[0]*alpha2*alpha2 +
-           c_drag_alpha[1]*alpha2*alpha +
-           c_drag_alpha[2]*alpha2 +
-           c_drag_alpha[3]*alpha +
-           c_drag_alpha[4];
-
-    side_force = c_side_force[0]*beta2 +
-                 c_side_force[1]*beta +
-                 c_side_force[2]*yaw_rate +
-                 c_side_force[3]*roll_rate;
-
-    pitch_moment = c_pitch_moment[0]*alpha +
-                   c_pitch_moment[1]*pitch_rate*pitch_rate*
-                        (pitch_rate < 0.0 ? -1.0 : 1.0);
-
-    roll_moment = c_roll_moment[0]*roll_rate;
-
-    yaw_moment = c_yaw_moment[0]*beta +
-                 c_yaw_moment[1]*yaw_rate;
-
-    /*
-    Add control forces
-    */
-    #pragma MUST_ITERATE(UKF_CONTROL_DIM)
-    for (i = 0; i < UKF_CONTROL_DIM; i++) {
-        real_t ci = control[i];
-        side_force += c_side_force_control[i] * ci;
-        pitch_moment += c_pitch_moment_control[i] * ci;
-        roll_moment += c_roll_moment_control[i] * ci;
-        yaw_moment += c_yaw_moment_control[i] * ci;
-    }
-
-    /* Convert aerodynamic forces from wind frame to body frame */
-    real_t sin_alpha = sin(alpha), sin_beta = sin(beta),
-           cos_alpha = cos(alpha), cos_beta = cos(beta),
-           x_aero_f = qbar * (lift * sin_alpha - drag * cos_alpha -
-                              side_force * sin_beta),
-           y_aero_f = qbar * side_force * cos_beta,
-           z_aero_f = qbar * (lift * cos_alpha + drag * sin_alpha);
-
-    in->acceleration[X] = (thrust + x_aero_f) * fixedwing_params.mass_inv +
-                            g_accel[X];
-    in->acceleration[Y] = y_aero_f * fixedwing_params.mass_inv +
-                            g_accel[Y];
-    in->acceleration[Z] = -z_aero_f * fixedwing_params.mass_inv +
-                            g_accel[Z];
-
-    /* Calculate angular acceleration (tau / inertia tensor) */
-    #define M(x) (fixedwing_params.inertia_tensor_inv[x])
-    in->angular_acceleration[X] = qbar *
-        (M(0)*roll_moment + M(1)*pitch_moment + M(2)*yaw_moment);
-    in->angular_acceleration[Y] = qbar *
-        (M(3)*roll_moment + M(4)*pitch_moment + M(5)*yaw_moment);
-    in->angular_acceleration[Z] = qbar *
-        (M(6)*roll_moment + M(7)*pitch_moment + M(8)*yaw_moment);
-    #undef M
 }
 
 void _ukf_state_x8_dynamics(struct ukf_state_t *restrict in,
@@ -810,8 +642,18 @@ real_t *restrict measurement_estimate, struct ukf_state_t *central_sigma) {
     /* src/ukf.cpp line 165 */
     if (dynamics_model == UKF_MODEL_X8) {
         _ukf_state_x8_dynamics(sigma, control);
-    } if (dynamics_model == UKF_MODEL_FIXED_WING) {
-        _ukf_state_fixed_wing_dynamics(sigma, control);
+    } if (dynamics_model == UKF_MODEL_CUSTOM) {
+        assert(dynamics_function);
+
+        /*
+        Call the custom dynamics function -- slightly different convention to
+        our internal ones, so copy the output values back to the sigma point
+        state vector after it's done.
+        */
+        real_t output[6];
+        dynamics_function(&sigma->position[0], control, output);
+        memcpy(sigma->acceleration, &output[0], sizeof(real_t) * 3);
+        memcpy(sigma->angular_acceleration, &output[3], sizeof(real_t) * 3);
     } else if (dynamics_model == UKF_MODEL_CENTRIPETAL) {
         _ukf_state_centripetal_dynamics(sigma, control);
     } else {
@@ -1023,8 +865,16 @@ void ukf_set_params(struct ukf_ioboard_params_t *in) {
 
 void ukf_choose_dynamics(enum ukf_model_t t) {
     assert(t == UKF_MODEL_NONE || t == UKF_MODEL_CENTRIPETAL ||
-        t == UKF_MODEL_FIXED_WING || t == UKF_MODEL_X8);
+        t == UKF_MODEL_CUSTOM || t == UKF_MODEL_X8);
+
     dynamics_model = t;
+}
+
+void ukf_set_custom_dynamics_model(ukf_model_function_t func) {
+    assert(func);
+
+    dynamics_model = UKF_MODEL_CUSTOM;
+    dynamics_function = func;
 }
 
 void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
@@ -1470,73 +1320,6 @@ void ukf_init(void) {
 void ukf_set_process_noise(real_t in[UKF_STATE_DIM]) {
     assert(in);
     memcpy(&process_noise, in, sizeof(process_noise));
-}
-
-void ukf_fixedwingdynamics_set_mass(real_t mass) {
-    assert(mass > 0.1);
-    fixedwing_params.mass_inv = 1.0 / mass;
-}
-
-void ukf_fixedwingdynamics_set_inertia_tensor(real_t in[9]) {
-    assert(in);
-    _inv_mat3x3(fixedwing_params.inertia_tensor_inv, in);
-}
-
-void ukf_fixedwingdynamics_set_prop_coeffs(real_t in_area, real_t in_cve){
-    fixedwing_params.prop_area = in_area;
-    fixedwing_params.prop_cve = in_cve;
-}
-
-void ukf_fixedwingdynamics_set_drag_coeffs(real_t coeffs[5]) {
-    assert(coeffs);
-    memcpy(fixedwing_params.c_drag_alpha, coeffs,
-        sizeof(fixedwing_params.c_drag_alpha));
-}
-
-void ukf_fixedwingdynamics_set_lift_coeffs(real_t coeffs[5]) {
-    assert(coeffs);
-    memcpy(fixedwing_params.c_lift_alpha, coeffs,
-        sizeof(fixedwing_params.c_lift_alpha));
-}
-
-void ukf_fixedwingdynamics_set_side_coeffs(real_t coeffs[4],
-real_t control[UKF_CONTROL_DIM]) {
-    assert(coeffs);
-    assert(control);
-    memcpy(fixedwing_params.c_side_force, coeffs,
-        sizeof(fixedwing_params.c_side_force));
-    memcpy(fixedwing_params.c_side_force_control, control,
-        sizeof(fixedwing_params.c_side_force_control));
-}
-
-void ukf_fixedwingdynamics_set_pitch_moment_coeffs(real_t coeffs[2],
-real_t control[UKF_CONTROL_DIM]) {
-    assert(coeffs);
-    assert(control);
-    memcpy(fixedwing_params.c_pitch_moment, coeffs,
-        sizeof(fixedwing_params.c_pitch_moment));
-    memcpy(fixedwing_params.c_pitch_moment_control, control,
-        sizeof(fixedwing_params.c_pitch_moment_control));
-}
-
-void ukf_fixedwingdynamics_set_roll_moment_coeffs(real_t coeffs[1],
-real_t control[UKF_CONTROL_DIM]) {
-    assert(coeffs);
-    assert(control);
-    memcpy(fixedwing_params.c_roll_moment, coeffs,
-        sizeof(fixedwing_params.c_roll_moment));
-    memcpy(fixedwing_params.c_roll_moment_control, control,
-        sizeof(fixedwing_params.c_roll_moment_control));
-}
-
-void ukf_fixedwingdynamics_set_yaw_moment_coeffs(real_t coeffs[2],
-real_t control[UKF_CONTROL_DIM]) {
-    assert(coeffs);
-    assert(control);
-    memcpy(fixedwing_params.c_yaw_moment, coeffs,
-        sizeof(fixedwing_params.c_yaw_moment));
-    memcpy(fixedwing_params.c_yaw_moment_control, control,
-        sizeof(fixedwing_params.c_yaw_moment_control));
 }
 
 uint32_t ukf_config_get_state_dim() {
