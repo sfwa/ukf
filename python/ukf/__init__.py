@@ -7,19 +7,48 @@ UKF_PRECISION_FLOAT = 0
 UKF_PRECISION_DOUBLE = 1
 UKF_MODEL_NONE = 0
 UKF_MODEL_CENTRIPETAL = 1
-UKF_MODEL_FIXED_WING = 2
+UKF_MODEL_CUSTOM = 2
 UKF_MODEL_X8 = 3
 
 
 state = None
 covariance = None
 model = UKF_MODEL_NONE
+custom_model = None
 
 
 # Internal globals, set during init
 _cukf = None
 _REAL_T = None
 _CONTROL_DIM = None
+_CUSTOM_MODEL_FUNC = None
+
+
+class _SigmaPoint(object):
+    def __init__(self, arr):
+        self.position = (arr[0], arr[1], arr[2])
+        self.velocity = (arr[3], arr[4], arr[5])
+        self.acceleration = (arr[6], arr[7], arr[8])
+        self.attitude = (arr[9], arr[10], arr[11], arr[12])
+        self.angular_velocity = (arr[13], arr[14], arr[15])
+        self.angular_acceleration = (arr[16], arr[17], arr[18])
+        self.wind_velocity = (arr[19], arr[20], arr[21])
+        self.gyro_bias = (arr[22], arr[23], arr[24])
+
+    def __repr__(self):
+        return str(self.__dict__)
+
+
+# Wrapper around the custom model function
+_custom_model_func_wrapper_cb = None # avoid garbage-collection
+def _custom_model_wrapper(state, control, output):
+    if not custom_model:
+        return
+
+    result = custom_model(_SigmaPoint(state.contents),
+                          tuple(control.contents[0:3]))
+
+    output.contents = (_REAL_T * 6)(*result[0:6])
 
 
 # Internal classes, wrapping cukf structs directly
@@ -56,6 +85,13 @@ def iterate(dt, control=None):
                          _CONTROL_DIM)
 
     _cukf.ukf_choose_dynamics(model)
+    if model == UKF_MODEL_CUSTOM:
+        if not custom_model:
+            raise RuntimeError(
+                "Can't use ukf.model == UKF_MODEL_CUSTOM without a value " +
+                "for ukf.custom_model"
+            )
+
     _cukf.ukf_set_state(state)
     _cukf.ukf_iterate(dt, (_REAL_T * _CONTROL_DIM)(*control))
     _cukf.ukf_sensor_clear()
@@ -164,37 +200,14 @@ def configure_sensors(accelerometer_offset=None,
     _cukf.ukf_set_params(params)
 
 
-def configure_airframe(mass=None, inertia_tensor=None, prop_coeffs=None,
-        drag_coeffs=None, lift_coeffs=None, side_coeffs=None,
-        pitch_moment_coeffs=None, roll_moment_coeffs=None,
-        yaw_moment_coeffs=None):
-    _cukf.ukf_fixedwingdynamics_set_mass(mass)
-    _cukf.ukf_fixedwingdynamics_set_inertia_tensor(
-        (_REAL_T * 9)(*inertia_tensor))
-    _cukf.ukf_fixedwingdynamics_set_prop_coeffs(prop_coeffs[0],
-        prop_coeffs[1])
-    _cukf.ukf_fixedwingdynamics_set_lift_coeffs((_REAL_T * 5)(*lift_coeffs))
-    _cukf.ukf_fixedwingdynamics_set_drag_coeffs((_REAL_T * 5)(*drag_coeffs))
-    _cukf.ukf_fixedwingdynamics_set_side_coeffs(
-        (_REAL_T * 4)(*side_coeffs[0:-_CONTROL_DIM]),
-        (_REAL_T * _CONTROL_DIM)(*side_coeffs[-_CONTROL_DIM:]))
-    _cukf.ukf_fixedwingdynamics_set_pitch_moment_coeffs(
-        (_REAL_T * 2)(*pitch_moment_coeffs[0:-_CONTROL_DIM]),
-        (_REAL_T * _CONTROL_DIM)(*pitch_moment_coeffs[-_CONTROL_DIM:]))
-    _cukf.ukf_fixedwingdynamics_set_roll_moment_coeffs(
-        (_REAL_T * 1)(*roll_moment_coeffs[0:-_CONTROL_DIM]),
-        (_REAL_T * _CONTROL_DIM)(*roll_moment_coeffs[-_CONTROL_DIM:]))
-    _cukf.ukf_fixedwingdynamics_set_yaw_moment_coeffs(
-        (_REAL_T * 2)(*yaw_moment_coeffs[0:-_CONTROL_DIM]),
-        (_REAL_T * _CONTROL_DIM)(*yaw_moment_coeffs[-_CONTROL_DIM:]))
-
-
 def configure_process_noise(process_noise_covariance):
     _cukf.ukf_set_process_noise((_REAL_T * 24)(*process_noise_covariance))
 
 
 def init(implementation="c"):
-    global _cukf, _REAL_T, _CONTROL_DIM, state
+    global _cukf, _REAL_T, _CONTROL_DIM, _CUSTOM_MODEL_FUNC, state, \
+           _custom_model_func_wrapper_cb
+
 
     # Load the requested library and determine configuration parameters
     if implementation == "c":
@@ -322,49 +335,26 @@ def init(implementation="c"):
     _cukf.ukf_choose_dynamics.argtypes = [c_int]
     _cukf.ukf_choose_dynamics.restype = None
 
+    _CUSTOM_MODEL_FUNC = CFUNCTYPE(None,
+                                   POINTER(_REAL_T * (_STATE_DIM + 1)),
+                                   POINTER(_REAL_T * _CONTROL_DIM),
+                                   POINTER(_REAL_T * 6))
+
+    _cukf.ukf_set_custom_dynamics_model.argtypes = [_CUSTOM_MODEL_FUNC]
+    _cukf.ukf_set_custom_dynamics_model.restype = None
+
     _cukf.ukf_iterate.argtypes = [c_float, POINTER(_REAL_T * _CONTROL_DIM)]
     _cukf.ukf_iterate.restype = None
 
     _cukf.ukf_set_process_noise.argtypes = [POINTER(_REAL_T * _STATE_DIM)]
     _cukf.ukf_set_process_noise.restype = None
 
-    _cukf.ukf_fixedwingdynamics_set_mass.argtypes = [_REAL_T]
-    _cukf.ukf_fixedwingdynamics_set_mass.restype = None
-
-    _cukf.ukf_fixedwingdynamics_set_inertia_tensor.argtypes = [
-        POINTER(_REAL_T * 9)]
-    _cukf.ukf_fixedwingdynamics_set_inertia_tensor.restype = None
-
-    _cukf.ukf_fixedwingdynamics_set_prop_coeffs.argtypes = [_REAL_T, _REAL_T]
-    _cukf.ukf_fixedwingdynamics_set_prop_coeffs.restype = None
-
-    _cukf.ukf_fixedwingdynamics_set_drag_coeffs.argtypes = [
-        POINTER(_REAL_T * 5)]
-    _cukf.ukf_fixedwingdynamics_set_drag_coeffs.restype = None
-
-    _cukf.ukf_fixedwingdynamics_set_lift_coeffs.argtypes = [
-        POINTER(_REAL_T * 5)]
-    _cukf.ukf_fixedwingdynamics_set_lift_coeffs.restype = None
-
-    _cukf.ukf_fixedwingdynamics_set_side_coeffs.argtypes = [
-        POINTER(_REAL_T * 4),
-        POINTER(_REAL_T * _CONTROL_DIM)]
-    _cukf.ukf_fixedwingdynamics_set_side_coeffs.restype = None
-
-    _cukf.ukf_fixedwingdynamics_set_pitch_moment_coeffs.argtypes = [
-        POINTER(_REAL_T * 2), POINTER(_REAL_T * _CONTROL_DIM)]
-    _cukf.ukf_fixedwingdynamics_set_pitch_moment_coeffs.restype = None
-
-    _cukf.ukf_fixedwingdynamics_set_roll_moment_coeffs.argtypes = [
-        POINTER(_REAL_T * 1), POINTER(_REAL_T * _CONTROL_DIM)]
-    _cukf.ukf_fixedwingdynamics_set_roll_moment_coeffs.restype = None
-
-    _cukf.ukf_fixedwingdynamics_set_yaw_moment_coeffs.argtypes = [
-        POINTER(_REAL_T * 2), POINTER(_REAL_T * _CONTROL_DIM)]
-    _cukf.ukf_fixedwingdynamics_set_yaw_moment_coeffs.restype = None
-
     # Initialize the library
     _cukf.ukf_init()
+
+    # Set the custom model callback
+    _custom_model_func_wrapper_cb = _CUSTOM_MODEL_FUNC(_custom_model_wrapper)
+    _cukf.ukf_set_custom_dynamics_model(_custom_model_func_wrapper_cb)
 
     # Set up the state
     state = _State()

@@ -94,4 +94,12 @@ typedef Eigen::Matrix<
 
 typedef Eigen::Matrix<real_t, 6, 1> AccelerationVector;
 
+/*
+Dynamics model function, for custom model support. These functions have to
+be compatible between the C++ and C versions of the UKF, so they take pointers
+to C arrays representing the state vector, the control vector, and the output
+vector.
+*/
+typedef void (*ModelFunction)(const real_t *, const real_t *, real_t *);
+
 #endif

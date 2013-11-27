@@ -325,31 +325,6 @@ struct ukf_state_t *restrict s1) {
     rptr[i] += s1ptr[i];
 }
 
-static void _inv_mat3x3(real_t *restrict out, const real_t *restrict M) {
-    /*
-    M = 0 1 2
-        3 4 5
-        6 7 8
-    */
-    assert(M && out && M != out);
-    real_t det = M[0] * (M[8]*M[4] - M[5]*M[7]) -
-                 M[1] * (M[8]*M[3] - M[5]*M[6]) +
-                 M[2] * (M[7]*M[3] - M[4]*M[6]);
-
-    assert(fabs(det) > 1e-6);
-    det = recip(det);
-
-    out[0] =  (M[8]*M[4] - M[5]*M[7]) * det;
-    out[3] = -(M[8]*M[3] - M[5]*M[6]) * det;
-    out[6] =  (M[7]*M[3] - M[4]*M[6]) * det;
-    out[1] = -(M[8]*M[1] - M[2]*M[7]) * det;
-    out[4] =  (M[8]*M[0] - M[2]*M[6]) * det;
-    out[7] = -(M[7]*M[0] - M[1]*M[6]) * det;
-    out[2] =  (M[5]*M[1] - M[2]*M[4]) * det;
-    out[5] = -(M[5]*M[0] - M[2]*M[3]) * det;
-    out[8] =  (M[4]*M[0] - M[1]*M[3]) * det;
-}
-
 static inline void _mul_wprime(real_t *restrict out,
 const real_t *restrict in,
 const real_t weight) {
