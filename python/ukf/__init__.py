@@ -26,32 +26,29 @@ _CUSTOM_MODEL_FUNC = None
 
 class _SigmaPoint(object):
     def __init__(self, arr):
-        self.position = tuple(arr[0], arr[1], arr[2])
-        self.velocity = tuple(arr[3], arr[4], arr[5])
-        self.acceleration = tuple(arr[6], arr[7], arr[8])
-        self.attitude = tuple(arr[9], arr[10], arr[11], arr[12])
-        self.angular_velocity = tuple(arr[13], arr[14], arr[15])
-        self.angular_acceleration = tuple(arr[16], arr[17], arr[18])
-        self.wind_velocity = tuple(arr[19], arr[20], arr[21])
-        self.gyro_bias = tuple(arr[22], arr[23], arr[24])
+        self.position = (arr[0], arr[1], arr[2])
+        self.velocity = (arr[3], arr[4], arr[5])
+        self.acceleration = (arr[6], arr[7], arr[8])
+        self.attitude = (arr[9], arr[10], arr[11], arr[12])
+        self.angular_velocity = (arr[13], arr[14], arr[15])
+        self.angular_acceleration = (arr[16], arr[17], arr[18])
+        self.wind_velocity = (arr[19], arr[20], arr[21])
+        self.gyro_bias = (arr[22], arr[23], arr[24])
 
     def __repr__(self):
         return str(self.__dict__)
 
 
 # Wrapper around the custom model function
+_custom_model_func_wrapper_cb = None # avoid garbage-collection
 def _custom_model_wrapper(state, control, output):
     if not custom_model:
         return
 
-    result = custom_model(_SigmaPoint(state), tuple(control[0:3]))
+    result = custom_model(_SigmaPoint(state.contents),
+                          tuple(control.contents[0:3]))
 
-    output[0] = result[0]
-    output[1] = result[1]
-    output[2] = result[2]
-    output[3] = result[3]
-    output[4] = result[4]
-    output[5] = result[5]
+    output.contents = (_REAL_T * 6)(*result[0:6])
 
 
 # Internal classes, wrapping cukf structs directly
@@ -208,7 +205,9 @@ def configure_process_noise(process_noise_covariance):
 
 
 def init(implementation="c"):
-    global _cukf, _REAL_T, _CONTROL_DIM, _CUSTOM_MODEL_FUNC, state
+    global _cukf, _REAL_T, _CONTROL_DIM, _CUSTOM_MODEL_FUNC, state, \
+           _custom_model_func_wrapper_cb
+
 
     # Load the requested library and determine configuration parameters
     if implementation == "c":
@@ -354,8 +353,8 @@ def init(implementation="c"):
     _cukf.ukf_init()
 
     # Set the custom model callback
-    _cukf.ukf_set_custom_dynamics_model(
-        _CUSTOM_MODEL_FUNC(_custom_model_wrapper))
+    _custom_model_func_wrapper_cb = _CUSTOM_MODEL_FUNC(_custom_model_wrapper)
+    _cukf.ukf_set_custom_dynamics_model(_custom_model_func_wrapper_cb)
 
     # Set up the state
     state = _State()
