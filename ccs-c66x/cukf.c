@@ -27,9 +27,17 @@ SOFTWARE.
 #include <stdbool.h>
 #include <math.h>
 
-#include "config.h"
-#include "../c/cukf.h"
-#include "cukfmath.h"
+#ifndef __TI_COMPILER_VERSION__
+    #include "config.h"
+    #include "../c/cukf.h"
+    #include "cukfmath.h"
+#else
+    #define UKF_USE_DSP_INTRINSICS
+
+    #include "config.h"
+    #include "cukf.h"
+    #include "cukfmath.h"
+#endif
 
 #define G_ACCEL ((real_t)9.80665)
 #define RHO ((real_t)1.225)
