@@ -95,10 +95,6 @@ to download and install.
 
 ## Compiling with CCS5
 
-Unfortunately kind of a pain at the moment. The built-in project is mostly
-OK, but `ccs-c66x/cukf.c` needs to be modified as follows:
-
-* Add `#define UKF_USE_DSP_INTRINSICS` before `#include "config.h"` at the
-top of the file;
-* Change `#include "../c/cukf.h"` to `#include "cukf.h"`.
-
+Import the root directory of this project (`ukf`) into your workspace. CCS
+should search all contained files, and find a project in `ccs-c66x`. Complete
+the import, and build.
