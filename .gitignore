@@ -4,6 +4,7 @@
 # C extensions
 *.so
 *.dylib
+*.a
 a.out
 
 # Packages
@@ -45,3 +46,14 @@ nosetests.xml
 # Symlink to dynamic library for development
 python/ukf/c
 python/ukf/ccs-c66x
+
+# Cmake junk
+CMakeFiles
+*.cmake
+CMakeCache.txt
+src/googletest
+src/eigen3*
+src/*.gz
+Makefile
+test/src/googletest*
+tmp

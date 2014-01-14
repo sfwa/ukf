@@ -729,6 +729,77 @@ TEST(C66xUKFTest, AngularSensorsConstantAngularVelocity) {
     EXPECT_NEAR(0, test_state.gyro_bias[Z], 1e-18);
 }
 
+TEST(C66xUKFTest, AccelerometerAtRest) {
+    _MM_SET_EXCEPTION_MASK(_MM_GET_EXCEPTION_MASK() & ~_MM_MASK_INVALID);
+    struct ukf_state_t test_state = {
+        {-37.8136, 144.9631, 70.0},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0, 1},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0}
+    };
+    struct ukf_ioboard_params_t test_config = {
+        /* sensor offsets/orientations */
+        {0, 0, 0, 1},
+        {0, 0, 0},
+        {0, 0, 0, 1},
+        {0, 0, 0, 1}
+    };
+    double process_noise[] = {
+        1e-15, 1e-15, 1e-5, /* lat, lon, alt */
+        7e-5, 7e-5, 7e-5, /* velocity N, E, D */
+        2e-4, 2e-4, 2e-4, /* acceleration x, y, z */
+        1e-3, 1e-3, 1e-3, /* attitude roll, pitch, yaw */
+        3e-3, 3e-3, 3e-3, /* angular velocity roll, pitch, yaw */
+        1e-3, 1e-3, 1e-3, /* angular acceleration roll, pitch, yaw */
+        1e-5, 1e-5, 1e-5, /* wind velocity N, E, D */
+        1e-9, 1e-9, 1e-9 /* gyro bias x, y, z */
+    };
+    real_t control[4] = { 0, 0, 0, 0 };
+
+    memset(&test_config.mag_field[0], 0xFF, sizeof(double) * 17);
+
+    ukf_init();
+    ukf_set_state(&test_state);
+
+    test_config.accel_covariance[0] = test_config.accel_covariance[1] =
+        test_config.accel_covariance[2] = 0.98 * 0.98;
+    test_config.gps_position_covariance[0] =
+        test_config.gps_position_covariance[1] = 3.1623e-6f * 3.1623e-6f;
+    test_config.gps_position_covariance[2] = 225.0;
+    test_config.gps_velocity_covariance[0] =
+        test_config.gps_velocity_covariance[1] = 3 * 3;
+    test_config.gps_velocity_covariance[2] = 49.0;
+
+    for(real_t i = 0; i < 10.0; i += 0.001) {
+        ukf_sensor_clear();
+
+        ukf_set_params(&test_config);
+        ukf_set_process_noise(process_noise);
+        ukf_choose_dynamics(UKF_MODEL_NONE);
+
+        ukf_sensor_set_accelerometer(0, 0, -9.80665);
+        ukf_sensor_set_gps_position(-37.8136, 144.9631, 70.0);
+        ukf_sensor_set_gps_velocity(0, 0, 0);
+
+        ukf_iterate(0.001, control);
+    }
+
+    double covariance[24];
+    ukf_get_state_covariance_diagonal(covariance);
+
+    EXPECT_NEAR(0, covariance[6], 0.1);
+    EXPECT_NEAR(0, covariance[7], 0.1);
+    EXPECT_NEAR(0, covariance[8], 0.1);
+
+    EXPECT_NEAR(2.9, covariance[12], 0.1);
+    EXPECT_NEAR(2.9, covariance[13], 0.1);
+    EXPECT_NEAR(2.9, covariance[14], 0.1);
+}
+
 TEST(C66xUKFTest, MagnetometerAccelerometerAtRest) {
     _MM_SET_EXCEPTION_MASK(_MM_GET_EXCEPTION_MASK() & ~_MM_MASK_INVALID);
     struct ukf_state_t test_state = {

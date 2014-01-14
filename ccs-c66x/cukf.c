@@ -98,30 +98,6 @@ struct _ukf_ioboard_model_t {
     } flags;
 };
 
-struct _fixedwingdynamics_params_t {
-    /* See include/dynamics.h */
-    real_t prop_area, prop_cve;
-
-    real_t mass_inv;
-    real_t inertia_tensor_inv[9];
-
-    real_t c_side_force[4];
-    real_t c_side_force_control[UKF_CONTROL_DIM];
-
-    real_t c_pitch_moment[2];
-    real_t c_pitch_moment_control[UKF_CONTROL_DIM];
-
-    real_t c_yaw_moment[2];
-    real_t c_yaw_moment_control[UKF_CONTROL_DIM];
-
-    real_t c_roll_moment[1];
-    real_t c_roll_moment_control[UKF_CONTROL_DIM];
-
-    real_t c_drag_alpha[5], c_lift_alpha[5];
-
-    int8_t motor_idx;
-};
-
 
 /* Sensor and process configuration */
 static struct _ukf_ioboard_model_t sensor_model;
@@ -155,8 +131,6 @@ void _ukf_state_model(struct ukf_state_t *restrict in);
 void _ukf_state_integrate_rk4(struct ukf_state_t *restrict in,
 const real_t delta);
 void _ukf_state_centripetal_dynamics(struct ukf_state_t *restrict in,
-const real_t *restrict control);
-void _ukf_state_fixed_wing_dynamics(struct ukf_state_t *restrict in,
 const real_t *restrict control);
 void _ukf_state_x8_dynamics(struct ukf_state_t *restrict in,
 const real_t *restrict control);
@@ -828,9 +802,25 @@ void ukf_get_state_covariance(real_t in[UKF_STATE_DIM * UKF_STATE_DIM]) {
 void ukf_get_state_covariance_diagonal(real_t in[UKF_STATE_DIM]) {
     assert(in);
     uint8_t i;
-    #pragma MUST_ITERATE(24)
+    #pragma MUST_ITERATE(24, 24)
     for (i = 0; i < UKF_STATE_DIM; i++) {
         in[i] = state_covariance[i*UKF_STATE_DIM + i];
+    }
+}
+
+void ukf_get_state_error(real_t in[UKF_STATE_DIM]) {
+    assert(in);
+    uint8_t i, j;
+    #pragma MUST_ITERATE(24, 24)
+    for (i = 0; i < UKF_STATE_DIM; i++) {
+        in[i] = 0;
+
+        #pragma MUST_ITERATE(24, 24)
+        for (j = 0; j < UKF_STATE_DIM; j++) {
+            in[i] += state_covariance[i*UKF_STATE_DIM + j];
+        }
+
+        in[i] = fsqrt(in[i]);
     }
 }
 
