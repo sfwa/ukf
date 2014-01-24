@@ -178,7 +178,7 @@ void ukf_get_state_error(real_t state_error[UKF_STATE_DIM]) {
     Eigen::Map< Eigen::Matrix<real_t, UKF_STATE_DIM, 1> > error_map =
         Eigen::Map< Eigen::Matrix<real_t, UKF_STATE_DIM, 1>
             >(state_error);
-    error_map = ukf.get_state_covariance().rowwise().sum().sqrt();
+    error_map = ukf.get_state_covariance().cwiseAbs().rowwise().sum().sqrt();
 }
 
 void ukf_sensor_clear() {
