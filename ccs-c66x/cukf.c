@@ -817,7 +817,7 @@ void ukf_get_state_error(real_t in[UKF_STATE_DIM]) {
 
         #pragma MUST_ITERATE(24, 24)
         for (j = 0; j < UKF_STATE_DIM; j++) {
-            in[i] += state_covariance[i*UKF_STATE_DIM + j];
+            in[i] += absval(state_covariance[i*UKF_STATE_DIM + j]);
         }
 
         in[i] = fsqrt(in[i]);
