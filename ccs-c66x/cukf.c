@@ -355,7 +355,7 @@ const real_t *restrict control) {
     /* Generalize lift force for very high / very low alpha */
     sin_cos_alpha = sin_alpha * cos_alpha;
     alt_lift = 0.8 * sin_cos_alpha;
-    if ((alpha < 0.0 && lift > alt_lift) ||
+    if ((alpha < -0.25 && lift > alt_lift) ||
         (alpha > 0.0 && lift < alt_lift)) {
         lift = alt_lift;
     }
