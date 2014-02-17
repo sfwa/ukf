@@ -148,8 +148,8 @@ void _ukf_calculate_state_covariance(void);
 
 
 void _ukf_state_model(struct ukf_state_t *restrict in) {
-    assert(in);
-    _nassert((size_t)in % 8 == 0);
+    assert(in && "`in` is NULL");
+    _nassert((size_t)in % 8 == 0 && "`in` not 8-byte-aligned");
 
     /* See src/state.cpp */
 
@@ -158,12 +158,12 @@ void _ukf_state_model(struct ukf_state_t *restrict in) {
            tempA = WGS84_A * cos_lat,
            tempB = WGS84_B * sin(in->position[0]),
            temp = tempA * tempA + tempB * tempB,
-           temp_sqrt_inv = sqrt_inv(temp);
-    real_t M = WGS84_AB2 * divide(temp_sqrt_inv, temp) + in->position[2];
+           temp_sqrt_inv = recip_sqrt_d(temp);
+    real_t M = WGS84_AB2 * div_d(temp_sqrt_inv, temp) + in->position[2];
     real_t N = WGS84_A2 * temp_sqrt_inv + in->position[2];
 
-    in->position[0] = divide(in->velocity[X], M);
-    in->position[1] = divide(cos_lat * in->velocity[Y], N);
+    in->position[0] = div_d(in->velocity[X], M);
+    in->position[1] = div_d(cos_lat * in->velocity[Y], N);
     in->position[2] = -in->velocity[Z];
 
     /* Change in velocity */
@@ -172,7 +172,7 @@ void _ukf_state_model(struct ukf_state_t *restrict in) {
     a[Y] = -in->attitude[Y];
     a[Z] = -in->attitude[Z];
     a[W] = in->attitude[W];
-    _mul_quat_vec3(in->velocity, a, in->acceleration);
+    quaternion_vector3_multiply_d(in->velocity, a, in->acceleration);
 
     /* No change in acceleration */
     in->acceleration[0] = 0;
@@ -191,7 +191,7 @@ void _ukf_state_model(struct ukf_state_t *restrict in) {
         -in->angular_velocity[Z],
         0
     };
-    _mul_quat_quat(in->attitude, omega_q_conj, a);
+    quaternion_multiply_d(in->attitude, omega_q_conj, a);
     in->attitude[X] *= 0.5;
     in->attitude[Y] *= 0.5;
     in->attitude[Z] *= 0.5;
@@ -216,8 +216,8 @@ void _ukf_state_model(struct ukf_state_t *restrict in) {
 
 void _ukf_state_integrate_rk4(struct ukf_state_t *restrict in,
 const real_t delta) {
-    assert(in);
-    _nassert((size_t)in % 8 == 0);
+    assert(in && "`in` is NULL");
+    _nassert((size_t)in % 8 == 0 && "`in` not 8-byte-aligned");
 
     /* See include/integrator.h */
     struct ukf_state_t a, b, c, d;
@@ -227,15 +227,15 @@ const real_t delta) {
     _ukf_state_model(&a);
 
     /* b = (in + 0.5 * delta * a).model() */
-    _mul_state_scalar_add_state(&b, &a, delta * 0.5, in);
+    state_scale_add_d(&b, &a, delta * 0.5, in);
     _ukf_state_model(&b);
 
     /* c = (in + 0.5 * delta * b).model() */
-    _mul_state_scalar_add_state(&c, &b, delta * 0.5, in);
+    state_scale_add_d(&c, &b, delta * 0.5, in);
     _ukf_state_model(&c);
 
     /* d = (in + delta * c).model */
-    _mul_state_scalar_add_state(&d, &c, delta, in);
+    state_scale_add_d(&d, &c, delta, in);
     _ukf_state_model(&d);
 
     /* in = in + (delta / 6.0) * (a + (b * 2.0) + (c * 2.0) + d) */
@@ -263,21 +263,23 @@ const real_t delta) {
 void _ukf_state_centripetal_dynamics(struct ukf_state_t *restrict in,
 const real_t *restrict control) {
 #pragma unused(control)
-    assert(in && control);
-    _nassert((size_t)in % 8 == 0);
-    _nassert((size_t)control % 8 == 0);
+    assert(in && "`in` is NULL");
+    assert(control && "`control` is NULL");
+    _nassert((size_t)in % 8 == 0 && "`in` not 8-byte-aligned");
+    _nassert((size_t)control % 8 == 0 && "`control` not 8-byte-aligned");
 
     real_t velocity_body[3];
-    _mul_quat_vec3(velocity_body, in->attitude, in->velocity);
-    _cross_vec3(in->acceleration, in->angular_velocity, velocity_body);
+    quaternion_vector3_multiply_d(velocity_body, in->attitude, in->velocity);
+    vector3_cross_d(in->acceleration, in->angular_velocity, velocity_body);
     memset(in->angular_acceleration, 0, sizeof(in->angular_acceleration));
 }
 
 void _ukf_state_x8_dynamics(struct ukf_state_t *restrict in,
 const real_t *restrict control) {
-    assert(in && control);
-    _nassert((size_t)in % 8 == 0);
-    _nassert((size_t)control % 8 == 0);
+    assert(in && "`in` is NULL");
+    assert(control && "`control` is NULL");
+    _nassert((size_t)in % 8 == 0 && "`in` not 8-byte-aligned");
+    _nassert((size_t)control % 8 == 0 && "`control` not 8-byte-aligned");
 
     /* Work out airflow in NED, then transform to body frame */
     real_t ned_airflow[3], airflow[3];
@@ -285,12 +287,12 @@ const real_t *restrict control) {
     ned_airflow[X] = in->wind_velocity[X] - in->velocity[X];
     ned_airflow[Y] = in->wind_velocity[Y] - in->velocity[Y];
     ned_airflow[Z] = in->wind_velocity[Z] - in->velocity[Z];
-    _mul_quat_vec3(airflow, in->attitude, ned_airflow);
+    quaternion_vector3_multiply_d(airflow, in->attitude, ned_airflow);
 
     /*
     Rotate G_ACCEL by current attitude, and set acceleration to that initially
 
-    Extracted out of _mul_quat_vec3 for g = {0, 0, G_ACCEL}
+    Extracted out of quaternion_vector3_multiply_d for g = {0, 0, G_ACCEL}
     */
     real_t rx = 0, ry = 0, rz = 0, tx, ty;
     tx = in->attitude[Y] * (G_ACCEL * 2.0);
@@ -331,10 +333,10 @@ const real_t *restrict control) {
 
     horizontal_v2 = airflow_x2 + airflow_y2;
     qbar = (RHO * 0.5) * horizontal_v2;
-    v_inv = sqrt_inv(max(1.0, horizontal_v2 + airflow_z2));
+    v_inv = recip_sqrt_d(max(1.0, horizontal_v2 + airflow_z2));
 
-    vertical_v = fsqrt(airflow_x2 + airflow_z2);
-    vertical_v_inv = recip(max(1.0, vertical_v));
+    vertical_v = sqrt_d(airflow_x2 + airflow_z2);
+    vertical_v_inv = recip_d(max(1.0, vertical_v));
 
     /* Work out sin/cos of alpha and beta */
     real_t alpha, sin_alpha, cos_alpha, sin_beta, cos_beta, a2, sin_cos_alpha;
@@ -342,7 +344,7 @@ const real_t *restrict control) {
     sin_beta = airflow[Y] * v_inv;
     cos_beta = vertical_v * v_inv;
 
-    alpha = fatan2(-airflow[Z], -airflow[X]);
+    alpha = atan2_approx_d(-airflow[Z], -airflow[X]);
     a2 = alpha * alpha;
 
     sin_alpha = -airflow[Z] * vertical_v_inv;
@@ -411,13 +413,16 @@ const real_t *restrict control) {
 
 void _ukf_sensor_predict(real_t *restrict measurement_estimate,
 const struct ukf_state_t *restrict sigma) {
-    assert(measurement_estimate && sigma);
+    assert(measurement_estimate && "`measurement_estimate` is NULL");
+    assert(sigma && "`sigma` is NULL");
     assert(fabs(sigma->attitude[X]*sigma->attitude[X] +
                 sigma->attitude[Y]*sigma->attitude[Y] +
                 sigma->attitude[Z]*sigma->attitude[Z] +
-                sigma->attitude[W]*sigma->attitude[W] - 1.0) < 1e-6);
-    _nassert((size_t)measurement_estimate % 8 == 0);
-    _nassert((size_t)sigma % 8 == 0);
+                sigma->attitude[W]*sigma->attitude[W] - 1.0) < 1e-6 &&
+           "`sigma->attitude` quaternion not normalized");
+    _nassert((size_t)measurement_estimate % 8 == 0 &&
+             "`measurement_estimate` not 8-byte-aligned");
+    _nassert((size_t)sigma % 8 == 0 && "`sigma` not 8-byte-aligned");
 
     /* see src/sensors.cpp line 123 */
 
@@ -426,24 +431,24 @@ const struct ukf_state_t *restrict sigma) {
     if (sensor_model.flags.accelerometer) {
         real_t temp1[3], temp2[3];
 
-        _cross_vec3(temp1, sigma->angular_velocity,
-                    sensor_model.configuration.accel_offset);
-        _cross_vec3(temp2, sigma->angular_acceleration,
-                    sensor_model.configuration.accel_offset);
+        vector3_cross_d(temp1, sigma->angular_velocity,
+                        sensor_model.configuration.accel_offset);
+        vector3_cross_d(temp2, sigma->angular_acceleration,
+                        sensor_model.configuration.accel_offset);
         temp1[X] += temp2[X] + sigma->acceleration[X];
         temp1[Y] += temp2[Y] + sigma->acceleration[Y];
         temp1[Z] += temp2[Z] + sigma->acceleration[Z];
 
-        _mul_quat_vec3(&measurement_estimate[i],
-                       sensor_model.configuration.accel_orientation,
-                       temp1);
+        quaternion_vector3_multiply_d(
+            &measurement_estimate[i],
+            sensor_model.configuration.accel_orientation, temp1);
         i += 3;
 
         real_t g[3] = { 0, 0, -G_ACCEL };
-        _mul_quat_vec3(temp1, sigma->attitude, g);
-        _mul_quat_vec3(&measurement_estimate[i],
-                       sensor_model.configuration.accel_orientation,
-                       temp1);
+        quaternion_vector3_multiply_d(temp1, sigma->attitude, g);
+        quaternion_vector3_multiply_d(
+            &measurement_estimate[i],
+            sensor_model.configuration.accel_orientation, temp1);
         i += 3;
     }
 
@@ -453,19 +458,19 @@ const struct ukf_state_t *restrict sigma) {
             sigma->angular_velocity[Y] + sigma->gyro_bias[Y],
             sigma->angular_velocity[Z] + sigma->gyro_bias[Z]
         };
-        _mul_quat_vec3(&measurement_estimate[i],
-                       sensor_model.configuration.gyro_orientation,
-                       net_av);
+        quaternion_vector3_multiply_d(
+            &measurement_estimate[i],
+            sensor_model.configuration.gyro_orientation, net_av);
         i += 3;
     }
 
     if (sensor_model.flags.magnetometer) {
         real_t temp[3];
-        _mul_quat_vec3(temp, sigma->attitude,
-                       sensor_model.configuration.mag_field);
-        _mul_quat_vec3(&measurement_estimate[i],
-                       sensor_model.configuration.mag_orientation,
-                       temp);
+        quaternion_vector3_multiply_d(temp, sigma->attitude,
+                                      sensor_model.configuration.mag_field);
+        quaternion_vector3_multiply_d(
+            &measurement_estimate[i],
+            sensor_model.configuration.mag_orientation, temp);
         i += 3;
     }
 
@@ -489,7 +494,7 @@ const struct ukf_state_t *restrict sigma) {
             sigma->velocity[Z] - sigma->wind_velocity[Z]
         }, temp[3];
 
-        _mul_quat_vec3(temp, sigma->attitude, airflow);
+        quaternion_vector3_multiply_d(temp, sigma->attitude, airflow);
 
         measurement_estimate[i++] = temp[X];
     }
@@ -500,7 +505,9 @@ const struct ukf_state_t *restrict sigma) {
 }
 
 size_t _ukf_sensor_collate(real_t measurement_estimate[UKF_MEASUREMENT_DIM]) {
-    assert(measurement_estimate);
+    assert(measurement_estimate && "`measurement_estimate` is NULL");
+    _nassert((size_t)measurement_estimate % 8 == 0 &&
+             "`measurement_estimate` not 8-byte-aligned");
 
     size_t i = 0;
 
@@ -546,7 +553,9 @@ size_t _ukf_sensor_collate(real_t measurement_estimate[UKF_MEASUREMENT_DIM]) {
 }
 
 void _ukf_sensor_get_covariance(real_t covariance[UKF_MEASUREMENT_DIM]) {
-    assert(covariance);
+    assert(covariance && "`covariance` is NULL");
+    _nassert((size_t)covariance % 8 == 0 &&
+             "`covariance` not 8-byte-aligned");
 
     size_t i = 0;
 
@@ -589,13 +598,24 @@ void _ukf_sensor_get_covariance(real_t covariance[UKF_MEASUREMENT_DIM]) {
         covariance[i++] = C.barometer_amsl_covariance;
     }
     #undef C
+
+    assert(i <= UKF_MEASUREMENT_DIM &&
+           "`i` too large; `covariance` array overrun");
 }
 
 void _ukf_sensor_calculate_deltas(real_t *restrict measurement_estimate,
 real_t *restrict measurement_estimate_mean, uint32_t sigma_idx) {
-    assert(measurement_estimate && measurement_estimate_mean &&
-           sigma_idx < UKF_NUM_SIGMA);
-    uint32_t i, sidx = sigma_idx*UKF_MEASUREMENT_DIM;
+    assert(measurement_estimate && "`measurement_estimate` is NULL");
+    assert(measurement_estimate_mean &&
+           "`measurement_estimate_mean` is NULL");
+    assert(sigma_idx < UKF_NUM_SIGMA &&
+           "`sigma_idx` is not a valid sigma point index");
+    _nassert((size_t)measurement_estimate % 8 == 0 &&
+             "`measurement_estimate` not 8-byte-aligned");
+    _nassert((size_t)measurement_estimate_mean % 8 == 0 &&
+             "`measurement_estimate_mean` not 8-byte-aligned");
+
+    uint32_t i, sidx = sigma_idx * UKF_MEASUREMENT_DIM;
 
     real_t *restrict sigma = (real_t*)(&measurement_estimate_sigma[sidx]);
 
@@ -626,8 +646,26 @@ void _ukf_process_sigma(struct ukf_state_t *sigma, uint32_t idx, real_t dt,
 real_t control[4], struct ukf_state_t *apriori_mean,
 real_t *restrict measurement_estimate_mean,
 real_t *restrict measurement_estimate, struct ukf_state_t *central_sigma) {
-    assert(sigma && control && apriori_mean && w_prime &&
-        measurement_estimate && control);
+    assert(sigma && "`sigma` is NULL");
+    assert(control && "`control` is NULL");
+    assert(apriori_mean && "`apriori_mean` is NULL");
+    assert(w_prime && "`w_prime` is NULL");
+    assert(measurement_estimate && "`measurement_estimate is NULL");
+    assert(control && "`control` is NULL");
+    assert((idx || central_sigma) &&
+           "`central_sigma` may only be NULL when `idx` == 0 (i.e. on the "
+           "central sigma point)");
+    _nassert((size_t)sigma % 8 == 0 && "`sigma` not 8-byte-aligned");
+    _nassert((size_t)control % 8 == 0 && "`control` not 8-byte-aligned");
+    _nassert((size_t)apriori_mean % 8 == 0 &&
+             "`apriori_mean` not 8-byte-aligned");
+    _nassert((size_t)w_prime % 8 == 0 && "`w_prime` not 8-byte-aligned");
+    _nassert((size_t)measurement_estimate_mean % 8 == 0 &&
+             "`measurement_estimate_mean` not 8-byte-aligned");
+    _nassert((size_t)measurement_estimate % 8 == 0 &&
+             "`measurement_estimate` not 8-byte-aligned");
+    _nassert((size_t)central_sigma % 8 == 0 &&
+             "`central_sigma` not 8-byte-aligned");
 
     uint32_t i, j;
 
@@ -641,13 +679,14 @@ real_t *restrict measurement_estimate, struct ukf_state_t *central_sigma) {
 
     /* apriori_estimate -- src/ukf.cpp line 149 */
     _ukf_state_integrate_rk4(sigma, dt);
-    _normalize_quat(sigma->attitude, sigma->attitude, false);
+    quaternion_normalize_d(sigma->attitude, sigma->attitude, false);
 
     /* src/ukf.cpp line 165 */
     if (dynamics_model == UKF_MODEL_X8) {
         _ukf_state_x8_dynamics(sigma, control);
     } if (dynamics_model == UKF_MODEL_CUSTOM) {
-        assert(dynamics_function);
+        assert(dynamics_function && "`dynamics_function` must be non-NULL if "
+                                    "`dynamics_model` is UKF_MODEL_CUSTOM");
 
         /*
         Call the custom dynamics function -- slightly different convention to
@@ -667,7 +706,7 @@ real_t *restrict measurement_estimate, struct ukf_state_t *central_sigma) {
     }
 
     /* save offset from central point to w_prime, src/ukf.cpp line 192 */
-    _add_state_inplace(apriori_mean, sigma);
+    state_accumulate_d(apriori_mean, sigma);
 
     if (idx == 0) {
         /* Processing the centre point, so w_prime is 0 */
@@ -690,9 +729,9 @@ real_t *restrict measurement_estimate, struct ukf_state_t *central_sigma) {
             -central_sigma->attitude[Z],
             central_sigma->attitude[W]
         };
-        _mul_quat_quat(err_q, sigma->attitude, cs_conj);
+        quaternion_multiply_d(err_q, sigma->attitude, cs_conj);
 
-        real_t qw_recip = recip(1.0 + err_q[W]);
+        real_t qw_recip = recip_d(1.0 + err_q[W]);
         w_prime[widx + 9] = UKF_MRP_F * err_q[X] * qw_recip;
         w_prime[widx + 10] = UKF_MRP_F * err_q[Y] * qw_recip;
         w_prime[widx + 11] = UKF_MRP_F * err_q[Z] * qw_recip;
@@ -722,12 +761,14 @@ real_t *restrict measurement_estimate, struct ukf_state_t *central_sigma) {
 void _ukf_calculate_state_covariance() {
     /* Calculate state covariance from wprime */
     uint32_t i;
-    _mul_wprime(state_covariance, &w_prime[1 * UKF_STATE_DIM], UKF_SIGMA_WCI);
+    wprime_multiply_d(state_covariance, &w_prime[1 * UKF_STATE_DIM],
+                      UKF_SIGMA_WCI);
     for (i = 2; i < UKF_NUM_SIGMA; i++) {
-        _mul_wprime_accum(state_covariance, &w_prime[i * UKF_STATE_DIM],
-                          UKF_SIGMA_WCI);
+        wprime_multiply_accumulate_d(state_covariance,
+                                     &w_prime[i * UKF_STATE_DIM],
+                                     UKF_SIGMA_WCI);
     }
-    _mul_wprime_accum(state_covariance, w_prime, UKF_SIGMA_WC0);
+    wprime_multiply_accumulate_d(state_covariance, w_prime, UKF_SIGMA_WC0);
 
     _print_matrix("Apriori covariance:\n", state_covariance, UKF_STATE_DIM,
                   UKF_STATE_DIM);
@@ -736,24 +777,41 @@ void _ukf_calculate_state_covariance() {
 
 /* Public interface */
 void ukf_set_position(real_t lat, real_t lon, real_t alt) {
+    assert(-M_PI * 0.5 <= lat && lat <= M_PI * 0.5 &&
+           "`lat` is outside [-pi/2, pi/2]");
+    assert(-M_PI <= lon && lon <= M_PI && "`lon` is outside [-pi, pi]");
+    assert(-1000.0 <= alt && alt <= 100000.0 &&
+           "`alt` is outside [-1000, 100000]");
+
     state.position[0] = lat;
     state.position[1] = lon;
     state.position[2] = alt;
 }
 
 void ukf_set_velocity(real_t x, real_t y, real_t z) {
+    assert(absval(x) <= 100.0 && "`|x|` is greater than 100m/s");
+    assert(absval(y) <= 100.0 && "`|y|` is greater than 100m/s");
+    assert(absval(z) <= 100.0 && "`|z|` is greater than 100m/s");
+
     state.velocity[X] = x;
     state.velocity[Y] = y;
     state.velocity[Z] = z;
 }
 
 void ukf_set_acceleration(real_t x, real_t y, real_t z) {
+    assert(absval(x) <= G_ACCEL * 10.0 && "`|x|` is greater than 10g");
+    assert(absval(y) <= G_ACCEL * 10.0 && "`|x|` is greater than 10g");
+    assert(absval(z) <= G_ACCEL * 10.0 && "`|x|` is greater than 10g");
+
     state.acceleration[X] = x;
     state.acceleration[Y] = y;
     state.acceleration[Z] = z;
 }
 
 void ukf_set_attitude(real_t w, real_t x, real_t y, real_t z) {
+    assert(absval(x*x + y*y + z*z + w*w - 1.0) < 1e-6 &&
+           "`q(x, y, z, w)` not normalized");
+
     state.attitude[X] = x;
     state.attitude[Y] = y;
     state.attitude[Z] = z;
@@ -761,46 +819,63 @@ void ukf_set_attitude(real_t w, real_t x, real_t y, real_t z) {
 }
 
 void ukf_set_angular_velocity(real_t x, real_t y, real_t z) {
+    assert(absval(x) <= M_PI * 4.0 && "`|x|` is greater than 4pi rad/s");
+    assert(absval(y) <= M_PI * 4.0 && "`|y|` is greater than 4pi rad/s");
+    assert(absval(z) <= M_PI * 4.0 && "`|z|` is greater than 4pi rad/s");
+
     state.angular_velocity[X] = x;
     state.angular_velocity[Y] = y;
     state.angular_velocity[Z] = z;
 }
 
 void ukf_set_angular_acceleration(real_t x, real_t y, real_t z) {
+    assert(absval(x) <= M_PI * 4.0 && "`|x|` is greater than 4pi rad/s/s");
+    assert(absval(y) <= M_PI * 4.0 && "`|y|` is greater than 4pi rad/s/s");
+    assert(absval(z) <= M_PI * 4.0 && "`|z|` is greater than 4pi rad/s/s");
+
     state.angular_acceleration[X] = x;
     state.angular_acceleration[Y] = y;
     state.angular_acceleration[Z] = z;
 }
 
 void ukf_set_wind_velocity(real_t x, real_t y, real_t z) {
+    assert(absval(x) <= 100.0 && "`|x|` is greater than 100m/s");
+    assert(absval(y) <= 100.0 && "`|y|` is greater than 100m/s");
+    assert(absval(z) <= 100.0 && "`|z|` is greater than 100m/s");
+
     state.wind_velocity[X] = x;
     state.wind_velocity[Y] = y;
     state.wind_velocity[Z] = z;
 }
 
 void ukf_set_gyro_bias(real_t x, real_t y, real_t z) {
+    assert(absval(x) <= M_PI * 0.25 && "`|x|` is greater than pi/4 rad/s");
+    assert(absval(y) <= M_PI * 0.25 && "`|y|` is greater than pi/4 rad/s");
+    assert(absval(z) <= M_PI * 0.25 && "`|z|` is greater than pi/4 rad/s");
+
     state.gyro_bias[X] = x;
     state.gyro_bias[Y] = y;
     state.gyro_bias[Z] = z;
 }
 
 void ukf_get_state(struct ukf_state_t *in) {
-    assert(in);
+    assert(in && "`in` is NULL");
     memcpy(in, &state, sizeof(state));
 }
 
 void ukf_set_state(struct ukf_state_t *in) {
-    assert(in);
+    assert(in && "`in` is NULL");
     memcpy(&state, in, sizeof(state));
 }
 
 void ukf_get_state_covariance(real_t in[UKF_STATE_DIM * UKF_STATE_DIM]) {
-    assert(in);
+    assert(in && "`in` is NULL");
     memcpy(in, state_covariance, sizeof(state_covariance));
 }
 
 void ukf_get_state_covariance_diagonal(real_t in[UKF_STATE_DIM]) {
-    assert(in);
+    assert(in && "`in` is NULL");
+
     uint8_t i;
     #pragma MUST_ITERATE(24, 24)
     for (i = 0; i < UKF_STATE_DIM; i++) {
@@ -809,7 +884,8 @@ void ukf_get_state_covariance_diagonal(real_t in[UKF_STATE_DIM]) {
 }
 
 void ukf_get_state_error(real_t in[UKF_STATE_DIM]) {
-    assert(in);
+    assert(in && "`in` is NULL");
+
     uint8_t i, j;
     #pragma MUST_ITERATE(24, 24)
     for (i = 0; i < UKF_STATE_DIM; i++) {
@@ -820,7 +896,7 @@ void ukf_get_state_error(real_t in[UKF_STATE_DIM]) {
             in[i] += absval(state_covariance[i*UKF_STATE_DIM + j]);
         }
 
-        in[i] = fsqrt(in[i]);
+        in[i] = sqrt_d(in[i]);
     }
 }
 
@@ -874,12 +950,12 @@ void ukf_sensor_set_barometer_amsl(real_t amsl) {
 }
 
 void ukf_set_params(struct ukf_ioboard_params_t *in) {
-    assert(in);
+    assert(in && "`in` is NULL");
     memcpy(&sensor_model.configuration, in,
         sizeof(sensor_model.configuration));
 
     #define B sensor_model.configuration.mag_field
-    sensor_model_mag_field_norm = sqrt(B[X]*B[X] + B[Y]*B[Y] + B[Z]*B[Z]);
+    sensor_model_mag_field_norm = sqrt_d(B[X]*B[X] + B[Y]*B[Y] + B[Z]*B[Z]);
     #undef B
 }
 
@@ -910,8 +986,8 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
     }
 
     /* In-place LLT on state covariance matrix times UKF_DIM_PLUS_LAMBDA */
-    _cholesky_mat_mul(state_covariance, state_covariance, UKF_DIM_PLUS_LAMBDA,
-        24);
+    matrix_cholesky_decomp_scale_d(state_covariance, state_covariance,
+                                   UKF_DIM_PLUS_LAMBDA, 24);
     /*
     Clear out the upper triangle:
     24 48 72 96 ...
@@ -952,7 +1028,7 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
             state_covariance[col + 11]
         };
         real_t x_2 = (d_p[X]*d_p[X] + d_p[Y]*d_p[Y] + d_p[Z]*d_p[Z]);
-        real_t err_w = divide(UKF_MRP_F_2 - x_2, UKF_MRP_F_2 + x_2);
+        real_t err_w = div_d(UKF_MRP_F_2 - x_2, UKF_MRP_F_2 + x_2);
         real_t err_scale = UKF_MRP_F_RECIP + UKF_MRP_F_RECIP * err_w;
         real_t noise_q[4] = {
             err_scale * d_p[X],
@@ -984,11 +1060,11 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
             }
         }
 
-        _mul_quat_quat(sigma_pos.attitude, noise_q, state.attitude);
+        quaternion_multiply_d(sigma_pos.attitude, noise_q, state.attitude);
         noise_q[X] = -noise_q[X];
         noise_q[Y] = -noise_q[Y];
         noise_q[Z] = -noise_q[Z];
-        _mul_quat_quat(sigma_neg.attitude, noise_q, state.attitude);
+        quaternion_multiply_d(sigma_neg.attitude, noise_q, state.attitude);
 
         /* Process positive sigma point. */
         _ukf_process_sigma(&sigma_pos, i + 1, dt, control, &apriori_mean,
@@ -1013,9 +1089,9 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
             + measurement_estimate_sigma[i] * UKF_SIGMA_WM0;
     }
 
-    _mul_state_inplace(&apriori_central, UKF_SIGMA_WM0);
-    _mul_state_inplace(&apriori_mean, UKF_SIGMA_WMI);
-    _add_state_inplace(&apriori_mean, &apriori_central);
+    state_scale_d(&apriori_central, UKF_SIGMA_WM0);
+    state_scale_d(&apriori_mean, UKF_SIGMA_WMI);
+    state_accumulate_d(&apriori_mean, &apriori_central);
 
     /*
     The initial mean estimate includes acceleration due to gravity separately,
@@ -1030,7 +1106,7 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
     if (sensor_model.flags.accelerometer) {
         #define G(x) measurement_estimate_mean[3 + x]
         real_t g_norm = G_ACCEL *
-            sqrt_inv(G(X)*G(X) + G(Y)*G(Y) + G(Z)*G(Z));
+            recip_sqrt_d(G(X)*G(X) + G(Y)*G(Y) + G(Z)*G(Z));
         measurement_estimate_mean[X] += G(X) * g_norm;
         measurement_estimate_mean[Y] += G(Y) * g_norm;
         measurement_estimate_mean[Z] += G(Z) * g_norm;
@@ -1046,7 +1122,7 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
     if (sensor_model.flags.magnetometer) {
         #define B(x) measurement_estimate_mean[j + x]
         real_t mag_norm = sensor_model_mag_field_norm *
-            sqrt_inv(B(X)*B(X) + B(Y)*B(Y) + B(Z)*B(Z));
+            recip_sqrt_d(B(X)*B(X) + B(Y)*B(Y) + B(Z)*B(Z));
         B(X) *= mag_norm;
         B(Y) *= mag_norm;
         B(Z) *= mag_norm;
@@ -1101,7 +1177,7 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
         _ukf_calculate_state_covariance();
 
         memcpy(&state, &central_sigma, sizeof(state));
-        _normalize_quat(state.attitude, state.attitude, true);
+        quaternion_normalize_d(state.attitude, state.attitude, true);
         return;
     }
 
@@ -1126,32 +1202,34 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
     */
     _ukf_sensor_calculate_deltas(z_prime_col, measurement_estimate_mean, 1);
 
-    _mul_vec_outer(cross_correlation, z_prime_col,
-                   &w_prime[1 * UKF_STATE_DIM], measurement_dim,
-                   UKF_STATE_DIM, UKF_SIGMA_WCI);
-    _mul_vec_outer(measurement_estimate_covariance, z_prime_col, z_prime_col,
-                   measurement_dim, measurement_dim, UKF_SIGMA_WCI);
+    vector_outer_product_d(
+        cross_correlation, z_prime_col, &w_prime[1 * UKF_STATE_DIM],
+        measurement_dim, UKF_STATE_DIM, UKF_SIGMA_WCI);
+    vector_outer_product_d(
+        measurement_estimate_covariance, z_prime_col, z_prime_col,
+        measurement_dim, measurement_dim, UKF_SIGMA_WCI);
 
 
     for (i = 2; i < UKF_NUM_SIGMA; i++) {
         _ukf_sensor_calculate_deltas(z_prime_col, measurement_estimate_mean,
                                      i);
 
-        _mul_vec_outer_accum(cross_correlation, z_prime_col,
-                             &w_prime[i * UKF_STATE_DIM], measurement_dim,
-                             UKF_STATE_DIM, UKF_SIGMA_WCI);
-        _mul_vec_outer_accum(measurement_estimate_covariance, z_prime_col,
-                             z_prime_col, measurement_dim,
-                             measurement_dim, UKF_SIGMA_WCI);
+        vector_outer_product_accumulate_d(
+            cross_correlation, z_prime_col, &w_prime[i * UKF_STATE_DIM],
+            measurement_dim, UKF_STATE_DIM, UKF_SIGMA_WCI);
+        vector_outer_product_accumulate_d(
+            measurement_estimate_covariance, z_prime_col, z_prime_col,
+            measurement_dim, measurement_dim, UKF_SIGMA_WCI);
     }
 
     _ukf_sensor_calculate_deltas(z_prime_col, measurement_estimate_mean, 0);
 
-    _mul_vec_outer_accum(cross_correlation, z_prime_col, w_prime,
-                         measurement_dim, UKF_STATE_DIM, UKF_SIGMA_WC0);
-    _mul_vec_outer_accum(measurement_estimate_covariance, z_prime_col,
-                         z_prime_col, measurement_dim, measurement_dim,
-                         UKF_SIGMA_WC0);
+    vector_outer_product_accumulate_d(
+        cross_correlation, z_prime_col, w_prime, measurement_dim,
+        UKF_STATE_DIM, UKF_SIGMA_WC0);
+    vector_outer_product_accumulate_d(
+        measurement_estimate_covariance, z_prime_col, z_prime_col,
+        measurement_dim, measurement_dim, UKF_SIGMA_WC0);
 
     /*
     Done with w_prime and measurement_sigma_points, so we can use them for
@@ -1194,23 +1272,23 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
     real_t *kalman_gain = measurement_estimate_sigma,
            *meas_est_inv_temp = measurement_estimate_sigma,
            *meas_est_covariance_i = &measurement_estimate_sigma[408];
-    _inv_mat(meas_est_covariance_i, measurement_estimate_covariance,
-             measurement_dim, meas_est_inv_temp);
+    matrix_invert_d(meas_est_covariance_i, measurement_estimate_covariance,
+                    measurement_dim, meas_est_inv_temp);
     meas_est_inv_temp = NULL; /* no need for this now */
 
     _print_matrix("Measurement estimate covariance inverse:\n",
                   meas_est_covariance_i, measurement_dim, measurement_dim);
 
-    _mul_mat(kalman_gain, cross_correlation, meas_est_covariance_i,
-             measurement_dim, measurement_dim, UKF_STATE_DIM, measurement_dim,
-             1.0);
+    matrix_multiply_d(kalman_gain, cross_correlation, meas_est_covariance_i,
+                      measurement_dim, measurement_dim, UKF_STATE_DIM,
+                      measurement_dim);
     meas_est_covariance_i = NULL; /* no need for this now */
 
     _print_matrix("Kalman gain:\n", kalman_gain, measurement_dim,
                   UKF_STATE_DIM);
 
-    _mul_mat(update_temp, kalman_gain, innovation, measurement_dim,
-             1, UKF_STATE_DIM, measurement_dim, 1.0);
+    matrix_multiply_d(update_temp, kalman_gain, innovation, measurement_dim,
+                      1, UKF_STATE_DIM, measurement_dim);
 
     _print_matrix("Update temp:\n", update_temp, UKF_STATE_DIM, 1);
     _print_matrix("Apriori mean:\n", apriori_mean.position, UKF_STATE_DIM, 1);
@@ -1236,11 +1314,11 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
            *state_temp1 = &w_prime[408];
 
     /* Update the state covariance; src/ukf.cpp line 352 */
-    _mul_mat(state_temp1, kalman_gain, measurement_estimate_covariance,
-             measurement_dim, measurement_dim, UKF_STATE_DIM, measurement_dim,
-             1.0);
-    _transpose_mat(kalman_gain_t, kalman_gain, measurement_dim,
-                   UKF_STATE_DIM);
+    matrix_multiply_d(state_temp1, kalman_gain,
+                      measurement_estimate_covariance, measurement_dim,
+                      measurement_dim, UKF_STATE_DIM, measurement_dim);
+    matrix_transpose_d(kalman_gain_t, kalman_gain, measurement_dim,
+                       UKF_STATE_DIM);
 
     /*
     Now we're done with kalman_gain, so use it as another temporary matrix in
@@ -1249,10 +1327,11 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
     kalman_gain = NULL;
     real_t *state_temp2 = measurement_estimate_sigma;
 
-    _mul_mat(state_temp2, state_temp1, kalman_gain_t, measurement_dim,
-             UKF_STATE_DIM, UKF_STATE_DIM, measurement_dim, -1.0);
-    _add_mat_accum(state_covariance, state_temp2,
-                   UKF_STATE_DIM * UKF_STATE_DIM);
+    matrix_multiply_d(state_temp2, state_temp1, kalman_gain_t,
+                      measurement_dim, UKF_STATE_DIM, UKF_STATE_DIM,
+                      measurement_dim);
+    matrix_subtract_d(state_covariance, state_temp2,
+                      UKF_STATE_DIM * UKF_STATE_DIM);
 
     _print_matrix("State covariance:\n", state_covariance, UKF_STATE_DIM,
                   UKF_STATE_DIM);
@@ -1269,7 +1348,7 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
 
     real_t d_p[3] = { update_temp[9], update_temp[10], update_temp[11] };
     real_t x_2 = d_p[X]*d_p[X] + d_p[Y]*d_p[Y] + d_p[Z]*d_p[Z];
-    real_t d_q_w = divide(UKF_MRP_F_2 - x_2, UKF_MRP_F_2 + x_2);
+    real_t d_q_w = div_d(UKF_MRP_F_2 - x_2, UKF_MRP_F_2 + x_2);
     real_t d_q_scale = UKF_MRP_F_RECIP + UKF_MRP_F_RECIP * d_q_w;
     real_t d_q[4] = {
         d_q_scale * d_p[X],
@@ -1278,8 +1357,8 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
         d_q_w
     };
 
-    _mul_quat_quat(state.attitude, d_q, central_sigma.attitude);
-    _normalize_quat(state.attitude, state.attitude, true);
+    quaternion_multiply_d(state.attitude, d_q, central_sigma.attitude);
+    quaternion_normalize_d(state.attitude, state.attitude, true);
 
     _print_matrix("State:\n", state.position, UKF_STATE_DIM + 1, 1);
 }
