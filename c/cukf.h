@@ -109,6 +109,10 @@ void ukf_init(void);
 void ukf_set_position(real_t lat, real_t lon, real_t alt);
 void ukf_set_velocity(real_t x, real_t y, real_t z);
 void ukf_set_acceleration(real_t x, real_t y, real_t z);
+/*
+Note: W, x, y, z in the parameters for ukf_set_attitude differs to the stored
+attitude representation in struct ukf_state_t, which is x, y, z, W
+*/
 void ukf_set_attitude(real_t w, real_t x, real_t y, real_t z);
 void ukf_set_angular_velocity(real_t x, real_t y, real_t z);
 void ukf_set_angular_acceleration(real_t x, real_t y, real_t z);

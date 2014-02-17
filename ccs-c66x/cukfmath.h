@@ -42,7 +42,7 @@ SOFTWARE.
 
 #ifdef UKF_USE_DSP_INTRINSICS
 
-static inline double sqrt_inv(double a) {
+static inline double recip_sqrt_d(double a) {
     double x, half_a;
 
     if (a < 0) {
@@ -58,7 +58,7 @@ static inline double sqrt_inv(double a) {
     return x;
 }
 
-static inline double fsqrt(double a) {
+static inline double sqrt_d(double a) {
     double  y, X0, X1, X2, X4;
     int     upper;
 
@@ -80,7 +80,7 @@ static inline double fsqrt(double a) {
     return X4;
 }
 
-static inline double divide(double a, double b) {
+static inline double div_d(double a, double b) {
     double  x;
     if (a == 0.0) {
         x = 0.0;
@@ -95,7 +95,7 @@ static inline double divide(double a, double b) {
     return x;
 }
 
-static inline double recip(double b) {
+static inline double recip_d(double b) {
     double  x;
     x = _rcpdp(b);
     x = x * (2.0 - b*x);
@@ -107,14 +107,14 @@ static inline double recip(double b) {
 
 #else
 
-#define sqrt_inv(x) (1.0 / sqrt((x)))
-#define divide(a, b) ((a) / (b))
-#define recip(a) (1.0 / (a))
-#define fsqrt(a) sqrt((a))
+#define recip_sqrt_d(x) (1.0 / sqrt((x)))
+#define div_d(a, b) ((a) / (b))
+#define recip_d(a) (1.0 / (a))
+#define sqrt_d(a) sqrt((a))
 
 #endif
 
-static inline double fatan2(double y, double x) {
+static inline double atan2_approx_d(double y, double x) {
 #define PI_FLOAT     3.14159265
 #define PIBY2_FLOAT  1.5707963
 // |error| < 0.005
@@ -123,19 +123,19 @@ static inline double fatan2(double y, double x) {
         if (y == 0.0) return 0.0;
         return -PIBY2_FLOAT;
     }
-    double atan;
-    double z = divide(y, x);
+    double result;
+    double z = div_d(y, x);
     if (absval(z) < 1.0) {
-        atan = divide(z, (1.0 + 0.28 * z * z));
+        result = div_d(z, (1.0 + 0.28 * z * z));
         if (x < 0.0) {
-            if (y < 0.0) return atan - PI_FLOAT;
-            return atan + PI_FLOAT;
+            if (y < 0.0) return result - PI_FLOAT;
+            return result + PI_FLOAT;
         }
     } else {
-        atan = PIBY2_FLOAT - z / (z * z + 0.28);
-        if (y < 0.0f) return atan - PI_FLOAT;
+        result = PIBY2_FLOAT - z / (z * z + 0.28);
+        if (y < 0.0f) return result - PI_FLOAT;
     }
-    return atan;
+    return result;
 #undef PI_FLOAT
 #undef PIBY2_FLOAT
 }
@@ -191,8 +191,8 @@ static inline uint64_t rdtsc() {
 #define M_PI_4 (M_PI * 0.25)
 #endif
 
-static inline void _cross_vec3(real_t *restrict res,
-const real_t *restrict v1, const real_t *restrict v2) {
+static inline void vector3_cross_d(double *restrict res,
+const double *restrict v1, const double *restrict v2) {
     assert(res && v1 && v2 && res != v1 && res != v2 && v1 != v2);
     _nassert((size_t)res % 8 == 0);
     _nassert((size_t)v1 % 8 == 0);
@@ -212,8 +212,8 @@ const real_t *restrict v1, const real_t *restrict v2) {
     res[Z] = r4 - r5;
 }
 
-static inline void _mul_quat_vec3(real_t *restrict res,
-const real_t *restrict q, const real_t *restrict v) {
+static inline void quaternion_vector3_multiply_d(double *restrict res,
+const double *restrict q, const double *restrict v) {
     /*
     Multiply a quaternion by a vector (i.e. transform a vectory by a
     quaternion)
@@ -230,7 +230,7 @@ const real_t *restrict q, const real_t *restrict v) {
     _nassert((size_t)q % 8 == 0);
     _nassert((size_t)v % 8 == 0);
 
-    register real_t rx, ry, rz, tx, ty, tz;
+    register double rx, ry, rz, tx, ty, tz;
 
     tx = q[Y]*v[Z];
     ty = q[Z]*v[X];
@@ -261,8 +261,8 @@ const real_t *restrict q, const real_t *restrict v) {
     res[Z] = rz;
 }
 
-static inline void _mul_quat_quat(real_t res[4],
-const real_t q1[4], const real_t q2[4]) {
+static inline void quaternion_multiply_d(double res[4],
+const double q1[4], const double q2[4]) {
     assert(res && q1 && q2 && res != q1 && res != q2);
     _nassert((size_t)res % 8 == 0);
     _nassert((size_t)q1 % 8 == 0);
@@ -274,13 +274,14 @@ const real_t q1[4], const real_t q2[4]) {
     res[Z] = q1[W]*q2[Z] + q1[X]*q2[Y] - q1[Y]*q2[X] + q1[Z]*q2[W];
 }
 
-static inline void _normalize_quat(real_t res[4], const real_t q[4],
+static inline void quaternion_normalize_d(double res[4], const double q[4],
 bool force_pos) {
     assert(res && q);
     _nassert((size_t)res % 8 == 0);
     _nassert((size_t)q % 8 == 0);
 
-    real_t q_norm = sqrt_inv(q[X]*q[X] + q[Y]*q[Y] + q[Z]*q[Z] + q[W]*q[W]);
+    double q_norm;
+    q_norm = recip_sqrt_d(q[X]*q[X] + q[Y]*q[Y] + q[Z]*q[Z] + q[W]*q[W]);
     if (force_pos && q[W] < 0.0) {
         q_norm = -q_norm;
     }
@@ -291,9 +292,9 @@ bool force_pos) {
     res[W] = q[W] * q_norm;
 }
 
-static inline void _mul_state_scalar_add_state(
+static inline void state_scale_add_d(
 struct ukf_state_t *restrict res,
-const struct ukf_state_t *restrict s1, const real_t a,
+const struct ukf_state_t *restrict s1, const double a,
 const struct ukf_state_t *restrict s2) {
     assert(res && s1 && s2 && s1 != s2 && res != s1 && res != s2);
     _nassert((size_t)res % 8 == 0);
@@ -301,9 +302,9 @@ const struct ukf_state_t *restrict s2) {
     _nassert((size_t)s2 % 8 == 0);
 
     uint32_t i;
-    real_t *const restrict s1ptr = (real_t*)s1,
-           *const restrict s2ptr = (real_t*)s2,
-           *const restrict rptr = (real_t*)res;
+    double *const restrict s1ptr = (double*)s1,
+           *const restrict s2ptr = (double*)s2,
+           *const restrict rptr = (double*)res;
 
     #pragma MUST_ITERATE(24)
     #pragma UNROLL(2)
@@ -313,13 +314,13 @@ const struct ukf_state_t *restrict s2) {
     rptr[i] = s1ptr[i] * a + s2ptr[i];
 }
 
-static inline void _mul_state_inplace(struct ukf_state_t *restrict res,
-real_t a) {
+static inline void state_scale_d(struct ukf_state_t *restrict res,
+double a) {
     assert(res);
     _nassert((size_t)res % 8 == 0);
 
     uint32_t i;
-    real_t *const restrict rptr = (real_t*)res;
+    double *const restrict rptr = (double*)res;
 
     #pragma MUST_ITERATE(24)
     #pragma UNROLL(2)
@@ -329,15 +330,15 @@ real_t a) {
     rptr[i] *= a;
 }
 
-static inline void _add_state_inplace(struct ukf_state_t *restrict res,
+static inline void state_accumulate_d(struct ukf_state_t *restrict res,
 struct ukf_state_t *restrict s1) {
     assert(res && s1 && res != s1);
     _nassert((size_t)res % 8 == 0);
     _nassert((size_t)s1 % 8 == 0);
 
     uint32_t i;
-    real_t *const restrict s1ptr = (real_t*)s1,
-           *const restrict rptr = (real_t*)res;
+    double *const restrict s1ptr = (double*)s1,
+           *const restrict rptr = (double*)res;
 
     #pragma MUST_ITERATE(24)
     #pragma UNROLL(2)
@@ -347,9 +348,9 @@ struct ukf_state_t *restrict s1) {
     rptr[i] += s1ptr[i];
 }
 
-static inline void _mul_wprime(real_t *restrict out,
-const real_t *restrict in,
-const real_t weight) {
+static inline void wprime_multiply_d(double *restrict out,
+const double *restrict in,
+const double weight) {
     /*
     Multiply a column of wprime by its transpose, and add it to the state
     */
@@ -357,9 +358,9 @@ const real_t weight) {
     _nassert((size_t)out % 8 == 0);
     _nassert((size_t)in % 8 == 0);
 
-    real_t *restrict outcol1, *restrict outcol2, *restrict outcol3,
+    double *restrict outcol1, *restrict outcol2, *restrict outcol3,
            *restrict outcol4;
-    register real_t colv1, colv2, colv3, colv4;
+    register double colv1, colv2, colv3, colv4;
     uint32_t i, j;
 
     for (i = 0; i < UKF_STATE_DIM; i += 4) {
@@ -382,9 +383,9 @@ const real_t weight) {
     }
 }
 
-static inline void _mul_wprime_accum(real_t *restrict out,
-const real_t *restrict in,
-const real_t weight) {
+static inline void wprime_multiply_accumulate_d(double *restrict out,
+const double *restrict in,
+const double weight) {
     /*
     Multiply a column of wprime by its transpose, and add it to the state
     */
@@ -392,9 +393,9 @@ const real_t weight) {
     _nassert((size_t)out % 8 == 0);
     _nassert((size_t)in % 8 == 0);
 
-    real_t *restrict outcol1, *restrict outcol2, *restrict outcol3,
+    double *restrict outcol1, *restrict outcol2, *restrict outcol3,
            *restrict outcol4;
-    register real_t colv1, colv2, colv3, colv4;
+    register double colv1, colv2, colv3, colv4;
     uint32_t i, j;
 
     for (i = 0; i < UKF_STATE_DIM; i += 4) {
@@ -417,9 +418,9 @@ const real_t weight) {
     }
 }
 
-static inline void _mul_vec_outer(real_t *restrict out,
-const real_t *restrict in1, const real_t *restrict in2, const size_t r1,
-const size_t c2, const real_t weight) {
+static inline void vector_outer_product_d(double *restrict out,
+const double *restrict in1, const double *restrict in2, const size_t r1,
+const size_t c2, const double weight) {
     /*
     Multiply a column of wprime by its transpose, and add it to the state
     */
@@ -428,8 +429,8 @@ const size_t c2, const real_t weight) {
     _nassert((size_t)in1 % 8 == 0);
     _nassert((size_t)in2 % 8 == 0);
 
-    real_t *restrict outcol;
-    register real_t colv;
+    double *restrict outcol;
+    register double colv;
     uint32_t i, j;
 
     for (i = 0; i < r1; i++) {
@@ -444,9 +445,9 @@ const size_t c2, const real_t weight) {
     }
 }
 
-static inline void _mul_vec_outer_accum(real_t *restrict out,
-const real_t *restrict in1, const real_t *restrict in2, const size_t r1,
-const size_t c2, const real_t weight) {
+static inline void vector_outer_product_accumulate_d(double *restrict out,
+const double *restrict in1, const double *restrict in2, const size_t r1,
+const size_t c2, const double weight) {
     /*
     Multiply a column of wprime by its transpose, and add it to the state
     */
@@ -455,8 +456,8 @@ const size_t c2, const real_t weight) {
     _nassert((size_t)in1 % 8 == 0);
     _nassert((size_t)in2 % 8 == 0);
 
-    real_t *restrict outcol;
-    register real_t colv;
+    double *restrict outcol;
+    register double colv;
     uint32_t i, j;
 
     for (i = 0; i < r1; i++) {
@@ -471,9 +472,9 @@ const size_t c2, const real_t weight) {
     }
 }
 
-static void _mul_mat(real_t *restrict C, const real_t B[],
-const real_t A[], const size_t AR, const size_t AC, const size_t BR,
-const size_t BC, const real_t mul) {
+static void matrix_multiply_d(double *restrict C, const double B[],
+const double A[], const size_t AR, const size_t AC, const size_t BR,
+const size_t BC) {
 #pragma unused(BC)
     /*
     Calculate C = AB, where A has AN rows and AM columns, and B has BN rows
@@ -489,19 +490,20 @@ const size_t BC, const real_t mul) {
     for (i = 0; i < AC; i++) {
         #pragma MUST_ITERATE(1,24)
         for (j = 0; j < BR; j++) {
-            real_t t = 0.0;
+            double t = 0.0;
             #pragma MUST_ITERATE(1,24)
             for (k = 0; k < AR; k++) {
                 t += A[i * AR + k] * B[k * BR + j];
             }
 
-            C[i * BR + j] = t * mul;
+            C[i * BR + j] = t;
         }
     }
 }
 
-static void _add_mat_accum(real_t B[], const real_t A[], const size_t n) {
-    /* Calculate B = B + A */
+static void matrix_accumulate_scale_d(double B[], const double A[],
+const size_t n, const double mul) {
+    /* Calculate B = B + A * mul */
     assert(A && B);
     _nassert((size_t)B % 8 == 0);
     _nassert((size_t)A % 8 == 0);
@@ -509,11 +511,11 @@ static void _add_mat_accum(real_t B[], const real_t A[], const size_t n) {
     uint32_t i;
     #pragma MUST_ITERATE(1,24*24)
     for (i = 0; i < n; i++) {
-        B[i] += A[i];
+        B[i] += A[i] * mul;
     }
 }
 
-static void _transpose_mat(real_t *restrict B, const real_t *restrict A,
+static void matrix_transpose_d(double *restrict B, const double *restrict A,
 const size_t rows, const size_t cols) {
     /* Transpose the matrix A */
     assert(A && B && A != B && rows && cols);
@@ -530,8 +532,8 @@ const size_t rows, const size_t cols) {
     }
 }
 
-static void _cholesky_mat_mul(real_t L[], const real_t A[], const real_t mul,
-const size_t n) {
+static void matrix_cholesky_decomp_scale_d(double L[], const double A[],
+const double mul, const size_t n) {
     assert(L && A && n);
     _nassert((size_t)L % 8 == 0);
     _nassert((size_t)A % 8 == 0);
@@ -547,23 +549,24 @@ const size_t n) {
 
     size_t i, j, kn, in, jn;
     for (i = 0, in = 0; i < n; i++, in += n) {
-        L[i + 0] = (i == 0) ? fsqrt(A[i + in]*mul) : recip(L[0]) * (A[i]*mul);
+        L[i + 0] = (i == 0) ? sqrt_d(A[i + in]*mul) :
+                              recip_d(L[0]) * (A[i]*mul);
 
         for (j = 1, jn = n; j <= i; j++, jn += n) {
-            real_t s = 0;
+            double s = 0;
             #pragma MUST_ITERATE(1,24)
             for (kn = 0; kn < j*n; kn += n) {
                 s += L[i + kn] * L[j + kn];
             }
 
-            L[i + jn] = (i == j) ? fsqrt(A[i + in]*mul - s) :
-                recip(L[j + jn]) * (A[i + jn]*mul - s);
+            L[i + jn] = (i == j) ? sqrt_d(A[i + in]*mul - s) :
+                                   recip_d(L[j + jn]) * (A[i + jn]*mul - s);
         }
     }
 }
 
-static void _inv_mat(real_t *restrict out, const real_t *restrict M,
-const size_t n, real_t *restrict temp) {
+static void matrix_invert_d(double *restrict out, const double *restrict M,
+const size_t n, double *restrict temp) {
     /*
     Matrix inverse via Cholesky decomposition. Requires M is symmetric
     positive-definite, and temp is a scratch space the same size as M.
@@ -576,14 +579,14 @@ const size_t n, real_t *restrict temp) {
     _nassert((size_t)M % 8 == 0);
     _nassert((size_t)temp % 8 == 0);
 
-    _cholesky_mat_mul(temp, M, 1.0, n);
+    matrix_cholesky_decomp_scale_d(temp, M, 1.0, n);
 
     int32_t i, j;
     size_t k, jn, in;
-    real_t tjj_recip, s;
+    double tjj_recip, s;
     for (j = (int32_t)n - 1; j >= 0; j--) {
         jn = (size_t)j*n;
-        tjj_recip = recip(temp[jn + (size_t)j]);
+        tjj_recip = recip_d(temp[jn + (size_t)j]);
         s = 0.0;
 
         for (k = (size_t)j + 1; k < n; k++) {
@@ -599,7 +602,7 @@ const size_t n, real_t *restrict temp) {
                 s += temp[in + k] * out[k*n+ (size_t)j];
             }
             out[jn + (size_t)i] = out[in + (size_t)j] =
-                divide(-s, temp[in + (size_t)i]);
+                div_d(-s, temp[in + (size_t)i]);
         }
     }
 }

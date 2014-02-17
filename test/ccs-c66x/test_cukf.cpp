@@ -17,7 +17,7 @@ void _ukf_state_model(struct ukf_state_t *in);
 }
 
 TEST(C66xMathTest, QuaternionVectorMultiplication) {
-    real_t q[4], v[3], result[3];
+    double q[4], v[3], result[3];
 
     /* Quaternion identity */
     q[X] = 0;
@@ -29,7 +29,7 @@ TEST(C66xMathTest, QuaternionVectorMultiplication) {
     v[Y] = 3;
     v[Z] = 4;
 
-    _mul_quat_vec3(result, q, v);
+    quaternion_vector3_multiply_d(result, q, v);
 
     EXPECT_FLOAT_EQ(2, result[X]);
     EXPECT_FLOAT_EQ(3, result[Y]);
@@ -38,7 +38,7 @@ TEST(C66xMathTest, QuaternionVectorMultiplication) {
     /* Conjugate of identity */
     q[W] = -1;
 
-    _mul_quat_vec3(result, q, v);
+    quaternion_vector3_multiply_d(result, q, v);
 
     EXPECT_FLOAT_EQ(2, result[X]);
     EXPECT_FLOAT_EQ(3, result[Y]);
@@ -105,7 +105,7 @@ TEST(C66xMathTest, StateAxPlusB) {
 
     memcpy(&c, &a, sizeof(c));
 
-    _mul_state_scalar_add_state(&res, &c, -1.0, &a);
+    state_scale_add_d(&res, &c, -1.0, &a);
     EXPECT_FLOAT_EQ(0, res.position[X]);
     EXPECT_FLOAT_EQ(0, res.position[Y]);
     EXPECT_FLOAT_EQ(0, res.position[Z]);
@@ -132,7 +132,7 @@ TEST(C66xMathTest, StateAxPlusB) {
     EXPECT_FLOAT_EQ(0, res.gyro_bias[Y]);
     EXPECT_FLOAT_EQ(0, res.gyro_bias[Z]);
 
-    _mul_state_scalar_add_state(&res, &a, 0.5, &b);
+    state_scale_add_d(&res, &a, 0.5, &b);
     EXPECT_FLOAT_EQ(26.5, res.position[X]);
     EXPECT_FLOAT_EQ(28.0, res.position[Y]);
     EXPECT_FLOAT_EQ(29.5, res.position[Z]);
@@ -175,7 +175,7 @@ TEST(C66xMathTest, MatrixCholeskyLLT) {
         0, 0, 0, 1.3926213
     };
 
-    _cholesky_mat_mul(m1, m1, 1.0, 4);
+    matrix_cholesky_decomp_scale_d(m1, m1, 1.0, 4);
     EXPECT_FLOAT_EQ(expected[0], m1[0]);
     EXPECT_FLOAT_EQ(expected[1], m1[1]);
     EXPECT_FLOAT_EQ(expected[2], m1[2]);
@@ -203,7 +203,7 @@ TEST(C66xMathTest, MatrixMultiply) {
     };
     real_t c[16];
 
-    _mul_mat(c, a, b, 4, 4, 4, 4, 1.0);
+    matrix_multiply_d(c, a, b, 4, 4, 4, 4);
     EXPECT_NEAR(1.0, c[0], 1e-12);
     EXPECT_NEAR(0.0, c[1], 1e-12);
     EXPECT_NEAR(0.0, c[2], 1e-12);
@@ -223,7 +223,7 @@ TEST(C66xMathTest, MatrixMultiply) {
 
     real_t d[4] = { 1, 2, 3, 4}, e[4] = { 5, 6, 7, 8 };
 
-    _mul_mat(c, d, e, 1, 4, 4, 1, 1.0);
+    matrix_multiply_d(c, d, e, 1, 4, 4, 1);
     EXPECT_NEAR(5.0, c[0], 1e-12);
     EXPECT_NEAR(10.0, c[1], 1e-12);
     EXPECT_NEAR(15.0, c[2], 1e-12);
@@ -245,13 +245,13 @@ TEST(C66xMathTest, MatrixMultiply) {
 TEST(C66xMathTest, VectorCross) {
     real_t v1[3] = { 1, 2, 3 }, v2[3] = { 6, 5, 4}, result[3];
 
-    _cross_vec3(result, v1, v2);
+    vector3_cross_d(result, v1, v2);
     EXPECT_FLOAT_EQ(-7, result[X]);
     EXPECT_FLOAT_EQ(14, result[Y]);
     EXPECT_FLOAT_EQ(-7, result[Z]);
 
     real_t v3[3] = { 0.1, 1.0, 0.5 }, v4[3] = { -5.0, 0.1, 3.0 };
-    _cross_vec3(result, v3, v4);
+    vector3_cross_d(result, v3, v4);
     EXPECT_FLOAT_EQ(2.95, result[X]);
     EXPECT_FLOAT_EQ(-2.8, result[Y]);
     EXPECT_FLOAT_EQ(5.01, result[Z]);
@@ -260,7 +260,7 @@ TEST(C66xMathTest, VectorCross) {
 TEST(C66xMathTest, QuaternionQuaternionMultiply) {
     real_t q1[4] = { 1, -2, 5, 2 }, q2[4] = { 2, 3, 4, 1 }, result[4];
 
-    _mul_quat_quat(result, q1, q2);
+    quaternion_multiply_d(result, q1, q2);
     EXPECT_FLOAT_EQ(-18, result[X]);
     EXPECT_FLOAT_EQ(10, result[Y]);
     EXPECT_FLOAT_EQ(20, result[Z]);
@@ -270,13 +270,13 @@ TEST(C66xMathTest, QuaternionQuaternionMultiply) {
 TEST(C66xMathTest, QuaternionNormalize) {
     real_t q1[4] = { -18, 10, 20, -14 }, result[4];
 
-    _normalize_quat(result, q1, true);
+    quaternion_normalize_d(result, q1, true);
     EXPECT_FLOAT_EQ(0.56360185, result[X]);
     EXPECT_FLOAT_EQ(-0.31311214, result[Y]);
     EXPECT_FLOAT_EQ(-0.62622428, result[Z]);
     EXPECT_FLOAT_EQ(0.438357, result[W]);
 
-    _normalize_quat(q1, q1, false);
+    quaternion_normalize_d(q1, q1, false);
     EXPECT_FLOAT_EQ(-0.56360185, q1[X]);
     EXPECT_FLOAT_EQ(0.31311214, q1[Y]);
     EXPECT_FLOAT_EQ(0.62622428, q1[Z]);
@@ -292,7 +292,7 @@ TEST(C66xMathTest, MatrixTranspose) {
         21, 22, 23, 24, 25
     }, result[25];
 
-    _transpose_mat(result, M1, 5, 5);
+    matrix_transpose_d(result, M1, 5, 5);
     EXPECT_FLOAT_EQ(1, result[0]);
     EXPECT_FLOAT_EQ(6, result[1]);
     EXPECT_FLOAT_EQ(11, result[2]);
@@ -324,7 +324,7 @@ TEST(C66xMathTest, MatrixTranspose) {
         5, 6, 7, 8
     };
 
-    _transpose_mat(result, M2, 2, 4);
+    matrix_transpose_d(result, M2, 2, 4);
     EXPECT_FLOAT_EQ(1, result[0]);
     EXPECT_FLOAT_EQ(5, result[1]);
     EXPECT_FLOAT_EQ(2, result[2]);
@@ -334,7 +334,7 @@ TEST(C66xMathTest, MatrixTranspose) {
     EXPECT_FLOAT_EQ(4, result[6]);
     EXPECT_FLOAT_EQ(8, result[7]);
 
-    _transpose_mat(result, M2, 4, 2);
+    matrix_transpose_d(result, M2, 4, 2);
     EXPECT_FLOAT_EQ(1, result[0]);
     EXPECT_FLOAT_EQ(3, result[1]);
     EXPECT_FLOAT_EQ(5, result[2]);
@@ -360,7 +360,7 @@ TEST(C66xMathTest, MatrixInvertSPD) {
     };
     real_t temp[16], result[16];
 
-    _inv_mat(result, M1, 4, temp);
+    matrix_invert_d(result, M1, 4, temp);
     EXPECT_FLOAT_EQ(161/64.0, result[0]);
     EXPECT_FLOAT_EQ(31/64.0, result[1]);
     EXPECT_FLOAT_EQ(-83/64.0, result[2]);
@@ -670,19 +670,19 @@ TEST(C66xUKFTest, AngularSensorsConstantAngularVelocity) {
 
     for (real_t i = 0; i < 10.0; i += 0.01) {
         real_t q[4] = { 0, -1, 0, 0 }, temp_q[4];
-        _mul_quat_quat(temp_q, q, ref);
+        quaternion_multiply_d(temp_q, q, ref);
         ref[X] += 0.01 * 0.5 * temp_q[X];
         ref[Y] += 0.01 * 0.5 * temp_q[Y];
         ref[Z] += 0.01 * 0.5 * temp_q[Z];
         ref[W] += 0.01 * 0.5 * temp_q[W];
-        _normalize_quat(ref, ref, true);
+        quaternion_normalize_d(ref, ref, true);
 
         real_t accel[3] = { 0, 0, -9.80665 }, accel_res[3];
         real_t mag[3] = { 1, 0, 0 }, mag_res[3];
         real_t gyro[3] = { 0, 1, 0 };
 
-        _mul_quat_vec3(accel_res, ref, accel);
-        _mul_quat_vec3(mag_res, ref, mag);
+        quaternion_vector3_multiply_d(accel_res, ref, accel);
+        quaternion_vector3_multiply_d(mag_res, ref, mag);
 
         ukf_sensor_clear();
         ukf_sensor_set_gyroscope(gyro[X], gyro[Y], gyro[Z]);
