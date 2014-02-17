@@ -1330,8 +1330,8 @@ void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
     matrix_multiply_d(state_temp2, state_temp1, kalman_gain_t,
                       measurement_dim, UKF_STATE_DIM, UKF_STATE_DIM,
                       measurement_dim);
-    matrix_accumulate_scale_d(state_covariance, state_temp2, -1.0,
-                              UKF_STATE_DIM * UKF_STATE_DIM);
+    matrix_subtract_d(state_covariance, state_temp2,
+                      UKF_STATE_DIM * UKF_STATE_DIM);
 
     _print_matrix("State covariance:\n", state_covariance, UKF_STATE_DIM,
                   UKF_STATE_DIM);

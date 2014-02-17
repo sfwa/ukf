@@ -501,9 +501,9 @@ const size_t BC) {
     }
 }
 
-static void matrix_accumulate_scale_d(double B[], const double A[],
-const size_t n, const double mul) {
-    /* Calculate B = B + A * mul */
+static void matrix_subtract_d(double B[], const double A[],
+const size_t n) {
+    /* Calculate B = B - A */
     assert(A && B);
     _nassert((size_t)B % 8 == 0);
     _nassert((size_t)A % 8 == 0);
@@ -511,7 +511,7 @@ const size_t n, const double mul) {
     uint32_t i;
     #pragma MUST_ITERATE(1,24*24)
     for (i = 0; i < n; i++) {
-        B[i] += A[i] * mul;
+        B[i] -= A[i];
     }
 }
 
