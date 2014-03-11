@@ -274,8 +274,6 @@ const real_t *restrict control) {
     memset(in->angular_acceleration, 0, sizeof(in->angular_acceleration));
 }
 
-#include <stdio.h>
-
 void _ukf_state_x8_dynamics(struct ukf_state_t *restrict in,
 const real_t *restrict control) {
     assert(in && "`in` is NULL");
