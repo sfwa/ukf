@@ -274,6 +274,8 @@ const real_t *restrict control) {
     memset(in->angular_acceleration, 0, sizeof(in->angular_acceleration));
 }
 
+#include <stdio.h>
+
 void _ukf_state_x8_dynamics(struct ukf_state_t *restrict in,
 const real_t *restrict control) {
     assert(in && "`in` is NULL");
@@ -312,60 +314,53 @@ const real_t *restrict control) {
     /*
     Calculate axial airflow
     */
-    real_t airflow_x2, airflow_y2, airflow_z2;
+    real_t airflow_x2, airflow_y2, airflow_z2, airflow_v2;
     airflow_x2 = airflow[X]*airflow[X];
     airflow_y2 = airflow[Y]*airflow[Y];
     airflow_z2 = airflow[Z]*airflow[Z];
+    airflow_v2 = airflow_x2 + airflow_y2 + airflow_z2;
 
     /*
     Determine airflow magnitude, and the magnitudes of the components in
     the vertical and horizontal planes
     */
-    real_t thrust, ve2 = (0.0025 * 0.0025) * control[0] * control[0];
+    real_t rpm = control[0] * 12000.0f, thrust,
+           ve2 = (0.0025f * 0.0025f) * rpm * rpm;
     /* 1 / 3.8kg times area * density of air */
-    thrust = max(0.0, ve2 - airflow_x2) * (0.26315789473684 * 0.5 * RHO * 0.025);
+    thrust = (ve2 - airflow_v2) *
+             (0.26315789473684f * 0.5f * RHO * 0.02f);
 
     /*
     Calculate airflow in the horizontal and vertical planes, as well as
     pressure
     */
-    real_t v_inv, horizontal_v2, vertical_v, vertical_v_inv, qbar;
+    real_t v_inv, vertical_v, vertical_v_inv, qbar;
 
-    horizontal_v2 = airflow_x2 + airflow_y2;
-    qbar = (RHO * 0.5) * horizontal_v2;
-    v_inv = recip_sqrt_d(max(1.0, horizontal_v2 + airflow_z2));
+    qbar = (RHO * 0.5f) * airflow_v2;
+    v_inv = recip_sqrt_d(max(1.0f, airflow_v2));
 
     vertical_v = sqrt_d(airflow_x2 + airflow_z2);
-    vertical_v_inv = recip_d(max(1.0, vertical_v));
+    vertical_v_inv = recip_d(max(1.0f, vertical_v));
 
     /* Work out sin/cos of alpha and beta */
-    real_t alpha, sin_alpha, cos_alpha, sin_beta, cos_beta, a2, sin_cos_alpha;
+    real_t sin_alpha, cos_alpha, sin_beta, cos_beta, sin_cos_alpha;
 
     sin_beta = airflow[Y] * v_inv;
     cos_beta = vertical_v * v_inv;
 
-    alpha = atan2_approx_d(-airflow[Z], -airflow[X]);
-    a2 = alpha * alpha;
-
     sin_alpha = -airflow[Z] * vertical_v_inv;
     cos_alpha = -airflow[X] * vertical_v_inv;
 
-    /* Work out aerodynamic forces in wind frame */
-    real_t lift, alt_lift, drag, side_force;
-
-    lift = (-5 * alpha + 1) * a2 + 2.5 * alpha + 0.12;
-    /* Generalize lift force for very high / very low alpha */
     sin_cos_alpha = sin_alpha * cos_alpha;
-    alt_lift = 0.8 * sin_cos_alpha;
-    if ((alpha < -0.25 && lift > alt_lift) ||
-        (alpha > 0.0 && lift < alt_lift)) {
-        lift = alt_lift;
-    }
+
+    /* Work out aerodynamic forces in wind frame */
+    real_t lift, drag, side_force;
 
     /* 0.26315789473684 is the reciprocal of mass (3.8kg) */
-    lift = (qbar * 0.26315789473684) * lift;
-    drag = (qbar * 0.26315789473684) * (0.05 + 0.7 * sin_alpha * sin_alpha);
-    side_force = (qbar * 0.26315789473684) * 0.3 * sin_beta * cos_beta;
+    lift = (qbar * 0.26315789473684f) * (0.8f * sin_cos_alpha + 0.18f);
+    drag = (qbar * 0.26315789473684f) *
+           (0.05f + 0.7f * sin_alpha * sin_alpha);
+    side_force = (qbar * 0.26315789473684f) * 0.2f * sin_beta * cos_beta;
 
     /* Convert aerodynamic forces from wind frame to body frame */
     real_t x_aero_f = lift * sin_alpha - drag * cos_alpha -
@@ -382,13 +377,14 @@ const real_t *restrict control) {
            yaw_rate = in->angular_velocity[Z],
            pitch_rate = in->angular_velocity[Y],
            roll_rate = in->angular_velocity[X],
-           left_aileron = control[1], right_aileron = control[2];
-    pitch_moment = 0.001 - 0.1 * sin_cos_alpha - 0.003 * pitch_rate -
-                   0.01 * (left_aileron + right_aileron);
-    roll_moment = -0.03 * sin_beta - 0.015 * roll_rate +
-                  0.025 * (left_aileron - right_aileron);
-    yaw_moment = -0.02 * sin_beta - 0.05 * yaw_rate -
-                 0.01 * (absval(left_aileron) + absval(right_aileron));
+           left_aileron = control[1] - 0.5, right_aileron = control[2] - 0.5;
+    pitch_moment = 0.0f - 0.0f * sin_alpha - 0.0f * pitch_rate -
+                   0.1f * (left_aileron + right_aileron) * vertical_v * 0.1f;
+    roll_moment = 0.05f * sin_beta - 0.1f * roll_rate +
+                  0.15f * (left_aileron - right_aileron) * vertical_v * 0.1f;
+    yaw_moment = -0.02f * sin_beta - 0.05f * yaw_rate -
+                 0.02f * (absval(left_aileron) + absval(right_aileron)) *
+                 vertical_v * 0.1f;
     pitch_moment *= qbar;
     roll_moment *= qbar;
     yaw_moment *= qbar;
@@ -404,7 +400,7 @@ const real_t *restrict control) {
         0 5.88235 0
         0.277444 0 2.49202
     */
-    in->angular_acceleration[Y] = 5.8823528 * pitch_moment;
+    in->angular_acceleration[Y] = 10.8823528 * pitch_moment;
     in->angular_acceleration[X] =  (3.364222 * roll_moment +
                                     0.27744448 * yaw_moment);
     in->angular_acceleration[Z] =  (0.27744448 * roll_moment +
