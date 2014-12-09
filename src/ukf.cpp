@@ -193,6 +193,15 @@ void UnscentedKalmanFilter::apriori_estimate(real_t dt, ControlVector c) {
         UKF_SIGMA_WM0*sigma_points.col(0);
 
     /*
+    Calculate the quaternion barycentric mean with renormalisation. Note that
+    this is not an ad-hoc renormalisation of an appoximation; see the paper
+    mentioned above for details.
+    */
+    Quaternionr q(apriori_mean.segment<4>(9));
+    q.normalize();
+    apriori_mean.segment<4>(9) << q.vec(), q.w();
+
+    /*
     Calculate the covariance as described in section 3.5.1. Note that there is
     another error with equation 63; we want to operate on the transformed
     sigma points, not the untransformed ones.
@@ -332,7 +341,7 @@ void UnscentedKalmanFilter::aposteriori_estimate() {
     d_q.w() = d_q_w;
 
     Quaternionr update_q = d_q *
-        Quaternionr(sigma_points.col(0).segment<4>(9));
+        Quaternionr(apriori_mean.segment<4>(9));
     state.attitude() << update_q.vec(), update_q.w();
 
     AssertNormalized(Quaternionr(state.attitude()));
