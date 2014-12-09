@@ -200,9 +200,9 @@ void UnscentedKalmanFilter::apriori_estimate(real_t dt, ControlVector c) {
     gradient descent algorithm above.
     */
     w_prime.topRows<9>() = sigma_points.topRows<9>().colwise() -
-        sigma_points.col(0).segment<9>(0);
+        apriori_mean.segment<9>(0);
     w_prime.bottomRows<12>() = sigma_points.bottomRows<12>().colwise() -
-        sigma_points.col(0).segment<12>(13);
+        apriori_mean.segment<12>(13);
 
     /*
     The attitude part of this set of vectors is calculated using equation (45)
@@ -211,7 +211,7 @@ void UnscentedKalmanFilter::apriori_estimate(real_t dt, ControlVector c) {
     for(i = 0; i < UKF_NUM_SIGMA; i++) {
         Quaternionr err_q =
             (Quaternionr(sigma_points.col(i).segment<4>(9)) *
-            Quaternionr(sigma_points.col(0).segment<4>(9)).conjugate());
+            Quaternionr(apriori_mean.segment<4>(9)).conjugate());
 
         w_prime.block<3, 1>(9, i) = UKF_MRP_F *
             (err_q.vec() / (UKF_MRP_A + err_q.w()));
