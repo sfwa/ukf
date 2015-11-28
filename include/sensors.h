@@ -127,7 +127,7 @@ public:
         gyroscope.orientation = gyroscope_orientation;
         magnetometer.orientation = magnetometer_orientation;
         magnetometer.field = magnetic_field;
-        covariance = MeasurementVector::Constant(UKF_MEASUREMENT_DIM, 1, (real_t)1);
+        covariance = MeasurementVector::Constant(UKF_MEASUREMENT_DIM, 1, 1.0f);
         clear();
     }
     void clear() { memset(&flags, 0, sizeof(flags)); }

@@ -67,27 +67,27 @@ const StateVectorDerivative State::model() {
     output.segment<3>(3) = attitude_q.conjugate() * acceleration();
 
     /* Change in linear acceleration is zero. */
-    output.segment<3>(6) << 0, 0, 0;
+    output.segment<3>(6) << 0.0f, 0.0f, 0.0f;
 
     /* Calculate change in attitude. */
     Eigen::Matrix<real_t, 4, 1> omega_q;
-    omega_q << angular_velocity(), 0;
+    omega_q << angular_velocity(), 0.0f;
 
     attitude_q = Quaternionr(omega_q).conjugate() * attitude_q;
     output.segment<4>(9) << attitude_q.vec(), attitude_q.w();
-    output.segment<4>(9) *= 0.5;
+    output.segment<4>(9) *= 0.5f;
 
     /* Calculate change in angular velocity (just angular acceleration). */
     output.segment<3>(13) = angular_acceleration();
 
     /* Change in angular acceleration is zero. */
-    output.segment<3>(16) << 0, 0, 0;
+    output.segment<3>(16) << 0.0f, 0.0f, 0.0f;
 
     /* Change in wind velocity is zero. */
-    output.segment<3>(19) << 0, 0, 0;
+    output.segment<3>(19) << 0.0f, 0.0f, 0.0f;
 
     /* Change in gyro bias is zero. */
-    output.segment<3>(22) << 0, 0, 0;
+    output.segment<3>(22) << 0.0f, 0.0f, 0.0f;
 
     return output;
 }

@@ -36,7 +36,7 @@ SOFTWARE.
 }
 
 #define AssertNormalized(v) { \
-    bool _res = std::abs((v).norm() - 1.0) < 10e-6; \
+    bool _res = std::abs((v).norm() - 1.0f) < 10e-6f; \
     if (!_res) { \
         std::cout << "Quaternion not normalized:\n" << (v).norm(); \
     }\

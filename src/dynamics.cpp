@@ -50,7 +50,7 @@ const State &in, const ControlVector &control) const {
     output.segment<3>(0) = in.angular_velocity().cross(velocity_body);
 
     /* Clear angular acceleration. */
-    output.segment<3>(3) << 0, 0, 0;
+    output.segment<3>(3) << 0.0f, 0.0f, 0.0f;
 
     return output;
 }
@@ -75,9 +75,9 @@ const State &in, const ControlVector &control) const {
     horizontal_v2 = airflow.y() * airflow.y() + airflow.x() * airflow.x();
     vertical_v2 = airflow.z() * airflow.z() + airflow.x() * airflow.x();
 
-    v_inv = (real_t)1.0 / std::max(v, 1.0);
+    v_inv = 1.0f / std::max(v, static_cast<real_t>(1.0f));
     vertical_v = std::sqrt(vertical_v2);
-    vertical_v_inv = (real_t)1.0 / std::max(vertical_v, 1.0);
+    vertical_v_inv = 1.0f / std::max(vertical_v, static_cast<real_t>(1.0f));
 
     /* Determine alpha and beta: alpha = atan(wz/wx), beta = atan(wy/|wxz|) */
     real_t alpha, sin_alpha, cos_alpha, sin_beta, cos_beta, a2, sin_cos_alpha;
@@ -92,38 +92,38 @@ const State &in, const ControlVector &control) const {
     a2 = alpha * alpha;
 
     real_t lift, drag, side_force, roll_moment, pitch_moment, yaw_moment;
-    lift = -5 * a2 * alpha + a2 + 2.5 * alpha + 0.12;
-    if (alpha < -0.25) {
-        lift = std::min(lift, 0.8 * sin_cos_alpha);
+    lift = -5.0f * a2 * alpha + a2 + 2.5f * alpha + 0.12f;
+    if (alpha < -0.25f) {
+        lift = std::min(lift, 0.8f * sin_cos_alpha);
     } else {
-        lift = std::max(lift, 0.8 * sin_cos_alpha);
+        lift = std::max(lift, 0.8f * sin_cos_alpha);
     }
 
-    drag = 0.05 + 0.7 * sin_alpha * sin_alpha;
-    side_force = 0.3 * sin_beta * cos_beta;
+    drag = 0.05f + 0.7f * sin_alpha * sin_alpha;
+    side_force = 0.3f * sin_beta * cos_beta;
 
-    pitch_moment = 0.001 - 0.1 * sin_cos_alpha - 0.003 * pitch_rate -
-                   0.01 * control[1] - 0.01 * control[2];
-    roll_moment = -0.03 * sin_beta - 0.015 * roll_rate +
-                  0.025 * control[1] - 0.025 * control[2];
-    yaw_moment = -0.02 * sin_beta - 0.05 * yaw_rate -
-                 0.01 * std::abs(control[1]) + 0.01 * std::abs(control[2]);
+    pitch_moment = 0.001f - 0.1f * sin_cos_alpha - 0.003f * pitch_rate -
+                   0.01f * control[1] - 0.01f * control[2];
+    roll_moment = -0.03f * sin_beta - 0.015f * roll_rate +
+                  0.025f * control[1] - 0.025f * control[2];
+    yaw_moment = -0.02f * sin_beta - 0.05f * yaw_rate -
+                 0.01f * std::abs(control[1]) + 0.01f * std::abs(control[2]);
 
     /*
     Determine motor thrust and torque.
     */
-    real_t thrust, ve = 0.0025 * control[0], v0 = airflow.x();
-    thrust = (real_t)0.5 * RHO * 0.025 * (ve * ve - v0 * v0);
-    if (thrust < 0.0) {
+    real_t thrust, ve = 0.0025f * control[0], v0 = airflow.x();
+    thrust = 0.5f * RHO * 0.025f * (ve * ve - v0 * v0);
+    if (thrust < 0.0f) {
         /* Folding prop, so assume no drag */
-        thrust = 0.0;
+        thrust = 0.0f;
     }
 
     /*
     Sum and apply forces and moments
     */
     Vector3r sum_force, sum_torque;
-    real_t qbar = RHO * horizontal_v2 * (real_t)0.5;
+    real_t qbar = RHO * horizontal_v2 * 0.5f;
     sum_force << thrust + qbar * (lift * sin_alpha - drag * cos_alpha - side_force * sin_beta),
                  qbar * side_force * cos_beta,
                  -qbar * (lift * cos_alpha + drag * sin_alpha);
@@ -137,9 +137,9 @@ const State &in, const ControlVector &control) const {
     /* Calculate angular acceleration (tau / inertia tensor) */
     /*output.segment<3>(3) = inertia_tensor_inv * sum_torque;*/
     output.segment<3>(3) <<
-        qbar * (3.364222 * roll_moment + 0.27744448 * yaw_moment),
-        qbar * 5.8823528 * pitch_moment,
-        qbar * (0.27744448 * roll_moment + 2.4920163 * yaw_moment);
+        qbar * (3.364222f * roll_moment + 0.27744448f * yaw_moment),
+        qbar * 5.8823528f * pitch_moment,
+        qbar * (0.27744448f * roll_moment + 2.4920163f * yaw_moment);
 
     return output;
 }

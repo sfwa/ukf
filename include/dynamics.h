@@ -30,10 +30,10 @@ SOFTWARE.
 #include "state.h"
 
 /* Disable dynamics model if velocity is less than 1m/s */
-#define UKF_DYNAMICS_MIN_V 1.0
+#define UKF_DYNAMICS_MIN_V 1.0f
 /* Airframe minimums */
-#define UKF_AIRFRAME_MIN_MASS 0.1
-#define UKF_AIRFRAME_MIN_MOMENT 1e-6
+#define UKF_AIRFRAME_MIN_MASS 0.1f
+#define UKF_AIRFRAME_MIN_MOMENT 1.0e-6f
 
 /*
 Dynamics model base class. The public interface is via the evaluate() method,
@@ -70,13 +70,13 @@ class X8DynamicsModel: public DynamicsModel {
 
 public:
     X8DynamicsModel(void) {
-        mass_inv = (real_t)1.0 / 3.8;
+        mass_inv = 1.0f / 3.8f;
 
         Matrix3x3r inertia_tensor;
         inertia_tensor <<
-            3.0e-1, 0, -0.334e-1,
-            0, 1.7e-1, 0,
-            -0.334e-1, 0, 4.05e-1;
+            3.0e-1f, 0.0f, -0.334e-1f,
+            0.0f, 1.7e-1f, 0.0f,
+            -0.334e-1f, 0.0f, 4.05e-1f;
         inertia_tensor_inv = inertia_tensor.inverse();
     }
 
