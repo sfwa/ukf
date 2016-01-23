@@ -1,3 +1,4 @@
+/*
 Copyright (C) 2016 Thiemar Pty Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -17,3 +18,23 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+*/
+
+#ifndef CORE_H
+#define CORE_H
+
+#include <Eigen/Core>
+#include <Eigen/Geometry>
+#include "StateModel.h"
+
+namespace UKF {
+
+template <typename StateModelType, typename MeasurementModelType>
+class Core {
+private:
+	/* Sigma point distribution */
+};
+
+}
+
+#endif

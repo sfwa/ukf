@@ -30,19 +30,14 @@ INCLUDE_DIRECTORIES(${googletest_dir}/include ../include ${eigen_dir})
 
 # Add test executable target
 ADD_EXECUTABLE(unittest
-    test_state.cpp
-    test_dynamics.cpp
-    test_integrator.cpp
-    test_sensors.cpp
-    test_ukf.cpp)
+    test_statemodel.cpp)
 
 # Create dependency of test on googletest
-ADD_DEPENDENCIES(unittest googletest ukf)
+ADD_DEPENDENCIES(unittest googletest)
 
 # Specify test's link libraries
 ExternalProject_Get_Property(googletest binary_dir)
 TARGET_LINK_LIBRARIES(unittest
-    ukf
     ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}gtest.a
     ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}gtest_main.a
     pthread)

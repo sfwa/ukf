@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2013 Ben Dyer
+Copyright (C) 2016 Thiemar Pty Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -20,34 +20,34 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#ifndef DEBUG_H_
-#define DEBUG_H_
+#ifndef STATEMODEL_H
+#define STATEMODEL_H
 
-#include <cassert>
-#include <iostream>
-#include <stdint.h>
+#include <tuple>
+#include <cstddef>
+#include <Eigen/Core>
 
-#define AssertPositiveDefinite(m) { \
-    bool _res = (m).llt().info() == Eigen::Success; \
-    if (!_res) { \
-        std::cout << "Matrix not positive definite:\n" << m; \
-    } \
-    assert(_res); \
-}
+namespace UKF {
 
-#define AssertNormalized(v) { \
-    bool _res = std::abs((v).norm() - 1.0f) < 10e-6f; \
-    if (!_res) { \
-        std::cout << "Quaternion not normalized:\n" << (v).norm(); \
-    }\
-    assert(_res); \
-}
+template <typename Field>
+constexpr std::ptrdiff_t StateModelDimension = Field::MaxRowsAtCompileTime;
 
-typedef uint64_t cycles_t;
-inline cycles_t rdtsc() {
-    cycles_t result;
-    __asm__ __volatile__ ("rdtsc" : "=A" (result));
-    return result;
+template <typename Field, typename... Fields>
+constexpr std::ptrdiff_t StateModelDimension = Field::MaxRowsAtCompileTime + StateModelDimension<Fields>;
+
+template <typename IntegratorType, typename... Fields>
+class StateModel {
+private:
+    static IntegratorType integrator;
+    static StateModelDimension<Fields> dimension;
+    static std::tuple<Fields> field_types;
+
+    Eigen::Matrix<real_t, dimension, 1> state_vector;
+
+public:
+    static constexpr std::ptrdiff_t GetDimension() { return dimension; }
+};
+
 }
 
 #endif

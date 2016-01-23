@@ -20,17 +20,9 @@ LOG_BUILD ON)
 ExternalProject_Get_Property(eigen3 source_dir)
 SET(eigen_dir ${source_dir})
 
-INCLUDE_DIRECTORIES(include ${eigen_dir})
+INCLUDE_DIRECTORIES(${eigen_dir})
 
 SET(CMAKE_CXX_FLAGS "-isystem ${eigen_dir} -O3 -Weverything -Werror -Wno-documentation -Wno-system-headers -Wno-padded")
-
-ADD_LIBRARY(ukf SHARED
-    src/state.cpp
-    src/dynamics.cpp
-    src/sensors.cpp
-    src/ukf.cpp)
-
-ADD_DEPENDENCIES(ukf eigen3)
 
 ENABLE_TESTING()
 
