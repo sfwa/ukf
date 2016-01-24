@@ -33,6 +33,15 @@ namespace UKF {
 
     namespace detail {
 
+    /*
+    This variable template defines the number of dimensions of a particular
+    StateVector field. For a normal Eigen column vector, the default
+    implementation returns the number of rows at compile time.
+
+    Template specialisations can be used to define the size of fields which
+    don't have a MaxRowsAtCompileTime member, or need a custom size for some
+    reason (eg. the Eigen Quaternion classes).
+    */
     template <typename Field>
     constexpr std::size_t SigmaPointDimension = Field::MaxRowsAtCompileTime;
 
@@ -41,6 +50,12 @@ namespace UKF {
 
     template <>
     constexpr std::size_t SigmaPointDimension<Eigen::Quaterniond> = 4;
+
+    template <>
+    constexpr std::size_t SigmaPointDimension<float> = 1;
+
+    template <>
+    constexpr std::size_t SigmaPointDimension<double> = 1;
 
     template<typename T>
     constexpr T Adder(T v) {
@@ -52,6 +67,7 @@ namespace UKF {
         return first + Adder(args...);
     }
 
+    /* */
     template <typename... Fields>
     constexpr std::size_t GetStateVectorDimension(const std::tuple<Fields...>& t) {
         return Adder(SigmaPointDimension<Fields>...);
@@ -59,13 +75,20 @@ namespace UKF {
 
     }
 
+/*
+Templated state vector class. A particular UKF implementation should
+instantiate this class with a list of fields that make up the state vector.
+
+By default, fields can be Eigen vectors (including Quaternions) or scalar
+floating point types (float, double). Support for other classes can be added
+by specialising the SigmaPointDimension variable for the desired class.
+*/
 template <typename IntegratorType, typename... Fields>
 class StateVector {
 private:
     static IntegratorType integrator;
     static std::tuple<Fields...> field_types;
-    static constexpr std::size_t dimension =
-        detail::GetStateVectorDimension(field_types);
+    static constexpr std::size_t dimension = detail::GetStateVectorDimension(field_types);
 
     Eigen::Matrix<real_t, dimension, 1> state_vector;
 

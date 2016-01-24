@@ -9,7 +9,8 @@ TEST(StateTest, Instantiation) {
         IntegratorRK4,
         Eigen::Vector2f,
         Eigen::Vector3f,
-        Eigen::Quaternionf
+        Eigen::Quaternionf,
+        float
     > test_state;
-    EXPECT_EQ(9, test_state.GetDimension());
+    EXPECT_EQ(10, test_state.GetDimension());
 }
