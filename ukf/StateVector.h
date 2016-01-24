@@ -67,7 +67,10 @@ namespace UKF {
         return first + Adder(args...);
     }
 
-    /* */
+    /*
+    Get the dimension of the state vector by summing the dimension of all
+    fields.
+    */
     template <typename... Fields>
     constexpr std::size_t GetStateVectorDimension(const std::tuple<Fields...>& t) {
         return Adder(SigmaPointDimension<Fields>...);
