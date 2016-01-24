@@ -1,11 +1,6 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.7 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8.4 FATAL_ERROR)
 PROJECT(unittest)
-
-# Enable ExternalProject CMake module
 INCLUDE(ExternalProject)
-
-set(CMAKE_CXX_FLAGS "-O3 -mssse3 -oaddmul")
-set(CMAKE_C_FLAGS "-O3 -mssse3 -oaddmul")
 
 # Set default ExternalProject root directory
 SET_DIRECTORY_PROPERTIES(PROPERTIES EP_PREFIX .)
@@ -26,11 +21,11 @@ LOG_BUILD ON)
 ExternalProject_Get_Property(googletest source_dir)
 SET(googletest_dir ${source_dir})
 
-INCLUDE_DIRECTORIES(${googletest_dir}/include ../include ${eigen_dir})
+INCLUDE_DIRECTORIES(${googletest_dir}/include ../ukf ${eigen_dir} ${PROJECT_BINARY_DIR})
 
 # Add test executable target
 ADD_EXECUTABLE(unittest
-    test_statemodel.cpp)
+    TestStateVector.cpp)
 
 # Create dependency of test on googletest
 ADD_DEPENDENCIES(unittest googletest)

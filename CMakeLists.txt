@@ -1,6 +1,17 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.7 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8.4 FATAL_ERROR)
 PROJECT(ukf)
 INCLUDE(ExternalProject)
+INCLUDE(CheckCXXCompilerFlag)
+
+# Check for C++14 support.
+CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
+IF(COMPILER_SUPPORTS_CXX14)
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+ELSE()
+    MESSAGE(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++14 support. Please use a different C++ compiler.")
+ENDIF()
+
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-register")
 
 # Set default ExternalProject root directory
 SET_DIRECTORY_PROPERTIES(PROPERTIES EP_PREFIX .)
@@ -20,9 +31,15 @@ LOG_BUILD ON)
 ExternalProject_Get_Property(eigen3 source_dir)
 SET(eigen_dir ${source_dir})
 
-INCLUDE_DIRECTORIES(${eigen_dir})
+# Choose the floating-point precision to use.
+SET(UKF_REAL_TYPE double)
 
-SET(CMAKE_CXX_FLAGS "-isystem ${eigen_dir} -O3 -Weverything -Werror -Wno-documentation -Wno-system-headers -Wno-padded")
+CONFIGURE_FILE(
+	"${PROJECT_SOURCE_DIR}/Config.h.in"
+	"${PROJECT_BINARY_DIR}/Config.h"
+)
+
+INCLUDE_DIRECTORIES(${eigen_dir} ${PROJECT_BINARY_DIR})
 
 ENABLE_TESTING()
 

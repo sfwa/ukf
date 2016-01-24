@@ -2,13 +2,12 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include "Integrator.h"
-#include "StateModel.h"
-#include "comparisons.h"
+#include "StateVector.h"
 
 TEST(StateTest, Instantiation) {
-    StateModel<
+    UKF::StateVector<
         IntegratorRK4,
-        Eigne::Vector2f,
+        Eigen::Vector2f,
         Eigen::Vector3f,
         Eigen::Quaternionf
     > test_state;

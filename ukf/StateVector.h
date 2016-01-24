@@ -20,32 +20,57 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#ifndef STATEMODEL_H
-#define STATEMODEL_H
+#ifndef STATEVECTOR_H
+#define STATEVECTOR_H
 
 #include <tuple>
 #include <cstddef>
+#include <utility>
 #include <Eigen/Core>
+#include "Config.h"
 
 namespace UKF {
 
-template <typename Field>
-constexpr std::ptrdiff_t StateModelDimension = Field::MaxRowsAtCompileTime;
+    namespace detail {
 
-template <typename Field, typename... Fields>
-constexpr std::ptrdiff_t StateModelDimension = Field::MaxRowsAtCompileTime + StateModelDimension<Fields>;
+    template <typename Field>
+    constexpr std::size_t SigmaPointDimension = Field::MaxRowsAtCompileTime;
+
+    template <>
+    constexpr std::size_t SigmaPointDimension<Eigen::Quaternionf> = 4;
+
+    template <>
+    constexpr std::size_t SigmaPointDimension<Eigen::Quaterniond> = 4;
+
+    template<typename T>
+    constexpr T Adder(T v) {
+        return v;
+    }
+
+    template<typename T, typename... Args>
+    constexpr T Adder(T first, Args... args) {
+        return first + Adder(args...);
+    }
+
+    template <typename... Fields>
+    constexpr std::size_t GetStateVectorDimension(const std::tuple<Fields...>& t) {
+        return Adder(SigmaPointDimension<Fields>...);
+    }
+
+    }
 
 template <typename IntegratorType, typename... Fields>
-class StateModel {
+class StateVector {
 private:
     static IntegratorType integrator;
-    static StateModelDimension<Fields> dimension;
-    static std::tuple<Fields> field_types;
+    static std::tuple<Fields...> field_types;
+    static constexpr std::size_t dimension =
+        detail::GetStateVectorDimension(field_types);
 
     Eigen::Matrix<real_t, dimension, 1> state_vector;
 
 public:
-    static constexpr std::ptrdiff_t GetDimension() { return dimension; }
+    static constexpr std::size_t GetDimension() { return dimension; }
 };
 
 }

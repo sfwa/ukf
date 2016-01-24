@@ -23,6 +23,8 @@ SOFTWARE.
 #ifndef INTEGRATOR_H_
 #define INTEGRATOR_H_
 
+#include "Config.h"
+
 /*
 Integrator base class. The public interface is via the integrate() method,
 which takes a template parameter that at a minimum must support addition,

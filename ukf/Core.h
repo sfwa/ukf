@@ -25,11 +25,12 @@ SOFTWARE.
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-#include "StateModel.h"
+#include "Config.h"
+#include "StateVector.h"
 
 namespace UKF {
 
-template <typename StateModelType, typename MeasurementModelType>
+template <typename StateVectorType, typename MeasurementVectorType>
 class Core {
 private:
 	/* Sigma point distribution */
