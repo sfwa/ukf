@@ -72,7 +72,7 @@ namespace UKF {
     fields.
     */
     template <typename... Fields>
-    constexpr std::size_t GetStateVectorDimension(const std::tuple<Fields...>& t) {
+    constexpr std::size_t GetStateVectorDimension() {
         return Adder(SigmaPointDimension<Fields>...);
     }
 
@@ -83,15 +83,16 @@ Templated state vector class. A particular UKF implementation should
 instantiate this class with a list of fields that make up the state vector.
 
 By default, fields can be Eigen vectors (including Quaternions) or scalar
-floating point types (float, double). Support for other classes can be added
+floating point types (float, double). Support for other types can be added
 by specialising the SigmaPointDimension variable for the desired class.
 */
 template <typename IntegratorType, typename... Fields>
 class StateVector {
 private:
+    using field_types = std::tuple<Fields...>;
+
     static IntegratorType integrator;
-    static std::tuple<Fields...> field_types;
-    static constexpr std::size_t dimension = detail::GetStateVectorDimension(field_types);
+    static constexpr std::size_t dimension = detail::GetStateVectorDimension<Fields...>();
 
     Eigen::Matrix<real_t, dimension, 1> state_vector;
 

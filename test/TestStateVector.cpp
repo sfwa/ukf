@@ -5,12 +5,15 @@
 #include "StateVector.h"
 
 TEST(StateTest, Instantiation) {
-    UKF::StateVector<
+    using MyStateVector = UKF::StateVector<
         IntegratorRK4,
         Eigen::Vector2f,
         Eigen::Vector3f,
         Eigen::Quaternionf,
         float
-    > test_state;
+    >;
+
+    MyStateVector test_state;
+
     EXPECT_EQ(10, test_state.GetDimension());
 }
