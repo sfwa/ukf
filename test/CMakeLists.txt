@@ -17,6 +17,9 @@ LOG_DOWNLOAD ON
 LOG_CONFIGURE ON
 LOG_BUILD ON)
 
+# Disable dynamic memory allocation in Eigen
+ADD_DEFINITIONS(-DEIGEN_NO_MALLOC)
+
 # Specify include dir
 ExternalProject_Get_Property(googletest source_dir)
 SET(googletest_dir ${source_dir})
