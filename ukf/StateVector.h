@@ -42,8 +42,8 @@ namespace UKF {
     don't have a MaxRowsAtCompileTime member, or need a custom size for some
     reason (eg. the Eigen Quaternion classes).
     */
-    template <typename Field>
-    constexpr std::size_t SigmaPointDimension = Field::MaxRowsAtCompileTime;
+    template <typename T>
+    constexpr std::size_t SigmaPointDimension = T::MaxRowsAtCompileTime;
 
     template <>
     constexpr std::size_t SigmaPointDimension<Eigen::Quaternionf> = 4;
@@ -57,12 +57,12 @@ namespace UKF {
     template <>
     constexpr std::size_t SigmaPointDimension<double> = 1;
 
-    template<typename T>
+    template <typename T>
     constexpr T Adder(T v) {
         return v;
     }
 
-    template<typename T, typename... Args>
+    template <typename T, typename... Args>
     constexpr T Adder(T first, Args... args) {
         return first + Adder(args...);
     }
@@ -79,9 +79,9 @@ namespace UKF {
     }
 
 /* Alias for the Eigen type that StateVector inherits from. */
-template <typename... T>
+template <typename... Fields>
 using StateVectorBaseType =
-    Eigen::Matrix<real_t, detail::GetStateVectorDimension<T...>(), 1>;
+    Eigen::Matrix<real_t, detail::GetStateVectorDimension<Fields...>(), 1>;
 
 /*
 Templated state vector class. A particular UKF implementation should
@@ -98,7 +98,6 @@ private:
 
 public:
     using Base = StateVectorBaseType<Fields...>;
-    using field_types = std::tuple<Fields...>;
 
     /* Inherit Eigen::Matrix constructors and assignment operators. */
     using Base::Base;
