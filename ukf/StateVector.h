@@ -78,6 +78,11 @@ namespace UKF {
 
     }
 
+/* Alias for the Eigen type that StateVector inherits from. */
+template <typename... T>
+using StateVectorBaseType =
+    Eigen::Matrix<real_t, detail::GetStateVectorDimension<T...>(), 1>;
+
 /*
 Templated state vector class. A particular UKF implementation should
 instantiate this class with a list of fields that make up the state vector.
@@ -87,17 +92,17 @@ floating point types (float, double). Support for other types can be added
 by specialising the SigmaPointDimension variable for the desired class.
 */
 template <typename IntegratorType, typename... Fields>
-class StateVector {
+class StateVector : public StateVectorBaseType<Fields...> {
 private:
-    using field_types = std::tuple<Fields...>;
-
     static IntegratorType integrator;
-    static constexpr std::size_t dimension = detail::GetStateVectorDimension<Fields...>();
-
-    Eigen::Matrix<real_t, dimension, 1> state_vector;
 
 public:
-    static constexpr std::size_t GetDimension() { return dimension; }
+    using Base = StateVectorBaseType<Fields...>;
+    using field_types = std::tuple<Fields...>;
+
+    /* Inherit Eigen::Matrix constructors and assignment operators. */
+    using Base::Base;
+    using Base::operator=;
 };
 
 }

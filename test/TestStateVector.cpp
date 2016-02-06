@@ -15,5 +15,6 @@ TEST(StateTest, Instantiation) {
 
     MyStateVector test_state;
 
-    EXPECT_EQ(10, test_state.GetDimension());
+    EXPECT_EQ(10, MyStateVector::MaxRowsAtCompileTime);
+    EXPECT_EQ(10, test_state.size());
 }
