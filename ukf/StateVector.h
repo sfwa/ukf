@@ -75,8 +75,15 @@ namespace UKF {
     constexpr std::size_t GetStateVectorDimension() {
         return Adder(SigmaPointDimension<Fields>...);
     }
-
+    
     }
+
+template <int Key, typename T>
+class Field {
+public:
+    using type = T;
+    int key = Key;
+};
 
 /* Alias for the Eigen type that StateVector inherits from. */
 template <typename... Fields>
@@ -92,12 +99,12 @@ floating point types (float, double). Support for other types can be added
 by specialising the SigmaPointDimension variable for the desired class.
 */
 template <typename IntegratorType, typename... Fields>
-class StateVector : public StateVectorBaseType<Fields...> {
+class StateVector : public StateVectorBaseType<typename Fields::type...> {
 private:
     static IntegratorType integrator;
 
 public:
-    using Base = StateVectorBaseType<Fields...>;
+    using Base = StateVectorBaseType<typename Fields::type...>;
 
     /* Inherit Eigen::Matrix constructors and assignment operators. */
     using Base::Base;
