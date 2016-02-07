@@ -5,12 +5,19 @@
 #include "StateVector.h"
 
 TEST(StateTest, Instantiation) {
+	enum MyFields {
+		LatLon,
+		Altitude,
+		Velocity,
+		Attitude
+	};
+
     using MyStateVector = UKF::StateVector<
         IntegratorRK4,
-        UKF::Field<1, Eigen::Vector2f>,
-        UKF::Field<2, Eigen::Vector3f>,
-        UKF::Field<3, Eigen::Quaternionf>,
-        UKF::Field<4, float>
+        UKF::Field<LatLon, Eigen::Vector2f>,
+        UKF::Field<Altitude, Eigen::Vector3f>,
+        UKF::Field<Velocity, Eigen::Quaternionf>,
+        UKF::Field<Attitude, float>
     >;
 
     MyStateVector test_state;
