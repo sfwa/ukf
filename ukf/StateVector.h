@@ -52,10 +52,7 @@ namespace UKF {
     constexpr std::size_t SigmaPointDimension<Eigen::Quaterniond> = 4;
 
     template <>
-    constexpr std::size_t SigmaPointDimension<float> = 1;
-
-    template <>
-    constexpr std::size_t SigmaPointDimension<double> = 1;
+    constexpr std::size_t SigmaPointDimension<real_t> = 1;
 
     template <typename T>
     constexpr T Adder(T v) {
@@ -82,7 +79,7 @@ template <int Key, typename T>
 class Field {
 public:
     using type = T;
-    int key = Key;
+    static const int key = Key;
 };
 
 /* Alias for the Eigen type that StateVector inherits from. */

@@ -17,7 +17,7 @@ TEST(StateTest, Instantiation) {
         UKF::Field<LatLon, Eigen::Vector2f>,
         UKF::Field<Altitude, Eigen::Vector3f>,
         UKF::Field<Velocity, Eigen::Quaternionf>,
-        UKF::Field<Attitude, float>
+        UKF::Field<Attitude, real_t>
     >;
 
     MyStateVector test_state;
