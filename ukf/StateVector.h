@@ -23,6 +23,7 @@ SOFTWARE.
 #ifndef STATEVECTOR_H
 #define STATEVECTOR_H
 
+#include <limits>
 #include <tuple>
 #include <cstddef>
 #include <utility>
@@ -72,7 +73,21 @@ namespace UKF {
     constexpr std::size_t GetStateVectorDimension() {
         return Adder(SigmaPointDimension<Fields>...);
     }
-    
+
+    /*
+    Get the offset of a particular field in a parameter pack of Field objects
+    by matching the provided Key parameter.
+    */
+    template <int Key, std::size_t Offset, typename F>
+    constexpr std::size_t GetFieldOffset() {
+        return Key == F::key ? Offset : std::numeric_limits<std::size_t>::max();
+    }
+
+    template <int Key, std::size_t Offset, typename F1, typename F2, typename... Fields>
+    constexpr std::size_t GetFieldOffset() {
+        return Key == F1::key ? Offset : GetFieldOffset<Key, Offset + SigmaPointDimension<typename F1::type>, F2, Fields...>();
+    }
+
     }
 
 template <int Key, typename T>
@@ -84,8 +99,7 @@ public:
 
 /* Alias for the Eigen type that StateVector inherits from. */
 template <typename... Fields>
-using StateVectorBaseType =
-    Eigen::Matrix<real_t, detail::GetStateVectorDimension<Fields...>(), 1>;
+using StateVectorBaseType = Eigen::Matrix<real_t, detail::GetStateVectorDimension<Fields...>(), 1>;
 
 /*
 Templated state vector class. A particular UKF implementation should
@@ -106,6 +120,11 @@ public:
     /* Inherit Eigen::Matrix constructors and assignment operators. */
     using Base::Base;
     using Base::operator=;
+
+    template <int Key>
+    constexpr std::size_t offset() {
+        return detail::GetFieldOffset<Key, 0, Fields...>();
+    }
 };
 
 }

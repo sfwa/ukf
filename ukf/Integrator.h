@@ -32,10 +32,10 @@ subtraction and scalar multiplication. It also must have a public method
 "model" which takes no arguments and returns a type which can be added to
 the template parameter and also supports scalar multiplication.
 */
-template<typename Derived>
+template <typename Derived>
 class Integrator {
 public:
-    template<typename StateModel>
+    template <typename StateModel>
     StateModel integrate(StateModel in, real_t delta) const {
         static_cast<Derived *>(this)->integrate(in, delta);
     }
@@ -43,7 +43,7 @@ public:
 
 class IntegratorRK4: Integrator<IntegratorRK4> {
 public:
-    template<typename StateModel>
+    template <typename StateModel>
     const StateModel integrate(StateModel in, real_t delta) const {
         StateModel a = in.model();
         StateModel b = static_cast<StateModel>(in + 0.5f * delta * a).model();
@@ -55,7 +55,7 @@ public:
 
 class IntegratorHeun: Integrator<IntegratorHeun> {
 public:
-    template<typename StateModel>
+    template <typename StateModel>
     const StateModel integrate(StateModel in, real_t delta) const {
         StateModel initial = in.model();
         StateModel predictor = in + delta * initial;
@@ -65,7 +65,7 @@ public:
 
 class IntegratorEuler: Integrator<IntegratorEuler> {
 public:
-    template<typename StateModel>
+    template <typename StateModel>
     const StateModel integrate(StateModel in, real_t delta) const {
         return in + delta * in.model();
     }
