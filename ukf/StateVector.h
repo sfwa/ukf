@@ -76,7 +76,7 @@ namespace UKF {
 
     /*
     Get the offset of a particular field in a parameter pack of Field objects
-    by matching the provided Key parameter.
+    by matching the provided key parameter.
     */
     template <int Key, std::size_t Offset, typename F>
     constexpr std::size_t GetFieldOffset() {
@@ -86,6 +86,20 @@ namespace UKF {
     template <int Key, std::size_t Offset, typename F1, typename F2, typename... Fields>
     constexpr std::size_t GetFieldOffset() {
         return Key == F1::key ? Offset : GetFieldOffset<Key, Offset + SigmaPointDimension<typename F1::type>, F2, Fields...>();
+    }
+
+    /*
+    Get the size of a particular field in a parameter pack of Field objects
+    by matching the provided key parameter.
+    */
+    template <int Key, typename F>
+    constexpr std::size_t GetFieldSize() {
+        return Key == F::key ? SigmaPointDimension<typename F::type> : std::numeric_limits<std::size_t>::max();
+    }
+
+    template <int Key, typename F1, typename F2, typename... Fields>
+    constexpr std::size_t GetFieldSize() {
+        return Key == F1::key ? SigmaPointDimension<typename F1::type> : GetFieldSize<Key, F2, Fields...>();
     }
 
     }
@@ -112,7 +126,14 @@ by specialising the SigmaPointDimension variable for the desired class.
 template <typename IntegratorType, typename... Fields>
 class StateVector : public StateVectorBaseType<typename Fields::type...> {
 private:
+    using field_types = std::tuple<Fields...>;
+    
     static IntegratorType integrator;
+
+    template <int Key>
+    static constexpr std::size_t offset() {
+        return detail::GetFieldOffset<Key, 0, Fields...>();
+    }
 
 public:
     using Base = StateVectorBaseType<typename Fields::type...>;
@@ -122,8 +143,15 @@ public:
     using Base::operator=;
 
     template <int Key>
-    constexpr std::size_t offset() {
-        return detail::GetFieldOffset<Key, 0, Fields...>();
+    auto field() {
+        static_assert(offset<Key>() != std::numeric_limits<std::size_t>::max(), "Specified key not present in state vector");
+        return Base::template segment<detail::GetFieldSize<Key, Fields...>()>(offset<Key>());
+    }
+
+    template <int Key>
+    auto field() const {
+        static_assert(offset<Key>() != std::numeric_limits<std::size_t>::max(), "Specified key not present in state vector");
+        return Base::template segment<detail::GetFieldSize<Key, Fields...>()>(offset<Key>());
     }
 };
 
