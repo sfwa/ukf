@@ -131,7 +131,7 @@ by specialising the SigmaPointDimension variable for the desired class.
 template <typename IntegratorType, typename... Fields>
 class StateVector : public StateVectorBaseType<typename Fields::type...> {
 private:
-    using field_types = std::tuple<Fields...>;
+    using field_types = std::tuple<typename Fields::type...>;
     
     static IntegratorType integrator;
 
