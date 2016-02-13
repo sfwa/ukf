@@ -104,6 +104,11 @@ namespace UKF {
 
     }
 
+/*
+A StateVector object takes a variable number of Fields as template parameters.
+Each field has a type (from which the size of the field is inferred) and a
+key (used to access the field).
+*/
 template <int Key, typename T>
 class Field {
 public:

@@ -33,7 +33,10 @@ namespace UKF {
 template <typename StateVectorType, typename MeasurementVectorType>
 class Core {
 private:
-	/* Sigma point distribution */
+	/* State vector. */
+	StateVectorType state;
+
+	/* Sigma point distribution. */
 };
 
 }
