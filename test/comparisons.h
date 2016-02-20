@@ -1,8 +1,9 @@
 #include <cmath>
 
+template <typename Q1, typename Q2>
 inline ::testing::AssertionResult CmpHelperQuaternionEq(
 const char* expected_expression, const char* actual_expression,
-Quaternionr a, Quaternionr b) {
+Q1 a, Q2 b) {
     a.normalize();
     b.normalize();
 
@@ -14,15 +15,16 @@ Quaternionr a, Quaternionr b) {
         return ::testing::AssertionFailure() <<
             "Value of: " << actual_expression << "\n"
             "Expected: " << expected_expression << "\n" <<
-            "  Actual: Quaternionr(" << b.w() << ", " << b.x() << ", " <<
+            "  Actual: Quaternion(" << b.w() << ", " << b.x() << ", " <<
                 b.y() << ", " << b.z() << ")\n" <<
             "   Error: " << angle << " rad\n";
     }
 }
 
+template <typename T1, typename T2>
 inline ::testing::AssertionResult CmpHelperVectorEq(
 const char* expected_expression, const char* actual_expression,
-Vector3r a, Vector3r b) {
+T1 a, T2 b) {
     real_t d = (a - b).norm(), an = a.norm();
 
     if (d / std::max(an, (real_t)1e-3) < 0.01) {
@@ -31,35 +33,8 @@ Vector3r a, Vector3r b) {
         return ::testing::AssertionFailure() <<
             "Value of: " << actual_expression << "\n"
             "Expected: " << expected_expression << "\n" <<
-            "  Actual: Vector3r(" << b.x() << ", " << b.y() << ", " << b.z()
+            "  Actual: Vector(" << b.x() << ", " << b.y() << ", " << b.z()
                 << ")\n";
-    }
-}
-
-inline ::testing::AssertionResult CmpHelperMeasurementEq(
-const char* expected_expression, const char* actual_expression,
-MeasurementVector a, MeasurementVector b) {
-    bool valid = true;
-
-    if (a.rows() != b.rows()) {
-        valid = false;
-    } else {
-        for (size_t i = 0, l = (size_t)a.rows(); i < l && valid; i++) {
-            if (std::abs(a[i] - b[i]) > 0.001) {
-                valid = false;
-            }
-        }
-    }
-
-
-    if (valid) {
-        return ::testing::AssertionSuccess();
-    } else {
-        return ::testing::AssertionFailure() <<
-            "Value of: " << actual_expression << "\n"
-            "Expected: " << expected_expression << "\n" <<
-            "  Actual: MeasurementVector(" << b.transpose() << ")\n";
-
     }
 }
 
@@ -68,6 +43,3 @@ MeasurementVector a, MeasurementVector b) {
 
 #define EXPECT_VECTOR_EQ(expected, actual)\
     EXPECT_PRED_FORMAT2(CmpHelperVectorEq, expected, actual)
-
-#define EXPECT_MEASUREMENT_EQ(expected, actual)\
-    EXPECT_PRED_FORMAT2(CmpHelperMeasurementEq, expected, actual)
