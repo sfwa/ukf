@@ -33,10 +33,20 @@ namespace UKF {
 template <typename StateVectorType, typename MeasurementVectorType>
 class Core {
 private:
-	/* State vector. */
-	StateVectorType state;
+    /* Type aliases for internal types needed during filter iteration. */
+    using CovarianceMatrix = Eigen::Matrix<real_t,
+        StateVectorType::covariance_size(),
+        StateVectorType::covariance_size();
 
-	/* Sigma point distribution. */
+    using SigmaPointDistribution = Eigen::Matrix<real_t,
+        StateVectorType::size(),
+        2*StateVectorType::covariance_size() + 1>;
+
+    /* State vector. */
+    StateVectorType state;
+
+    /* Sigma point distribution. */
+    SigmaPointDistribution<> sigma_points;
 };
 
 }

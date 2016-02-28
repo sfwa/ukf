@@ -35,7 +35,7 @@ namespace UKF {
     namespace detail {
 
     /*
-    This variable template defines the number of dimensions of a particular
+    This variable template defines the dimensionality of a particular
     StateVector field. For a normal Eigen column vector, the default
     implementation returns the number of rows at compile time.
 
@@ -44,16 +44,35 @@ namespace UKF {
     reason (eg. the Eigen Quaternion classes).
     */
     template <typename T>
-    constexpr std::size_t SigmaPointDimension = T::MaxRowsAtCompileTime;
+    constexpr std::size_t StateVectorDimension = T::MaxRowsAtCompileTime;
 
     template <>
-    constexpr std::size_t SigmaPointDimension<Eigen::Quaternionf> = 4;
+    constexpr std::size_t StateVectorDimension<Eigen::Quaternionf> = 4;
 
     template <>
-    constexpr std::size_t SigmaPointDimension<Eigen::Quaterniond> = 4;
+    constexpr std::size_t StateVectorDimension<Eigen::Quaterniond> = 4;
 
     template <>
-    constexpr std::size_t SigmaPointDimension<real_t> = 1;
+    constexpr std::size_t StateVectorDimension<real_t> = 1;
+
+    /*
+    This variable template defines the dimensionality of a particular
+    StateVector field as it applies to the covariance matrix. For most types,
+    this is just the same as the StateVectorDimension.
+
+    An example of a type which needs a special case is a quaternion – it
+    needs more special treatment than a simple additive update, so its
+    representation in the covariance matrix is different to its
+    representation in the state vector.
+    */
+    template <typename T>
+    constexpr std::size_t CovarianceDimension = StateVectorDimension<T>;
+
+    template <>
+    constexpr std::size_t CovarianceDimension<Eigen::Quaternionf> = 3;
+
+    template <>
+    constexpr std::size_t CovarianceDimension<Eigen::Quaterniond> = 3;
 
     template <typename T>
     constexpr T Adder(T v) {
@@ -71,7 +90,16 @@ namespace UKF {
     */
     template <typename... Fields>
     constexpr std::size_t GetStateVectorDimension() {
-        return Adder(SigmaPointDimension<Fields>...);
+        return Adder(StateVectorDimension<Fields>...);
+    }
+
+    /*
+    Get the dimension of the covariance matrix by summing the dimension of
+    all fields.
+    */
+    template <typename... Fields>
+    constexpr std::size_t GetCovarianceDimension() {
+        return Adder(CovarianceDimension<Fields>...);
     }
 
     /*
@@ -85,7 +113,7 @@ namespace UKF {
 
     template <int Key, std::size_t Offset, typename F1, typename F2, typename... Fields>
     constexpr std::size_t GetFieldOffset() {
-        return Key == F1::key ? Offset : GetFieldOffset<Key, Offset + SigmaPointDimension<typename F1::type>, F2, Fields...>();
+        return Key == F1::key ? Offset : GetFieldOffset<Key, Offset + StateVectorDimension<typename F1::type>, F2, Fields...>();
     }
 
     /*
@@ -94,12 +122,12 @@ namespace UKF {
     */
     template <int Key, typename F>
     constexpr std::size_t GetFieldSize() {
-        return Key == F::key ? SigmaPointDimension<typename F::type> : std::numeric_limits<std::size_t>::max();
+        return Key == F::key ? StateVectorDimension<typename F::type> : std::numeric_limits<std::size_t>::max();
     }
 
     template <int Key, typename F1, typename F2, typename... Fields>
     constexpr std::size_t GetFieldSize() {
-        return Key == F1::key ? SigmaPointDimension<typename F1::type> : GetFieldSize<Key, F2, Fields...>();
+        return Key == F1::key ? StateVectorDimension<typename F1::type> : GetFieldSize<Key, F2, Fields...>();
     }
 
     }
@@ -116,7 +144,7 @@ public:
     static const int key = Key;
 };
 
-/* Alias for the Eigen type that StateVector inherits from. */
+/* Alias for the Eigen type from which StateVector inherits. */
 template <typename... Fields>
 using StateVectorBaseType = Eigen::Matrix<real_t, detail::GetStateVectorDimension<Fields...>(), 1>;
 
@@ -126,11 +154,12 @@ instantiate this class with a list of fields that make up the state vector.
 
 By default, fields can be Eigen vectors (including Quaternions) or scalar
 floating point types (float, double). Support for other types can be added
-by specialising the SigmaPointDimension variable for the desired class.
+by specialising the StateVectorDimension variable for the desired class.
 */
 template <typename IntegratorType, typename... Fields>
 class StateVector : public StateVectorBaseType<typename Fields::type...> {
 private:
+    using Base = StateVectorBaseType<typename Fields::type...>;
     using field_types = std::tuple<typename Fields::type...>;
     
     static IntegratorType integrator;
@@ -141,11 +170,19 @@ private:
     }
 
 public:
-    using Base = StateVectorBaseType<typename Fields::type...>;
-
     /* Inherit Eigen::Matrix constructors and assignment operators. */
     using Base::Base;
     using Base::operator=;
+
+    /* Get size of state vector. */
+    static constexpr std::size_t size() {
+        return detail::GetStateVectorDimension<typename Fields::type...>();
+    }
+
+    /* Get size of state vector delta. */
+    static constexpr std::size_t covariance_size() {
+        return detail::GetCovarianceDimension<typename Fields::type...>();
+    }
 
     template <int Key>
     auto field() {
