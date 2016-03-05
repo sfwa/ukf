@@ -46,7 +46,10 @@ private:
     StateVectorType state;
 
     /* Sigma point distribution. */
-    SigmaPointDistribution<> sigma_points;
+    SigmaPointDistribution sigma_points;
+
+    /* Covariance matrix. */
+    CovarianceMatrix covariance;
 };
 
 }

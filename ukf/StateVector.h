@@ -89,7 +89,7 @@ namespace UKF {
     fields.
     */
     template <typename... Fields>
-    constexpr std::size_t GetStateVectorDimension() {
+    constexpr std::size_t GetCompositeVectorDimension() {
         return Adder(StateVectorDimension<Fields>...);
     }
 
@@ -146,11 +146,14 @@ public:
 
 /* Alias for the Eigen type from which StateVector inherits. */
 template <typename... Fields>
-using StateVectorBaseType = Eigen::Matrix<real_t, detail::GetStateVectorDimension<Fields...>(), 1>;
+using StateVectorBaseType = Eigen::Matrix<
+    real_t,
+    detail::GetCompositeVectorDimension<Fields...>(),
+    1>;
 
 /*
 Templated state vector class. A particular UKF implementation should
-instantiate this class with a list of fields that make up the state vector.
+specialise this class with a list of fields that make up the state vector.
 
 By default, fields can be Eigen vectors (including Quaternions) or scalar
 floating point types (float, double). Support for other types can be added
@@ -176,7 +179,7 @@ public:
 
     /* Get size of state vector. */
     static constexpr std::size_t size() {
-        return detail::GetStateVectorDimension<typename Fields::type...>();
+        return detail::GetCompositeVectorDimension<typename Fields::type...>();
     }
 
     /* Get size of state vector delta. */
