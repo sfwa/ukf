@@ -25,6 +25,7 @@ SOFTWARE.
 
 #include <limits>
 #include <tuple>
+#include <cassert>
 #include <cstddef>
 #include <utility>
 #include <Eigen/Core>
@@ -33,35 +34,153 @@ SOFTWARE.
 
 namespace UKF {
 
-/* Alias for the Eigen type from which MeasurementVector inherits. */
+/* Alias for the Eigen type from which FixedMeasurementVector inherits. */
 template <typename... Fields>
-using MeasurementVectorBaseType = Eigen::Matrix<
-	real_t,
-	Eigen::Dynamic,
-	1,
-	0,
-	detail::GetCompositeVectorDimension<Fields...>(),
-	1>;
+using MeasurementVectorFixedBaseType = Eigen::Matrix<
+    real_t,
+    detail::GetCompositeVectorDimension<Fields...>(),
+    1>;
 
-/*
-Templated measurement vector class. A particular UKF implementation should
-specialise this class in a similar way to the StateVector class, but with a
-list of measurements which are intended to be provided to the filter.
-*/
+/* Alias for the Eigen type from which DynamicMeasurementVector inherits. */
 template <typename... Fields>
-class MeasurementVector : public MeasurementVectorBaseType<typename Fields::type...> {
+using MeasurementVectorDynamicBaseType = Eigen::Matrix<
+    real_t,
+    Eigen::Dynamic,
+    1,
+    0,
+    detail::GetCompositeVectorDimension<Fields...>(),
+    1>;
+
+/* Templated measurement vector abstract base class. */
+template <template<typename...> class B, typename... Fields>
+class MeasurementVector : public B<typename Fields::type...> {
 private:
-    using Base = MeasurementVectorBaseType<typename Fields::type...>;
+    using Base = B<typename Fields::type...>;
     using field_types = std::tuple<typename Fields::type...>;
+
+    /*
+    Measurement covariance is represented as a vector the same length as the
+    measurement vector.
+    */
+    static Base measurement_covariance;
 
 public:
     /* Inherit Eigen::Matrix constructors and assignment operators. */
     using Base::Base;
     using Base::operator=;
+};
 
-    /* Get maximum size of measurement vector. */
+/*
+This class provides a fixed measurement vector, to be used when the same
+measurement are available every time step.
+*/
+template <typename... Fields>
+class FixedMeasurementVector : public MeasurementVector<MeasurementVectorFixedBaseType, Fields...> {
+private:
+    using Base = MeasurementVector<MeasurementVectorDynamicBaseType, Fields...>;
+    using field_types = std::tuple<typename Fields::type...>;
+
+public:
+    template <int Key>
+    auto field() {
+        static_assert(detail::GetFieldOffset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
+            "Specified key not present in measurement vector");
+        return Base::template segment<detail::GetFieldSize<Fields...>(Key)>(detail::GetFieldOffset<0, Fields...>(Key));
+    }
+
+    template <int Key>
+    auto field() const {
+        static_assert(detail::GetFieldOffset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
+            "Specified key not present in measurement vector");
+        return Base::template segment<detail::GetFieldSize<Fields...>(Key)>(detail::GetFieldOffset<0, Fields...>(Key));
+    }
+};
+
+/*
+This class provides a dynamic measurement vector, to be used when not all
+measurements are available every time step.
+*/
+template <typename... Fields>
+class DynamicMeasurementVector : public MeasurementVector<MeasurementVectorDynamicBaseType, Fields...> {
+private:
+    using Base = MeasurementVector<MeasurementVectorDynamicBaseType, Fields...>;
+    using field_types = std::tuple<typename Fields::type...>;
+
+    /*
+    This vector keeps track of which fields have been set in the measurement
+    vector, and the order they were supplied in. This allows any combination
+    of measurements to be supplied in any order and they will be handled
+    correctly.
+    */
+    Eigen::Matrix<int, Eigen::Dynamic, 1, 0, sizeof...(Fields), 1> current_measurements;
+
+    /*
+    This method gets the offset of the specified key in the measurement
+    vector, or returns std::numeric_limits<std::size_t>::max() if it's not
+    present.
+    */
+    std::size_t get_offset(int Key) {
+        std::size_t offset = 0;
+        for(int i = 0; i < current_measurements.size(); i++) {
+            if(current_measurements(i) == Key) {
+                break;
+            }
+
+            offset += detail::GetFieldSize<Fields...>(current_measurements(i));
+        }
+
+        return offset;
+    }
+
+public:
+    /* Get maximum size of dynamic measurement vector. */
     static constexpr std::size_t max_size() {
         return detail::GetCompositeVectorDimension<typename Fields::type...>();
+    }
+
+    template <int Key>
+    auto field() {
+        std::size_t offset = get_offset(Key);
+
+        static_assert(detail::GetFieldSize<Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
+            "Specified key not present in measurement vector");
+
+        /* Check if this field has already been set. If so, replace it. */
+        if(offset < Base::template size()) {
+            return Base::template segment<detail::GetFieldSize<Fields...>(Key)>(offset);
+        } else {
+            /*
+            Otherwise, resize the measurement vector to fit it and store the
+            order in which fields have been set.
+            */
+            std::size_t previous_size = Base::template size();
+            Base::template conservativeResize(previous_size + detail::GetFieldSize<Fields...>(Key));
+
+            /*
+            Resize the current_measurements matrix and store the new key at
+            the end.
+            */
+            std::size_t num_measurements = current_measurements.size();
+            current_measurements.conservativeResize(num_measurements + 1);
+            current_measurements(num_measurements) = Key;
+
+            /* Assign the value to the field. */
+            return Base::template segment<detail::GetFieldSize<Fields...>(Key)>(previous_size);
+        }
+    }
+
+    /* Read-only version of the field accessor method. */
+    template <int Key>
+    auto field() const {
+        std::size_t offset = get_offset(Key);
+
+        static_assert(detail::GetFieldSize<Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
+            "Specified key not present in measurement vector");
+
+        assert(offset != std::numeric_limits<std::size_t>::max() &&
+            "Specified key not present in measurement vector");
+
+        return Base::template segment<detail::GetFieldSize<Fields...>(Key)>(offset);
     }
 };
 

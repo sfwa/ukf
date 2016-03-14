@@ -53,5 +53,5 @@ TEST(StateTest, Assignment) {
     EXPECT_VECTOR_EQ(Eigen::Vector2d(-37.8136, 144.9631), test_state.field<LatLon>());
     EXPECT_VECTOR_EQ(Eigen::Vector3d(1, 2, 3), test_state.field<Velocity>());
     EXPECT_QUATERNION_EQ(Eigen::Quaterniond(1, 0, 0, 0), Eigen::Quaterniond(test_state.field<Attitude>()));
-    EXPECT_EQ(10, test_state.field<Altitude>()[0]);
+    EXPECT_EQ(10, test_state.field<Altitude>()(0));
 }

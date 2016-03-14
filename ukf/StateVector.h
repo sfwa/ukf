@@ -106,28 +106,28 @@ namespace UKF {
     Get the offset of a particular field in a parameter pack of Field objects
     by matching the provided key parameter.
     */
-    template <int Key, std::size_t Offset, typename F>
-    constexpr std::size_t GetFieldOffset() {
+    template <std::size_t Offset, typename F>
+    constexpr std::size_t GetFieldOffset(int Key) {
         return Key == F::key ? Offset : std::numeric_limits<std::size_t>::max();
     }
 
-    template <int Key, std::size_t Offset, typename F1, typename F2, typename... Fields>
-    constexpr std::size_t GetFieldOffset() {
-        return Key == F1::key ? Offset : GetFieldOffset<Key, Offset + StateVectorDimension<typename F1::type>, F2, Fields...>();
+    template <std::size_t Offset, typename F1, typename F2, typename... Fields>
+    constexpr std::size_t GetFieldOffset(int Key) {
+        return Key == F1::key ? Offset : GetFieldOffset<Offset + StateVectorDimension<typename F1::type>, F2, Fields...>(Key);
     }
 
     /*
     Get the size of a particular field in a parameter pack of Field objects
     by matching the provided key parameter.
     */
-    template <int Key, typename F>
-    constexpr std::size_t GetFieldSize() {
+    template <typename F>
+    constexpr std::size_t GetFieldSize(int Key) {
         return Key == F::key ? StateVectorDimension<typename F::type> : std::numeric_limits<std::size_t>::max();
     }
 
-    template <int Key, typename F1, typename F2, typename... Fields>
-    constexpr std::size_t GetFieldSize() {
-        return Key == F1::key ? StateVectorDimension<typename F1::type> : GetFieldSize<Key, F2, Fields...>();
+    template <typename F1, typename F2, typename... Fields>
+    constexpr std::size_t GetFieldSize(int Key) {
+        return Key == F1::key ? StateVectorDimension<typename F1::type> : GetFieldSize<F2, Fields...>(Key);
     }
 
     }
@@ -167,11 +167,6 @@ private:
     
     static IntegratorType integrator;
 
-    template <int Key>
-    static constexpr std::size_t offset() {
-        return detail::GetFieldOffset<Key, 0, Fields...>();
-    }
-
 public:
     /* Inherit Eigen::Matrix constructors and assignment operators. */
     using Base::Base;
@@ -189,14 +184,16 @@ public:
 
     template <int Key>
     auto field() {
-        static_assert(offset<Key>() != std::numeric_limits<std::size_t>::max(), "Specified key not present in state vector");
-        return Base::template segment<detail::GetFieldSize<Key, Fields...>()>(offset<Key>());
+        static_assert(detail::GetFieldOffset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
+            "Specified key not present in state vector");
+        return Base::template segment<detail::GetFieldSize<Fields...>(Key)>(detail::GetFieldOffset<0, Fields...>(Key));
     }
 
     template <int Key>
     auto field() const {
-        static_assert(offset<Key>() != std::numeric_limits<std::size_t>::max(), "Specified key not present in state vector");
-        return Base::template segment<detail::GetFieldSize<Key, Fields...>()>(offset<Key>());
+        static_assert(detail::GetFieldOffset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
+            "Specified key not present in state vector");
+        return Base::template segment<detail::GetFieldSize<Fields...>(Key)>(detail::GetFieldOffset<0, Fields...>(Key));
     }
 };
 
