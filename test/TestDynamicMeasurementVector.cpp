@@ -18,14 +18,14 @@ using MyMeasurementVector = UKF::DynamicMeasurementVector<
     UKF::Field<DynamicPressure, real_t>
 >;
 
-TEST(MeasurementTest, Instantiation) {
+TEST(DynamicMeasurementVectorTest, Instantiation) {
     MyMeasurementVector test_measurement;
 
     EXPECT_EQ(8, MyMeasurementVector::MaxRowsAtCompileTime);
     EXPECT_EQ(8, test_measurement.max_size());
 }
 
-TEST(MeasurementTest, Assignment) {
+TEST(DynamicMeasurementVectorTest, Assignment) {
     MyMeasurementVector test_measurement;
 
     test_measurement.field<Gyroscope>() << 1, 2, 3;
@@ -53,7 +53,7 @@ TEST(MeasurementTest, Assignment) {
     EXPECT_VECTOR_EQ(expected, test_measurement);
 }
 
-TEST(MeasurementTest, Reassignment) {
+TEST(DynamicMeasurementVectorTest, Reassignment) {
     MyMeasurementVector test_measurement;
 
     test_measurement.field<Gyroscope>() << 1, 2, 3;
@@ -69,7 +69,7 @@ TEST(MeasurementTest, Reassignment) {
     EXPECT_VECTOR_EQ(Eigen::Vector3d(4, 5, 6), test_measurement.field<Gyroscope>());
 }
 
-TEST(MeasurementTest, MultipleReassignment) {
+TEST(DynamicMeasurementVectorTest, MultipleReassignment) {
     MyMeasurementVector test_measurement;
 
     test_measurement.field<Gyroscope>() << 1, 2, 3;

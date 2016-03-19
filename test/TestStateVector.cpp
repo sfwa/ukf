@@ -5,44 +5,29 @@
 #include "StateVector.h"
 #include "comparisons.h"
 
-TEST(StateTest, Instantiation) {
-    enum MyFields {
-        LatLon,
-        Altitude,
-        Velocity,
-        Attitude
-    };
+enum MyFields {
+    LatLon,
+    Altitude,
+    Velocity,
+    Attitude
+};
 
-    using MyStateVector = UKF::StateVector<
-        IntegratorRK4,
-        UKF::Field<LatLon, Eigen::Vector2d>,
-        UKF::Field<Velocity, Eigen::Vector3d>,
-        UKF::Field<Attitude, Eigen::Quaterniond>,
-        UKF::Field<Altitude, real_t>
-    >;
+using MyStateVector = UKF::StateVector<
+    IntegratorRK4,
+    UKF::Field<LatLon, Eigen::Vector2d>,
+    UKF::Field<Velocity, Eigen::Vector3d>,
+    UKF::Field<Attitude, Eigen::Quaterniond>,
+    UKF::Field<Altitude, real_t>
+>;
 
+TEST(StateVectorTest, Instantiation) {
     MyStateVector test_state;
 
     EXPECT_EQ(10, MyStateVector::MaxRowsAtCompileTime);
     EXPECT_EQ(10, test_state.size());
 }
 
-TEST(StateTest, Assignment) {
-    enum MyFields {
-        LatLon,
-        Altitude,
-        Velocity,
-        Attitude
-    };
-
-    using MyStateVector = UKF::StateVector<
-        IntegratorRK4,
-        UKF::Field<LatLon, Eigen::Vector2d>,
-        UKF::Field<Velocity, Eigen::Vector3d>,
-        UKF::Field<Attitude, Eigen::Quaterniond>,
-        UKF::Field<Altitude, real_t>
-    >;
-
+TEST(StateVectorTest, Assignment) {
     MyStateVector test_state;
 
     test_state.field<LatLon>() << -37.8136, 144.9631;

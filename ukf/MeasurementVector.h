@@ -77,10 +77,15 @@ measurement are available every time step.
 template <typename... Fields>
 class FixedMeasurementVector : public MeasurementVector<MeasurementVectorFixedBaseType, Fields...> {
 private:
-    using Base = MeasurementVector<MeasurementVectorDynamicBaseType, Fields...>;
+    using Base = MeasurementVector<MeasurementVectorFixedBaseType, Fields...>;
     using field_types = std::tuple<typename Fields::type...>;
 
 public:
+    /* Get size of measurement vector. */
+    static constexpr std::size_t size() {
+        return detail::GetCompositeVectorDimension<typename Fields::type...>();
+    }
+
     template <int Key>
     auto field() {
         static_assert(detail::GetFieldOffset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
