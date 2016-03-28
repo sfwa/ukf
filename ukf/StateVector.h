@@ -106,29 +106,97 @@ namespace UKF {
     Get the offset of a particular field in a parameter pack of Field objects
     by matching the provided key parameter.
     */
-    template <std::size_t Offset, typename F>
+    template <std::size_t Offset, typename T>
     constexpr std::size_t GetFieldOffset(int Key) {
-        return Key == F::key ? Offset : std::numeric_limits<std::size_t>::max();
+        return Key == T::key ? Offset : std::numeric_limits<std::size_t>::max();
     }
 
-    template <std::size_t Offset, typename F1, typename F2, typename... Fields>
+    template <std::size_t Offset, typename T1, typename T2, typename... Fields>
     constexpr std::size_t GetFieldOffset(int Key) {
-        return Key == F1::key ? Offset : GetFieldOffset<Offset + StateVectorDimension<typename F1::type>, F2, Fields...>(Key);
+        return Key == T1::key ? Offset : GetFieldOffset<
+            Offset + StateVectorDimension<typename T1::type>, T2, Fields...>(Key);
+    }
+
+    /* Do the same as above, but for the covariance matrix. */
+    template <std::size_t Offset, typename T>
+    constexpr std::size_t GetFieldCovarianceOffset(int Key) {
+        return Key == T::key ? Offset : std::numeric_limits<std::size_t>::max();
+    }
+
+    template <std::size_t Offset, typename T1, typename T2, typename... Fields>
+    constexpr std::size_t GetFieldCovarianceOffset(int Key) {
+        return Key == T1::key ? Offset : GetFieldCovarianceOffset<
+            Offset + CovarianceDimension<typename T1::type>, T2, Fields...>(Key);
     }
 
     /*
     Get the size of a particular field in a parameter pack of Field objects
     by matching the provided key parameter.
     */
-    template <typename F>
+    template <typename T>
     constexpr std::size_t GetFieldSize(int Key) {
-        return Key == F::key ? StateVectorDimension<typename F::type> : std::numeric_limits<std::size_t>::max();
+        return Key == T::key ? StateVectorDimension<typename T::type> : std::numeric_limits<std::size_t>::max();
     }
 
-    template <typename F1, typename F2, typename... Fields>
+    template <typename T1, typename T2, typename... Fields>
     constexpr std::size_t GetFieldSize(int Key) {
-        return Key == F1::key ? StateVectorDimension<typename F1::type> : GetFieldSize<F2, Fields...>(Key);
+        return Key == T1::key ? StateVectorDimension<typename T1::type> : GetFieldSize<T2, Fields...>(Key);
     }
+
+    /* Do the same as above, but for the covariance matrix. */
+    template <typename T>
+    constexpr std::size_t GetFieldCovarianceSize(int Key) {
+        return Key == T::key ? CovarianceDimension<typename T::type> : std::numeric_limits<std::size_t>::max();
+    }
+
+    template <typename T1, typename T2, typename... Fields>
+    constexpr std::size_t GetFieldCovarianceSize(int Key) {
+        return Key == T1::key ? CovarianceDimension<typename T1::type> : GetFieldCovarianceSize<T2, Fields...>(Key);
+    }
+
+    }
+
+    namespace parameters {
+
+    /*
+    This namespace contains the compile-time adjustable parameters used by
+    various routines, such as sigma point weights and MRP scaling factors.
+
+    They are implemented using variable templates, so to change them, the
+    user simply provides a specialisation for their own version of the state
+    vector class.
+
+    These are the default parameters used for the scaled unscented transform.
+    See "The Unscented Kalman Filter for Nonlinear Estimation" by Eric A. Wan
+    and Rudolph van der Merwe for details.
+
+    Note that alpha^2 here should be small for correct operation of the
+    filter. Most literature seems to quote about 1e-3 for alpha (1e-6 for
+    alpha^2), but the parameters suggested in "Gaussian Processes for State
+    Space Models and Change Point Detection" by Ryan Tuner (2011) provide a
+    more stable filter.
+    */
+    template <typename T> constexpr real_t AlphaSquared = 1.0;
+    template <typename T> constexpr real_t Beta = 0.0;
+    template <typename T> constexpr real_t Kappa = 3.0;
+    template <typename T> constexpr real_t Lambda =
+        AlphaSquared<T> * (T::covariance_size() + Kappa<T>) - T::covariance_size();
+
+    /*
+    Definitions for parameters used to calculated MRP vectors.
+    See the Markley paper for further details.
+    */
+    template <typename T> constexpr real_t MRP_A = 1.0;
+    template <typename T> constexpr real_t MRP_F = 2.0 * (MRP_A<T> + 1.0);
+
+    /*
+    Definitions for sigma point weights. The naming convention follows that used
+    in in the paper given above.
+    */
+    template <typename T> constexpr real_t Sigma_WM0 = Lambda<T>/(T::covariance_size() + Lambda<T>);
+    template <typename T> constexpr real_t Sigma_WC0 = Sigma_WM0<T> + (1.0 - AlphaSquared<T> + Beta<T>);
+    template <typename T> constexpr real_t Sigma_WMI = 1.0 / (2.0 * (T::covariance_size() + Lambda<T>));
+    template <typename T> constexpr real_t Sigma_WCI = Sigma_WMI<T>;
 
     }
 
@@ -161,14 +229,10 @@ by specialising the StateVectorDimension variable for the desired class.
 */
 template <typename IntegratorType, typename... Fields>
 class StateVector : public StateVectorBaseType<typename Fields::type...> {
-private:
-    using Base = StateVectorBaseType<typename Fields::type...>;
-    using field_types = std::tuple<typename Fields::type...>;
-    
-    static IntegratorType integrator;
-
 public:
     /* Inherit Eigen::Matrix constructors and assignment operators. */
+    using Base = StateVectorBaseType<typename Fields::type...>;
+    using Self = StateVector<IntegratorType, Fields...>;
     using Base::Base;
     using Base::operator=;
 
@@ -182,6 +246,13 @@ public:
         return detail::GetCovarianceDimension<typename Fields::type...>();
     }
 
+    static constexpr std::size_t num_sigma = 2*covariance_size() + 1;
+
+    /* Aliases for types needed during filter iteration. */
+    using CovarianceMatrix = Eigen::Matrix<real_t, covariance_size(), covariance_size()>;
+    using SigmaPointDistribution = Eigen::Matrix<real_t, size(), num_sigma>;
+
+    /* Methods for accessing individual fields. */
     template <int Key>
     auto field() {
         static_assert(detail::GetFieldOffset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
@@ -194,6 +265,87 @@ public:
         static_assert(detail::GetFieldOffset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
             "Specified key not present in state vector");
         return Base::template segment<detail::GetFieldSize<Fields...>(Key)>(detail::GetFieldOffset<0, Fields...>(Key));
+    }
+
+    /*
+    Create a sigma point distribution using the provided covariance matrix.
+    Return value optimisation will ensure this does not involve a copy.
+    */
+    SigmaPointDistribution calculate_sigma_point_distribution(const CovarianceMatrix &P) const {
+        /* Calculate the LLT decomposition of the covariance matrix. */
+        assert(P.llt().info() == Eigen::Success &&
+            "Covariance matrix is not positive definite");
+        CovarianceMatrix S = P.llt().matrixL();
+
+        /* Calculate the sigma point distribution from all the fields. */
+        SigmaPointDistribution X;
+        calculate_field_sigmas<Fields...>(S, X);
+
+        return X;
+    }
+
+private:
+    static IntegratorType integrator;
+
+    /* Private functions for creating a sigma point distribution. */
+    template <typename T>
+    Eigen::Matrix<real_t, detail::CovarianceDimension<T>, num_sigma> perturb_state(
+            const T &state, const Eigen::Matrix<real_t, detail::CovarianceDimension<T>, num_sigma> &cov) {
+        Eigen::Matrix<real_t, detail::CovarianceDimension<T>, num_sigma> temp;
+        temp.leftCols(1) = state;
+        temp.block<detail::CovarianceDimension<T>, covariance_size()>(0, 1) = cov.colwise() + state;
+        temp.block<detail::CovarianceDimension<T>, covariance_size()>(0, covariance_size()+1) = -cov.colwise() + state;
+
+        return temp;
+    }
+
+    /*
+    Construct error quaternions using the MRP method, equation 34 from the
+    Markley paper.
+    */
+    template <typename T>
+    Eigen::Matrix<real_t, 4, num_sigma> perturb_state(
+            const Eigen::Quaternion<T> &state,
+            const Eigen::Matrix<real_t, detail::CovarianceDimension<Eigen::Quaternion<T>>, num_sigma> &cov) {
+        Eigen::Matrix<real_t, 4, num_sigma> temp;
+        temp.leftCols(1) = state;
+
+        Eigen::Array<real_t, 1, num_sigma> x_2 = cov.colwise().squaredNorm();
+        Eigen::Array<real_t, 1, num_sigma> err_w =
+            (-parameters::MRP_A<Self> * x_2 + parameters::MRP_F<Self> * std::sqrt(
+                parameters::MRP_F<Self> * parameters::MRP_F<Self>
+                + (1.0 - parameters::MRP_A<Self>*parameters::MRP_A<Self>) * x_2))
+            / (parameters::MRP_F<Self> * parameters::MRP_F<Self> + x_2);
+        Eigen::Array<real_t, 3, num_sigma> err_xyz =
+            cov.array() * ((1.0 / parameters::MRP_F<Self>) * (parameters::MRP_A<Self> + err_w));
+
+        for(int i = 0; i < covariance_size(); i++) {
+            temp.col(i+1) =
+                Eigen::Quaternion<T>(err_w(i), err_xyz(0, i), err_xyz(1, i), err_xyz(2, i)) * state;
+        }
+
+        for(int i = 0; i < covariance_size(); i++) {
+            temp.col(i+covariance_size()+1) =
+                Eigen::Quaternion<T>(err_w(i), err_xyz(0, i), err_xyz(1, i), err_xyz(2, i)).conjugate() * state;
+        }
+
+        return temp;
+    }
+
+    template <typename T>
+    void calculate_field_sigmas(const CovarianceMatrix &S, SigmaPointDistribution &X) {
+        X.block<detail::GetFieldSize<Fields...>(T::Key), num_sigma>(
+            detail::GetFieldOffset<0, Fields...>(T::Key), 0) = perturb_state(
+            static_cast<typename T::type>(Base::template segment<detail::GetFieldSize<Fields...>(T::Key)>(
+                detail::GetFieldOffset<0, Fields...>(T::Key))),
+            S.block<detail::GetFieldCovarianceSize<Fields...>(T::Key), num_sigma>(
+                detail::GetFieldCovarianceOffset<0, Fields...>(T::Key), 0));
+    }
+
+    template <typename T1, typename T2, typename... Tail>
+    void calculate_field_sigmas(const CovarianceMatrix &S, SigmaPointDistribution &X) {
+        calculate_field_sigmas<T1>(S, X);
+        calculate_field_sigmas<T2, Tail...>(S, X);
     }
 };
 

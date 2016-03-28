@@ -30,27 +30,39 @@ SOFTWARE.
 
 namespace UKF {
 
+/*
+UKF core class. This class contains the intermediate values used in the filter
+iteration, and the methods used to carry out a filter iteration itself.
+
+The algorithm used here is based largely on the work of Edgar Kraft, described
+in the paper "A Quaternion-based Unscented Kalman Filter for Orientation
+Tracking", retrieved from:
+http://kodlab.seas.upenn.edu/uploads/Arun/UKFpaper.pdf
+Comments in the code will occasionally refer to equations or sections in the
+paper.
+
+The attitude-related code makes use of the MRP method described in the paper
+"Unscented Filtering for Spacecraft Attitude Estimation" by John L. Crassidis
+and F. Landis Markley.
+*/
 template <typename StateVectorType, typename MeasurementVectorType>
 class Core {
+public:
+    /* Top-level function used to carry out a filter step. */
+    void iterate(const MeasurementVectorType &m) {
+        /* Add process noise covariance to the state covariance and scale. */
+
+        /* Sigma point distribution. */
+        StateVectorType::SigmaPointDistribution sigma_points;
+    }
+};
+
 private:
-    /* Type aliases for internal types needed during filter iteration. */
-    using CovarianceMatrix = Eigen::Matrix<real_t,
-        StateVectorType::covariance_size(),
-        StateVectorType::covariance_size();
-
-    using SigmaPointDistribution = Eigen::Matrix<real_t,
-        StateVectorType::size(),
-        2*StateVectorType::covariance_size() + 1>;
-
     /* State vector. */
     StateVectorType state;
 
-    /* Sigma point distribution. */
-    SigmaPointDistribution sigma_points;
-
     /* Covariance matrix. */
-    CovarianceMatrix covariance;
-};
+    StateVectorType::CovarianceMatrix covariance;
 
 }
 

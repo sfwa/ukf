@@ -54,20 +54,18 @@ using MeasurementVectorDynamicBaseType = Eigen::Matrix<
 /* Templated measurement vector abstract base class. */
 template <template<typename...> class B, typename... Fields>
 class MeasurementVector : public B<typename Fields::type...> {
-private:
+public:
+    /* Inherit Eigen::Matrix constructors and assignment operators. */
     using Base = B<typename Fields::type...>;
-    using field_types = std::tuple<typename Fields::type...>;
+    using Base::Base;
+    using Base::operator=;
 
+private:
     /*
     Measurement covariance is represented as a vector the same length as the
     measurement vector.
     */
     static Base measurement_covariance;
-
-public:
-    /* Inherit Eigen::Matrix constructors and assignment operators. */
-    using Base::Base;
-    using Base::operator=;
 };
 
 /*
@@ -76,11 +74,9 @@ measurement are available every time step.
 */
 template <typename... Fields>
 class FixedMeasurementVector : public MeasurementVector<MeasurementVectorFixedBaseType, Fields...> {
-private:
-    using Base = MeasurementVector<MeasurementVectorFixedBaseType, Fields...>;
-    using field_types = std::tuple<typename Fields::type...>;
-
 public:
+    using Base = MeasurementVector<MeasurementVectorFixedBaseType, Fields...>;
+
     /* Get size of measurement vector. */
     static constexpr std::size_t size() {
         return detail::GetCompositeVectorDimension<typename Fields::type...>();
@@ -99,6 +95,9 @@ public:
             "Specified key not present in measurement vector");
         return Base::template segment<detail::GetFieldSize<Fields...>(Key)>(detail::GetFieldOffset<0, Fields...>(Key));
     }
+
+private:
+
 };
 
 /*
@@ -107,37 +106,9 @@ measurements are available every time step.
 */
 template <typename... Fields>
 class DynamicMeasurementVector : public MeasurementVector<MeasurementVectorDynamicBaseType, Fields...> {
-private:
-    using Base = MeasurementVector<MeasurementVectorDynamicBaseType, Fields...>;
-    using field_types = std::tuple<typename Fields::type...>;
-
-    /*
-    This vector keeps track of which fields have been set in the measurement
-    vector, and the order they were supplied in. This allows any combination
-    of measurements to be supplied in any order and they will be handled
-    correctly.
-    */
-    Eigen::Matrix<int, Eigen::Dynamic, 1, 0, sizeof...(Fields), 1> current_measurements;
-
-    /*
-    This method gets the offset of the specified key in the measurement
-    vector, or returns std::numeric_limits<std::size_t>::max() if it's not
-    present.
-    */
-    std::size_t get_offset(int Key) {
-        std::size_t offset = 0;
-        for(int i = 0; i < current_measurements.size(); i++) {
-            if(current_measurements(i) == Key) {
-                break;
-            }
-
-            offset += detail::GetFieldSize<Fields...>(current_measurements(i));
-        }
-
-        return offset;
-    }
-
 public:
+    using Base = MeasurementVector<MeasurementVectorDynamicBaseType, Fields...>;
+
     /* Get maximum size of dynamic measurement vector. */
     static constexpr std::size_t max_size() {
         return detail::GetCompositeVectorDimension<typename Fields::type...>();
@@ -186,6 +157,33 @@ public:
             "Specified key not present in measurement vector");
 
         return Base::template segment<detail::GetFieldSize<Fields...>(Key)>(offset);
+    }
+
+private:
+    /*
+    This vector keeps track of which fields have been set in the measurement
+    vector, and the order they were supplied in. This allows any combination
+    of measurements to be supplied in any order and they will be handled
+    correctly.
+    */
+    Eigen::Matrix<int, Eigen::Dynamic, 1, 0, sizeof...(Fields), 1> current_measurements;
+
+    /*
+    This method gets the offset of the specified key in the measurement
+    vector, or returns std::numeric_limits<std::size_t>::max() if it's not
+    present.
+    */
+    std::size_t get_offset(int Key) {
+        std::size_t offset = 0;
+        for(int i = 0; i < current_measurements.size(); i++) {
+            if(current_measurements(i) == Key) {
+                break;
+            }
+
+            offset += detail::GetFieldSize<Fields...>(current_measurements(i));
+        }
+
+        return offset;
     }
 };
 

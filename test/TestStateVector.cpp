@@ -25,6 +25,10 @@ TEST(StateVectorTest, Instantiation) {
 
     EXPECT_EQ(10, MyStateVector::MaxRowsAtCompileTime);
     EXPECT_EQ(10, test_state.size());
+    EXPECT_EQ(9, MyStateVector::CovarianceMatrix::MaxRowsAtCompileTime);
+    EXPECT_EQ(9, MyStateVector::CovarianceMatrix::MaxColsAtCompileTime);
+    EXPECT_EQ(10, MyStateVector::SigmaPointDistribution::MaxRowsAtCompileTime);
+    EXPECT_EQ(19, MyStateVector::SigmaPointDistribution::MaxColsAtCompileTime);
 }
 
 TEST(StateVectorTest, Assignment) {
