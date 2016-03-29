@@ -110,3 +110,7 @@ TEST(DynamicMeasurementVectorTest, MultipleReassignment) {
     expected << 4, 5, 6, 1, 7, 8, 9, 3;
     EXPECT_VECTOR_EQ(expected, test_measurement);
 }
+
+TEST(DynamicMeasurementVectorTest, Arithmetic) {
+    
+}

@@ -107,3 +107,7 @@ TEST(FixedMeasurementVectorTest, MultipleReassignment) {
     expected << 7, 8, 9, 4, 5, 6, 3, 1;
     EXPECT_VECTOR_EQ(expected, test_measurement);
 }
+
+TEST(FixedMeasurementVectorTest, Arithmetic) {
+    
+}
