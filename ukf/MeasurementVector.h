@@ -38,7 +38,7 @@ namespace UKF {
 template <typename... Fields>
 using MeasurementVectorFixedBaseType = Eigen::Matrix<
     real_t,
-    detail::GetCompositeVectorDimension<Fields...>(),
+    Detail::GetCompositeVectorDimension<Fields...>(),
     1>;
 
 /* Alias for the Eigen type from which DynamicMeasurementVector inherits. */
@@ -48,7 +48,7 @@ using MeasurementVectorDynamicBaseType = Eigen::Matrix<
     Eigen::Dynamic,
     1,
     0,
-    detail::GetCompositeVectorDimension<Fields...>(),
+    Detail::GetCompositeVectorDimension<Fields...>(),
     1>;
 
 /* Templated measurement vector abstract base class. */
@@ -79,21 +79,21 @@ public:
 
     /* Get size of measurement vector. */
     static constexpr std::size_t size() {
-        return detail::GetCompositeVectorDimension<typename Fields::type...>();
+        return Detail::GetCompositeVectorDimension<typename Fields::type...>();
     }
 
     template <int Key>
     auto field() {
-        static_assert(detail::GetFieldOffset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
+        static_assert(Detail::GetFieldOffset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
             "Specified key not present in measurement vector");
-        return Base::template segment<detail::GetFieldSize<Fields...>(Key)>(detail::GetFieldOffset<0, Fields...>(Key));
+        return Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(Detail::GetFieldOffset<0, Fields...>(Key));
     }
 
     template <int Key>
     auto field() const {
-        static_assert(detail::GetFieldOffset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
+        static_assert(Detail::GetFieldOffset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
             "Specified key not present in measurement vector");
-        return Base::template segment<detail::GetFieldSize<Fields...>(Key)>(detail::GetFieldOffset<0, Fields...>(Key));
+        return Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(Detail::GetFieldOffset<0, Fields...>(Key));
     }
 
 private:
@@ -111,26 +111,26 @@ public:
 
     /* Get maximum size of dynamic measurement vector. */
     static constexpr std::size_t max_size() {
-        return detail::GetCompositeVectorDimension<typename Fields::type...>();
+        return Detail::GetCompositeVectorDimension<typename Fields::type...>();
     }
 
     template <int Key>
     auto field() {
         std::size_t offset = get_offset(Key);
 
-        static_assert(detail::GetFieldSize<Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
+        static_assert(Detail::GetFieldSize<Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
             "Specified key not present in measurement vector");
 
         /* Check if this field has already been set. If so, replace it. */
         if(offset < Base::template size()) {
-            return Base::template segment<detail::GetFieldSize<Fields...>(Key)>(offset);
+            return Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(offset);
         } else {
             /*
             Otherwise, resize the measurement vector to fit it and store the
             order in which fields have been set.
             */
             std::size_t previous_size = Base::template size();
-            Base::template conservativeResize(previous_size + detail::GetFieldSize<Fields...>(Key));
+            Base::template conservativeResize(previous_size + Detail::GetFieldSize<Fields...>(Key));
 
             /*
             Resize the current_measurements matrix and store the new key at
@@ -141,7 +141,7 @@ public:
             current_measurements(num_measurements) = Key;
 
             /* Assign the value to the field. */
-            return Base::template segment<detail::GetFieldSize<Fields...>(Key)>(previous_size);
+            return Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(previous_size);
         }
     }
 
@@ -150,13 +150,13 @@ public:
     auto field() const {
         std::size_t offset = get_offset(Key);
 
-        static_assert(detail::GetFieldSize<Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
+        static_assert(Detail::GetFieldSize<Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
             "Specified key not present in measurement vector");
 
         assert(offset != std::numeric_limits<std::size_t>::max() &&
             "Specified key not present in measurement vector");
 
-        return Base::template segment<detail::GetFieldSize<Fields...>(Key)>(offset);
+        return Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(offset);
     }
 
 private:
@@ -180,7 +180,7 @@ private:
                 break;
             }
 
-            offset += detail::GetFieldSize<Fields...>(current_measurements(i));
+            offset += Detail::GetFieldSize<Fields...>(current_measurements(i));
         }
 
         return offset;

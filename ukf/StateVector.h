@@ -32,7 +32,7 @@ SOFTWARE.
 
 namespace UKF {
 
-    namespace detail {
+    namespace Detail {
 
     /*
     This variable template defines the dimensionality of a particular
@@ -156,7 +156,7 @@ namespace UKF {
 
     }
 
-    namespace parameters {
+    namespace Parameters {
 
     /*
     This namespace contains the compile-time adjustable parameters used by
@@ -216,7 +216,7 @@ public:
 template <typename... Fields>
 using StateVectorBaseType = Eigen::Matrix<
     real_t,
-    detail::GetCompositeVectorDimension<Fields...>(),
+    Detail::GetCompositeVectorDimension<Fields...>(),
     1>;
 
 /*
@@ -238,12 +238,12 @@ public:
 
     /* Get size of state vector. */
     static constexpr std::size_t size() {
-        return detail::GetCompositeVectorDimension<typename Fields::type...>();
+        return Detail::GetCompositeVectorDimension<typename Fields::type...>();
     }
 
     /* Get size of state vector delta. */
     static constexpr std::size_t covariance_size() {
-        return detail::GetCovarianceDimension<typename Fields::type...>();
+        return Detail::GetCovarianceDimension<typename Fields::type...>();
     }
 
     static constexpr std::size_t num_sigma = 2*covariance_size() + 1;
@@ -255,16 +255,16 @@ public:
     /* Methods for accessing individual fields. */
     template <int Key>
     auto field() {
-        static_assert(detail::GetFieldOffset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
+        static_assert(Detail::GetFieldOffset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
             "Specified key not present in state vector");
-        return Base::template segment<detail::GetFieldSize<Fields...>(Key)>(detail::GetFieldOffset<0, Fields...>(Key));
+        return Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(Detail::GetFieldOffset<0, Fields...>(Key));
     }
 
     template <int Key>
     auto field() const {
-        static_assert(detail::GetFieldOffset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
+        static_assert(Detail::GetFieldOffset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
             "Specified key not present in state vector");
-        return Base::template segment<detail::GetFieldSize<Fields...>(Key)>(detail::GetFieldOffset<0, Fields...>(Key));
+        return Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(Detail::GetFieldOffset<0, Fields...>(Key));
     }
 
     /*
@@ -289,12 +289,12 @@ private:
 
     /* Private functions for creating a sigma point distribution. */
     template <typename T>
-    Eigen::Matrix<real_t, detail::CovarianceDimension<T>, num_sigma> perturb_state(
-            const T &state, const Eigen::Matrix<real_t, detail::CovarianceDimension<T>, num_sigma> &cov) {
-        Eigen::Matrix<real_t, detail::CovarianceDimension<T>, num_sigma> temp;
+    Eigen::Matrix<real_t, Detail::CovarianceDimension<T>, num_sigma> perturb_state(
+            const T &state, const Eigen::Matrix<real_t, Detail::CovarianceDimension<T>, num_sigma> &cov) {
+        Eigen::Matrix<real_t, Detail::CovarianceDimension<T>, num_sigma> temp;
         temp.leftCols(0) = state;
-        temp.block(0, 1, detail::CovarianceDimension<T>, covariance_size()) = state + cov.colwise();
-        temp.block(0, covariance_size()+1, detail::CovarianceDimension<T>, covariance_size()) = state - cov.colwise();
+        temp.block(0, 1, Detail::CovarianceDimension<T>, covariance_size()) = state + cov.colwise();
+        temp.block(0, covariance_size()+1, Detail::CovarianceDimension<T>, covariance_size()) = state - cov.colwise();
 
         return temp;
     }
@@ -306,18 +306,18 @@ private:
     template <typename T>
     Eigen::Matrix<real_t, 4, num_sigma> perturb_state(
             const Eigen::Quaternion<T> &state,
-            const Eigen::Matrix<real_t, detail::CovarianceDimension<Eigen::Quaternion<T>>, num_sigma> &cov) {
+            const Eigen::Matrix<real_t, Detail::CovarianceDimension<Eigen::Quaternion<T>>, num_sigma> &cov) {
         Eigen::Matrix<real_t, 4, num_sigma> temp;
         temp.leftCols(0) = state;
 
         Eigen::Array<real_t, 1, num_sigma> x_2 = cov.colwise().squaredNorm();
         Eigen::Array<real_t, 1, num_sigma> err_w =
-            (-parameters::MRP_A<Self> * x_2 + parameters::MRP_F<Self> * std::sqrt(
-                parameters::MRP_F<Self> * parameters::MRP_F<Self>
-                + (1.0 - parameters::MRP_A<Self>*parameters::MRP_A<Self>) * x_2))
-            / (parameters::MRP_F<Self> * parameters::MRP_F<Self> + x_2);
+            (-Parameters::MRP_A<Self> * x_2 + Parameters::MRP_F<Self> * std::sqrt(
+                Parameters::MRP_F<Self> * Parameters::MRP_F<Self>
+                + (1.0 - Parameters::MRP_A<Self>*Parameters::MRP_A<Self>) * x_2))
+            / (Parameters::MRP_F<Self> * Parameters::MRP_F<Self> + x_2);
         Eigen::Array<real_t, 3, num_sigma> err_xyz =
-            cov.array() * ((1.0 / parameters::MRP_F<Self>) * (parameters::MRP_A<Self> + err_w));
+            cov.array() * ((1.0 / Parameters::MRP_F<Self>) * (Parameters::MRP_A<Self> + err_w));
 
         for(int i = 0; i < covariance_size(); i++) {
             temp.col(i+1) =
@@ -334,12 +334,12 @@ private:
 
     template <typename T>
     void calculate_field_sigmas(const CovarianceMatrix &S, SigmaPointDistribution &X) {
-        X.block<detail::GetFieldSize<Fields...>(T::Key), num_sigma>(
-            detail::GetFieldOffset<0, Fields...>(T::Key), 0) = perturb_state(
-            static_cast<typename T::type>(Base::template segment<detail::GetFieldSize<Fields...>(T::Key)>(
-                detail::GetFieldOffset<0, Fields...>(T::Key))),
-            S.block<detail::GetFieldCovarianceSize<Fields...>(T::Key), num_sigma>(
-                detail::GetFieldCovarianceOffset<0, Fields...>(T::Key), 0));
+        X.block<Detail::GetFieldSize<Fields...>(T::Key), num_sigma>(
+            Detail::GetFieldOffset<0, Fields...>(T::Key), 0) = perturb_state(
+            static_cast<typename T::type>(Base::template segment<Detail::GetFieldSize<Fields...>(T::Key)>(
+                Detail::GetFieldOffset<0, Fields...>(T::Key))),
+            S.block<Detail::GetFieldCovarianceSize<Fields...>(T::Key), num_sigma>(
+                Detail::GetFieldCovarianceOffset<0, Fields...>(T::Key), 0));
     }
 
     template <typename T1, typename T2, typename... Tail>
