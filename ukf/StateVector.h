@@ -292,9 +292,9 @@ private:
     Eigen::Matrix<real_t, detail::CovarianceDimension<T>, num_sigma> perturb_state(
             const T &state, const Eigen::Matrix<real_t, detail::CovarianceDimension<T>, num_sigma> &cov) {
         Eigen::Matrix<real_t, detail::CovarianceDimension<T>, num_sigma> temp;
-        temp.leftCols(1) = state;
-        temp.block<detail::CovarianceDimension<T>, covariance_size()>(0, 1) = cov.colwise() + state;
-        temp.block<detail::CovarianceDimension<T>, covariance_size()>(0, covariance_size()+1) = -cov.colwise() + state;
+        temp.leftCols(0) = state;
+        temp.block(0, 1, detail::CovarianceDimension<T>, covariance_size()) = state + cov.colwise();
+        temp.block(0, covariance_size()+1, detail::CovarianceDimension<T>, covariance_size()) = state - cov.colwise();
 
         return temp;
     }
@@ -308,7 +308,7 @@ private:
             const Eigen::Quaternion<T> &state,
             const Eigen::Matrix<real_t, detail::CovarianceDimension<Eigen::Quaternion<T>>, num_sigma> &cov) {
         Eigen::Matrix<real_t, 4, num_sigma> temp;
-        temp.leftCols(1) = state;
+        temp.leftCols(0) = state;
 
         Eigen::Array<real_t, 1, num_sigma> x_2 = cov.colwise().squaredNorm();
         Eigen::Array<real_t, 1, num_sigma> err_w =
