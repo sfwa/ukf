@@ -17,7 +17,7 @@ using MyStateVector = UKF::StateVector<
     UKF::Field<LatLon, Eigen::Vector2d>,
     UKF::Field<Velocity, Eigen::Vector3d>,
     UKF::Field<Attitude, Eigen::Quaterniond>,
-    UKF::Field<Altitude, real_t>
+    UKF::Field<Altitude, Eigen::Matrix<real_t, 1, 1>>
 >;
 
 TEST(StateVectorTest, Instantiation) {
@@ -77,7 +77,6 @@ template <> constexpr real_t UKF::Parameters::Kappa<AlternateStateVector> = 4.0;
 template <> constexpr real_t UKF::Parameters::MRP_F<AlternateStateVector> =
     2.0 * (UKF::Parameters::AlphaSquared<AlternateStateVector> + 3.0);
 
-
 TEST(StateVectorTest, CustomParameters) {
     AlternateStateVector test_state;
 
@@ -112,8 +111,10 @@ TEST(StateVectorTest, SigmaPointGeneration) {
     test_state.field<Attitude>() << 0, 0, 0, 1;
     test_state.field<Altitude>() << 10;
 
-    MyStateVector::CovarianceMatrix covariance;
+    MyStateVector::CovarianceMatrix covariance = MyStateVector::CovarianceMatrix::Zero();
+    covariance.diagonal() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
+
     MyStateVector::SigmaPointDistribution sigma_points;
 
-
+    sigma_points = test_state.calculate_sigma_point_distribution(covariance);
 }

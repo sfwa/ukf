@@ -50,7 +50,7 @@ class Core {
 public:
     /* Top-level function used to carry out a filter step. */
     void iterate(const MeasurementVectorType &m) {
-        /* Add process noise covariance to the state covariance and scale. */
+        /* Add process noise covariance to the state covariance. */
 
         /* Sigma point distribution. */
         StateVectorType::SigmaPointDistribution sigma_points;

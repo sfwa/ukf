@@ -46,11 +46,8 @@ namespace UKF {
     template <typename T>
     constexpr std::size_t StateVectorDimension = T::MaxRowsAtCompileTime;
 
-    template <>
-    constexpr std::size_t StateVectorDimension<Eigen::Quaternionf> = 4;
-
-    template <>
-    constexpr std::size_t StateVectorDimension<Eigen::Quaterniond> = 4;
+    template <typename T>
+    constexpr std::size_t StateVectorDimension<Eigen::Quaternion<T>> = 4;
 
     template <>
     constexpr std::size_t StateVectorDimension<real_t> = 1;
@@ -68,11 +65,8 @@ namespace UKF {
     template <typename T>
     constexpr std::size_t CovarianceDimension = StateVectorDimension<T>;
 
-    template <>
-    constexpr std::size_t CovarianceDimension<Eigen::Quaternionf> = 3;
-
-    template <>
-    constexpr std::size_t CovarianceDimension<Eigen::Quaterniond> = 3;
+    template <typename T>
+    constexpr std::size_t CovarianceDimension<Eigen::Quaternion<T>> = 3;
 
     template <typename T>
     constexpr T Adder(T v) {
@@ -272,10 +266,10 @@ public:
     Return value optimisation will ensure this does not involve a copy.
     */
     SigmaPointDistribution calculate_sigma_point_distribution(const CovarianceMatrix &P) const {
-        /* Calculate the LLT decomposition of the covariance matrix. */
-        assert(P.llt().info() == Eigen::Success &&
+        /* Calculate the LLT decomposition of the scaled covariance matrix. */
+        assert((P * (covariance_size() + Parameters::Lambda<Self>)).llt().info() == Eigen::Success &&
             "Covariance matrix is not positive definite");
-        CovarianceMatrix S = P.llt().matrixL();
+        CovarianceMatrix S = (P * (covariance_size() + Parameters::Lambda<Self>)).llt().matrixL();
 
         /* Calculate the sigma point distribution from all the fields. */
         SigmaPointDistribution X;
@@ -290,11 +284,11 @@ private:
     /* Private functions for creating a sigma point distribution. */
     template <typename T>
     Eigen::Matrix<real_t, Detail::CovarianceDimension<T>, num_sigma> perturb_state(
-            const T &state, const Eigen::Matrix<real_t, Detail::CovarianceDimension<T>, num_sigma> &cov) {
+            const T &state, const Eigen::Matrix<real_t, Detail::CovarianceDimension<T>, covariance_size()> &cov) const {
         Eigen::Matrix<real_t, Detail::CovarianceDimension<T>, num_sigma> temp;
-        temp.leftCols(0) = state;
-        temp.block(0, 1, Detail::CovarianceDimension<T>, covariance_size()) = state + cov.colwise();
-        temp.block(0, covariance_size()+1, Detail::CovarianceDimension<T>, covariance_size()) = state - cov.colwise();
+        temp.col(0) = state;
+        temp.block(0, 1, Detail::CovarianceDimension<T>, covariance_size()) = cov.colwise() + state;
+        temp.block(0, covariance_size()+1, Detail::CovarianceDimension<T>, covariance_size()) = -(cov.colwise() - state);
 
         return temp;
     }
@@ -306,44 +300,44 @@ private:
     template <typename T>
     Eigen::Matrix<real_t, 4, num_sigma> perturb_state(
             const Eigen::Quaternion<T> &state,
-            const Eigen::Matrix<real_t, Detail::CovarianceDimension<Eigen::Quaternion<T>>, num_sigma> &cov) {
+            const Eigen::Matrix<real_t, Detail::CovarianceDimension<Eigen::Quaternion<T>>, covariance_size()> &cov) const {
         Eigen::Matrix<real_t, 4, num_sigma> temp;
-        temp.leftCols(0) = state;
+        temp.col(0) << state.vec(), state.w();
 
-        Eigen::Array<real_t, 1, num_sigma> x_2 = cov.colwise().squaredNorm();
-        Eigen::Array<real_t, 1, num_sigma> err_w =
-            (-Parameters::MRP_A<Self> * x_2 + Parameters::MRP_F<Self> * std::sqrt(
-                Parameters::MRP_F<Self> * Parameters::MRP_F<Self>
-                + (1.0 - Parameters::MRP_A<Self>*Parameters::MRP_A<Self>) * x_2))
+        Eigen::Array<real_t, 1, covariance_size()> x_2 = cov.colwise().squaredNorm();
+        Eigen::Array<real_t, 1, covariance_size()> err_w =
+            (-Parameters::MRP_A<Self> * x_2 + Parameters::MRP_F<Self> * (
+                x_2 * (1.0 - Parameters::MRP_A<Self>*Parameters::MRP_A<Self>)
+                + Parameters::MRP_F<Self> * Parameters::MRP_F<Self>).sqrt())
             / (Parameters::MRP_F<Self> * Parameters::MRP_F<Self> + x_2);
-        Eigen::Array<real_t, 3, num_sigma> err_xyz =
-            cov.array() * ((1.0 / Parameters::MRP_F<Self>) * (Parameters::MRP_A<Self> + err_w));
+        Eigen::Array<real_t, 3, covariance_size()> err_xyz =
+            cov.array().rowwise() * (err_w + Parameters::MRP_A<Self>) * (1.0 / Parameters::MRP_F<Self>);
 
+        Eigen::Quaternion<T> temp_q;
         for(int i = 0; i < covariance_size(); i++) {
-            temp.col(i+1) =
-                Eigen::Quaternion<T>(err_w(i), err_xyz(0, i), err_xyz(1, i), err_xyz(2, i)) * state;
+            temp_q = Eigen::Quaternion<T>(err_w(i), err_xyz(0, i), err_xyz(1, i), err_xyz(2, i)) * state;
+            temp.col(i+1) << temp_q.vec(), temp_q.w();
         }
 
         for(int i = 0; i < covariance_size(); i++) {
-            temp.col(i+covariance_size()+1) =
-                Eigen::Quaternion<T>(err_w(i), err_xyz(0, i), err_xyz(1, i), err_xyz(2, i)).conjugate() * state;
+            temp_q = Eigen::Quaternion<T>(err_w(i), err_xyz(0, i), err_xyz(1, i), err_xyz(2, i)).conjugate() * state;
+            temp.col(i+covariance_size()+1) << temp_q.vec(), temp_q.w();
         }
 
         return temp;
     }
 
     template <typename T>
-    void calculate_field_sigmas(const CovarianceMatrix &S, SigmaPointDistribution &X) {
-        X.block<Detail::GetFieldSize<Fields...>(T::Key), num_sigma>(
-            Detail::GetFieldOffset<0, Fields...>(T::Key), 0) = perturb_state(
-            static_cast<typename T::type>(Base::template segment<Detail::GetFieldSize<Fields...>(T::Key)>(
-                Detail::GetFieldOffset<0, Fields...>(T::Key))),
-            S.block<Detail::GetFieldCovarianceSize<Fields...>(T::Key), num_sigma>(
-                Detail::GetFieldCovarianceOffset<0, Fields...>(T::Key), 0));
+    void calculate_field_sigmas(const CovarianceMatrix &S, SigmaPointDistribution &X) const {
+        X.block(Detail::GetFieldOffset<0, Fields...>(T::key), 0,
+            Detail::GetFieldSize<Fields...>(T::key), num_sigma) = perturb_state(
+            static_cast<typename T::type>(field<T::key>()),
+            S.block(Detail::GetFieldCovarianceOffset<0, Fields...>(T::key), 0,
+                Detail::GetFieldCovarianceSize<Fields...>(T::key), covariance_size()));
     }
 
     template <typename T1, typename T2, typename... Tail>
-    void calculate_field_sigmas(const CovarianceMatrix &S, SigmaPointDistribution &X) {
+    void calculate_field_sigmas(const CovarianceMatrix &S, SigmaPointDistribution &X) const {
         calculate_field_sigmas<T1>(S, X);
         calculate_field_sigmas<T2, Tail...>(S, X);
     }
