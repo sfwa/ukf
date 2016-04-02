@@ -17,7 +17,7 @@ using MyStateVector = UKF::StateVector<
     UKF::Field<LatLon, Eigen::Vector2d>,
     UKF::Field<Velocity, Eigen::Vector3d>,
     UKF::Field<Attitude, Eigen::Quaterniond>,
-    UKF::Field<Altitude, Eigen::Matrix<real_t, 1, 1>>
+    UKF::Field<Altitude, real_t>
 >;
 
 TEST(StateVectorTest, Instantiation) {

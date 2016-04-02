@@ -50,7 +50,10 @@ namespace UKF {
     constexpr std::size_t StateVectorDimension<Eigen::Quaternion<T>> = 4;
 
     template <>
-    constexpr std::size_t StateVectorDimension<real_t> = 1;
+    constexpr std::size_t StateVectorDimension<float> = 1;
+
+    template <>
+    constexpr std::size_t StateVectorDimension<double> = 1;
 
     /*
     This variable template defines the dimensionality of a particular
@@ -121,6 +124,21 @@ namespace UKF {
     constexpr std::size_t GetFieldCovarianceOffset(int Key) {
         return Key == T1::key ? Offset : GetFieldCovarianceOffset<
             Offset + CovarianceDimension<typename T1::type>, T2, Fields...>(Key);
+    }
+
+    template <typename T>
+    constexpr T ConvertSegment(const Eigen::Matrix<real_t, StateVectorDimension<T>, 1> &state) {
+        return static_cast<T>(state);
+    }
+
+    template <>
+    constexpr double ConvertSegment<double>(const Eigen::Matrix<real_t, 1, 1> &state) {
+        return static_cast<double>(state(0));
+    }
+
+    template <>
+    constexpr float ConvertSegment<float>(const Eigen::Matrix<real_t, 1, 1> &state) {
+        return static_cast<float>(state(0));
     }
 
     /*
@@ -293,6 +311,24 @@ private:
         return temp;
     }
 
+    Eigen::Matrix<real_t, 1, num_sigma> perturb_state(float state, const Eigen::Matrix<real_t, 1, covariance_size()> &cov) const {
+        Eigen::Matrix<real_t, 1, num_sigma> temp;
+        temp(0) = state;
+        temp.segment(1, covariance_size()) = cov.array() + state;
+        temp.segment(covariance_size()+1, covariance_size()) = -(cov.array() - state);
+
+        return temp;
+    }
+
+    Eigen::Matrix<real_t, 1, num_sigma> perturb_state(double state, const Eigen::Matrix<real_t, 1, covariance_size()> &cov) const {
+        Eigen::Matrix<real_t, 1, num_sigma> temp;
+        temp(0) = state;
+        temp.segment(1, covariance_size()) = cov.array() + state;
+        temp.segment(covariance_size()+1, covariance_size()) = -(cov.array() - state);
+
+        return temp;
+    }
+
     /*
     Construct error quaternions using the MRP method, equation 34 from the
     Markley paper.
@@ -330,10 +366,10 @@ private:
     template <typename T>
     void calculate_field_sigmas(const CovarianceMatrix &S, SigmaPointDistribution &X) const {
         X.block(Detail::GetFieldOffset<0, Fields...>(T::key), 0,
-            Detail::GetFieldSize<Fields...>(T::key), num_sigma) = perturb_state(
-            static_cast<typename T::type>(field<T::key>()),
+            Detail::StateVectorDimension<typename T::type>, num_sigma) = perturb_state(
+            Detail::ConvertSegment<typename T::type>(field<T::key>()),
             S.block(Detail::GetFieldCovarianceOffset<0, Fields...>(T::key), 0,
-                Detail::GetFieldCovarianceSize<Fields...>(T::key), covariance_size()));
+                Detail::CovarianceDimension<typename T::type>, covariance_size()));
     }
 
     template <typename T1, typename T2, typename... Tail>
