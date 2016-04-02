@@ -16,10 +16,10 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-register")
 # Set default ExternalProject root directory
 SET_DIRECTORY_PROPERTIES(PROPERTIES EP_PREFIX .)
 
-# Add eigen3.2
+# Add eigen3.2.8
 ExternalProject_Add(
 eigen3
-URL https://bitbucket.org/eigen/eigen/get/3.2.0.tar.gz
+URL https://bitbucket.org/eigen/eigen/get/3.2.8.tar.gz
 TIMEOUT 30
 # Disable install step
 INSTALL_COMMAND ""
