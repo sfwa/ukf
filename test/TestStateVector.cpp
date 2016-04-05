@@ -148,3 +148,44 @@ TEST(StateVectorTest, SigmaPointGeneration) {
     EXPECT_VECTOR_EQ(target_sigma_points.col(17), sigma_points.col(17));
     EXPECT_VECTOR_EQ(target_sigma_points.col(18), sigma_points.col(18));
 }
+
+TEST(StateVectorTest, SigmaPointMean) {
+    MyStateVector test_state;
+
+    test_state.field<LatLon>() << 45, 135;
+    test_state.field<Velocity>() << 1, 2, 3;
+    test_state.field<Attitude>() << 0, 0, 0, 1;
+    test_state.field<Altitude>() << 10;
+
+    MyStateVector::CovarianceMatrix covariance = MyStateVector::CovarianceMatrix::Zero();
+    covariance.diagonal() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
+
+    MyStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution(covariance);
+
+    EXPECT_VECTOR_EQ(test_state, MyStateVector::calculate_sigma_point_mean(sigma_points));
+}
+
+TEST(StateVectorTest, SigmaPointCovariance) {
+    MyStateVector test_state;
+
+    test_state.field<LatLon>() << 45, 135;
+    test_state.field<Velocity>() << 1, 2, 3;
+    test_state.field<Attitude>() << 0, 0, 0, 1;
+    test_state.field<Altitude>() << 10;
+
+    MyStateVector::CovarianceMatrix covariance = MyStateVector::CovarianceMatrix::Zero();
+    covariance.diagonal() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
+
+    MyStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution(covariance);
+    MyStateVector::CovarianceMatrix calculated_covariance = MyStateVector::calculate_sigma_point_covariance(sigma_points);
+
+    EXPECT_VECTOR_EQ(covariance.col(0),  calculated_covariance.col(0));
+    EXPECT_VECTOR_EQ(covariance.col(1),  calculated_covariance.col(1));
+    EXPECT_VECTOR_EQ(covariance.col(2),  calculated_covariance.col(2));
+    EXPECT_VECTOR_EQ(covariance.col(3),  calculated_covariance.col(3));
+    EXPECT_VECTOR_EQ(covariance.col(4),  calculated_covariance.col(4));
+    EXPECT_VECTOR_EQ(covariance.col(5),  calculated_covariance.col(5));
+    EXPECT_VECTOR_EQ(covariance.col(6),  calculated_covariance.col(6));
+    EXPECT_VECTOR_EQ(covariance.col(7),  calculated_covariance.col(7));
+    EXPECT_VECTOR_EQ(covariance.col(8),  calculated_covariance.col(8));
+}

@@ -279,6 +279,16 @@ public:
         return Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(Detail::GetFieldOffset<0, Fields...>(Key));
     }
 
+    /* Calculate the mean from a sigma point distribution. */
+    static Self calculate_sigma_point_mean(const SigmaPointDistribution &X) {
+
+    }
+
+    /* Calculate the covariance matrix from a sigma point distribution. */
+    static CovarianceMatrix calculate_sigma_point_covariance(const SigmaPointDistribution &X) {
+
+    }
+
     /*
     Create a sigma point distribution using the provided covariance matrix.
     Return value optimisation will ensure this does not involve a copy.
@@ -376,6 +386,21 @@ private:
     void calculate_field_sigmas(const CovarianceMatrix &S, SigmaPointDistribution &X) const {
         calculate_field_sigmas<T1>(S, X);
         calculate_field_sigmas<T2, Tail...>(S, X);
+    }
+
+    /*
+    Private functions for calculating the mean of each field in a sigma point
+    distribution.
+    */
+    template <typename T>
+    static void calculate_field_mean(const SigmaPointDistribution &X, StateVector &mean) {
+
+    }
+
+    template <typename T1, typename T2, typename... Tail>
+    static void calculate_field_mean(const SigmaPointDistribution &X, StateVector &mean) {
+        calculate_field_mean<T1>(X, mean);
+        calculate_field_mean<T2, Tail...>(X, mean);
     }
 };
 
