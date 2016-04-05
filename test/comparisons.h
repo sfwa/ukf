@@ -27,14 +27,15 @@ const char* expected_expression, const char* actual_expression,
 T1 a, T2 b) {
     real_t d = (a - b).norm(), an = a.norm();
 
-    if (d / std::max(an, (real_t)1e-3) < 0.01) {
+    Eigen::IOFormat CmpFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", ", ", "", "", "Vector(", ")");
+
+    if (d / std::max(an, (real_t)1e-4) < 0.001) {
         return ::testing::AssertionSuccess();
     } else {
         return ::testing::AssertionFailure() <<
             "Value of: " << actual_expression << "\n"
-            "Expected: " << expected_expression << "\n" <<
-            "  Actual: Vector(" << b.x() << ", " << b.y() << ", " << b.z()
-                << ")\n";
+            "Expected: " << a.format(CmpFormat) << "\n" <<
+            "  Actual: " << b.format(CmpFormat) << "\n";
     }
 }
 
