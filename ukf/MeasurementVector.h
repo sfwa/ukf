@@ -30,26 +30,18 @@ SOFTWARE.
 #include <utility>
 #include <Eigen/Core>
 #include "Config.h"
+#include "Types.h"
 #include "StateVector.h"
 
 namespace UKF {
 
 /* Alias for the Eigen type from which FixedMeasurementVector inherits. */
 template <typename... Fields>
-using MeasurementVectorFixedBaseType = Eigen::Matrix<
-    real_t,
-    Detail::GetCompositeVectorDimension<Fields...>(),
-    1>;
+using MeasurementVectorFixedBaseType = Vector<Detail::GetCompositeVectorDimension<Fields...>()>;
 
 /* Alias for the Eigen type from which DynamicMeasurementVector inherits. */
 template <typename... Fields>
-using MeasurementVectorDynamicBaseType = Eigen::Matrix<
-    real_t,
-    Eigen::Dynamic,
-    1,
-    0,
-    Detail::GetCompositeVectorDimension<Fields...>(),
-    1>;
+using MeasurementVectorDynamicBaseType = VectorDynamic<Detail::GetCompositeVectorDimension<Fields...>()>;
 
 /* Templated measurement vector abstract base class. */
 template <template<typename...> class B, typename... Fields>

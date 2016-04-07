@@ -29,6 +29,7 @@ SOFTWARE.
 #include <utility>
 #include <Eigen/Core>
 #include "Config.h"
+#include "Types.h"
 
 namespace UKF {
 
@@ -46,14 +47,11 @@ namespace UKF {
     template <typename T>
     constexpr std::size_t StateVectorDimension = T::MaxRowsAtCompileTime;
 
-    template <typename T>
-    constexpr std::size_t StateVectorDimension<Eigen::Quaternion<T>> = 4;
+    template <>
+    constexpr std::size_t StateVectorDimension<Quaternion> = 4;
 
     template <>
-    constexpr std::size_t StateVectorDimension<float> = 1;
-
-    template <>
-    constexpr std::size_t StateVectorDimension<double> = 1;
+    constexpr std::size_t StateVectorDimension<real_t> = 1;
 
     /*
     This variable template defines the dimensionality of a particular
@@ -68,8 +66,8 @@ namespace UKF {
     template <typename T>
     constexpr std::size_t CovarianceDimension = StateVectorDimension<T>;
 
-    template <typename T>
-    constexpr std::size_t CovarianceDimension<Eigen::Quaternion<T>> = 3;
+    template <>
+    constexpr std::size_t CovarianceDimension<Quaternion> = 3;
 
     template <typename T>
     constexpr T Adder(T v) {
@@ -127,18 +125,13 @@ namespace UKF {
     }
 
     template <typename T>
-    constexpr T ConvertSegment(const Eigen::Matrix<real_t, StateVectorDimension<T>, 1> &state) {
+    constexpr T ConvertSegment(const Vector<StateVectorDimension<T>> &state) {
         return static_cast<T>(state);
     }
 
     template <>
-    constexpr double ConvertSegment<double>(const Eigen::Matrix<real_t, 1, 1> &state) {
-        return static_cast<double>(state(0));
-    }
-
-    template <>
-    constexpr float ConvertSegment<float>(const Eigen::Matrix<real_t, 1, 1> &state) {
-        return static_cast<float>(state(0));
+    constexpr real_t ConvertSegment<real_t>(const Vector<1> &state) {
+        return static_cast<real_t>(state(0));
     }
 
     /*
@@ -226,18 +219,15 @@ public:
 
 /* Alias for the Eigen type from which StateVector inherits. */
 template <typename... Fields>
-using StateVectorBaseType = Eigen::Matrix<
-    real_t,
-    Detail::GetCompositeVectorDimension<Fields...>(),
-    1>;
+using StateVectorBaseType = Vector<Detail::GetCompositeVectorDimension<Fields...>()>;
 
 /*
 Templated state vector class. A particular UKF implementation should
 specialise this class with a list of fields that make up the state vector.
 
 By default, fields can be Eigen vectors (including Quaternions) or scalar
-floating point types (float, double). Support for other types can be added
-by specialising the StateVectorDimension variable for the desired class.
+floating point types (real_t). Support for other types can be added by
+specialising the StateVectorDimension variable for the desired class.
 */
 template <typename IntegratorType, typename... Fields>
 class StateVector : public StateVectorBaseType<typename Fields::type...> {
@@ -261,8 +251,8 @@ public:
     static constexpr std::size_t num_sigma = 2*covariance_size() + 1;
 
     /* Aliases for types needed during filter iteration. */
-    using CovarianceMatrix = Eigen::Matrix<real_t, covariance_size(), covariance_size()>;
-    using SigmaPointDistribution = Eigen::Matrix<real_t, size(), num_sigma>;
+    using CovarianceMatrix = Matrix<covariance_size(), covariance_size()>;
+    using SigmaPointDistribution = Matrix<size(), num_sigma>;
 
     /* Methods for accessing individual fields. */
     template <int Key>
@@ -311,9 +301,9 @@ private:
 
     /* Private functions for creating a sigma point distribution. */
     template <typename T>
-    Eigen::Matrix<real_t, Detail::CovarianceDimension<T>, num_sigma> perturb_state(
-            const T &state, const Eigen::Matrix<real_t, Detail::CovarianceDimension<T>, covariance_size()> &cov) const {
-        Eigen::Matrix<real_t, Detail::CovarianceDimension<T>, num_sigma> temp;
+    Matrix<Detail::CovarianceDimension<T>, num_sigma> perturb_state(
+            const T &state, const Matrix<Detail::CovarianceDimension<T>, covariance_size()> &cov) const {
+        Matrix<Detail::CovarianceDimension<T>, num_sigma> temp;
         temp.col(0) = state;
         temp.block(0, 1, Detail::CovarianceDimension<T>, covariance_size()) = cov.colwise() + state;
         temp.block(0, covariance_size()+1, Detail::CovarianceDimension<T>, covariance_size()) = -(cov.colwise() - state);
@@ -321,17 +311,8 @@ private:
         return temp;
     }
 
-    Eigen::Matrix<real_t, 1, num_sigma> perturb_state(float state, const Eigen::Matrix<real_t, 1, covariance_size()> &cov) const {
-        Eigen::Matrix<real_t, 1, num_sigma> temp;
-        temp(0) = state;
-        temp.segment(1, covariance_size()) = cov.array() + state;
-        temp.segment(covariance_size()+1, covariance_size()) = -(cov.array() - state);
-
-        return temp;
-    }
-
-    Eigen::Matrix<real_t, 1, num_sigma> perturb_state(double state, const Eigen::Matrix<real_t, 1, covariance_size()> &cov) const {
-        Eigen::Matrix<real_t, 1, num_sigma> temp;
+    Matrix<1, num_sigma> perturb_state(real_t state, const Matrix<1, covariance_size()> &cov) const {
+        Matrix<1, num_sigma> temp;
         temp(0) = state;
         temp.segment(1, covariance_size()) = cov.array() + state;
         temp.segment(covariance_size()+1, covariance_size()) = -(cov.array() - state);
@@ -343,30 +324,29 @@ private:
     Construct error quaternions using the MRP method, equation 34 from the
     Markley paper.
     */
-    template <typename T>
-    Eigen::Matrix<real_t, 4, num_sigma> perturb_state(
-            const Eigen::Quaternion<T> &state,
-            const Eigen::Matrix<real_t, Detail::CovarianceDimension<Eigen::Quaternion<T>>, covariance_size()> &cov) const {
-        Eigen::Matrix<real_t, 4, num_sigma> temp;
+    Matrix<4, num_sigma> perturb_state(
+            const Quaternion &state,
+            const Matrix<Detail::CovarianceDimension<Quaternion>, covariance_size()> &cov) const {
+        Matrix<4, num_sigma> temp;
         temp.col(0) << state.vec(), state.w();
 
-        Eigen::Array<real_t, 1, covariance_size()> x_2 = cov.colwise().squaredNorm();
-        Eigen::Array<real_t, 1, covariance_size()> err_w =
+        Array<1, covariance_size()> x_2 = cov.colwise().squaredNorm();
+        Array<1, covariance_size()> err_w =
             (-Parameters::MRP_A<Self> * x_2 + Parameters::MRP_F<Self> * (
                 x_2 * (1.0 - Parameters::MRP_A<Self>*Parameters::MRP_A<Self>)
                 + Parameters::MRP_F<Self> * Parameters::MRP_F<Self>).sqrt())
             / (Parameters::MRP_F<Self> * Parameters::MRP_F<Self> + x_2);
-        Eigen::Array<real_t, 3, covariance_size()> err_xyz =
+        Array<3, covariance_size()> err_xyz =
             cov.array().rowwise() * (err_w + Parameters::MRP_A<Self>) * (1.0 / Parameters::MRP_F<Self>);
 
-        Eigen::Quaternion<T> temp_q;
+        Quaternion temp_q;
         for(int i = 0; i < covariance_size(); i++) {
-            temp_q = Eigen::Quaternion<T>(err_w(i), err_xyz(0, i), err_xyz(1, i), err_xyz(2, i)) * state;
+            temp_q = Quaternion(err_w(i), err_xyz(0, i), err_xyz(1, i), err_xyz(2, i)) * state;
             temp.col(i+1) << temp_q.vec(), temp_q.w();
         }
 
         for(int i = 0; i < covariance_size(); i++) {
-            temp_q = Eigen::Quaternion<T>(err_w(i), err_xyz(0, i), err_xyz(1, i), err_xyz(2, i)).conjugate() * state;
+            temp_q = Quaternion(err_w(i), err_xyz(0, i), err_xyz(1, i), err_xyz(2, i)).conjugate() * state;
             temp.col(i+covariance_size()+1) << temp_q.vec(), temp_q.w();
         }
 
