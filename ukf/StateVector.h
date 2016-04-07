@@ -125,12 +125,12 @@ namespace UKF {
     }
 
     template <typename T>
-    constexpr T ConvertSegment(const Vector<StateVectorDimension<T>> &state) {
+    constexpr T ConvertFromSegment(const Vector<StateVectorDimension<T>> &state) {
         return static_cast<T>(state);
     }
 
     template <>
-    constexpr real_t ConvertSegment<real_t>(const Vector<1> &state) {
+    constexpr real_t ConvertFromSegment<real_t>(const Vector<1> &state) {
         return static_cast<real_t>(state(0));
     }
 
@@ -271,7 +271,10 @@ public:
 
     /* Calculate the mean from a sigma point distribution. */
     static Self calculate_sigma_point_mean(const SigmaPointDistribution &X) {
+        Self mean;
+        calculate_field_mean<Fields...>(X, mean);
 
+        return mean;
     }
 
     /* Calculate the covariance matrix from a sigma point distribution. */
@@ -357,7 +360,7 @@ private:
     void calculate_field_sigmas(const CovarianceMatrix &S, SigmaPointDistribution &X) const {
         X.block(Detail::GetFieldOffset<0, Fields...>(T::key), 0,
             Detail::StateVectorDimension<typename T::type>, num_sigma) = perturb_state(
-            Detail::ConvertSegment<typename T::type>(field<T::key>()),
+            Detail::ConvertFromSegment<typename T::type>(field<T::key>()),
             S.block(Detail::GetFieldCovarianceOffset<0, Fields...>(T::key), 0,
                 Detail::CovarianceDimension<typename T::type>, covariance_size()));
     }
@@ -370,11 +373,34 @@ private:
 
     /*
     Private functions for calculating the mean of each field in a sigma point
-    distribution.
+    distribution. Note that sigma_point_mean takes a dummy argument so that
+    the overrides work properly.
     */
     template <typename T>
-    static void calculate_field_mean(const SigmaPointDistribution &X, StateVector &mean) {
+    static T sigma_point_mean(const Matrix<Detail::StateVectorDimension<T>, num_sigma> &sigma, const T &field) {
+        return Parameters::Sigma_WMI<Self>*sigma.block(0, 1, Detail::StateVectorDimension<T>, num_sigma-1).rowwise().sum()
+            + Parameters::Sigma_WM0<Self>*sigma.col(0);
+    }
 
+    static real_t sigma_point_mean(const Matrix<1, num_sigma> &sigma, const real_t &field) {
+        return Parameters::Sigma_WMI<Self>*sigma.segment(1, num_sigma-1).sum()
+            + Parameters::Sigma_WM0<Self>*sigma(0);
+    }
+
+    static Vector<4> sigma_point_mean(const Matrix<4, num_sigma> &sigma, const Quaternion &field) {
+        Vector<4> temp = Parameters::Sigma_WMI<Self>*sigma.block(0, 1, 4, num_sigma-1).rowwise().sum()
+            + Parameters::Sigma_WM0<Self>*sigma.col(0);
+        Quaternion temp_q = Quaternion(temp(3), temp(0), temp(1), temp(2)).normalized();
+        return Vector<4>(temp_q.x(), temp_q.y(), temp_q.z(), temp_q.w());
+    }
+
+    template <typename T>
+    static void calculate_field_mean(const SigmaPointDistribution &X, StateVector &mean) {
+        mean.segment(
+            Detail::GetFieldOffset<0, Fields...>(T::key),
+            Detail::StateVectorDimension<typename T::type>) << sigma_point_mean(
+                X.block(Detail::GetFieldOffset<0, Fields...>(T::key), 0,
+                Detail::StateVectorDimension<typename T::type>, num_sigma), typename T::type());
     }
 
     template <typename T1, typename T2, typename... Tail>
