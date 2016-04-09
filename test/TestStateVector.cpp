@@ -178,7 +178,8 @@ TEST(StateVectorTest, SigmaPointCovariance) {
     covariance.diagonal() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
 
     MyStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution(covariance);
-    MyStateVector::CovarianceMatrix calculated_covariance = MyStateVector::calculate_sigma_point_covariance(sigma_points);
+    MyStateVector test_mean = MyStateVector::calculate_sigma_point_mean(sigma_points);
+    MyStateVector::CovarianceMatrix calculated_covariance = test_mean.calculate_sigma_point_covariance(sigma_points);
 
     EXPECT_VECTOR_EQ(covariance.col(0),  calculated_covariance.col(0));
     EXPECT_VECTOR_EQ(covariance.col(1),  calculated_covariance.col(1));
