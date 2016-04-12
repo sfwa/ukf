@@ -68,11 +68,23 @@ template <typename... Fields>
 class FixedMeasurementVector : public MeasurementVector<MeasurementVectorFixedBaseType, Fields...> {
 public:
     using Base = MeasurementVector<MeasurementVectorFixedBaseType, Fields...>;
+    using Base::Base;
+    using Base::operator=;
 
     /* Get size of measurement vector. */
     static constexpr std::size_t size() {
         return Detail::GetCompositeVectorDimension<typename Fields::type...>();
     }
+
+    /* Get size of measurement vector covariance. */
+    static constexpr std::size_t covariance_size() {
+        return Detail::GetCovarianceDimension<typename Fields::type...>();
+    }
+
+    /* Aliases for types needed during filter iteration. */
+    template <typename S>
+    using SigmaPointDistribution = Matrix<size(), S::num_sigma>;
+    using CovarianceMatrix = Matrix<covariance_size(), size()>;
 
     template <int Key>
     auto field() {
@@ -88,8 +100,78 @@ public:
         return Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(Detail::GetFieldOffset<0, Fields...>(Key));
     }
 
-private:
+    /* Calculate the mean from a measurement sigma point distribution. */
+    template <typename S>
+    static FixedMeasurementVector calculate_sigma_point_mean(const SigmaPointDistribution<S> &Z) {
+        return Parameters::Sigma_WMI<S>*Z.block(0, 1, size(), S::num_sigma-1).rowwise().sum()
+            + Parameters::Sigma_WM0<S>*Z.col(0);
+    }
 
+    /*
+    Calculate the expected measurement covariance covariance as described in
+    equation 68 of the Kraft papers.
+    The function isn't static; it uses the current measurement vector as the mean.
+    */
+    template <typename S>
+    CovarianceMatrix calculate_sigma_point_covariance(const SigmaPointDistribution<S> &Z) const {
+        CovarianceMatrix cov;
+        SigmaPointDistribution<S> z_prime;
+
+        /* Calculate the delta vectors. */
+        z_prime = Z.colwise() - *this;
+
+        /* Calculate the covariance using equation 64 from the Kraft paper. */
+        cov = Parameters::Sigma_WC0<S> * (z_prime.col(0) * z_prime.col(0).transpose());
+        for(int i = 1; i < S::num_sigma; i++) {
+            cov += Parameters::Sigma_WCI<S> * (z_prime.col(i) * z_prime.col(i).transpose());
+        }
+
+        return cov;
+    }
+
+    /*
+    Create a measurement sigma point distribution using the sigma points.
+    Return value optimisation will ensure this does not involve a copy.
+    */
+    template <typename S>
+    static SigmaPointDistribution<S> calculate_sigma_point_distribution(const typename S::SigmaPointDistribution &X) {
+        SigmaPointDistribution<S> Z;
+
+        for(int i = 0; i < S::num_sigma; i++) {
+            FixedMeasurementVector temp;
+            calculate_field_measurements<S, Fields...>(X.col(i), temp);
+            Z.col(i) = temp;
+        }
+
+        return Z;
+    }
+
+private:
+    /*
+    This function is intended to be specialised by the user for each field in
+    the measurement vector, and allows the user to specify how a particular
+    state vector is transformed into a measurement vector.
+
+    Template parameters are a StateVector type and a Field type.
+    */
+    template <typename S, typename T>
+    static typename T::type expected_measurement(const S &state);
+
+    /*
+    These functions build the measurement estimate from the expected
+    measurement of each individual field.
+    */
+    template <typename S, typename T>
+    static void calculate_field_measurements(const S &state, FixedMeasurementVector &expected) {
+        expected.segment(Detail::GetFieldOffset<0, Fields...>(T::key),
+            Detail::StateVectorDimension<typename T::type>) << expected_measurement<S, T>(state);
+    }
+
+    template <typename S, typename T1, typename T2, typename... Tail>
+    static void calculate_field_measurements(const S &state, FixedMeasurementVector &expected) {
+        calculate_field_measurements<S, T1>(state, expected);
+        calculate_field_measurements<S, T2, Tail...>(state, expected);
+    }
 };
 
 /*
@@ -100,11 +182,23 @@ template <typename... Fields>
 class DynamicMeasurementVector : public MeasurementVector<MeasurementVectorDynamicBaseType, Fields...> {
 public:
     using Base = MeasurementVector<MeasurementVectorDynamicBaseType, Fields...>;
+    using Base::Base;
+    using Base::operator=;
 
     /* Get maximum size of dynamic measurement vector. */
     static constexpr std::size_t max_size() {
         return Detail::GetCompositeVectorDimension<typename Fields::type...>();
     }
+
+    /* Get maximum size of dynamic measurement vector covariance. */
+    static constexpr std::size_t max_covariance_size() {
+        return Detail::GetCovarianceDimension<typename Fields::type...>();
+    }
+
+    /* Aliases for types needed during filter iteration. */
+    template <int N>
+    using SigmaPointDistribution = MatrixDynamic<max_size(), N>;
+    using CovarianceMatrix = MatrixDynamic<max_covariance_size(), max_size()>;
 
     template <int Key>
     auto field() {

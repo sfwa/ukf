@@ -234,7 +234,6 @@ class StateVector : public StateVectorBaseType<typename Fields::type...> {
 public:
     /* Inherit Eigen::Matrix constructors and assignment operators. */
     using Base = StateVectorBaseType<typename Fields::type...>;
-    using Self = StateVector<IntegratorType, Fields...>;
     using Base::Base;
     using Base::operator=;
 
@@ -270,8 +269,8 @@ public:
     }
 
     /* Calculate the mean from a sigma point distribution. */
-    static Self calculate_sigma_point_mean(const SigmaPointDistribution &X) {
-        Self mean;
+    static StateVector calculate_sigma_point_mean(const SigmaPointDistribution &X) {
+        StateVector mean;
         calculate_field_mean<Fields...>(X, mean);
 
         return mean;
@@ -279,12 +278,12 @@ public:
 
     /*
     Calculate the covariance as described in section 3.5.1 of the Kraft
-    paper. Note that we don't quite use the approach described by equation
-    63; we operate on the transformed sigma points, not the untransformed
-    ones.
+    paper. Note that we operate on the transformed sigma points; there
+    appears to be a typographical error in equation 63, but the explanatory
+    text makes it clear that this is what is intended.
     The function isn't static; it uses the current state vector as the mean.
     */
-    CovarianceMatrix calculate_sigma_point_covariance(const SigmaPointDistribution &X) {
+    CovarianceMatrix calculate_sigma_point_covariance(const SigmaPointDistribution &X) const {
         CovarianceMatrix cov;
         Matrix<covariance_size(), num_sigma> w_prime;
 
@@ -292,9 +291,9 @@ public:
         calculate_field_deltas<Fields...>(X, w_prime);
 
         /* Calculate the covariance using equation 64 from the Kraft paper. */
-        cov = Parameters::Sigma_WC0<Self> * (w_prime.col(0) * w_prime.col(0).transpose());
+        cov = Parameters::Sigma_WC0<StateVector> * (w_prime.col(0) * w_prime.col(0).transpose());
         for(int i = 1; i < num_sigma; i++) {
-            cov += Parameters::Sigma_WCI<Self> * (w_prime.col(i) * w_prime.col(i).transpose());
+            cov += Parameters::Sigma_WCI<StateVector> * (w_prime.col(i) * w_prime.col(i).transpose());
         }
 
         return cov;
@@ -306,9 +305,9 @@ public:
     */
     SigmaPointDistribution calculate_sigma_point_distribution(const CovarianceMatrix &P) const {
         /* Calculate the LLT decomposition of the scaled covariance matrix. */
-        assert((P * (covariance_size() + Parameters::Lambda<Self>)).llt().info() == Eigen::Success &&
+        assert((P * (covariance_size() + Parameters::Lambda<StateVector>)).llt().info() == Eigen::Success &&
             "Covariance matrix is not positive definite");
-        CovarianceMatrix S = (P * (covariance_size() + Parameters::Lambda<Self>)).llt().matrixL();
+        CovarianceMatrix S = (P * (covariance_size() + Parameters::Lambda<StateVector>)).llt().matrixL();
 
         /* Calculate the sigma point distribution from all the fields. */
         SigmaPointDistribution X;
@@ -353,12 +352,12 @@ private:
 
         Array<1, covariance_size()> x_2 = cov.colwise().squaredNorm();
         Array<1, covariance_size()> err_w =
-            (-Parameters::MRP_A<Self> * x_2 + Parameters::MRP_F<Self> * (
-                x_2 * (1.0 - Parameters::MRP_A<Self>*Parameters::MRP_A<Self>)
-                + Parameters::MRP_F<Self> * Parameters::MRP_F<Self>).sqrt())
-            / (Parameters::MRP_F<Self> * Parameters::MRP_F<Self> + x_2);
+            (-Parameters::MRP_A<StateVector> * x_2 + Parameters::MRP_F<StateVector> * (
+                x_2 * (1.0 - Parameters::MRP_A<StateVector>*Parameters::MRP_A<StateVector>)
+                + Parameters::MRP_F<StateVector> * Parameters::MRP_F<StateVector>).sqrt())
+            / (Parameters::MRP_F<StateVector> * Parameters::MRP_F<StateVector> + x_2);
         Array<3, covariance_size()> err_xyz =
-            cov.array().rowwise() * (err_w + Parameters::MRP_A<Self>) * (1.0 / Parameters::MRP_F<Self>);
+            cov.array().rowwise() * (err_w + Parameters::MRP_A<StateVector>) * (1.0 / Parameters::MRP_F<StateVector>);
 
         Quaternion temp_q;
         for(int i = 0; i < covariance_size(); i++) {
@@ -403,14 +402,14 @@ private:
     */
     template <typename T>
     static T sigma_point_mean(const Matrix<Detail::StateVectorDimension<T>, num_sigma> &sigma, const T &field) {
-        return Parameters::Sigma_WMI<Self>*sigma.block(
+        return Parameters::Sigma_WMI<StateVector>*sigma.block(
             0, 1, Detail::StateVectorDimension<T>, num_sigma-1).rowwise().sum()
-            + Parameters::Sigma_WM0<Self>*sigma.col(0);
+            + Parameters::Sigma_WM0<StateVector>*sigma.col(0);
     }
 
     static real_t sigma_point_mean(const Matrix<1, num_sigma> &sigma, const real_t &field) {
-        return Parameters::Sigma_WMI<Self>*sigma.segment(1, num_sigma-1).sum()
-            + Parameters::Sigma_WM0<Self>*sigma(0);
+        return Parameters::Sigma_WMI<StateVector>*sigma.segment(1, num_sigma-1).sum()
+            + Parameters::Sigma_WM0<StateVector>*sigma(0);
     }
 
     /*
@@ -419,8 +418,8 @@ private:
     mentioned above for details.
     */
     static Vector<4> sigma_point_mean(const Matrix<4, num_sigma> &sigma, const Quaternion &field) {
-        Vector<4> temp = Parameters::Sigma_WMI<Self>*sigma.block(0, 1, 4, num_sigma-1).rowwise().sum()
-            + Parameters::Sigma_WM0<Self>*sigma.col(0);
+        Vector<4> temp = Parameters::Sigma_WMI<StateVector>*sigma.block(0, 1, 4, num_sigma-1).rowwise().sum()
+            + Parameters::Sigma_WM0<StateVector>*sigma.col(0);
         Quaternion temp_q = Quaternion(temp).normalized();
         return Vector<4>(temp_q.x(), temp_q.y(), temp_q.z(), temp_q.w());
     }
@@ -462,7 +461,7 @@ private:
         */
         for(int i = 0; i < num_sigma; i++) {
             Quaternion delta_q = Quaternion(X.col(i)) * mean.conjugate();
-            temp.col(i) = Parameters::MRP_F<Self> * (delta_q.vec() / (Parameters::MRP_A<Self> + delta_q.w()));
+            temp.col(i) = Parameters::MRP_F<StateVector> * (delta_q.vec() / (Parameters::MRP_A<StateVector> + delta_q.w()));
         }
 
         return temp;

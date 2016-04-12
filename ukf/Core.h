@@ -55,6 +55,9 @@ public:
 
         /* Sigma point distribution. */
         StateVectorType::SigmaPointDistribution sigma_points;
+
+        /* Measurement sigma point distribution. */
+        MeasurementVectorType::SigmaPointDistribution<StateVectorType::num_sigma> measurement_sigma_points;
     }
 };
 

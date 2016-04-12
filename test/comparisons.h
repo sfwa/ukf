@@ -29,7 +29,7 @@ T1 a, T2 b) {
 
     Eigen::IOFormat CmpFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", ", ", "", "", "Vector(", ")");
 
-    if (d / std::max(an, (real_t)1e-4) < 0.001) {
+    if (d / std::max(an, (real_t)1e-4) < 0.0001) {
         return ::testing::AssertionSuccess();
     } else {
         return ::testing::AssertionFailure() <<
