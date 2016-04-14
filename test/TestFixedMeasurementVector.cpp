@@ -182,7 +182,7 @@ TEST(FixedMeasurementVectorTest, SigmaPointGeneration) {
                             0,      0,      0,      0,      0,      0,  3.606,      0,      0,      0,      0,      0,      0,      0,      0,      0, -3.606,      0,      0,      0,      0,
                         89300,  89300,  89300,  89300,  89300,  89300,  89300,  89300,  89300,  89300,  89257,  89300,  89300,  89300,  89300,  89300,  89300,  89300,  89300,  89300,  89343,
                         8.575, 20.954, 25.371, 29.788,  8.575,  8.575,  8.575,  8.575,  8.575,  8.575,  8.575, 12.121,  7.704,  3.287,  8.575,  8.575,  8.575,  8.575,  8.575,  8.575,  8.575;
-    measurement_sigma_points = MyMeasurementVector::calculate_sigma_point_distribution<MyStateVector>(sigma_points);
+    measurement_sigma_points = test_measurement.calculate_sigma_point_distribution<MyStateVector>(sigma_points);
 
     EXPECT_VECTOR_EQ(target_sigma_points.col(0),  measurement_sigma_points.col(0));
     EXPECT_VECTOR_EQ(target_sigma_points.col(1),  measurement_sigma_points.col(1));
@@ -207,6 +207,7 @@ TEST(FixedMeasurementVectorTest, SigmaPointGeneration) {
 
 TEST(FixedMeasurementVectorTest, SigmaPointMean) {
     MyMeasurementVector::SigmaPointDistribution<MyStateVector> measurement_sigma_points;
+    MyMeasurementVector test_measurement;
 
     measurement_sigma_points <<  0,      0,      0,      0,      0,      0,      0,      0, -2.017,      0,      0,      0,      0,      0,      0,      0,      0,      0,  2.017,      0,      0,
                                  0,      0,      0,      0,      0,      0,      0, -2.017,      0,      0,      0,      0,      0,      0,      0,      0,      0,  2.017,      0,      0,      0,
@@ -221,11 +222,12 @@ TEST(FixedMeasurementVectorTest, SigmaPointMean) {
 
     expected_mean << 0.0, 0.0, -9.8, 1.0, 0.0, 0.0, 89300, 10.4125;
 
-    EXPECT_VECTOR_EQ(expected_mean, MyMeasurementVector::calculate_sigma_point_mean<MyStateVector>(measurement_sigma_points));
+    EXPECT_VECTOR_EQ(expected_mean, test_measurement.calculate_sigma_point_mean<MyStateVector>(measurement_sigma_points));
 }
 
 TEST(FixedMeasurementVectorTest, SigmaPointCovariance) {
     MyStateVector test_state;
+    MyMeasurementVector test_measurement;
 
     test_state.field<Velocity>() << 1, 2, 3;
     test_state.field<AngularVelocity>() << 1, 0, 0;
@@ -238,9 +240,9 @@ TEST(FixedMeasurementVectorTest, SigmaPointCovariance) {
     MyStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution(covariance);
 
     MyMeasurementVector::SigmaPointDistribution<MyStateVector> measurement_sigma_points =
-        MyMeasurementVector::calculate_sigma_point_distribution<MyStateVector>(sigma_points);
+        test_measurement.calculate_sigma_point_distribution<MyStateVector>(sigma_points);
 
-    MyMeasurementVector mean_measurement = MyMeasurementVector::calculate_sigma_point_mean<MyStateVector>(measurement_sigma_points);
+    MyMeasurementVector mean_measurement = test_measurement.calculate_sigma_point_mean<MyStateVector>(measurement_sigma_points);
 
     MyMeasurementVector::CovarianceMatrix calculated_covariance =
         mean_measurement.calculate_sigma_point_covariance<MyStateVector>(measurement_sigma_points);

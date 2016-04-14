@@ -102,7 +102,7 @@ public:
 
     /* Calculate the mean from a measurement sigma point distribution. */
     template <typename S>
-    static FixedMeasurementVector calculate_sigma_point_mean(const SigmaPointDistribution<S> &Z) {
+    FixedMeasurementVector calculate_sigma_point_mean(const SigmaPointDistribution<S> &Z) const {
         return Parameters::Sigma_WMI<S>*Z.block(0, 1, size(), S::num_sigma-1).rowwise().sum()
             + Parameters::Sigma_WM0<S>*Z.col(0);
     }
@@ -134,7 +134,7 @@ public:
     Return value optimisation will ensure this does not involve a copy.
     */
     template <typename S>
-    static SigmaPointDistribution<S> calculate_sigma_point_distribution(const typename S::SigmaPointDistribution &X) {
+    SigmaPointDistribution<S> calculate_sigma_point_distribution(const typename S::SigmaPointDistribution &X) const {
         SigmaPointDistribution<S> Z;
 
         for(int i = 0; i < S::num_sigma; i++) {
