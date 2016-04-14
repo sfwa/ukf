@@ -84,17 +84,17 @@ public:
     /* Aliases for types needed during filter iteration. */
     template <typename S>
     using SigmaPointDistribution = Matrix<size(), S::num_sigma>;
-    using CovarianceMatrix = Matrix<covariance_size(), size()>;
+    using CovarianceMatrix = Matrix<covariance_size(), covariance_size()>;
 
     template <int Key>
-    auto field() {
+    auto field() const {
         static_assert(Detail::GetFieldOffset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
             "Specified key not present in measurement vector");
         return Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(Detail::GetFieldOffset<0, Fields...>(Key));
     }
 
     template <int Key>
-    auto field() const {
+    auto field() {
         static_assert(Detail::GetFieldOffset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
             "Specified key not present in measurement vector");
         return Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(Detail::GetFieldOffset<0, Fields...>(Key));
@@ -131,7 +131,6 @@ public:
 
     /*
     Create a measurement sigma point distribution using the sigma points.
-    Return value optimisation will ensure this does not involve a copy.
     */
     template <typename S>
     SigmaPointDistribution<S> calculate_sigma_point_distribution(const typename S::SigmaPointDistribution &X) const {
@@ -196,12 +195,28 @@ public:
     }
 
     /* Aliases for types needed during filter iteration. */
-    template <int N>
-    using SigmaPointDistribution = MatrixDynamic<max_size(), N>;
-    using CovarianceMatrix = MatrixDynamic<max_covariance_size(), max_size()>;
+    template <typename S>
+    using SigmaPointDistribution = MatrixDynamic<max_size(), S::num_sigma>;
+    using CovarianceMatrix = MatrixDynamic<max_covariance_size(), max_covariance_size()>;
+
+    /* Read-only version of the field accessor method. */
+    template <int Key>
+    Eigen::VectorBlock<MeasurementVectorDynamicBaseType<typename Fields::type...>, Detail::GetFieldSize<Fields...>(Key)> field() const {
+        std::size_t offset = get_offset(Key);
+
+        assert(1 == 0);
+
+        static_assert(Detail::GetFieldSize<Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
+            "Specified key not present in measurement vector");
+
+        assert(offset != std::numeric_limits<std::size_t>::max() &&
+            "Specified key not present in measurement vector");
+
+        return Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(offset);
+    }
 
     template <int Key>
-    auto field() {
+    Eigen::VectorBlock<MeasurementVectorDynamicBaseType<typename Fields::type...>, Detail::GetFieldSize<Fields...>(Key)> field() {
         std::size_t offset = get_offset(Key);
 
         static_assert(Detail::GetFieldSize<Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
@@ -231,18 +246,58 @@ public:
         }
     }
 
-    /* Read-only version of the field accessor method. */
-    template <int Key>
-    auto field() const {
-        std::size_t offset = get_offset(Key);
+    /*
+    Calculate the mean from a measurement sigma point distribution. Ensure
+    that the returned object has the same current_measurements matrix so that
+    its field accessors work.
+    */
+    template <typename S>
+    DynamicMeasurementVector calculate_sigma_point_mean(const SigmaPointDistribution<S> &Z) const {
+        DynamicMeasurementVector temp = DynamicMeasurementVector(
+            Parameters::Sigma_WMI<S>*Z.block(0, 1, Base::template size(), S::num_sigma-1).rowwise().sum()
+            + Parameters::Sigma_WM0<S>*Z.col(0));
 
-        static_assert(Detail::GetFieldSize<Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
-            "Specified key not present in measurement vector");
+        temp.current_measurements = current_measurements;
 
-        assert(offset != std::numeric_limits<std::size_t>::max() &&
-            "Specified key not present in measurement vector");
+        return temp;
+    }
 
-        return Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(offset);
+    /*
+    Calculate the expected measurement covariance covariance as described in
+    equation 68 of the Kraft papers.
+    The function isn't static; it uses the current measurement vector as the mean.
+    */
+    template <typename S>
+    CovarianceMatrix calculate_sigma_point_covariance(const SigmaPointDistribution<S> &Z) const {
+        CovarianceMatrix cov(Base::template size(), Base::template size());
+        SigmaPointDistribution<S> z_prime(Base::template size(), S::num_sigma);
+
+        /* Calculate the delta vectors. */
+        z_prime = Z.colwise() - *this;
+
+        /* Calculate the covariance using equation 64 from the Kraft paper. */
+        cov = Parameters::Sigma_WC0<S> * (z_prime.col(0) * z_prime.col(0).transpose());
+        for(int i = 1; i < S::num_sigma; i++) {
+            cov += Parameters::Sigma_WCI<S> * (z_prime.col(i) * z_prime.col(i).transpose());
+        }
+
+        return cov;
+    }
+
+    /*
+    Create a measurement sigma point distribution using the sigma points.
+    */
+    template <typename S>
+    SigmaPointDistribution<S> calculate_sigma_point_distribution(const typename S::SigmaPointDistribution &X) const {
+        SigmaPointDistribution<S> Z(Base::template size(), S::num_sigma);
+
+        for(int i = 0; i < S::num_sigma; i++) {
+            DynamicMeasurementVector temp(Base::template size());
+            //calculate_field_measurements<S>(X.col(i), temp);
+            Z.col(i) = temp;
+        }
+
+        return Z;
     }
 
 private:
@@ -269,8 +324,28 @@ private:
             offset += Detail::GetFieldSize<Fields...>(current_measurements(i));
         }
 
-        return offset;
+        return offset < Base::template size() ? offset : std::numeric_limits<std::size_t>::max();
     }
+
+    /*
+    This function is intended to be specialised by the user for each field in
+    the measurement vector, and allows the user to specify how a particular
+    state vector is transformed into a measurement vector.
+
+    Template parameters are a StateVector type and a Field type.
+    */
+    template <typename S, typename T>
+    static typename T::type expected_measurement(const S &state);
+
+    // /*
+    // This function builds the measurement estimate from the expected
+    // measurement of each individual field.
+    // */
+    // template <typename S>
+    // static void calculate_field_measurements(const S &state, DynamicMeasurementVector &expected) {
+    //     expected.segment(Detail::GetFieldOffset<0, Fields...>(T::key),
+    //         Detail::StateVectorDimension<typename T::type>) << expected_measurement<S, T>(state);
+    // }
 };
 
 }

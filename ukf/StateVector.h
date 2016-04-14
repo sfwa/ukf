@@ -301,7 +301,6 @@ public:
 
     /*
     Create a sigma point distribution using the provided covariance matrix.
-    Return value optimisation will ensure this does not involve a copy.
     */
     SigmaPointDistribution calculate_sigma_point_distribution(const CovarianceMatrix &P) const {
         /* Calculate the LLT decomposition of the scaled covariance matrix. */
