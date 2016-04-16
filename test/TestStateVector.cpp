@@ -35,15 +35,15 @@ TEST(StateVectorTest, Instantiation) {
 TEST(StateVectorTest, Assignment) {
     MyStateVector test_state;
 
-    test_state.field<LatLon>() << -37.8136, 144.9631;
-    test_state.field<Velocity>() << 1, 2, 3;
-    test_state.field<Attitude>() << 0, 0, 0, 1;
-    test_state.field<Altitude>() << 10;
+    test_state.set_field<LatLon>(UKF::Vector<2>(-37.8136, 144.9631));
+    test_state.set_field<Velocity>(UKF::Vector<3>(1, 2, 3));
+    test_state.set_field<Attitude>(UKF::Quaternion(1, 0, 0, 0));
+    test_state.set_field<Altitude>(10);
 
-    EXPECT_VECTOR_EQ(UKF::Vector<2>(-37.8136, 144.9631), test_state.field<LatLon>());
-    EXPECT_VECTOR_EQ(UKF::Vector<3>(1, 2, 3), test_state.field<Velocity>());
-    EXPECT_QUATERNION_EQ(UKF::Quaternion(1, 0, 0, 0), UKF::Quaternion(test_state.field<Attitude>()));
-    EXPECT_EQ(10, test_state.field<Altitude>()(0));
+    EXPECT_VECTOR_EQ(UKF::Vector<2>(-37.8136, 144.9631), test_state.get_field<LatLon>());
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(1, 2, 3), test_state.get_field<Velocity>());
+    EXPECT_QUATERNION_EQ(UKF::Quaternion(1, 0, 0, 0), test_state.get_field<Attitude>());
+    EXPECT_EQ(10, test_state.get_field<Altitude>());
 }
 
 TEST(StateVectorTest, Arithmetic) {
@@ -107,10 +107,10 @@ TEST(StateVectorTest, CustomParameters) {
 TEST(StateVectorTest, SigmaPointGeneration) {
     MyStateVector test_state;
 
-    test_state.field<LatLon>() << 45, 135;
-    test_state.field<Velocity>() << 1, 2, 3;
-    test_state.field<Attitude>() << 0, 0, 0, 1;
-    test_state.field<Altitude>() << 10;
+    test_state.set_field<LatLon>(UKF::Vector<2>(45, 135));
+    test_state.set_field<Velocity>(UKF::Vector<3>(1, 2, 3));
+    test_state.set_field<Attitude>(UKF::Quaternion(1, 0, 0, 0));
+    test_state.set_field<Altitude>(10);
 
     MyStateVector::CovarianceMatrix covariance = MyStateVector::CovarianceMatrix::Zero();
     covariance.diagonal() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
@@ -153,10 +153,10 @@ TEST(StateVectorTest, SigmaPointGeneration) {
 TEST(StateVectorTest, SigmaPointMean) {
     MyStateVector test_state;
 
-    test_state.field<LatLon>() << 45, 135;
-    test_state.field<Velocity>() << 1, 2, 3;
-    test_state.field<Attitude>() << 0, 0, 0, 1;
-    test_state.field<Altitude>() << 10;
+    test_state.set_field<LatLon>(UKF::Vector<2>(-37.8136, 144.9631));
+    test_state.set_field<Velocity>(UKF::Vector<3>(1, 2, 3));
+    test_state.set_field<Attitude>(UKF::Quaternion(1, 0, 0, 0));
+    test_state.set_field<Altitude>(10);
 
     MyStateVector::CovarianceMatrix covariance = MyStateVector::CovarianceMatrix::Zero();
     covariance.diagonal() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
@@ -169,10 +169,10 @@ TEST(StateVectorTest, SigmaPointMean) {
 TEST(StateVectorTest, SigmaPointCovariance) {
     MyStateVector test_state;
 
-    test_state.field<LatLon>() << 45, 135;
-    test_state.field<Velocity>() << 1, 2, 3;
-    test_state.field<Attitude>() << 0, 0, 0, 1;
-    test_state.field<Altitude>() << 10;
+    test_state.set_field<LatLon>(UKF::Vector<2>(-37.8136, 144.9631));
+    test_state.set_field<Velocity>(UKF::Vector<3>(1, 2, 3));
+    test_state.set_field<Attitude>(UKF::Quaternion(1, 0, 0, 0));
+    test_state.set_field<Altitude>(10);
 
     MyStateVector::CovarianceMatrix covariance = MyStateVector::CovarianceMatrix::Zero();
     covariance.diagonal() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;

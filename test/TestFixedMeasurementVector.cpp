@@ -31,17 +31,17 @@ TEST(FixedMeasurementVectorTest, Instantiation) {
 TEST(FixedMeasurementVectorTest, Assignment) {
     MyMeasurementVector test_measurement;
 
-    test_measurement.field<Gyroscope>() << 1, 2, 3;
-    test_measurement.field<DynamicPressure>() << 4;
-    test_measurement.field<Accelerometer>() << 5, 6, 7;
-    test_measurement.field<StaticPressure>() << 8;
+    test_measurement.set_field<Gyroscope>(UKF::Vector<3>(1, 2, 3));
+    test_measurement.set_field<DynamicPressure>(4);
+    test_measurement.set_field<Accelerometer>(UKF::Vector<3>(5, 6, 7));
+    test_measurement.set_field<StaticPressure>(8);
 
     EXPECT_EQ(8, test_measurement.size());
 
-    EXPECT_EQ(8, test_measurement.field<StaticPressure>()(0));
-    EXPECT_EQ(4, test_measurement.field<DynamicPressure>()(0));
-    EXPECT_VECTOR_EQ(UKF::Vector<3>(1, 2, 3), test_measurement.field<Gyroscope>());
-    EXPECT_VECTOR_EQ(UKF::Vector<3>(5, 6, 7), test_measurement.field<Accelerometer>());
+    EXPECT_EQ(8, test_measurement.get_field<StaticPressure>());
+    EXPECT_EQ(4, test_measurement.get_field<DynamicPressure>());
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(1, 2, 3), test_measurement.get_field<Gyroscope>());
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(5, 6, 7), test_measurement.get_field<Accelerometer>());
 
     UKF::Vector<8> expected;
     expected << 5, 6, 7, 1, 2, 3, 8, 4;
@@ -51,18 +51,18 @@ TEST(FixedMeasurementVectorTest, Assignment) {
 TEST(FixedMeasurementVectorTest, Reassignment) {
     MyMeasurementVector test_measurement;
 
-    test_measurement.field<Gyroscope>() << 1, 2, 3;
-    test_measurement.field<DynamicPressure>() << 4;
-    test_measurement.field<Accelerometer>() << 5, 6, 7;
-    test_measurement.field<StaticPressure>() << 8;
+    test_measurement.set_field<Gyroscope>(UKF::Vector<3>(1, 2, 3));
+    test_measurement.set_field<DynamicPressure>(4);
+    test_measurement.set_field<Accelerometer>(UKF::Vector<3>(5, 6, 7));
+    test_measurement.set_field<StaticPressure>(8);
 
     EXPECT_EQ(8, test_measurement.size());
-    EXPECT_VECTOR_EQ(UKF::Vector<3>(1, 2, 3), test_measurement.field<Gyroscope>());
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(1, 2, 3), test_measurement.get_field<Gyroscope>());
 
-    test_measurement.field<Gyroscope>() << 4, 5, 6;
+    test_measurement.set_field<Gyroscope>(UKF::Vector<3>(4, 5, 6));
 
     EXPECT_EQ(8, test_measurement.size());
-    EXPECT_VECTOR_EQ(UKF::Vector<3>(4, 5, 6), test_measurement.field<Gyroscope>());
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(4, 5, 6), test_measurement.get_field<Gyroscope>());
 
     UKF::Vector<8> expected;
     expected << 5, 6, 7, 4, 5, 6, 8, 4;
@@ -72,41 +72,41 @@ TEST(FixedMeasurementVectorTest, Reassignment) {
 TEST(FixedMeasurementVectorTest, MultipleReassignment) {
     MyMeasurementVector test_measurement;
 
-    test_measurement.field<Gyroscope>() << 1, 2, 3;
-    test_measurement.field<DynamicPressure>() << 4;
-    test_measurement.field<Accelerometer>() << 5, 6, 7;
-    test_measurement.field<StaticPressure>() << 8;
+    test_measurement.set_field<Gyroscope>(UKF::Vector<3>(1, 2, 3));
+    test_measurement.set_field<DynamicPressure>(4);
+    test_measurement.set_field<Accelerometer>(UKF::Vector<3>(5, 6, 7));
+    test_measurement.set_field<StaticPressure>(8);
 
     EXPECT_EQ(8, test_measurement.size());
     UKF::Vector<8> expected;
     expected << 5, 6, 7, 1, 2, 3, 8, 4;
     EXPECT_VECTOR_EQ(expected, test_measurement);
 
-    test_measurement.field<Gyroscope>() << 4, 5, 6;
+    test_measurement.set_field<Gyroscope>(UKF::Vector<3>(4, 5, 6));
 
     EXPECT_EQ(8, test_measurement.size());
-    EXPECT_VECTOR_EQ(UKF::Vector<3>(4, 5, 6), test_measurement.field<Gyroscope>());
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(4, 5, 6), test_measurement.get_field<Gyroscope>());
     expected << 5, 6, 7, 4, 5, 6, 8, 4;
     EXPECT_VECTOR_EQ(expected, test_measurement);
 
-    test_measurement.field<Accelerometer>() << 7, 8, 9;
+    test_measurement.set_field<Accelerometer>(UKF::Vector<3>(7, 8, 9));
 
     EXPECT_EQ(8, test_measurement.size());
-    EXPECT_VECTOR_EQ(UKF::Vector<3>(7, 8, 9), test_measurement.field<Accelerometer>());
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(7, 8, 9), test_measurement.get_field<Accelerometer>());
     expected << 7, 8, 9, 4, 5, 6, 8, 4;
     EXPECT_VECTOR_EQ(expected, test_measurement);
 
-    test_measurement.field<DynamicPressure>() << 1;
+    test_measurement.set_field<DynamicPressure>(1);
 
     EXPECT_EQ(8, test_measurement.size());
-    EXPECT_EQ(1, test_measurement.field<DynamicPressure>()(0));
+    EXPECT_EQ(1, test_measurement.get_field<DynamicPressure>());
     expected << 7, 8, 9, 4, 5, 6, 8, 1;
     EXPECT_VECTOR_EQ(expected, test_measurement);
 
-    test_measurement.field<StaticPressure>() << 3;
+    test_measurement.set_field<StaticPressure>(3);
 
     EXPECT_EQ(8, test_measurement.size());
-    EXPECT_EQ(3, test_measurement.field<StaticPressure>()(0));
+    EXPECT_EQ(3, test_measurement.get_field<StaticPressure>());
     expected << 7, 8, 9, 4, 5, 6, 3, 1;
     EXPECT_VECTOR_EQ(expected, test_measurement);
 }
@@ -137,35 +137,35 @@ testing, don't expect them to make any physical sense whatsoever.
 template <> template <>
 UKF::Vector<3> MyMeasurementVector::expected_measurement
 <MyStateVector, UKF::Field<Accelerometer, UKF::Vector<3>>>(const MyStateVector &state) {
-    return UKF::Quaternion(state.field<Attitude>()) * UKF::Vector<3>(0, 0, -9.8);
+    return state.get_field<Attitude>() * UKF::Vector<3>(0, 0, -9.8);
 }
 
 template <> template <>
 UKF::Vector<3> MyMeasurementVector::expected_measurement
 <MyStateVector, UKF::Field<Gyroscope, UKF::Vector<3>>>(const MyStateVector &state) {
-    return state.field<AngularVelocity>();
+    return state.get_field<AngularVelocity>();
 }
 
 template <> template <>
 real_t MyMeasurementVector::expected_measurement
 <MyStateVector, UKF::Field<StaticPressure, real_t>>(const MyStateVector &state) {
-    return 101300.0 - 1200.0*(state.field<Altitude>()(0) / 100.0);
+    return 101300.0 - 1200.0*(state.get_field<Altitude>() / 100.0);
 }
 
 template <> template <>
 real_t MyMeasurementVector::expected_measurement
 <MyStateVector, UKF::Field<DynamicPressure, real_t>>(const MyStateVector &state) {
-    return 0.5 * 1.225 * state.field<Velocity>().squaredNorm();
+    return 0.5 * 1.225 * state.get_field<Velocity>().squaredNorm();
 }
 
 TEST(FixedMeasurementVectorTest, SigmaPointGeneration) {
     MyStateVector test_state;
     MyMeasurementVector test_measurement;
 
-    test_state.field<Velocity>() << 1, 2, 3;
-    test_state.field<AngularVelocity>() << 1, 0, 0;
-    test_state.field<Attitude>() << 0, 0, 0, 1;
-    test_state.field<Altitude>() << 1000;
+    test_state.set_field<Velocity>(UKF::Vector<3>(1, 2, 3));
+    test_state.set_field<AngularVelocity>(UKF::Vector<3>(1, 0, 0));
+    test_state.set_field<Attitude>(UKF::Quaternion(1, 0, 0, 0));
+    test_state.set_field<Altitude>(1000);
 
     MyStateVector::CovarianceMatrix covariance = MyStateVector::CovarianceMatrix::Zero();
     covariance.diagonal() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
@@ -229,10 +229,10 @@ TEST(FixedMeasurementVectorTest, SigmaPointCovariance) {
     MyStateVector test_state;
     MyMeasurementVector test_measurement;
 
-    test_state.field<Velocity>() << 1, 2, 3;
-    test_state.field<AngularVelocity>() << 1, 0, 0;
-    test_state.field<Attitude>() << 0, 0, 0, 1;
-    test_state.field<Altitude>() << 1000;
+    test_state.set_field<Velocity>(UKF::Vector<3>(1, 2, 3));
+    test_state.set_field<AngularVelocity>(UKF::Vector<3>(1, 0, 0));
+    test_state.set_field<Attitude>(UKF::Quaternion(1, 0, 0, 0));
+    test_state.set_field<Altitude>(1000);
 
     MyStateVector::CovarianceMatrix covariance = MyStateVector::CovarianceMatrix::Zero();
     covariance.diagonal() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;

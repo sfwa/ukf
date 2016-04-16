@@ -124,6 +124,30 @@ namespace UKF {
             Offset + CovarianceDimension<typename T1::type>, T2, Fields...>(Key);
     }
 
+    /*
+    These helper structs allow various functions to determine field types at
+    compile time based only on the integer key parameter.
+    */
+    template <bool condition, class T, class U>
+    struct IfHelper {
+      using type = U;
+    };
+     
+    template <class T, class U>
+    struct IfHelper<true, T, U> {
+      using type = T;
+    };
+
+    template <int Key, typename... Fields>
+    struct FieldTypes {
+        using type = void;
+    };
+
+    template <int Key, typename T, typename... Fields>
+    struct FieldTypes<Key, T, Fields...> {
+        using type = typename IfHelper<Key == T::key, typename T::type, typename FieldTypes<Key, Fields...>::type>::type;
+    };
+
     template <typename T>
     constexpr T ConvertFromSegment(const Vector<StateVectorDimension<T>> &state) {
         return static_cast<T>(state);
@@ -255,17 +279,26 @@ public:
 
     /* Functions for accessing individual fields. */
     template <int Key>
-    auto field() {
+    typename Detail::FieldTypes<Key, Fields...>::type get_field() const {
         static_assert(Detail::GetFieldOffset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
             "Specified key not present in state vector");
-        return Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(Detail::GetFieldOffset<0, Fields...>(Key));
+        return Detail::ConvertFromSegment<typename Detail::FieldTypes<Key, Fields...>::type>(
+            Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(Detail::GetFieldOffset<0, Fields...>(Key)));
+    }
+
+    template <int Key, typename T>
+    void set_field(T in) {
+        static_assert(Detail::GetFieldOffset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
+            "Specified key not present in state vector");
+        Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(Detail::GetFieldOffset<0, Fields...>(Key)) << in;
     }
 
     template <int Key>
-    auto field() const {
+    void set_field(Quaternion in) {
         static_assert(Detail::GetFieldOffset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
             "Specified key not present in state vector");
-        return Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(Detail::GetFieldOffset<0, Fields...>(Key));
+        Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(Detail::GetFieldOffset<0, Fields...>(Key)) <<
+            in.vec(), in.w();
     }
 
     /* Calculate the mean from a sigma point distribution. */
@@ -304,8 +337,8 @@ public:
     */
     SigmaPointDistribution calculate_sigma_point_distribution(const CovarianceMatrix &P) const {
         /* Calculate the LLT decomposition of the scaled covariance matrix. */
-        assert((P * (covariance_size() + Parameters::Lambda<StateVector>)).llt().info() == Eigen::Success &&
-            "Covariance matrix is not positive definite");
+        assert((P * (covariance_size() + Parameters::Lambda<StateVector>)).llt().info() == Eigen::Success
+            && "Covariance matrix is not positive definite");
         CovarianceMatrix S = (P * (covariance_size() + Parameters::Lambda<StateVector>)).llt().matrixL();
 
         /* Calculate the sigma point distribution from all the fields. */
@@ -351,8 +384,8 @@ private:
 
         Array<1, covariance_size()> x_2 = cov.colwise().squaredNorm();
         Array<1, covariance_size()> err_w =
-            (-Parameters::MRP_A<StateVector> * x_2 + Parameters::MRP_F<StateVector> * (
-                x_2 * (1.0 - Parameters::MRP_A<StateVector>*Parameters::MRP_A<StateVector>)
+            (-Parameters::MRP_A<StateVector> * x_2 + Parameters::MRP_F<StateVector>
+                * (x_2 * (1.0 - Parameters::MRP_A<StateVector>*Parameters::MRP_A<StateVector>)
                 + Parameters::MRP_F<StateVector> * Parameters::MRP_F<StateVector>).sqrt())
             / (Parameters::MRP_F<StateVector> * Parameters::MRP_F<StateVector> + x_2);
         Array<3, covariance_size()> err_xyz =
@@ -376,8 +409,7 @@ private:
     void calculate_field_sigmas(const CovarianceMatrix &S, SigmaPointDistribution &X) const {
         X.block(Detail::GetFieldOffset<0, Fields...>(T::key), 0,
             Detail::StateVectorDimension<typename T::type>, num_sigma) = perturb_state(
-                Detail::ConvertFromSegment<typename T::type>(field<T::key>()),
-                S.block(Detail::GetFieldCovarianceOffset<0, Fields...>(T::key), 0,
+                get_field<T::key>(), S.block(Detail::GetFieldCovarianceOffset<0, Fields...>(T::key), 0,
                     Detail::CovarianceDimension<typename T::type>, covariance_size()));
     }
 
@@ -470,8 +502,7 @@ private:
     void calculate_field_deltas(const SigmaPointDistribution &X, Matrix<covariance_size(), num_sigma> &w_prime) const {
         w_prime.block(Detail::GetFieldCovarianceOffset<0, Fields...>(T::key), 0,
             Detail::CovarianceDimension<typename T::type>, num_sigma) = sigma_point_deltas(
-                Detail::ConvertFromSegment<typename T::type>(field<T::key>()),
-                X.block(Detail::GetFieldOffset<0, Fields...>(T::key), 0,
+                get_field<T::key>(), X.block(Detail::GetFieldOffset<0, Fields...>(T::key), 0,
                     Detail::StateVectorDimension<typename T::type>, num_sigma));
     }
 

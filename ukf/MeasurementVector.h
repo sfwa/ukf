@@ -86,18 +86,20 @@ public:
     using SigmaPointDistribution = Matrix<size(), S::num_sigma>;
     using CovarianceMatrix = Matrix<covariance_size(), covariance_size()>;
 
+    /* Functions for accessing individual fields. */
     template <int Key>
-    auto field() const {
+    typename Detail::FieldTypes<Key, Fields...>::type get_field() const {
         static_assert(Detail::GetFieldOffset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
-            "Specified key not present in measurement vector");
-        return Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(Detail::GetFieldOffset<0, Fields...>(Key));
+            "Specified key not present in state vector");
+        return Detail::ConvertFromSegment<typename Detail::FieldTypes<Key, Fields...>::type>(
+            Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(Detail::GetFieldOffset<0, Fields...>(Key)));
     }
 
-    template <int Key>
-    auto field() {
+    template <int Key, typename T>
+    void set_field(T in) {
         static_assert(Detail::GetFieldOffset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
-            "Specified key not present in measurement vector");
-        return Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(Detail::GetFieldOffset<0, Fields...>(Key));
+            "Specified key not present in state vector");
+        Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(Detail::GetFieldOffset<0, Fields...>(Key)) << in;
     }
 
     /* Calculate the mean from a measurement sigma point distribution. */
@@ -201,7 +203,7 @@ public:
 
     /* Read-only version of the field accessor method. */
     template <int Key>
-    Eigen::VectorBlock<MeasurementVectorDynamicBaseType<typename Fields::type...>, Detail::GetFieldSize<Fields...>(Key)> field() const {
+    auto field() const {
         std::size_t offset = get_offset(Key);
 
         assert(1 == 0);
@@ -216,7 +218,7 @@ public:
     }
 
     template <int Key>
-    Eigen::VectorBlock<MeasurementVectorDynamicBaseType<typename Fields::type...>, Detail::GetFieldSize<Fields...>(Key)> field() {
+    auto field() {
         std::size_t offset = get_offset(Key);
 
         static_assert(Detail::GetFieldSize<Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
@@ -337,15 +339,15 @@ private:
     template <typename S, typename T>
     static typename T::type expected_measurement(const S &state);
 
-    // /*
-    // This function builds the measurement estimate from the expected
-    // measurement of each individual field.
-    // */
-    // template <typename S>
-    // static void calculate_field_measurements(const S &state, DynamicMeasurementVector &expected) {
-    //     expected.segment(Detail::GetFieldOffset<0, Fields...>(T::key),
-    //         Detail::StateVectorDimension<typename T::type>) << expected_measurement<S, T>(state);
-    // }
+    /*
+    This function builds the measurement estimate from the expected
+    measurement of each individual field.
+    */
+    template <typename S>
+    static void calculate_field_measurements(const S &state, DynamicMeasurementVector &expected) {
+        //expected.segment(Detail::GetFieldOffset<0, Fields...>(T::key),
+        //    Detail::StateVectorDimension<typename T::type>) << expected_measurement<S, T>(state);
+    }
 };
 
 }
