@@ -83,7 +83,7 @@ public:
 
     /* Aliases for types needed during filter iteration. */
     template <typename S>
-    using SigmaPointDistribution = Matrix<size(), S::num_sigma>;
+    using SigmaPointDistribution = Matrix<size(), S::num_sigma()>;
     using CovarianceMatrix = Matrix<covariance_size(), covariance_size()>;
 
     /* Functions for accessing individual fields. */
@@ -105,7 +105,7 @@ public:
     /* Calculate the mean from a measurement sigma point distribution. */
     template <typename S>
     FixedMeasurementVector calculate_sigma_point_mean(const SigmaPointDistribution<S> &Z) const {
-        return Parameters::Sigma_WMI<S>*Z.block(0, 1, size(), S::num_sigma-1).rowwise().sum()
+        return Parameters::Sigma_WMI<S>*Z.block(0, 1, size(), S::num_sigma()-1).rowwise().sum()
             + Parameters::Sigma_WM0<S>*Z.col(0);
     }
 
@@ -124,7 +124,7 @@ public:
 
         /* Calculate the covariance using equation 64 from the Kraft paper. */
         cov = Parameters::Sigma_WC0<S> * (z_prime.col(0) * z_prime.col(0).transpose());
-        for(int i = 1; i < S::num_sigma; i++) {
+        for(int i = 1; i < S::num_sigma(); i++) {
             cov += Parameters::Sigma_WCI<S> * (z_prime.col(i) * z_prime.col(i).transpose());
         }
 
@@ -138,7 +138,7 @@ public:
     SigmaPointDistribution<S> calculate_sigma_point_distribution(const typename S::SigmaPointDistribution &X) const {
         SigmaPointDistribution<S> Z;
 
-        for(int i = 0; i < S::num_sigma; i++) {
+        for(int i = 0; i < S::num_sigma(); i++) {
             FixedMeasurementVector temp;
             calculate_field_measurements<S, Fields...>(X.col(i), temp);
             Z.col(i) = temp;
@@ -198,35 +198,34 @@ public:
 
     /* Aliases for types needed during filter iteration. */
     template <typename S>
-    using SigmaPointDistribution = MatrixDynamic<max_size(), S::num_sigma>;
+    using SigmaPointDistribution = MatrixDynamic<max_size(), S::num_sigma()>;
     using CovarianceMatrix = MatrixDynamic<max_covariance_size(), max_covariance_size()>;
 
-    /* Read-only version of the field accessor method. */
+    /* Functions for accessing individual fields. */
     template <int Key>
-    auto field() const {
-        std::size_t offset = get_offset(Key);
-
-        assert(1 == 0);
-
+    typename Detail::FieldTypes<Key, Fields...>::type get_field() const {
         static_assert(Detail::GetFieldSize<Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
             "Specified key not present in measurement vector");
+
+        std::size_t offset = get_offset(Key);
 
         assert(offset != std::numeric_limits<std::size_t>::max() &&
             "Specified key not present in measurement vector");
 
-        return Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(offset);
+        return Detail::ConvertFromSegment<typename Detail::FieldTypes<Key, Fields...>::type>(
+            Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(offset));
     }
 
-    template <int Key>
-    auto field() {
-        std::size_t offset = get_offset(Key);
-
+    template <int Key, typename T>
+    void set_field(T in) {
         static_assert(Detail::GetFieldSize<Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
             "Specified key not present in measurement vector");
 
+        std::size_t offset = get_offset(Key);
+
         /* Check if this field has already been set. If so, replace it. */
         if(offset < Base::template size()) {
-            return Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(offset);
+            Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(offset) << in;
         } else {
             /*
             Otherwise, resize the measurement vector to fit it and store the
@@ -244,7 +243,7 @@ public:
             current_measurements(num_measurements) = Key;
 
             /* Assign the value to the field. */
-            return Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(previous_size);
+            Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(previous_size) << in;
         }
     }
 
@@ -256,7 +255,7 @@ public:
     template <typename S>
     DynamicMeasurementVector calculate_sigma_point_mean(const SigmaPointDistribution<S> &Z) const {
         DynamicMeasurementVector temp = DynamicMeasurementVector(
-            Parameters::Sigma_WMI<S>*Z.block(0, 1, Base::template size(), S::num_sigma-1).rowwise().sum()
+            Parameters::Sigma_WMI<S>*Z.block(0, 1, Base::template size(), S::num_sigma()-1).rowwise().sum()
             + Parameters::Sigma_WM0<S>*Z.col(0));
 
         temp.current_measurements = current_measurements;
@@ -272,14 +271,14 @@ public:
     template <typename S>
     CovarianceMatrix calculate_sigma_point_covariance(const SigmaPointDistribution<S> &Z) const {
         CovarianceMatrix cov(Base::template size(), Base::template size());
-        SigmaPointDistribution<S> z_prime(Base::template size(), S::num_sigma);
+        SigmaPointDistribution<S> z_prime(Base::template size(), S::num_sigma());
 
         /* Calculate the delta vectors. */
         z_prime = Z.colwise() - *this;
 
         /* Calculate the covariance using equation 64 from the Kraft paper. */
         cov = Parameters::Sigma_WC0<S> * (z_prime.col(0) * z_prime.col(0).transpose());
-        for(int i = 1; i < S::num_sigma; i++) {
+        for(int i = 1; i < S::num_sigma(); i++) {
             cov += Parameters::Sigma_WCI<S> * (z_prime.col(i) * z_prime.col(i).transpose());
         }
 
@@ -291,9 +290,9 @@ public:
     */
     template <typename S>
     SigmaPointDistribution<S> calculate_sigma_point_distribution(const typename S::SigmaPointDistribution &X) const {
-        SigmaPointDistribution<S> Z(Base::template size(), S::num_sigma);
+        SigmaPointDistribution<S> Z(Base::template size(), S::num_sigma());
 
-        for(int i = 0; i < S::num_sigma; i++) {
+        for(int i = 0; i < S::num_sigma(); i++) {
             DynamicMeasurementVector temp(Base::template size());
             //calculate_field_measurements<S>(X.col(i), temp);
             Z.col(i) = temp;
@@ -316,7 +315,7 @@ private:
     vector, or returns std::numeric_limits<std::size_t>::max() if it's not
     present.
     */
-    std::size_t get_offset(int Key) {
+    std::size_t get_offset(int Key) const {
         std::size_t offset = 0;
         for(int i = 0; i < current_measurements.size(); i++) {
             if(current_measurements(i) == Key) {

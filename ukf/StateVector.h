@@ -271,11 +271,13 @@ public:
         return Detail::GetCovarianceDimension<typename Fields::type...>();
     }
 
-    static constexpr std::size_t num_sigma = 2*covariance_size() + 1;
+    static constexpr std::size_t num_sigma() {
+        return 2*covariance_size() + 1;
+    }
 
     /* Aliases for types needed during filter iteration. */
     using CovarianceMatrix = Matrix<covariance_size(), covariance_size()>;
-    using SigmaPointDistribution = Matrix<size(), num_sigma>;
+    using SigmaPointDistribution = Matrix<size(), num_sigma()>;
 
     /* Functions for accessing individual fields. */
     template <int Key>
@@ -318,14 +320,14 @@ public:
     */
     CovarianceMatrix calculate_sigma_point_covariance(const SigmaPointDistribution &X) const {
         CovarianceMatrix cov;
-        Matrix<covariance_size(), num_sigma> w_prime;
+        Matrix<covariance_size(), num_sigma()> w_prime;
 
         /* Calculate the delta vectors. */
         calculate_field_deltas<Fields...>(X, w_prime);
 
         /* Calculate the covariance using equation 64 from the Kraft paper. */
         cov = Parameters::Sigma_WC0<StateVector> * (w_prime.col(0) * w_prime.col(0).transpose());
-        for(int i = 1; i < num_sigma; i++) {
+        for(int i = 1; i < num_sigma(); i++) {
             cov += Parameters::Sigma_WCI<StateVector> * (w_prime.col(i) * w_prime.col(i).transpose());
         }
 
@@ -353,9 +355,9 @@ private:
 
     /* Private functions for creating a sigma point distribution. */
     template <typename T>
-    static Matrix<Detail::StateVectorDimension<T>, num_sigma> perturb_state(
+    static Matrix<Detail::StateVectorDimension<T>, num_sigma()> perturb_state(
             const T &state, const Matrix<Detail::CovarianceDimension<T>, covariance_size()> &cov) {
-        Matrix<Detail::StateVectorDimension<T>, num_sigma> temp;
+        Matrix<Detail::StateVectorDimension<T>, num_sigma()> temp;
         temp.col(0) = state;
         temp.block(0, 1, Detail::StateVectorDimension<T>, covariance_size()) =
             cov.colwise() + state;
@@ -365,8 +367,8 @@ private:
         return temp;
     }
 
-    static Matrix<1, num_sigma> perturb_state(real_t state, const Matrix<1, covariance_size()> &cov) {
-        Matrix<1, num_sigma> temp;
+    static Matrix<1, num_sigma()> perturb_state(real_t state, const Matrix<1, covariance_size()> &cov) {
+        Matrix<1, num_sigma()> temp;
         temp(0) = state;
         temp.segment(1, covariance_size()) = cov.array() + state;
         temp.segment(covariance_size()+1, covariance_size()) = -(cov.array() - state);
@@ -378,8 +380,8 @@ private:
     Construct error quaternions using the MRP method, equation 34 from the
     Markley paper.
     */
-    static Matrix<4, num_sigma> perturb_state(const Quaternion &state, const Matrix<3, covariance_size()> &cov) {
-        Matrix<4, num_sigma> temp;
+    static Matrix<4, num_sigma()> perturb_state(const Quaternion &state, const Matrix<3, covariance_size()> &cov) {
+        Matrix<4, num_sigma()> temp;
         temp.col(0) << state.vec(), state.w();
 
         Array<1, covariance_size()> x_2 = cov.colwise().squaredNorm();
@@ -408,7 +410,7 @@ private:
     template <typename T>
     void calculate_field_sigmas(const CovarianceMatrix &S, SigmaPointDistribution &X) const {
         X.block(Detail::GetFieldOffset<0, Fields...>(T::key), 0,
-            Detail::StateVectorDimension<typename T::type>, num_sigma) = perturb_state(
+            Detail::StateVectorDimension<typename T::type>, num_sigma()) = perturb_state(
                 get_field<T::key>(), S.block(Detail::GetFieldCovarianceOffset<0, Fields...>(T::key), 0,
                     Detail::CovarianceDimension<typename T::type>, covariance_size()));
     }
@@ -432,14 +434,14 @@ private:
     The following algorithm implements equation (41d) from that paper.
     */
     template <typename T>
-    static T sigma_point_mean(const Matrix<Detail::StateVectorDimension<T>, num_sigma> &sigma, const T &field) {
+    static T sigma_point_mean(const Matrix<Detail::StateVectorDimension<T>, num_sigma()> &sigma, const T &field) {
         return Parameters::Sigma_WMI<StateVector>*sigma.block(
-            0, 1, Detail::StateVectorDimension<T>, num_sigma-1).rowwise().sum()
+            0, 1, Detail::StateVectorDimension<T>, num_sigma()-1).rowwise().sum()
             + Parameters::Sigma_WM0<StateVector>*sigma.col(0);
     }
 
-    static real_t sigma_point_mean(const Matrix<1, num_sigma> &sigma, const real_t &field) {
-        return Parameters::Sigma_WMI<StateVector>*sigma.segment(1, num_sigma-1).sum()
+    static real_t sigma_point_mean(const Matrix<1, num_sigma()> &sigma, const real_t &field) {
+        return Parameters::Sigma_WMI<StateVector>*sigma.segment(1, num_sigma()-1).sum()
             + Parameters::Sigma_WM0<StateVector>*sigma(0);
     }
 
@@ -448,8 +450,8 @@ private:
     this is not an ad-hoc renormalisation of an appoximation; see the paper
     mentioned above for details.
     */
-    static Vector<4> sigma_point_mean(const Matrix<4, num_sigma> &sigma, const Quaternion &field) {
-        Vector<4> temp = Parameters::Sigma_WMI<StateVector>*sigma.block(0, 1, 4, num_sigma-1).rowwise().sum()
+    static Vector<4> sigma_point_mean(const Matrix<4, num_sigma()> &sigma, const Quaternion &field) {
+        Vector<4> temp = Parameters::Sigma_WMI<StateVector>*sigma.block(0, 1, 4, num_sigma()-1).rowwise().sum()
             + Parameters::Sigma_WM0<StateVector>*sigma.col(0);
         Quaternion temp_q = Quaternion(temp).normalized();
         return Vector<4>(temp_q.x(), temp_q.y(), temp_q.z(), temp_q.w());
@@ -460,7 +462,7 @@ private:
         mean.segment(Detail::GetFieldOffset<0, Fields...>(T::key),
             Detail::StateVectorDimension<typename T::type>) << sigma_point_mean(
                 X.block(Detail::GetFieldOffset<0, Fields...>(T::key), 0,
-                    Detail::StateVectorDimension<typename T::type>, num_sigma), typename T::type());
+                    Detail::StateVectorDimension<typename T::type>, num_sigma()), typename T::type());
     }
 
     template <typename T1, typename T2, typename... Tail>
@@ -474,23 +476,23 @@ private:
     point and the mean.
     */
     template <typename T>
-    static Matrix<Detail::CovarianceDimension<T>, num_sigma> sigma_point_deltas(
-            const T &mean, const Matrix<Detail::StateVectorDimension<T>, num_sigma> &X) {
+    static Matrix<Detail::CovarianceDimension<T>, num_sigma()> sigma_point_deltas(
+            const T &mean, const Matrix<Detail::StateVectorDimension<T>, num_sigma()> &X) {
         return X.colwise() - mean;
     }
 
-    static Matrix<1, num_sigma> sigma_point_deltas(real_t mean, const Matrix<1, num_sigma> &X) {
+    static Matrix<1, num_sigma()> sigma_point_deltas(real_t mean, const Matrix<1, num_sigma()> &X) {
         return X.array() - mean;
     }
 
-    static Matrix<3, num_sigma> sigma_point_deltas(const Quaternion &mean, const Matrix<4, num_sigma> &X) {
-        Matrix<3, num_sigma> temp;
+    static Matrix<3, num_sigma()> sigma_point_deltas(const Quaternion &mean, const Matrix<4, num_sigma()> &X) {
+        Matrix<3, num_sigma()> temp;
 
         /*
         The attitude part of this set of vectors is calculated using equation
         45 from the Kraft paper.
         */
-        for(int i = 0; i < num_sigma; i++) {
+        for(int i = 0; i < num_sigma(); i++) {
             Quaternion delta_q = Quaternion(X.col(i)) * mean.conjugate();
             temp.col(i) = Parameters::MRP_F<StateVector> * (delta_q.vec() / (Parameters::MRP_A<StateVector> + delta_q.w()));
         }
@@ -499,15 +501,15 @@ private:
     }
 
     template <typename T>
-    void calculate_field_deltas(const SigmaPointDistribution &X, Matrix<covariance_size(), num_sigma> &w_prime) const {
+    void calculate_field_deltas(const SigmaPointDistribution &X, Matrix<covariance_size(), num_sigma()> &w_prime) const {
         w_prime.block(Detail::GetFieldCovarianceOffset<0, Fields...>(T::key), 0,
-            Detail::CovarianceDimension<typename T::type>, num_sigma) = sigma_point_deltas(
+            Detail::CovarianceDimension<typename T::type>, num_sigma()) = sigma_point_deltas(
                 get_field<T::key>(), X.block(Detail::GetFieldOffset<0, Fields...>(T::key), 0,
-                    Detail::StateVectorDimension<typename T::type>, num_sigma));
+                    Detail::StateVectorDimension<typename T::type>, num_sigma()));
     }
 
     template <typename T1, typename T2, typename... Tail>
-    void calculate_field_deltas(const SigmaPointDistribution &X, Matrix<covariance_size(), num_sigma> &w_prime) const {
+    void calculate_field_deltas(const SigmaPointDistribution &X, Matrix<covariance_size(), num_sigma()> &w_prime) const {
         calculate_field_deltas<T1>(X, w_prime);
         calculate_field_deltas<T2, Tail...>(X, w_prime);
     }
