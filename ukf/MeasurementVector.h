@@ -294,7 +294,7 @@ public:
 
         for(int i = 0; i < S::num_sigma(); i++) {
             DynamicMeasurementVector temp(Base::template size());
-            //calculate_field_measurements<S>(X.col(i), temp);
+            calculate_field_measurements<S>(X.col(i), temp);
             Z.col(i) = temp;
         }
 
@@ -343,10 +343,27 @@ private:
     measurement of each individual field.
     */
     template <typename S>
-    static void calculate_field_measurements(const S &state, DynamicMeasurementVector &expected) {
-        //expected.segment(Detail::GetFieldOffset<0, Fields...>(T::key),
-        //    Detail::StateVectorDimension<typename T::type>) << expected_measurement<S, T>(state);
+    void calculate_field_measurements(const S &state, DynamicMeasurementVector &expected) const {
+        std::size_t offset = 0;
+        for(int i = 0; i < current_measurements.size(); i++) {
+            expected.segment(offset, Detail::GetFieldSize<Fields...>(current_measurements(i))) <<
+                expected_measurement<S, typename Detail::FieldTypes<current_measurements(i), Fields...>::type>(state);
+
+            offset += Detail::GetFieldSize<Fields...>(current_measurements(i));
+        }
     }
+
+    // template <typename S, typename T>
+    // void calculate_field_measurements(const S &state, MeasurementVector &expected) {
+    //     expected.segment(Detail::GetFieldOffset<0, Fields...>(T::key),
+    //         Detail::StateVectorDimension<typename T::type>) << expected_measurement<S, T>(state);
+    // }
+
+    // template <typename S, typename T1, typename T2, typename... Tail>
+    // void calculate_field_measurements(const S &state, FixedMeasurementVector &expected) {
+    //     calculate_field_measurements<S, T1>(state, expected);
+    //     calculate_field_measurements<S, T2, Tail...>(state, expected);
+    // }
 };
 
 }
