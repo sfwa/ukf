@@ -153,10 +153,10 @@ private:
     the measurement vector, and allows the user to specify how a particular
     state vector is transformed into a measurement vector.
 
-    Template parameters are a StateVector type and a Field type.
+    Template parameters are a StateVector type and a field key.
     */
-    template <typename S, typename T>
-    static typename T::type expected_measurement(const S &state);
+    template <typename S, int Key>
+    static typename Detail::FieldTypes<Key, Fields...>::type expected_measurement(const S &state);
 
     /*
     These functions build the measurement estimate from the expected
@@ -165,7 +165,7 @@ private:
     template <typename S, typename T>
     static void calculate_field_measurements(const S &state, FixedMeasurementVector &expected) {
         expected.segment(Detail::GetFieldOffset<0, Fields...>(T::key),
-            Detail::StateVectorDimension<typename T::type>) << expected_measurement<S, T>(state);
+            Detail::StateVectorDimension<typename T::type>) << expected_measurement<S, T::key>(state);
     }
 
     template <typename S, typename T1, typename T2, typename... Tail>
@@ -333,10 +333,10 @@ private:
     the measurement vector, and allows the user to specify how a particular
     state vector is transformed into a measurement vector.
 
-    Template parameters are a StateVector type and a Field type.
+    Template parameters are a StateVector type and a field key.
     */
-    template <typename S, typename T>
-    static typename T::type expected_measurement(const S &state);
+    template <typename S, int Key>
+    static typename Detail::FieldTypes<Key, Fields...>::type expected_measurement(const S &state);
 
     /*
     This function builds the measurement estimate from the expected
@@ -346,24 +346,12 @@ private:
     void calculate_field_measurements(const S &state, DynamicMeasurementVector &expected) const {
         std::size_t offset = 0;
         for(int i = 0; i < current_measurements.size(); i++) {
-            expected.segment(offset, Detail::GetFieldSize<Fields...>(current_measurements(i))) <<
-                expected_measurement<S, typename Detail::FieldTypes<current_measurements(i), Fields...>::type>(state);
+            // expected.segment(offset, Detail::GetFieldSize<Fields...>(current_measurements(i))) <<
+            //     expected_measurement<S, typename Detail::FieldTypes<current_measurements(i), Fields...>::type>(state);
 
             offset += Detail::GetFieldSize<Fields...>(current_measurements(i));
         }
     }
-
-    // template <typename S, typename T>
-    // void calculate_field_measurements(const S &state, MeasurementVector &expected) {
-    //     expected.segment(Detail::GetFieldOffset<0, Fields...>(T::key),
-    //         Detail::StateVectorDimension<typename T::type>) << expected_measurement<S, T>(state);
-    // }
-
-    // template <typename S, typename T1, typename T2, typename... Tail>
-    // void calculate_field_measurements(const S &state, FixedMeasurementVector &expected) {
-    //     calculate_field_measurements<S, T1>(state, expected);
-    //     calculate_field_measurements<S, T2, Tail...>(state, expected);
-    // }
 };
 
 }

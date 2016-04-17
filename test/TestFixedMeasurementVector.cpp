@@ -136,25 +136,25 @@ testing, don't expect them to make any physical sense whatsoever.
 */
 template <> template <>
 UKF::Vector<3> MyMeasurementVector::expected_measurement
-<MyStateVector, UKF::Field<Accelerometer, UKF::Vector<3>>>(const MyStateVector &state) {
+<MyStateVector, Accelerometer>(const MyStateVector &state) {
     return state.get_field<Attitude>() * UKF::Vector<3>(0, 0, -9.8);
 }
 
 template <> template <>
 UKF::Vector<3> MyMeasurementVector::expected_measurement
-<MyStateVector, UKF::Field<Gyroscope, UKF::Vector<3>>>(const MyStateVector &state) {
+<MyStateVector, Gyroscope>(const MyStateVector &state) {
     return state.get_field<AngularVelocity>();
 }
 
 template <> template <>
 real_t MyMeasurementVector::expected_measurement
-<MyStateVector, UKF::Field<StaticPressure, real_t>>(const MyStateVector &state) {
+<MyStateVector, StaticPressure>(const MyStateVector &state) {
     return 101.3 - 1.2*(state.get_field<Altitude>() / 100.0);
 }
 
 template <> template <>
 real_t MyMeasurementVector::expected_measurement
-<MyStateVector, UKF::Field<DynamicPressure, real_t>>(const MyStateVector &state) {
+<MyStateVector, DynamicPressure>(const MyStateVector &state) {
     return 0.5 * 1.225 * state.get_field<Velocity>().squaredNorm();
 }
 
