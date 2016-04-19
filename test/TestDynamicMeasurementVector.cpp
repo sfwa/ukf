@@ -114,6 +114,24 @@ TEST(DynamicMeasurementVectorTest, MultipleReassignment) {
     EXPECT_VECTOR_EQ(expected, test_measurement);
 }
 
+TEST(DynamicMeasurementVectorTest, CopyConstructor) {
+    MyMeasurementVector test_measurement_1, test_measurement_2;
+
+    test_measurement_1.set_field<Gyroscope>(UKF::Vector<3>(1, 2, 3));
+    test_measurement_1.set_field<DynamicPressure>(4);
+    test_measurement_1.set_field<Accelerometer>(UKF::Vector<3>(5, 6, 7));
+    test_measurement_1.set_field<StaticPressure>(8);
+
+    test_measurement_2 = test_measurement_1;
+
+    EXPECT_EQ(test_measurement_1.size(), test_measurement_2.size());
+    EXPECT_VECTOR_EQ(test_measurement_1, test_measurement_2);
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(1, 2, 3), test_measurement_2.get_field<Gyroscope>());
+    EXPECT_EQ(4, test_measurement_2.get_field<DynamicPressure>());
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(5, 6, 7), test_measurement_2.get_field<Accelerometer>());
+    EXPECT_EQ(8, test_measurement_2.get_field<StaticPressure>());
+}
+
 TEST(DynamicMeasurementVectorTest, Arithmetic) {
     
 }

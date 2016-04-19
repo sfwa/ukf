@@ -124,6 +124,17 @@ namespace UKF {
             Offset + CovarianceDimension<typename T1::type>, T2, Fields...>(Key);
     }
 
+    /* Get the order of the specified key within the field pack. */
+    template <std::size_t Offset, typename T>
+    constexpr std::size_t GetFieldOrder(int Key) {
+        return Key == T::key ? Offset : std::numeric_limits<std::size_t>::max();
+    }
+
+    template <std::size_t Offset, typename T1, typename T2, typename... Fields>
+    constexpr std::size_t GetFieldOrder(int Key) {
+        return Key == T1::key ? Offset : GetFieldOrder<Offset + 1, T2, Fields...>(Key);
+    }
+
     /*
     These helper structs allow various functions to determine field types at
     compile time based only on the integer key parameter.
@@ -181,6 +192,18 @@ namespace UKF {
     template <typename T1, typename T2, typename... Fields>
     constexpr std::size_t GetFieldCovarianceSize(int Key) {
         return Key == T1::key ? CovarianceDimension<typename T1::type> : GetFieldCovarianceSize<T2, Fields...>(Key);
+    }
+
+    /* Function for creating an array initialised to a specific value. */
+    template <typename T, std::size_t... Indices>
+    constexpr std::array<T, sizeof...(Indices)> CreateArray(T value, std::index_sequence<Indices...>) {
+        // Cast Indices to void to remove the unused value warning.
+        return {{(static_cast<void>(Indices), value)...}};
+    }
+
+    template <std::size_t N, typename T>
+    constexpr std::array<T, N> CreateArray(const T& value) {
+        return CreateArray(value, std::make_index_sequence<N>());
     }
 
     }

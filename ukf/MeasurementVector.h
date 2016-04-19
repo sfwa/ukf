@@ -23,6 +23,7 @@ SOFTWARE.
 #ifndef MEASUREMENTVECTOR_H
 #define MEASUREMENTVECTOR_H
 
+#include <array>
 #include <limits>
 #include <tuple>
 #include <cassert>
@@ -207,7 +208,7 @@ public:
         static_assert(Detail::GetFieldSize<Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
             "Specified key not present in measurement vector");
 
-        std::size_t offset = get_offset(Key);
+        std::size_t offset = std::get<Detail::GetFieldOrder<0, Fields...>(Key)>(field_offsets);
 
         assert(offset != std::numeric_limits<std::size_t>::max() &&
             "Specified key not present in measurement vector");
@@ -221,7 +222,7 @@ public:
         static_assert(Detail::GetFieldSize<Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
             "Specified key not present in measurement vector");
 
-        std::size_t offset = get_offset(Key);
+        std::size_t offset = std::get<Detail::GetFieldOrder<0, Fields...>(Key)>(field_offsets);
 
         /* Check if this field has already been set. If so, replace it. */
         if(offset < Base::template size()) {
@@ -234,23 +235,18 @@ public:
             std::size_t previous_size = Base::template size();
             Base::template conservativeResize(previous_size + Detail::GetFieldSize<Fields...>(Key));
 
-            /*
-            Resize the current_measurements matrix and store the new key at
-            the end.
-            */
-            std::size_t num_measurements = current_measurements.size();
-            current_measurements.conservativeResize(num_measurements + 1);
-            current_measurements(num_measurements) = Key;
-
             /* Assign the value to the field. */
             Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(previous_size) << in;
+
+            /* Store the offset in field_offsets. */
+            std::get<Detail::GetFieldOrder<0, Fields...>(Key)>(field_offsets) = previous_size;
         }
     }
 
     /*
     Calculate the mean from a measurement sigma point distribution. Ensure
-    that the returned object has the same current_measurements matrix so that
-    its field accessors work.
+    that the returned object has the same field_offsets array so that its
+    field accessors work.
     */
     template <typename S>
     DynamicMeasurementVector calculate_sigma_point_mean(const SigmaPointDistribution<S> &Z) const {
@@ -258,7 +254,7 @@ public:
             Parameters::Sigma_WMI<S>*Z.block(0, 1, Base::template size(), S::num_sigma()-1).rowwise().sum()
             + Parameters::Sigma_WM0<S>*Z.col(0));
 
-        temp.current_measurements = current_measurements;
+        temp.field_offsets = field_offsets;
 
         return temp;
     }
@@ -294,7 +290,7 @@ public:
 
         for(int i = 0; i < S::num_sigma(); i++) {
             DynamicMeasurementVector temp(Base::template size());
-            calculate_field_measurements<S>(X.col(i), temp);
+            calculate_field_measurements<S, Fields...>(X.col(i), temp);
             Z.col(i) = temp;
         }
 
@@ -304,29 +300,12 @@ public:
 private:
     /*
     This vector keeps track of which fields have been set in the measurement
-    vector, and the order they were supplied in. This allows any combination
-    of measurements to be supplied in any order and they will be handled
-    correctly.
+    vector, and the offset within the measurement vector of each field. This
+    allows any combination of measurements to be supplied in any order and
+    they will be handled correctly.
     */
-    Eigen::Matrix<int, Eigen::Dynamic, 1, 0, sizeof...(Fields), 1> current_measurements;
-
-    /*
-    This method gets the offset of the specified key in the measurement
-    vector, or returns std::numeric_limits<std::size_t>::max() if it's not
-    present.
-    */
-    std::size_t get_offset(int Key) const {
-        std::size_t offset = 0;
-        for(int i = 0; i < current_measurements.size(); i++) {
-            if(current_measurements(i) == Key) {
-                break;
-            }
-
-            offset += Detail::GetFieldSize<Fields...>(current_measurements(i));
-        }
-
-        return offset < Base::template size() ? offset : std::numeric_limits<std::size_t>::max();
-    }
+    std::array<std::size_t, sizeof...(Fields)> field_offsets = Detail::CreateArray<sizeof...(Fields)>(
+        std::numeric_limits<std::size_t>::max());
 
     /*
     This function is intended to be specialised by the user for each field in
@@ -339,18 +318,28 @@ private:
     static typename Detail::FieldTypes<Key, Fields...>::type expected_measurement(const S &state);
 
     /*
-    This function builds the measurement estimate from the expected
+    These functions build the measurement estimate from the expected
     measurement of each individual field.
     */
-    template <typename S>
+    template <typename S, typename T>
     void calculate_field_measurements(const S &state, DynamicMeasurementVector &expected) const {
-        std::size_t offset = 0;
-        for(int i = 0; i < current_measurements.size(); i++) {
-            // expected.segment(offset, Detail::GetFieldSize<Fields...>(current_measurements(i))) <<
-            //     expected_measurement<S, typename Detail::FieldTypes<current_measurements(i), Fields...>::type>(state);
-
-            offset += Detail::GetFieldSize<Fields...>(current_measurements(i));
+        /*
+        If this field has been set, then generate an expected measurement for
+        it. Otherwise, do nothing.
+        */
+        std::size_t offset = std::get<Detail::GetFieldOrder<0, Fields...>(T::key)>(field_offsets);
+        if(offset != std::numeric_limits<std::size_t>::max()) {
+            expected.segment(offset, Detail::StateVectorDimension<typename T::type>) <<
+                expected_measurement<S, T::key>(state);
+        } else {
+            return;
         }
+    }
+
+    template <typename S, typename T1, typename T2, typename... Tail>
+    void calculate_field_measurements(const S &state, DynamicMeasurementVector &expected) const {
+        calculate_field_measurements<S, T1>(state, expected);
+        calculate_field_measurements<S, T2, Tail...>(state, expected);
     }
 };
 
