@@ -50,14 +50,20 @@ template <typename StateVectorType, typename MeasurementVectorType>
 class Core {
 public:
     /* Top-level function used to carry out a filter step. */
-    void iterate(const MeasurementVectorType &m) {
+    void step(const MeasurementVectorType &m) {
         /* Add process noise covariance to the state covariance. */
+    }
 
-        /* Sigma point distribution. */
-        StateVectorType::SigmaPointDistribution sigma_points;
+    void a_priori_step() {
 
-        /* Measurement sigma point distribution. */
-        MeasurementVectorType::SigmaPointDistribution<StateVectorType::num_sigma> measurement_sigma_points;
+    }
+
+    void innovation_step(const MeasurementVectorType &m) {
+
+    }
+
+    void a_posteriori_step() {
+
     }
 };
 
@@ -68,6 +74,11 @@ private:
     /* Covariance matrix. */
     StateVectorType::CovarianceMatrix covariance;
 
+    /* Sigma point distribution. */
+    StateVectorType::SigmaPointDistribution sigma_points;
+
+    /* Measurement sigma point distribution. */
+    MeasurementVectorType::SigmaPointDistribution<StateVectorType::num_sigma> measurement_sigma_points;
 }
 
 #endif

@@ -301,6 +301,7 @@ public:
     /* Aliases for types needed during filter iteration. */
     using CovarianceMatrix = Matrix<covariance_size(), covariance_size()>;
     using SigmaPointDistribution = Matrix<size(), num_sigma()>;
+    using SigmaPointDeltas = Matrix<covariance_size(), num_sigma()>;
 
     /* Functions for accessing individual fields. */
     template <int Key>
@@ -335,18 +336,27 @@ public:
     }
 
     /*
+    Calculate the set of sigma point delta vectors; these are used for
+    calculating the a priori covariance and the Kalman gain.
+    */
+    SigmaPointDeltas calculate_sigma_point_deltas(const SigmaPointDistribution &X) const {
+        SigmaPointDeltas w_prime;
+
+        /* Calculate the delta vectors. */
+        calculate_field_deltas<Fields...>(X, w_prime);
+
+        return w_prime;
+    }
+
+    /*
     Calculate the covariance as described in section 3.5.1 of the Kraft
     paper. Note that we operate on the transformed sigma points; there
     appears to be a typographical error in equation 63, but the explanatory
     text makes it clear that this is what is intended.
     The function isn't static; it uses the current state vector as the mean.
     */
-    CovarianceMatrix calculate_sigma_point_covariance(const SigmaPointDistribution &X) const {
+    static CovarianceMatrix calculate_sigma_point_covariance(const SigmaPointDeltas &w_prime) {
         CovarianceMatrix cov;
-        Matrix<covariance_size(), num_sigma()> w_prime;
-
-        /* Calculate the delta vectors. */
-        calculate_field_deltas<Fields...>(X, w_prime);
 
         /* Calculate the covariance using equation 64 from the Kraft paper. */
         cov = Parameters::Sigma_WC0<StateVector> * (w_prime.col(0) * w_prime.col(0).transpose());
@@ -524,7 +534,7 @@ private:
     }
 
     template <typename T>
-    void calculate_field_deltas(const SigmaPointDistribution &X, Matrix<covariance_size(), num_sigma()> &w_prime) const {
+    void calculate_field_deltas(const SigmaPointDistribution &X, SigmaPointDeltas &w_prime) const {
         w_prime.block(Detail::GetFieldCovarianceOffset<0, Fields...>(T::key), 0,
             Detail::CovarianceDimension<typename T::type>, num_sigma()) = sigma_point_deltas(
                 get_field<T::key>(), X.block(Detail::GetFieldOffset<0, Fields...>(T::key), 0,
@@ -532,7 +542,7 @@ private:
     }
 
     template <typename T1, typename T2, typename... Tail>
-    void calculate_field_deltas(const SigmaPointDistribution &X, Matrix<covariance_size(), num_sigma()> &w_prime) const {
+    void calculate_field_deltas(const SigmaPointDistribution &X, SigmaPointDeltas &w_prime) const {
         calculate_field_deltas<T1>(X, w_prime);
         calculate_field_deltas<T2, Tail...>(X, w_prime);
     }
