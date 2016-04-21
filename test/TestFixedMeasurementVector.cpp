@@ -227,6 +227,59 @@ TEST(FixedMeasurementVectorTest, SigmaPointMean) {
     EXPECT_VECTOR_EQ(expected_mean, test_measurement.calculate_sigma_point_mean<MyStateVector>(measurement_sigma_points));
 }
 
+TEST(FixedMeasurementVectorTest, SigmaPointDeltas) {
+    MyStateVector test_state;
+    MyMeasurementVector test_measurement;
+
+    test_state.set_field<Velocity>(UKF::Vector<3>(1, 2, 3));
+    test_state.set_field<AngularVelocity>(UKF::Vector<3>(1, 0, 0));
+    test_state.set_field<Attitude>(UKF::Quaternion(1, 0, 0, 0));
+    test_state.set_field<Altitude>(1000);
+
+    MyStateVector::CovarianceMatrix covariance = MyStateVector::CovarianceMatrix::Zero();
+    covariance.diagonal() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
+
+    MyStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution(covariance);
+
+    MyMeasurementVector::SigmaPointDistribution<MyStateVector> measurement_sigma_points =
+        test_measurement.calculate_sigma_point_distribution<MyStateVector>(sigma_points);
+
+    MyMeasurementVector mean_measurement = test_measurement.calculate_sigma_point_mean<MyStateVector>(measurement_sigma_points);
+    MyMeasurementVector::SigmaPointDeltas<MyStateVector> sigma_point_deltas, target_sigma_point_deltas;
+
+    target_sigma_point_deltas <<       0,       0,       0,       0,       0,       0,       0,       0,  -2.017,       0,       0,      0,       0,       0,       0,       0,       0,       0,   2.017,       0,       0,
+                                       0,       0,       0,       0,       0,       0,       0,   2.017,       0,       0,       0,      0,       0,       0,       0,       0,       0,  -2.017,       0,       0,       0,
+                                  -2.983,  -2.983,  -2.983,  -2.983,  -2.983,  -2.983,  -2.983,  16.407,  16.407,  -2.983,  -2.983, -2.983,  -2.983,  -2.983,  -2.983,  -2.983,  -2.983,  16.407,  16.407,  -2.983,  -2.983,
+                                       0,       0,       0,       0,   3.606,       0,       0,       0,       0,       0,       0,      0,       0,       0,  -3.606,       0,       0,       0,       0,       0,       0,
+                                       0,       0,       0,       0,       0,   3.606,       0,       0,       0,       0,       0,      0,       0,       0,       0,  -3.606,       0,       0,       0,       0,       0,
+                                       0,       0,       0,       0,       0,       0,   3.606,       0,       0,       0,       0,      0,       0,       0,       0,       0,  -3.606,       0,       0,       0,       0,
+                                       0,       0,       0,       0,       0,       0,       0,       0,       0,       0,  -0.043,      0,       0,       0,       0,       0,       0,       0,       0,       0,   0.043,
+                                 -1.8375,  10.542,  14.959,  19.376, -1.8375, -1.8375, -1.8375, -1.8375, -1.8375, -1.8375, -1.8375, 1.7085, -2.7086,  -7.126, -1.8375, -1.8375, -1.8375, -1.8375, -1.8375, -1.8375, -1.8375;
+    sigma_point_deltas = mean_measurement.calculate_sigma_point_deltas<MyStateVector>(measurement_sigma_points);
+
+    EXPECT_VECTOR_EQ(target_sigma_point_deltas.col(0),  sigma_point_deltas.col(0));
+    EXPECT_VECTOR_EQ(target_sigma_point_deltas.col(1),  sigma_point_deltas.col(1));
+    EXPECT_VECTOR_EQ(target_sigma_point_deltas.col(2),  sigma_point_deltas.col(2));
+    EXPECT_VECTOR_EQ(target_sigma_point_deltas.col(3),  sigma_point_deltas.col(3));
+    EXPECT_VECTOR_EQ(target_sigma_point_deltas.col(4),  sigma_point_deltas.col(4));
+    EXPECT_VECTOR_EQ(target_sigma_point_deltas.col(5),  sigma_point_deltas.col(5));
+    EXPECT_VECTOR_EQ(target_sigma_point_deltas.col(6),  sigma_point_deltas.col(6));
+    EXPECT_VECTOR_EQ(target_sigma_point_deltas.col(7),  sigma_point_deltas.col(7));
+    EXPECT_VECTOR_EQ(target_sigma_point_deltas.col(8),  sigma_point_deltas.col(8));
+    EXPECT_VECTOR_EQ(target_sigma_point_deltas.col(9),  sigma_point_deltas.col(9));
+    EXPECT_VECTOR_EQ(target_sigma_point_deltas.col(10), sigma_point_deltas.col(10));
+    EXPECT_VECTOR_EQ(target_sigma_point_deltas.col(11), sigma_point_deltas.col(11));
+    EXPECT_VECTOR_EQ(target_sigma_point_deltas.col(12), sigma_point_deltas.col(12));
+    EXPECT_VECTOR_EQ(target_sigma_point_deltas.col(13), sigma_point_deltas.col(13));
+    EXPECT_VECTOR_EQ(target_sigma_point_deltas.col(14), sigma_point_deltas.col(14));
+    EXPECT_VECTOR_EQ(target_sigma_point_deltas.col(15), sigma_point_deltas.col(15));
+    EXPECT_VECTOR_EQ(target_sigma_point_deltas.col(16), sigma_point_deltas.col(16));
+    EXPECT_VECTOR_EQ(target_sigma_point_deltas.col(17), sigma_point_deltas.col(17));
+    EXPECT_VECTOR_EQ(target_sigma_point_deltas.col(18), sigma_point_deltas.col(18));
+    EXPECT_VECTOR_EQ(target_sigma_point_deltas.col(19), sigma_point_deltas.col(19));
+    EXPECT_VECTOR_EQ(target_sigma_point_deltas.col(20), sigma_point_deltas.col(20));
+}
+
 TEST(FixedMeasurementVectorTest, SigmaPointCovariance) {
     MyStateVector test_state;
     MyMeasurementVector test_measurement;
@@ -245,9 +298,10 @@ TEST(FixedMeasurementVectorTest, SigmaPointCovariance) {
         test_measurement.calculate_sigma_point_distribution<MyStateVector>(sigma_points);
 
     MyMeasurementVector mean_measurement = test_measurement.calculate_sigma_point_mean<MyStateVector>(measurement_sigma_points);
-
+    MyMeasurementVector::SigmaPointDeltas<MyStateVector> sigma_point_deltas =
+        mean_measurement.calculate_sigma_point_deltas<MyStateVector>(measurement_sigma_points);
     MyMeasurementVector::CovarianceMatrix calculated_covariance =
-        mean_measurement.calculate_sigma_point_covariance<MyStateVector>(measurement_sigma_points);
+        mean_measurement.calculate_sigma_point_covariance<MyStateVector>(sigma_point_deltas);
 
     MyMeasurementVector::CovarianceMatrix expected_covariance;
 

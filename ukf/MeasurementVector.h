@@ -85,6 +85,8 @@ public:
     /* Aliases for types needed during filter iteration. */
     template <typename S>
     using SigmaPointDistribution = Matrix<size(), S::num_sigma()>;
+    template <typename S>
+    using SigmaPointDeltas = Matrix<size(), S::num_sigma()>;
     using CovarianceMatrix = Matrix<covariance_size(), covariance_size()>;
 
     /* Functions for accessing individual fields. */
@@ -111,17 +113,27 @@ public:
     }
 
     /*
-    Calculate the expected measurement covariance covariance as described in
-    equation 68 of the Kraft papers.
+    Calculate the set of sigma point delta vectors; these are used for
+    calculating the measurement covariance and the Kalman gain.
     The function isn't static; it uses the current measurement vector as the mean.
     */
     template <typename S>
-    CovarianceMatrix calculate_sigma_point_covariance(const SigmaPointDistribution<S> &Z) const {
-        CovarianceMatrix cov;
-        SigmaPointDistribution<S> z_prime;
+    SigmaPointDeltas<S> calculate_sigma_point_deltas(const SigmaPointDistribution<S> &Z) const {
+        SigmaPointDeltas<S> z_prime;
 
         /* Calculate the delta vectors. */
         z_prime = Z.colwise() - *this;
+
+        return z_prime;
+    }
+
+    /*
+    Calculate the expected measurement covariance covariance as described in
+    equation 68 of the Kraft papers.
+    */
+    template <typename S>
+    CovarianceMatrix calculate_sigma_point_covariance(const SigmaPointDeltas<S> &z_prime) const {
+        CovarianceMatrix cov;
 
         /* Calculate the covariance using equation 64 from the Kraft paper. */
         cov = Parameters::Sigma_WC0<S> * (z_prime.col(0) * z_prime.col(0).transpose());
@@ -200,6 +212,8 @@ public:
     /* Aliases for types needed during filter iteration. */
     template <typename S>
     using SigmaPointDistribution = MatrixDynamic<max_size(), S::num_sigma()>;
+    template <typename S>
+    using SigmaPointDeltas = MatrixDynamic<max_size(), S::num_sigma()>;
     using CovarianceMatrix = MatrixDynamic<max_covariance_size(), max_covariance_size()>;
 
     /* Functions for accessing individual fields. */
@@ -260,18 +274,28 @@ public:
     }
 
     /*
-    Calculate the expected measurement covariance covariance as described in
-    equation 68 of the Kraft papers.
+    Calculate the set of sigma point delta vectors; these are used for
+    calculating the measurement covariance and the Kalman gain.
     The function isn't static; it uses the current measurement vector as the mean.
     */
     template <typename S>
-    CovarianceMatrix calculate_sigma_point_covariance(const SigmaPointDistribution<S> &Z) const {
-        CovarianceMatrix cov(Base::template size(), Base::template size());
-        SigmaPointDistribution<S> z_prime(Base::template size(), S::num_sigma());
+    SigmaPointDeltas<S> calculate_sigma_point_deltas(const SigmaPointDistribution<S> &Z) const {
+        SigmaPointDeltas<S> z_prime(Base::template size(), S::num_sigma());
 
         /* Calculate the delta vectors. */
         z_prime = Z.colwise() - *this;
 
+        return z_prime;
+    }
+
+    /*
+    Calculate the expected measurement covariance covariance as described in
+    equation 68 of the Kraft papers.
+    */
+    template <typename S>
+    CovarianceMatrix calculate_sigma_point_covariance(const SigmaPointDeltas<S> &z_prime) const {
+        CovarianceMatrix cov(Base::template size(), Base::template size());
+        
         /* Calculate the covariance using equation 64 from the Kraft paper. */
         cov = Parameters::Sigma_WC0<S> * (z_prime.col(0) * z_prime.col(0).transpose());
         for(int i = 1; i < S::num_sigma(); i++) {
