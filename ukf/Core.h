@@ -54,14 +54,35 @@ public:
         /* Add process noise covariance to the state covariance. */
     }
 
-    void a_priori_step() {
+    /*
+    The a priori step calculates the sigma point distribution using the
+    previous state covariance and previous state estimate, and then
+    propagates all sigma points through the process model.
+    From the transformed sigma point distribution, the a priori mean and
+    covariance are calculated.
+    */
+    void a_priori_step(real_t time_step, ) {
 
     }
 
+    /*
+    In the innovation step, the a priori sigma point distribution is further
+    propagated using the measurement model. For the measurement sigma point
+    distribution, the estimated measurement mean and covariance are
+    calculated. A measurement vector is then supplied, and the innovation
+    and innovation covariance are calculated.
+    */
     void innovation_step(const MeasurementVectorType &m) {
 
     }
 
+    /*
+    In the a posteriori step, the cross-correlation matrix and innovation
+    covariance inverse are calculated and used to calculate the Kalman gain.
+    This step is split from the innovation step to allow the user to carry
+    out innovation consistency checks and identify failed sensors, if
+    desired.
+    */
     void a_posteriori_step() {
 
     }
