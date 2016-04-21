@@ -143,7 +143,18 @@ public:
         CrossCorrelation<StateVectorType, MeasurementVectorType> kalman_gain =
             cross_correlation * innovation_covariance.inverse();
 
-        /* Do the final update step. */
+        /*
+        Calculate the update delta vector, to be applied to the a priori
+        estimate.
+        */
+        StateVector update_delta = kalman_gain * innovation;
+
+        /* Apply the update delta to the state vector. */
+        /* FIXME: Insert the state vector update step here. */
+
+        /* Update the covariance using equation 75 from the Kraft paper. */
+        covariance = a_priori_covariance -
+            (kalman_gain * innovation_covariance * kalman_gain.transpose());
     }
 };
 
