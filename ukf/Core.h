@@ -50,8 +50,10 @@ template <typename StateVectorType, typename MeasurementVectorType>
 class Core {
 public:
     /* Top-level function used to carry out a filter step. */
-    void step(const MeasurementVectorType &m) {
-        /* Add process noise covariance to the state covariance. */
+    void step(real_t rime_step, const ControlVectorType &u, const MeasurementVectorType &z) {
+        a_priori_step(time_step, u);
+        innovation_step(z);
+        a_posteriori_step();
     }
 
     /*
@@ -61,8 +63,21 @@ public:
     From the transformed sigma point distribution, the a priori mean and
     covariance are calculated.
     */
-    void a_priori_step(real_t time_step, ) {
+    void a_priori_step(real_t time_step, const ControlVectorType &u) {
+        /*
+        Add process noise covariance to the state covariance and calculate
+        the sigma point distribution.
+        */
+        sigma_points = state.calculate_sigma_point_distribution(
+            covariance + /* FIXME: Insert process noise covariance here. */);
 
+        /* Propagate the sigma points through the process model. */
+        /* FIXME: Insert process model here. */
+
+        /* Calculate the a priori estimate mean, deltas and covariance. */
+        a_priori_mean = StateVectorType::calculate_sigma_point_mean(sigma_points);
+        w_prime = a_priori_mean.calculate_sigma_point_deltas(sigma_points);
+        a_priori_covariance = StateVectorType::calculate_sigma_point_covariance(w_prime);
     }
 
     /*
@@ -72,8 +87,19 @@ public:
     calculated. A measurement vector is then supplied, and the innovation
     and innovation covariance are calculated.
     */
-    void innovation_step(const MeasurementVectorType &m) {
+    void innovation_step(const MeasurementVectorType &z) {
+        /* Propagate the sigma points through the measurement model. */
+        MeasurementVectorType::SigmaPointDistribution<StateVectorType::num_sigma> measurement_sigma_points =
+            z.calculate_sigma_point_distribution<StateVectorType>(sigma_points);
 
+        /* Calculate the measurement prediction mean, deltas and covariance. */
+        MeasurementVectorType z_pred = z.calculate_sigma_point_mean<StateVectorType>(measurement_sigma_points);
+        z_prime = z_pred.calculate_sigma_point_deltas<StateVectorType>(measurement_sigma_points);
+        innovation_covariance = z_pred.calculate_sigma_point_covariance<StateVectorType>(z_prime);
+
+        /* Calculate innovation and innovation covariance. */
+        innovation = z - z_pred;
+        innovation_covariance += /* FIXME: Insert measurement covariance here. */;
     }
 
     /*
@@ -89,18 +115,16 @@ public:
 };
 
 private:
-    /* State vector. */
     StateVectorType state;
-
-    /* Covariance matrix. */
     StateVectorType::CovarianceMatrix covariance;
-
-    /* Sigma point distribution. */
     StateVectorType::SigmaPointDistribution sigma_points;
+
+    StateVectorType a_priori_mean;
+    StateVectorType::CovarianceMatrix a_priori_covariance;
     StateVectorType::SigmaPointDeltas w_prime;
 
-    /* Measurement sigma point distribution. */
-    MeasurementVectorType::SigmaPointDistribution<StateVectorType::num_sigma> measurement_sigma_points;
+    MeasurementVectorType innovation;
+    MeasurementVectorType::CovarianceMatrix innovation_covariance;
     MeasurementVectorType::SigmaPointDeltas<StateVectorType::num_sigma> z_prime;
 }
 
