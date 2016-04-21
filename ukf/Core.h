@@ -49,6 +49,16 @@ and F. Landis Markley.
 template <typename StateVectorType, typename MeasurementVectorType>
 class Core {
 public:
+    /* Aliases needed during filter iteration. */
+    template <S, M>
+    using CrossCorrelation = Eigen::Matrix<
+        real_t,
+        S::covariance_size(),
+        M::RowsAtCompileTime,
+        0,
+        S::covariance_size(),
+        M::MaxRowsAtCompileTime>;
+
     /* Top-level function used to carry out a filter step. */
     void step(real_t rime_step, const ControlVectorType &u, const MeasurementVectorType &z) {
         a_priori_step(time_step, u);
@@ -97,7 +107,13 @@ public:
         z_prime = z_pred.calculate_sigma_point_deltas<StateVectorType>(measurement_sigma_points);
         innovation_covariance = z_pred.calculate_sigma_point_covariance<StateVectorType>(z_prime);
 
-        /* Calculate innovation and innovation covariance. */
+        /*
+        Calculate innovation and innovation covariance. Innovation is simply
+        the difference between the measurement and the predicted measurement,
+        and innovation covariance is the sum of the predicted measurement
+        covariance and the measurement covariance.
+        See equations 44 and 45 from the Kraft paper for details.
+        */
         innovation = z - z_pred;
         innovation_covariance += /* FIXME: Insert measurement covariance here. */;
     }
@@ -110,7 +126,24 @@ public:
     desired.
     */
     void a_posteriori_step() {
+        /*
+        Calculate the cross-correlation matrix described in equations 70 and
+        71 from from the Kraft paper.
+        */
+        CrossCorrelation<StateVectorType, MeasurementVectorType> cross_correlation =
+            Parameters::Sigma_WC0<S> * (w_prime.col(0) * z_prime.col(0).transpose());
+        for(int i = 1; i < S::num_sigma(); i++) {
+            cross_correlation += Parameters::Sigma_WCI<S> * (w_prime.col(i) * z_prime.col(i).transpose());
+        }
 
+        /*
+        Calculate the Kalman gain as described in equation 72 from the Kraft
+        paper.
+        */
+        CrossCorrelation<StateVectorType, MeasurementVectorType> kalman_gain =
+            cross_correlation * innovation_covariance.inverse();
+
+        /* Do the final update step. */
     }
 };
 

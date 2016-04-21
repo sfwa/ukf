@@ -86,7 +86,7 @@ public:
     template <typename S>
     using SigmaPointDistribution = Matrix<size(), S::num_sigma()>;
     template <typename S>
-    using SigmaPointDeltas = Matrix<size(), S::num_sigma()>;
+    using SigmaPointDeltas = Matrix<covariance_size(), S::num_sigma()>;
     using CovarianceMatrix = Matrix<covariance_size(), covariance_size()>;
 
     /* Functions for accessing individual fields. */
@@ -213,7 +213,7 @@ public:
     template <typename S>
     using SigmaPointDistribution = MatrixDynamic<max_size(), S::num_sigma()>;
     template <typename S>
-    using SigmaPointDeltas = MatrixDynamic<max_size(), S::num_sigma()>;
+    using SigmaPointDeltas = MatrixDynamic<max_covariance_size(), S::num_sigma()>;
     using CovarianceMatrix = MatrixDynamic<max_covariance_size(), max_covariance_size()>;
 
     /* Functions for accessing individual fields. */
