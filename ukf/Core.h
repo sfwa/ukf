@@ -76,9 +76,11 @@ private:
 
     /* Sigma point distribution. */
     StateVectorType::SigmaPointDistribution sigma_points;
+    StateVectorType::SigmaPointDeltas w_prime;
 
     /* Measurement sigma point distribution. */
     MeasurementVectorType::SigmaPointDistribution<StateVectorType::num_sigma> measurement_sigma_points;
+    MeasurementVectorType::SigmaPointDeltas<StateVectorType::num_sigma> z_prime;
 }
 
 #endif
