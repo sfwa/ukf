@@ -156,7 +156,10 @@ namespace UKF {
 
     template <int Key, typename T, typename... Fields>
     struct FieldTypes<Key, T, Fields...> {
-        using type = typename IfHelper<Key == T::key, typename T::type, typename FieldTypes<Key, Fields...>::type>::type;
+        using type = typename IfHelper<
+            Key == T::key,
+            typename T::type,
+            typename FieldTypes<Key, Fields...>::type>::type;
     };
 
     template <typename T>
@@ -527,7 +530,8 @@ private:
         */
         for(int i = 0; i < num_sigma(); i++) {
             Quaternion delta_q = Quaternion(X.col(i)) * mean.conjugate();
-            temp.col(i) = Parameters::MRP_F<StateVector> * (delta_q.vec() / (Parameters::MRP_A<StateVector> + delta_q.w()));
+            temp.col(i) = Parameters::MRP_F<StateVector>
+                * (delta_q.vec() / (Parameters::MRP_A<StateVector> + delta_q.w()));
         }
 
         return temp;
