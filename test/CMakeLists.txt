@@ -8,7 +8,7 @@ SET_DIRECTORY_PROPERTIES(PROPERTIES EP_PREFIX .)
 # Add gtest
 ExternalProject_Add(
 googletest
-SVN_REPOSITORY http://googletest.googlecode.com/svn/trunk/
+URL https://github.com/google/googletest/archive/release-1.7.0.tar.gz
 TIMEOUT 30
 # Disable install step
 INSTALL_COMMAND ""
