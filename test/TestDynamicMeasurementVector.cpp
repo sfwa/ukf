@@ -179,6 +179,35 @@ real_t MyMeasurementVector::expected_measurement
     return 0.5 * 1.225 * state.get_field<Velocity>().squaredNorm();
 }
 
+/*
+These versions of the predicted measurement functions have non-state inputs.
+This could be used to add predicted kinematic acceleration by feeding control
+inputs into a dynamics model, for example.
+*/
+template <> template <>
+UKF::Vector<3> MyMeasurementVector::expected_measurement
+<MyStateVector, UKF::Vector<3>, Accelerometer>(const MyStateVector &state, const UKF::Vector<3> &input) {
+    return state.get_field<Attitude>() * UKF::Vector<3>(0, 0, -9.8) + input;
+}
+
+template <> template <>
+UKF::Vector<3> MyMeasurementVector::expected_measurement
+<MyStateVector, UKF::Vector<3>, Gyroscope>(const MyStateVector &state, const UKF::Vector<3> &input) {
+    return state.get_field<AngularVelocity>();
+}
+
+template <> template <>
+real_t MyMeasurementVector::expected_measurement
+<MyStateVector, UKF::Vector<3>, StaticPressure>(const MyStateVector &state, const UKF::Vector<3> &input) {
+    return 101.3 - 1.2*(state.get_field<Altitude>() / 100.0);
+}
+
+template <> template <>
+real_t MyMeasurementVector::expected_measurement
+<MyStateVector, UKF::Vector<3>, DynamicPressure>(const MyStateVector &state, const UKF::Vector<3> &input) {
+    return 0.5 * 1.225 * state.get_field<Velocity>().squaredNorm();
+}
+
 TEST(DynamicMeasurementVectorTest, SigmaPointGeneration) {
     MyStateVector test_state;
     MyMeasurementVector test_measurement;
@@ -211,6 +240,63 @@ TEST(DynamicMeasurementVectorTest, SigmaPointGeneration) {
                         8.575, 20.954, 25.371, 29.788,  8.575,  8.575,  8.575,  8.575,  8.575,  8.575,  8.575, 12.121,  7.704,  3.287,  8.575,  8.575,  8.575,  8.575,  8.575,  8.575,  8.575;
     MyMeasurementVector::SigmaPointDistribution<MyStateVector> measurement_sigma_points;
     measurement_sigma_points = test_measurement.calculate_sigma_point_distribution<MyStateVector>(sigma_points);
+
+    EXPECT_VECTOR_EQ(target_sigma_points.col(0),  measurement_sigma_points.col(0));
+    EXPECT_VECTOR_EQ(target_sigma_points.col(1),  measurement_sigma_points.col(1));
+    EXPECT_VECTOR_EQ(target_sigma_points.col(2),  measurement_sigma_points.col(2));
+    EXPECT_VECTOR_EQ(target_sigma_points.col(3),  measurement_sigma_points.col(3));
+    EXPECT_VECTOR_EQ(target_sigma_points.col(4),  measurement_sigma_points.col(4));
+    EXPECT_VECTOR_EQ(target_sigma_points.col(5),  measurement_sigma_points.col(5));
+    EXPECT_VECTOR_EQ(target_sigma_points.col(6),  measurement_sigma_points.col(6));
+    EXPECT_VECTOR_EQ(target_sigma_points.col(7),  measurement_sigma_points.col(7));
+    EXPECT_VECTOR_EQ(target_sigma_points.col(8),  measurement_sigma_points.col(8));
+    EXPECT_VECTOR_EQ(target_sigma_points.col(9),  measurement_sigma_points.col(9));
+    EXPECT_VECTOR_EQ(target_sigma_points.col(10), measurement_sigma_points.col(10));
+    EXPECT_VECTOR_EQ(target_sigma_points.col(11), measurement_sigma_points.col(11));
+    EXPECT_VECTOR_EQ(target_sigma_points.col(12), measurement_sigma_points.col(12));
+    EXPECT_VECTOR_EQ(target_sigma_points.col(13), measurement_sigma_points.col(13));
+    EXPECT_VECTOR_EQ(target_sigma_points.col(14), measurement_sigma_points.col(14));
+    EXPECT_VECTOR_EQ(target_sigma_points.col(15), measurement_sigma_points.col(15));
+    EXPECT_VECTOR_EQ(target_sigma_points.col(16), measurement_sigma_points.col(16));
+    EXPECT_VECTOR_EQ(target_sigma_points.col(17), measurement_sigma_points.col(17));
+    EXPECT_VECTOR_EQ(target_sigma_points.col(18), measurement_sigma_points.col(18));
+    EXPECT_VECTOR_EQ(target_sigma_points.col(19), measurement_sigma_points.col(19));
+    EXPECT_VECTOR_EQ(target_sigma_points.col(20), measurement_sigma_points.col(20));
+}
+
+TEST(DynamicMeasurementVectorTest, SigmaPointGenerationWithInput) {
+    MyStateVector test_state;
+    MyMeasurementVector test_measurement;
+
+    test_measurement.set_field<Accelerometer>(UKF::Vector<3>(0, 0, 0));
+    test_measurement.set_field<Gyroscope>(UKF::Vector<3>(0, 0, 0));
+    test_measurement.set_field<StaticPressure>(0);
+    test_measurement.set_field<DynamicPressure>(0);
+
+    test_state.set_field<Velocity>(UKF::Vector<3>(1, 2, 3));
+    test_state.set_field<AngularVelocity>(UKF::Vector<3>(1, 0, 0));
+    test_state.set_field<Attitude>(UKF::Quaternion(1, 0, 0, 0));
+    test_state.set_field<Altitude>(1000);
+
+    MyStateVector::CovarianceMatrix covariance = MyStateVector::CovarianceMatrix::Zero();
+    covariance.diagonal() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
+
+    MyStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution(covariance);
+
+    MyMeasurementVector::SigmaPointDistribution<MyStateVector> target_sigma_points(
+        test_measurement.size(), MyStateVector::num_sigma());
+
+    target_sigma_points <<  1,      1,      1,      1,      1,      1,      1,      1, -1.017,      1,      1,      1,      1,      1,      1,      1,      1,      1,  3.017,      1,      1,
+                            2,      2,      2,      2,      2,      2,      2,  4.017,      2,      2,      2,      2,      2,      2,      2,      2,      2, -0.017,      2,      2,      2,
+                         -6.8,   -6.8,   -6.8,   -6.8,   -6.8,   -6.8,   -6.8, 12.590, 12.590,   -6.8,   -6.8,   -6.8,   -6.8,   -6.8,   -6.8,   -6.8,   -6.8, 12.590, 12.590,   -6.8,   -6.8,
+                            1,      1,      1,      1,  4.606,      1,      1,      1,      1,      1,      1,      1,      1,      1, -2.606,      1,      1,      1,      1,      1,      1,
+                            0,      0,      0,      0,      0,  3.606,      0,      0,      0,      0,      0,      0,      0,      0,      0, -3.606,      0,      0,      0,      0,      0,
+                            0,      0,      0,      0,      0,      0,  3.606,      0,      0,      0,      0,      0,      0,      0,      0,      0, -3.606,      0,      0,      0,      0,
+                         89.3,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3, 89.257,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3, 89.343,
+                        8.575, 20.954, 25.371, 29.788,  8.575,  8.575,  8.575,  8.575,  8.575,  8.575,  8.575, 12.121,  7.704,  3.287,  8.575,  8.575,  8.575,  8.575,  8.575,  8.575,  8.575;
+    MyMeasurementVector::SigmaPointDistribution<MyStateVector> measurement_sigma_points;
+    measurement_sigma_points = test_measurement.calculate_sigma_point_distribution<MyStateVector>(
+        sigma_points, UKF::Vector<3>(1, 2, 3));
 
     EXPECT_VECTOR_EQ(target_sigma_points.col(0),  measurement_sigma_points.col(0));
     EXPECT_VECTOR_EQ(target_sigma_points.col(1),  measurement_sigma_points.col(1));

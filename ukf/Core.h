@@ -60,8 +60,9 @@ public:
         M::MaxRowsAtCompileTime>;
 
     /* Top-level function used to carry out a filter step. */
-    void step(real_t rime_step, const ControlVectorType &u, const MeasurementVectorType &z) {
-        a_priori_step(time_step, u);
+    template <typename ControlVectorType>
+    void step(real_t delta, const ControlVectorType &u, const MeasurementVectorType &z) {
+        a_priori_step(delta, u);
         innovation_step(z);
         a_posteriori_step();
     }
@@ -73,7 +74,8 @@ public:
     From the transformed sigma point distribution, the a priori mean and
     covariance are calculated.
     */
-    void a_priori_step(real_t time_step, const ControlVectorType &u) {
+    template <typename ControlVectorType>
+    void a_priori_step(real_t delta, const ControlVectorType &u) {
         /*
         Add process noise covariance to the state covariance and calculate
         the sigma point distribution.
