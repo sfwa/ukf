@@ -10,6 +10,7 @@ ExternalProject_Add(
 googletest
 URL https://github.com/google/googletest/archive/release-1.7.0.tar.gz
 TIMEOUT 30
+CMAKE_ARGS -DCMAKE_BUILD_TYPE:STRING=Release
 # Disable install step
 INSTALL_COMMAND ""
 # Wrap download, configure and build steps in a script to log output

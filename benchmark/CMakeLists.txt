@@ -10,6 +10,7 @@ ExternalProject_Add(
 googlebenchmark
 URL https://github.com/google/benchmark/archive/v1.0.0.tar.gz
 TIMEOUT 30
+CMAKE_ARGS -DCMAKE_BUILD_TYPE:STRING=Release
 # Disable install step
 INSTALL_COMMAND ""
 # Wrap download, configure and build steps in a script to log output
@@ -28,7 +29,9 @@ INCLUDE_DIRECTORIES(${googlebenchmark_dir}/include ../ukf ${eigen_dir} ${PROJECT
 
 # Add benchmark executable target
 ADD_EXECUTABLE(benchmark
-    StateVectorBenchmark.cpp)
+    StateVectorBenchmark.cpp
+    MeasurementVectorBenchmark.cpp
+    BenchmarkMain.cpp)
 
 # Create dependency of benchmark on googlebenchmark
 ADD_DEPENDENCIES(benchmark googlebenchmark)
