@@ -44,31 +44,14 @@ using MeasurementVectorFixedBaseType = Vector<Detail::GetCompositeVectorDimensio
 template <typename... Fields>
 using MeasurementVectorDynamicBaseType = VectorDynamic<Detail::GetCompositeVectorDimension<Fields...>()>;
 
-/* Templated measurement vector abstract base class. */
-template <template<typename...> class B, typename... Fields>
-class MeasurementVector : public B<typename Fields::type...> {
-public:
-    /* Inherit Eigen::Matrix constructors and assignment operators. */
-    using Base = B<typename Fields::type...>;
-    using Base::Base;
-    using Base::operator=;
-
-private:
-    /*
-    Measurement covariance is represented as a vector the same length as the
-    measurement vector.
-    */
-    static Base measurement_covariance;
-};
-
 /*
 This class provides a fixed measurement vector, to be used when the same
 measurement are available every time step.
 */
 template <typename... Fields>
-class FixedMeasurementVector : public MeasurementVector<MeasurementVectorFixedBaseType, Fields...> {
+class FixedMeasurementVector : public MeasurementVectorFixedBaseType<typename Fields::type...> {
 public:
-    using Base = MeasurementVector<MeasurementVectorFixedBaseType, Fields...>;
+    using Base = MeasurementVectorFixedBaseType<typename Fields::type...>;
     using Base::Base;
     using Base::operator=;
 
@@ -226,9 +209,9 @@ This class provides a dynamic measurement vector, to be used when not all
 measurements are available every time step.
 */
 template <typename... Fields>
-class DynamicMeasurementVector : public MeasurementVector<MeasurementVectorDynamicBaseType, Fields...> {
+class DynamicMeasurementVector : public MeasurementVectorDynamicBaseType<typename Fields::type...> {
 public:
-    using Base = MeasurementVector<MeasurementVectorDynamicBaseType, Fields...>;
+    using Base = MeasurementVectorDynamicBaseType<typename Fields::type...>;
     using Base::Base;
     using Base::operator=;
 
