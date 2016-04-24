@@ -14,7 +14,6 @@ enum MyFields {
 };
 
 using MyStateVector = UKF::StateVector<
-    IntegratorRK4,
     UKF::Field<LatLon, UKF::Vector<2>>,
     UKF::Field<Velocity, UKF::Vector<3>>,
     UKF::Field<Attitude, UKF::Quaternion>,
@@ -66,7 +65,6 @@ TEST(StateVectorTest, DefaultParameters) {
 }
 
 using AlternateStateVector = UKF::StateVector<
-    IntegratorRK4,
     UKF::Field<LatLon, UKF::Vector<2>>,
     UKF::Field<Velocity, UKF::Vector<3>>,
     UKF::Field<Attitude, UKF::Quaternion>

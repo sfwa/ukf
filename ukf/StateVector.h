@@ -279,7 +279,7 @@ By default, fields can be Eigen vectors (including Quaternions) or scalar
 floating point types (real_t). Support for other types can be added by
 specialising the StateVectorDimension variable for the desired class.
 */
-template <typename IntegratorType, typename... Fields>
+template <typename... Fields>
 class StateVector : public StateVectorBaseType<typename Fields::type...> {
 public:
     /* Inherit Eigen::Matrix constructors and assignment operators. */
@@ -386,9 +386,25 @@ public:
         return X;
     }
 
-private:
-    static IntegratorType integrator;
+    /*
+    This function calculates the derivative of the state vector. The
+    derivative can be a function of the current state and any number of user-
+    supplied non-state inputs.
+    */
+    template <typename... U>
+    StateVector derivative(const U&... input) const;
 
+    /*
+    This function applies the process model to the state vector to calculate
+    the predicted state based on the supplied time delta. This is achieved by
+    using a numerical integrator and the derivative function.
+    */
+    template <typename IntegratorType, typename... U>
+    StateVector process_model(real_t delta, const U&... input) const {
+
+    }
+
+private:
     /* Private functions for creating a sigma point distribution. */
     template <typename T>
     static Matrix<Detail::StateVectorDimension<T>, num_sigma()> perturb_state(

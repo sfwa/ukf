@@ -46,7 +46,7 @@ The attitude-related code makes use of the MRP method described in the paper
 "Unscented Filtering for Spacecraft Attitude Estimation" by John L. Crassidis
 and F. Landis Markley.
 */
-template <typename StateVectorType, typename MeasurementVectorType>
+template <typename StateVectorType, typename MeasurementVectorType, typename IntegratorType>
 class Core {
 public:
     /* Aliases needed during filter iteration. */

@@ -6,7 +6,6 @@
 #include "StateVector.h"
 
 using SV16_FourQuaternions = UKF::StateVector<
-    IntegratorRK4,
     UKF::Field<1, UKF::Quaternion>,
     UKF::Field<2, UKF::Quaternion>,
     UKF::Field<3, UKF::Quaternion>,
@@ -14,7 +13,6 @@ using SV16_FourQuaternions = UKF::StateVector<
 >;
 
 using SV16_FourVectors = UKF::StateVector<
-    IntegratorRK4,
     UKF::Field<1, UKF::Vector<4>>,
     UKF::Field<2, UKF::Vector<4>>,
     UKF::Field<3, UKF::Vector<4>>,
@@ -22,7 +20,6 @@ using SV16_FourVectors = UKF::StateVector<
 >;
 
 using SV16_OneVector = UKF::StateVector<
-    IntegratorRK4,
     UKF::Field<1, UKF::Vector<16>>
 >;
 

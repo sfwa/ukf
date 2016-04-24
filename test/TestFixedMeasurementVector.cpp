@@ -2,7 +2,6 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include "Types.h"
-#include "Integrator.h"
 #include "StateVector.h"
 #include "MeasurementVector.h"
 #include "comparisons.h"
@@ -123,7 +122,6 @@ enum MyStateVectorFields {
 };
 
 using MyStateVector = UKF::StateVector<
-    IntegratorRK4,
     UKF::Field<Velocity, UKF::Vector<3>>,
     UKF::Field<AngularVelocity, UKF::Vector<3>>,
     UKF::Field<Attitude, UKF::Quaternion>,
