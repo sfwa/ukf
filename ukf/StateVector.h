@@ -30,6 +30,7 @@ SOFTWARE.
 #include <Eigen/Core>
 #include "Config.h"
 #include "Types.h"
+#include "Integrator.h"
 
 namespace UKF {
 
@@ -399,9 +400,9 @@ public:
     the predicted state based on the supplied time delta. This is achieved by
     using a numerical integrator and the derivative function.
     */
-    template <typename IntegratorType, typename... U>
+    template <typename IntegratorType = IntegratorRK4, typename... U>
     StateVector process_model(real_t delta, const U&... input) const {
-
+        return IntegratorType::integrate(delta, *this, input...);
     }
 
 private:

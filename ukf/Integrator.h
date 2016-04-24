@@ -25,50 +25,38 @@ SOFTWARE.
 
 #include "Config.h"
 
-/*
-Integrator base class. The public interface is via the integrate() method,
-which takes a template parameter that at a minimum must support addition,
-subtraction and scalar multiplication. It also must have a public method
-"derivative" which takes no arguments and returns a type which can be added
-to the template parameter and also supports scalar multiplication.
-*/
-template <typename Derived>
-class Integrator {
+namespace UKF {
+
+class IntegratorRK4 {
 public:
-    template <typename S>
-    static S integrate(real_t delta, const S &state) {
-        return Derived::integrate(delta, state);
+    template <typename S, typename... U>
+    static S integrate(real_t delta, const S &state, const U&... input) {
+        S a = state.derivative(input...);
+        S b = S(state + 0.5 * delta * a).derivative(input...);
+        S c = S(state + 0.5 * delta * b).derivative(input...);
+        S d = S(state + delta * c).derivative(input...);
+        return state + (delta / 6.0) * (a + (b * 2.0) + (c * 2.0) + d);
     }
 };
 
-class IntegratorRK4: Integrator<IntegratorRK4> {
+class IntegratorHeun {
 public:
-    template <typename S>
-    static S integrate(real_t delta, const S &state) {
-        S a = state.model();
-        S b = static_cast<S>(state + 0.5f * delta * a).model();
-        S c = static_cast<S>(state + 0.5f * delta * b).model();
-        S d = static_cast<S>(state + delta * c).model();
-        return state + (delta / 6.0f) * (a + (b * 2.0f) + (c * 2.0f) + d);
-    }
-};
-
-class IntegratorHeun: Integrator<IntegratorHeun> {
-public:
-    template <typename S>
-    static S integrate(real_t delta, const S &state) {
-        S initial = state.model();
+    template <typename S, typename... U>
+    static S integrate(real_t delta, const S &state, const U&... input) {
+        S initial = state.derivative(input...);
         S predictor = state + delta * initial;
-        return state + (delta * 0.5f) * (initial + predictor.model());
+        return state + (delta * 0.5) * (initial + predictor.derivative(input...));
     }
 };
 
-class IntegratorEuler: Integrator<IntegratorEuler> {
-public:
-    template <typename S>
-    static S integrate(real_t delta, const S &state) {
-        return state + delta * state.model();
+class IntegratorEuler {
+    public:
+    template <typename S, typename... U>
+    static S integrate(real_t delta, const S &state, const U&... input) {
+        return state + delta * state.derivative(input...);
     }
 };
+
+}
 
 #endif
