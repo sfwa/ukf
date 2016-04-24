@@ -165,14 +165,11 @@ private:
     the measurement vector, and allows the user to specify how a particular
     state vector is transformed into a measurement vector.
 
-    Template parameters are a StateVector type and a field key. An overload
-    is also provided which takes a non-state input such as a control input.
+    Template parameters are a StateVector type, a field key and a parameter
+    pack of input vectors.
     */
-    template <typename S, int Key>
-    static typename Detail::FieldTypes<Key, Fields...>::type expected_measurement(const S &state);
-
-    template <typename S, typename U, int Key>
-    static typename Detail::FieldTypes<Key, Fields...>::type expected_measurement(const S &state, const U &input);
+    template <typename S, int Key, typename... U>
+    static typename Detail::FieldTypes<Key, Fields...>::type expected_measurement(const S &state, const U&... input);
 
     /*
     These functions build the measurement estimate from the expected
@@ -188,7 +185,7 @@ private:
     template <typename S, typename U, typename T>
     static void calculate_field_measurements(const S &state, const U &input, FixedMeasurementVector &expected) {
         expected.segment(Detail::GetFieldOffset<0, Fields...>(T::key),
-            Detail::StateVectorDimension<typename T::type>) << expected_measurement<S, U, T::key>(state, input);
+            Detail::StateVectorDimension<typename T::type>) << expected_measurement<S, T::key, U>(state, input);
     }
 
     template <typename S, typename T1, typename T2, typename... Tail>
@@ -368,14 +365,11 @@ private:
     the measurement vector, and allows the user to specify how a particular
     state vector is transformed into a measurement vector.
 
-    Template parameters are a StateVector type and a field key. An overload
-    is also provided which takes a non-state input such as a control input.
+    Template parameters are a StateVector type, a field key and a parameter
+    pack of input vectors.
     */
-    template <typename S, int Key>
-    static typename Detail::FieldTypes<Key, Fields...>::type expected_measurement(const S &state);
-
-    template <typename S, typename U, int Key>
-    static typename Detail::FieldTypes<Key, Fields...>::type expected_measurement(const S &state, const U &input);
+    template <typename S, int Key, typename... U>
+    static typename Detail::FieldTypes<Key, Fields...>::type expected_measurement(const S &state, const U&... input);
 
     /*
     These functions build the measurement estimate from the expected
@@ -402,7 +396,7 @@ private:
         std::size_t offset = std::get<Detail::GetFieldOrder<0, Fields...>(T::key)>(field_offsets);
         if(offset != std::numeric_limits<std::size_t>::max()) {
             expected.segment(offset, Detail::StateVectorDimension<typename T::type>) <<
-                expected_measurement<S, U, T::key>(state, input);
+                expected_measurement<S, T::key, U>(state, input);
         } else {
             return;
         }

@@ -184,25 +184,25 @@ inputs into a dynamics model, for example.
 */
 template <> template <>
 UKF::Vector<3> MyMeasurementVector::expected_measurement
-<MyStateVector, UKF::Vector<3>, Accelerometer>(const MyStateVector &state, const UKF::Vector<3> &input) {
+<MyStateVector, Accelerometer, UKF::Vector<3>>(const MyStateVector &state, const UKF::Vector<3> &input) {
     return state.get_field<Attitude>() * UKF::Vector<3>(0, 0, -9.8) + input;
 }
 
 template <> template <>
 UKF::Vector<3> MyMeasurementVector::expected_measurement
-<MyStateVector, UKF::Vector<3>, Gyroscope>(const MyStateVector &state, const UKF::Vector<3> &input) {
+<MyStateVector, Gyroscope, UKF::Vector<3>>(const MyStateVector &state, const UKF::Vector<3> &input) {
     return state.get_field<AngularVelocity>();
 }
 
 template <> template <>
 real_t MyMeasurementVector::expected_measurement
-<MyStateVector, UKF::Vector<3>, StaticPressure>(const MyStateVector &state, const UKF::Vector<3> &input) {
+<MyStateVector, StaticPressure, UKF::Vector<3>>(const MyStateVector &state, const UKF::Vector<3> &input) {
     return 101.3 - 1.2*(state.get_field<Altitude>() / 100.0);
 }
 
 template <> template <>
 real_t MyMeasurementVector::expected_measurement
-<MyStateVector, UKF::Vector<3>, DynamicPressure>(const MyStateVector &state, const UKF::Vector<3> &input) {
+<MyStateVector, DynamicPressure, UKF::Vector<3>>(const MyStateVector &state, const UKF::Vector<3> &input) {
     return 0.5 * 1.225 * state.get_field<Velocity>().squaredNorm();
 }
 
