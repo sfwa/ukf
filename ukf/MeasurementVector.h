@@ -128,31 +128,16 @@ public:
     }
 
     /*
-    Create a measurement sigma point distribution using the sigma points. Two
-    versions are provided; one which takes an arbitrary non-state input and
-    one which doesn't.
+    Create a measurement sigma point distribution using the sigma points.
     */
-    template <typename S>
-    SigmaPointDistribution<S> calculate_sigma_point_distribution(const typename S::SigmaPointDistribution &X) const {
-        SigmaPointDistribution<S> Z(Base::template size(), S::num_sigma());
-
-        for(int i = 0; i < S::num_sigma(); i++) {
-            FixedMeasurementVector temp;
-            calculate_field_measurements<S, Fields...>(X.col(i), temp);
-            Z.col(i) = temp;
-        }
-
-        return Z;
-    }
-
-    template <typename S, typename U>
+    template <typename S, typename... U>
     SigmaPointDistribution<S> calculate_sigma_point_distribution(
-            const typename S::SigmaPointDistribution &X, const U &input) const {
+            const typename S::SigmaPointDistribution &X, const U&... input) const {
         SigmaPointDistribution<S> Z(Base::template size(), S::num_sigma());
 
         for(int i = 0; i < S::num_sigma(); i++) {
             FixedMeasurementVector temp;
-            calculate_field_measurements<S, U, Fields...>(X.col(i), input, temp);
+            calculate_field_measurements<S, std::tuple<U...>, Fields...>(temp, X.col(i), std::make_tuple(input...));
             Z.col(i) = temp;
         }
 
@@ -171,33 +156,29 @@ private:
     template <typename S, int Key, typename... U>
     static typename Detail::FieldTypes<Key, Fields...>::type expected_measurement(const S &state, const U&... input);
 
+    template <typename S, int Key, typename U, size_t... I>
+    static typename Detail::FieldTypes<Key, Fields...>::type expected_measurement_helper(
+            const S &state, U &&input, std::index_sequence<I...>) {
+        return expected_measurement<S, Key>(state, std::get<I>(input)...);
+    }
+
     /*
     These functions build the measurement estimate from the expected
-    measurement of each individual field. Overloads are provided for the
-    input and non-input cases.
+    measurement of each individual field.
     */
-    template <typename S, typename T>
-    static void calculate_field_measurements(const S &state, FixedMeasurementVector &expected) {
-        expected.segment(Detail::GetFieldOffset<0, Fields...>(T::key),
-            Detail::StateVectorDimension<typename T::type>) << expected_measurement<S, T::key>(state);
-    }
-
     template <typename S, typename U, typename T>
-    static void calculate_field_measurements(const S &state, const U &input, FixedMeasurementVector &expected) {
-        expected.segment(Detail::GetFieldOffset<0, Fields...>(T::key),
-            Detail::StateVectorDimension<typename T::type>) << expected_measurement<S, T::key, U>(state, input);
-    }
+    static void calculate_field_measurements(FixedMeasurementVector &expected, const S &state, U &&input) {
+        constexpr std::size_t len = std::tuple_size<typename std::remove_reference<U>::type>::value;
 
-    template <typename S, typename T1, typename T2, typename... Tail>
-    static void calculate_field_measurements(const S &state, FixedMeasurementVector &expected) {
-        calculate_field_measurements<S, T1>(state, expected);
-        calculate_field_measurements<S, T2, Tail...>(state, expected);
+        expected.segment(Detail::GetFieldOffset<0, Fields...>(T::key),
+            Detail::StateVectorDimension<typename T::type>) << expected_measurement_helper<S, T::key, U>(
+                state, std::forward<U>(input), std::make_index_sequence<len>());
     }
 
     template <typename S, typename U, typename T1, typename T2, typename... Tail>
-    static void calculate_field_measurements(const S &state, const U &input, FixedMeasurementVector &expected) {
-        calculate_field_measurements<S, U, T1>(state, input, expected);
-        calculate_field_measurements<S, U, T2, Tail...>(state, input, expected);
+    static void calculate_field_measurements(FixedMeasurementVector &expected, const S &state, U &&input) {
+        calculate_field_measurements<S, U, T1>(expected, state, std::forward<U>(input));
+        calculate_field_measurements<S, U, T2, Tail...>(expected, state, std::forward<U>(input));
     }
 };
 
@@ -319,31 +300,16 @@ public:
     }
 
     /*
-    Create a measurement sigma point distribution using the sigma points. Two
-    versions are provided; one which takes an arbitrary non-state input and
-    one which doesn't.
+    Create a measurement sigma point distribution using the sigma points.
     */
-    template <typename S>
-    SigmaPointDistribution<S> calculate_sigma_point_distribution(const typename S::SigmaPointDistribution &X) const {
-        SigmaPointDistribution<S> Z(Base::template size(), S::num_sigma());
-
-        for(int i = 0; i < S::num_sigma(); i++) {
-            DynamicMeasurementVector temp(Base::template size());
-            calculate_field_measurements<S, Fields...>(X.col(i), temp);
-            Z.col(i) = temp;
-        }
-
-        return Z;
-    }
-
-    template <typename S, typename U>
+    template <typename S, typename... U>
     SigmaPointDistribution<S> calculate_sigma_point_distribution(
-            const typename S::SigmaPointDistribution &X, const U &input) const {
+            const typename S::SigmaPointDistribution &X, const U&... input) const {
         SigmaPointDistribution<S> Z(Base::template size(), S::num_sigma());
 
         for(int i = 0; i < S::num_sigma(); i++) {
             DynamicMeasurementVector temp(Base::template size());
-            calculate_field_measurements<S, U, Fields...>(X.col(i), input, temp);
+            calculate_field_measurements<S, std::tuple<U...>, Fields...>(temp, X.col(i), std::make_tuple(input...));
             Z.col(i) = temp;
         }
 
@@ -371,13 +337,20 @@ private:
     template <typename S, int Key, typename... U>
     static typename Detail::FieldTypes<Key, Fields...>::type expected_measurement(const S &state, const U&... input);
 
+    template <typename S, int Key, typename U, size_t... I>
+    static typename Detail::FieldTypes<Key, Fields...>::type expected_measurement_helper(
+            const S &state, U &&input, std::index_sequence<I...>) {
+        return expected_measurement<S, Key>(state, std::get<I>(input)...);
+    }
+
     /*
     These functions build the measurement estimate from the expected
-    measurement of each individual field. Overloads are provided for the
-    input and non-input cases.
+    measurement of each individual field.
     */
-    template <typename S, typename T>
-    void calculate_field_measurements(const S &state, DynamicMeasurementVector &expected) const {
+    template <typename S, typename U, typename T>
+    void calculate_field_measurements(DynamicMeasurementVector &expected, const S &state, U &&input) const {
+        constexpr std::size_t len = std::tuple_size<typename std::remove_reference<U>::type>::value;
+
         /*
         If this field has been set, then generate an expected measurement for
         it. Otherwise, do nothing.
@@ -385,33 +358,17 @@ private:
         std::size_t offset = std::get<Detail::GetFieldOrder<0, Fields...>(T::key)>(field_offsets);
         if(offset != std::numeric_limits<std::size_t>::max()) {
             expected.segment(offset, Detail::StateVectorDimension<typename T::type>) <<
-                expected_measurement<S, T::key>(state);
+                expected_measurement_helper<S, T::key, U>(state, std::forward<U>(input),
+                    std::make_index_sequence<len>());
         } else {
             return;
         }
-    }
-
-    template <typename S, typename U, typename T>
-    void calculate_field_measurements(const S &state, const U &input, DynamicMeasurementVector &expected) const {
-        std::size_t offset = std::get<Detail::GetFieldOrder<0, Fields...>(T::key)>(field_offsets);
-        if(offset != std::numeric_limits<std::size_t>::max()) {
-            expected.segment(offset, Detail::StateVectorDimension<typename T::type>) <<
-                expected_measurement<S, T::key, U>(state, input);
-        } else {
-            return;
-        }
-    }
-
-    template <typename S, typename T1, typename T2, typename... Tail>
-    void calculate_field_measurements(const S &state, DynamicMeasurementVector &expected) const {
-        calculate_field_measurements<S, T1>(state, expected);
-        calculate_field_measurements<S, T2, Tail...>(state, expected);
     }
 
     template <typename S, typename U, typename T1, typename T2, typename... Tail>
-    void calculate_field_measurements(const S &state, const U &input, DynamicMeasurementVector &expected) const {
-        calculate_field_measurements<S, U, T1>(state, input, expected);
-        calculate_field_measurements<S, U, T2, Tail...>(state, input, expected);
+    void calculate_field_measurements(DynamicMeasurementVector &expected, const S &state, U &&input) const {
+        calculate_field_measurements<S, U, T1>(expected, state, std::forward<U>(input));
+        calculate_field_measurements<S, U, T2, Tail...>(expected, state, std::forward<U>(input));
     }
 };
 
