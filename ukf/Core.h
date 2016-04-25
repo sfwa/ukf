@@ -99,10 +99,11 @@ public:
     calculated. A measurement vector is then supplied, and the innovation
     and innovation covariance are calculated.
     */
-    void innovation_step(const MeasurementVectorType &z) {
+    template <typename... U>
+    void innovation_step(const MeasurementVectorType &z, const U&... input) {
         /* Propagate the sigma points through the measurement model. */
         MeasurementVectorType::SigmaPointDistribution<StateVectorType::num_sigma> measurement_sigma_points =
-            z.calculate_sigma_point_distribution<StateVectorType>(sigma_points);
+            z.calculate_sigma_point_distribution<StateVectorType>(sigma_points, input...);
 
         /* Calculate the measurement prediction mean, deltas and covariance. */
         MeasurementVectorType z_pred = z.calculate_sigma_point_mean<StateVectorType>(measurement_sigma_points);
