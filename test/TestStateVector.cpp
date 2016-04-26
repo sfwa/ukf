@@ -294,3 +294,25 @@ TEST(StateVectorTest, ProcessModel) {
     expected_state << 0.1, 0.2, 0.3, 1.3, 2.2, 3.1;
     EXPECT_VECTOR_EQ(expected_state, test_state.process_model<UKF::IntegratorEuler>(0.1, UKF::Vector<3>(3, 2, 1)));
 }
+
+TEST(StateVectorTest, UpdateDelta) {
+    MyStateVector test_state;
+
+    test_state.set_field<LatLon>(UKF::Vector<2>(45, 135));
+    test_state.set_field<Velocity>(UKF::Vector<3>(1, 2, 3));
+    test_state.set_field<Attitude>(UKF::Quaternion(1, 0, 0, 0));
+    test_state.set_field<Altitude>(10);
+
+    MyStateVector::StateVectorDelta test_delta;
+    test_delta << 10, -20, 3, 2, 1, 0, 0, 0.5, 1;
+
+    test_state.apply_delta(test_delta);
+
+    MyStateVector expected_state;
+    expected_state.set_field<LatLon>(UKF::Vector<2>(55, 115));
+    expected_state.set_field<Velocity>(UKF::Vector<3>(4, 4, 4));
+    expected_state.set_field<Attitude>(UKF::Quaternion(0.9692, 0, 0, 0.2462));
+    expected_state.set_field<Altitude>(11);
+
+    EXPECT_VECTOR_EQ(expected_state, test_state);
+}

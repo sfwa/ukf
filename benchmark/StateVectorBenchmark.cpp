@@ -135,3 +135,17 @@ void StateVector_FullAPrioriCalculation(benchmark::State& state) {
 BENCHMARK_TEMPLATE(StateVector_FullAPrioriCalculation, SV16_OneVector);
 BENCHMARK_TEMPLATE(StateVector_FullAPrioriCalculation, SV16_FourVectors);
 BENCHMARK_TEMPLATE(StateVector_FullAPrioriCalculation, SV16_FourQuaternions);
+
+template <typename T>
+void StateVector_UpdateDelta(benchmark::State& state) {
+    T test_state;
+    test_state << 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1;
+    typename T::StateVectorDelta test_delta = T::StateVectorDelta::Ones();
+    while(state.KeepRunning()) {
+        test_state.apply_delta(test_delta);
+    }
+}
+
+BENCHMARK_TEMPLATE(StateVector_UpdateDelta, SV16_OneVector);
+BENCHMARK_TEMPLATE(StateVector_UpdateDelta, SV16_FourVectors);
+BENCHMARK_TEMPLATE(StateVector_UpdateDelta, SV16_FourQuaternions);

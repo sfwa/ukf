@@ -306,6 +306,7 @@ public:
     using CovarianceMatrix = Matrix<covariance_size(), covariance_size()>;
     using SigmaPointDistribution = Matrix<size(), num_sigma()>;
     using SigmaPointDeltas = Matrix<covariance_size(), num_sigma()>;
+    using StateVectorDelta = Vector<covariance_size()>;
 
     /* Functions for accessing individual fields. */
     template <int Key>
@@ -396,13 +397,18 @@ public:
     StateVector derivative(const U&... input) const;
 
     /*
-    This function applies the process model to the state vector to calculate
-    the predicted state based on the supplied time delta. This is achieved by
-    using a numerical integrator and the derivative function.
+    Apply the process model to the state vector to calculate the predicted
+    state based on the supplied time delta. This is achieved by using a
+    numerical integrator and the derivative function.
     */
     template <typename IntegratorType = IntegratorRK4, typename... U>
     StateVector process_model(real_t delta, const U&... input) const {
         return IntegratorType::integrate(delta, *this, input...);
+    }
+
+    /* Update the state vector using a delta vector. */
+    void apply_delta(const StateVectorDelta &delta) {
+        apply_field_deltas<Fields...>(delta);
     }
 
 private:
@@ -566,6 +572,52 @@ private:
     void calculate_field_deltas(const SigmaPointDistribution &X, SigmaPointDeltas &w_prime) const {
         calculate_field_deltas<T1>(X, w_prime);
         calculate_field_deltas<T2, Tail...>(X, w_prime);
+    }
+
+    /*
+    Private functions to apply a delta vector to the state vector field by
+    field.
+    */
+    template <typename T>
+    static T update_field(const T &state, const Vector<Detail::CovarianceDimension<T>> &delta) {
+        return state + delta;
+    }
+
+    static real_t update_field(const real_t &state, const Vector<1> &delta) {
+        return state + delta(0);
+    }
+
+    static Quaternion update_field(const Quaternion &state, const Vector<3> &delta) {
+        /*
+        Update the attitude quaternion from the MRP vector, equation 45 from
+        the Markley paper.
+        */
+        real_t x_2 = delta.squaredNorm();
+        real_t d_q_w =
+            (-Parameters::MRP_A<StateVector> * x_2 + Parameters::MRP_F<StateVector>
+                * std::sqrt(x_2 * (1.0 - Parameters::MRP_A<StateVector>*Parameters::MRP_A<StateVector>)
+                + Parameters::MRP_F<StateVector> * Parameters::MRP_F<StateVector>))
+            / (Parameters::MRP_F<StateVector> * Parameters::MRP_F<StateVector> + x_2);
+        Vector<3> d_q_xyz = delta *
+            (d_q_w + Parameters::MRP_A<StateVector>) * (1.0 / Parameters::MRP_F<StateVector>);
+        Quaternion d_q;
+        d_q.vec() = d_q_xyz;
+        d_q.w() = d_q_w;
+
+        return d_q * state;
+    }
+
+    template <typename T>
+    void apply_field_deltas(const StateVectorDelta &delta) {
+        set_field<T::key>(update_field(get_field<T::key>(),
+            delta.segment(Detail::GetFieldCovarianceOffset<0, Fields...>(T::key),
+                Detail::GetFieldCovarianceSize<Fields...>(T::key))));
+    }
+
+    template <typename T1, typename T2, typename... Tail>
+    void apply_field_deltas(const StateVectorDelta &delta) {
+        apply_field_deltas<T1>(delta);
+        apply_field_deltas<T2, Tail...>(delta);
     }
 };
 

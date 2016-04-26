@@ -155,7 +155,7 @@ public:
         StateVector update_delta = kalman_gain * innovation;
 
         /* Apply the update delta to the state vector. */
-        /* FIXME: Insert the state vector update step here. */
+        state.apply_delta(update_delta);
 
         /* Update the covariance using equation 75 from the Kraft paper. */
         covariance = a_priori_covariance -
