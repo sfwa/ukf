@@ -84,7 +84,9 @@ public:
             covariance + /* FIXME: Insert process noise covariance here. */);
 
         /* Propagate the sigma points through the process model. */
-        /* FIXME: Insert process model here. */
+        for(int i = 0; i < StateVectorType::num_sigma(); i++) {
+            sigma_points.col(i) << StateVectorType(sigma_points.col(i)).process_model(delta, input...);
+        }
 
         /* Calculate the a priori estimate mean, deltas and covariance. */
         a_priori_mean = StateVectorType::calculate_sigma_point_mean(sigma_points);
