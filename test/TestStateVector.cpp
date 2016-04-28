@@ -316,3 +316,27 @@ TEST(StateVectorTest, UpdateDelta) {
 
     EXPECT_VECTOR_EQ(expected_state, test_state);
 }
+
+template <>
+ProcessModelTestStateVector::CovarianceMatrix ProcessModelTestStateVector::process_noise_covariance(real_t delta) {
+    ProcessModelTestStateVector::CovarianceMatrix temp;
+    temp << 0.1*delta*delta,               0,               0,         0,         0,         0,
+                          0, 0.1*delta*delta,               0,         0,         0,         0,
+                          0,               0, 0.1*delta*delta,         0,         0,         0,
+                          0,               0,               0, 0.1*delta,         0,         0,
+                          0,               0,               0,         0, 0.1*delta,         0,
+                          0,               0,               0,         0,         0, 0.1*delta;
+    return temp;
+}
+
+TEST(StateVectorTest, ProcessNoiseCovariance) {
+    ProcessModelTestStateVector::CovarianceMatrix test_covariance;
+    test_covariance << 0.001,     0,     0,     0,     0,     0,
+                           0, 0.001,     0,     0,     0,     0,
+                           0,     0, 0.001,     0,     0,     0,
+                           0,     0,     0,  0.01,     0,     0,
+                           0,     0,     0,     0,  0.01,     0,
+                           0,     0,     0,     0,     0,  0.01;
+
+    EXPECT_VECTOR_EQ(test_covariance, ProcessModelTestStateVector::process_noise_covariance(0.1));
+}

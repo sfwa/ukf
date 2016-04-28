@@ -411,6 +411,9 @@ public:
         apply_field_deltas<Fields...>(delta);
     }
 
+    /* Calculate the process noise covariance from the time delta. */
+    static CovarianceMatrix process_noise_covariance(real_t delta);
+
 private:
     /* Private functions for creating a sigma point distribution. */
     template <typename T>
