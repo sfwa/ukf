@@ -608,3 +608,44 @@ TEST(DynamicMeasurementVectorTest, PartialSigmaPointCovariance) {
     EXPECT_VECTOR_EQ(expected_covariance.col(1),  calculated_covariance.col(1));
     EXPECT_VECTOR_EQ(expected_covariance.col(2),  calculated_covariance.col(2));
 }
+
+template <>
+MyMeasurementVector::CovarianceVector MyMeasurementVector::measurement_covariance = MyMeasurementVector::CovarianceVector();
+
+TEST(DynamicMeasurementVectorTest, MeasurementCovariance) {
+    MyMeasurementVector test_measurement;
+
+    MyMeasurementVector::measurement_covariance.set_field<Gyroscope>(UKF::Vector<3>(1, 2, 3));
+    MyMeasurementVector::measurement_covariance.set_field<DynamicPressure>(4);
+    MyMeasurementVector::measurement_covariance.set_field<Accelerometer>(UKF::Vector<3>(5, 6, 7));
+    MyMeasurementVector::measurement_covariance.set_field<StaticPressure>(8);
+
+    MyMeasurementVector::CovarianceMatrix expected_measurement_covariance = MyMeasurementVector::CovarianceMatrix::Zero(8, 8);
+    expected_measurement_covariance.diagonal() << 5, 6, 7, 1, 2, 3, 8, 4;
+
+    MyMeasurementVector::CovarianceMatrix measurement_covariance = test_measurement.calculate_measurement_covariance();
+
+    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(0),  measurement_covariance.col(0));
+    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(1),  measurement_covariance.col(1));
+    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(2),  measurement_covariance.col(2));
+    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(3),  measurement_covariance.col(3));
+    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(4),  measurement_covariance.col(4));
+    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(5),  measurement_covariance.col(5));
+    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(6),  measurement_covariance.col(6));
+    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(7),  measurement_covariance.col(7));
+}
+
+TEST(DynamicMeasurementVectorTest, PartialMeasurementCovariance) {
+    MyMeasurementVector test_measurement;
+
+    MyMeasurementVector::measurement_covariance.set_field<Gyroscope>(UKF::Vector<3>(1, 2, 3));
+
+    MyMeasurementVector::CovarianceMatrix expected_measurement_covariance = MyMeasurementVector::CovarianceMatrix::Zero(3, 3);
+    expected_measurement_covariance.diagonal() << 1, 2, 3;
+
+    MyMeasurementVector::CovarianceMatrix measurement_covariance = test_measurement.calculate_measurement_covariance();
+
+    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(0),  measurement_covariance.col(0));
+    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(1),  measurement_covariance.col(1));
+    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(2),  measurement_covariance.col(2));
+}

@@ -120,7 +120,7 @@ public:
         See equations 44 and 45 from the Kraft paper for details.
         */
         innovation = z - z_pred;
-        innovation_covariance += /* FIXME: Insert measurement covariance here. */;
+        innovation_covariance += z.calculate_measurement_covariance();
     }
 
     /*

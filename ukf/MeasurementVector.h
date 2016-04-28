@@ -71,6 +71,10 @@ public:
     template <typename S>
     using SigmaPointDeltas = Matrix<covariance_size(), S::num_sigma()>;
     using CovarianceMatrix = Matrix<covariance_size(), covariance_size()>;
+    using CovarianceVector = FixedMeasurementVector<Fields...>;
+
+    /* Measurement noise covariance. */
+    static CovarianceVector measurement_covariance;
 
     /* Functions for accessing individual fields. */
     template <int Key>
@@ -144,6 +148,11 @@ public:
         return Z;
     }
 
+    /* Returns a diagonal matrix containing the measurement covariance. */
+    Eigen::DiagonalMatrix<real_t, covariance_size()> calculate_measurement_covariance() const {
+        return Eigen::DiagonalMatrix<real_t, covariance_size()>(measurement_covariance);
+    }
+
 private:
     /*
     This function is intended to be specialised by the user for each field in
@@ -209,6 +218,10 @@ public:
     template <typename S>
     using SigmaPointDeltas = MatrixDynamic<max_covariance_size(), S::num_sigma()>;
     using CovarianceMatrix = MatrixDynamic<max_covariance_size(), max_covariance_size()>;
+    using CovarianceVector = FixedMeasurementVector<Fields...>;
+
+    /* Measurement noise covariance. */
+    static CovarianceVector measurement_covariance;
 
     /* Functions for accessing individual fields. */
     template <int Key>
@@ -316,6 +329,15 @@ public:
         return Z;
     }
 
+    /* Returns a diagonal matrix containing the measurement covariance. */
+    Eigen::DiagonalMatrix<real_t, Eigen::Dynamic, max_covariance_size()> calculate_measurement_covariance() const {
+        DynamicMeasurementVector temp(Base::template size());
+
+        calculate_field_covariance<Fields...>(temp);
+        temp.field_offsets = field_offsets;
+        return Eigen::DiagonalMatrix<real_t, Eigen::Dynamic, max_covariance_size()>(temp);
+    }
+
 private:
     /*
     This vector keeps track of which fields have been set in the measurement
@@ -369,6 +391,32 @@ private:
     void calculate_field_measurements(DynamicMeasurementVector &expected, const S &state, U &&input) const {
         calculate_field_measurements<S, U, T1>(expected, state, std::forward<U>(input));
         calculate_field_measurements<S, U, T2, Tail...>(expected, state, std::forward<U>(input));
+    }
+
+    /*
+    These functions build the measurement covariance from all populated
+    fields.
+    */
+    template <typename T>
+    void calculate_field_covariance(DynamicMeasurementVector &cov) const {
+        /*
+        If this field has been set, then fill the measurement covariance for
+        it. Otherwise, do nothing.
+        */
+        std::size_t offset = std::get<Detail::GetFieldOrder<0, Fields...>(T::key)>(field_offsets);
+        if(offset != std::numeric_limits<std::size_t>::max()) {
+            cov.segment(offset, Detail::CovarianceDimension<typename T::type>) << measurement_covariance.segment(
+                Detail::GetFieldCovarianceOffset<0, Fields...>(T::key),
+                Detail::GetFieldCovarianceSize<Fields...>(T::key));
+        } else {
+            return;
+        }
+    }
+
+    template <typename T1, typename T2, typename... Tail>
+    void calculate_field_covariance(DynamicMeasurementVector &cov) const {
+        calculate_field_covariance<T1>(cov);
+        calculate_field_covariance<T2, Tail...>(cov);
     }
 };
 
