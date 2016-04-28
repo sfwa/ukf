@@ -94,7 +94,7 @@ public:
 
     /* Calculate the mean from a measurement sigma point distribution. */
     template <typename S>
-    FixedMeasurementVector calculate_sigma_point_mean(const SigmaPointDistribution<S> &Z) const {
+    FixedMeasurementVector calculate_sigma_point_mean(const SigmaPointDistribution<S>& Z) const {
         return Parameters::Sigma_WMI<S>*Z.block(0, 1, size(), S::num_sigma()-1).rowwise().sum()
             + Parameters::Sigma_WM0<S>*Z.col(0);
     }
@@ -105,7 +105,7 @@ public:
     The function isn't static; it uses the current measurement vector as the mean.
     */
     template <typename S>
-    SigmaPointDeltas<S> calculate_sigma_point_deltas(const SigmaPointDistribution<S> &Z) const {
+    SigmaPointDeltas<S> calculate_sigma_point_deltas(const SigmaPointDistribution<S>& Z) const {
         SigmaPointDeltas<S> z_prime;
 
         /* Calculate the delta vectors. */
@@ -119,7 +119,7 @@ public:
     equation 68 of the Kraft papers.
     */
     template <typename S>
-    CovarianceMatrix calculate_sigma_point_covariance(const SigmaPointDeltas<S> &z_prime) const {
+    CovarianceMatrix calculate_sigma_point_covariance(const SigmaPointDeltas<S>& z_prime) const {
         CovarianceMatrix cov;
 
         /* Calculate the covariance using equation 64 from the Kraft paper. */
@@ -136,7 +136,7 @@ public:
     */
     template <typename S, typename... U>
     SigmaPointDistribution<S> calculate_sigma_point_distribution(
-            const typename S::SigmaPointDistribution &X, const U&... input) const {
+            const typename S::SigmaPointDistribution& X, const U&... input) const {
         SigmaPointDistribution<S> Z(Base::template size(), S::num_sigma());
 
         for(int i = 0; i < S::num_sigma(); i++) {
@@ -163,11 +163,11 @@ private:
     pack of input vectors.
     */
     template <typename S, int Key, typename... U>
-    static typename Detail::FieldTypes<Key, Fields...>::type expected_measurement(const S &state, const U&... input);
+    static typename Detail::FieldTypes<Key, Fields...>::type expected_measurement(const S& state, const U&... input);
 
     template <typename S, int Key, typename U, size_t... I>
     static typename Detail::FieldTypes<Key, Fields...>::type expected_measurement_helper(
-            const S &state, U &&input, std::index_sequence<I...>) {
+            const S& state, U&& input, std::index_sequence<I...>) {
         return expected_measurement<S, Key>(state, std::get<I>(input)...);
     }
 
@@ -176,7 +176,7 @@ private:
     measurement of each individual field.
     */
     template <typename S, typename U, typename T>
-    static void calculate_field_measurements(FixedMeasurementVector &expected, const S &state, U &&input) {
+    static void calculate_field_measurements(FixedMeasurementVector& expected, const S& state, U&& input) {
         constexpr std::size_t len = std::tuple_size<typename std::remove_reference<U>::type>::value;
 
         expected.segment(Detail::GetFieldOffset<0, Fields...>(T::key),
@@ -185,7 +185,7 @@ private:
     }
 
     template <typename S, typename U, typename T1, typename T2, typename... Tail>
-    static void calculate_field_measurements(FixedMeasurementVector &expected, const S &state, U &&input) {
+    static void calculate_field_measurements(FixedMeasurementVector& expected, const S& state, U&& input) {
         calculate_field_measurements<S, U, T1>(expected, state, std::forward<U>(input));
         calculate_field_measurements<S, U, T2, Tail...>(expected, state, std::forward<U>(input));
     }
@@ -270,7 +270,7 @@ public:
     field accessors work.
     */
     template <typename S>
-    DynamicMeasurementVector calculate_sigma_point_mean(const SigmaPointDistribution<S> &Z) const {
+    DynamicMeasurementVector calculate_sigma_point_mean(const SigmaPointDistribution<S>& Z) const {
         DynamicMeasurementVector temp = DynamicMeasurementVector(
             Parameters::Sigma_WMI<S>*Z.block(0, 1, Base::template size(), S::num_sigma()-1).rowwise().sum()
             + Parameters::Sigma_WM0<S>*Z.col(0));
@@ -286,7 +286,7 @@ public:
     The function isn't static; it uses the current measurement vector as the mean.
     */
     template <typename S>
-    SigmaPointDeltas<S> calculate_sigma_point_deltas(const SigmaPointDistribution<S> &Z) const {
+    SigmaPointDeltas<S> calculate_sigma_point_deltas(const SigmaPointDistribution<S>& Z) const {
         SigmaPointDeltas<S> z_prime(Base::template size(), S::num_sigma());
 
         /* Calculate the delta vectors. */
@@ -300,7 +300,7 @@ public:
     equation 68 of the Kraft papers.
     */
     template <typename S>
-    CovarianceMatrix calculate_sigma_point_covariance(const SigmaPointDeltas<S> &z_prime) const {
+    CovarianceMatrix calculate_sigma_point_covariance(const SigmaPointDeltas<S>& z_prime) const {
         CovarianceMatrix cov(Base::template size(), Base::template size());
         
         /* Calculate the covariance using equation 64 from the Kraft paper. */
@@ -317,7 +317,7 @@ public:
     */
     template <typename S, typename... U>
     SigmaPointDistribution<S> calculate_sigma_point_distribution(
-            const typename S::SigmaPointDistribution &X, const U&... input) const {
+            const typename S::SigmaPointDistribution& X, const U&... input) const {
         SigmaPointDistribution<S> Z(Base::template size(), S::num_sigma());
 
         for(int i = 0; i < S::num_sigma(); i++) {
@@ -357,11 +357,11 @@ private:
     pack of input vectors.
     */
     template <typename S, int Key, typename... U>
-    static typename Detail::FieldTypes<Key, Fields...>::type expected_measurement(const S &state, const U&... input);
+    static typename Detail::FieldTypes<Key, Fields...>::type expected_measurement(const S& state, const U&... input);
 
     template <typename S, int Key, typename U, size_t... I>
     static typename Detail::FieldTypes<Key, Fields...>::type expected_measurement_helper(
-            const S &state, U &&input, std::index_sequence<I...>) {
+            const S& state, U&& input, std::index_sequence<I...>) {
         return expected_measurement<S, Key>(state, std::get<I>(input)...);
     }
 
@@ -370,7 +370,7 @@ private:
     measurement of each individual field.
     */
     template <typename S, typename U, typename T>
-    void calculate_field_measurements(DynamicMeasurementVector &expected, const S &state, U &&input) const {
+    void calculate_field_measurements(DynamicMeasurementVector& expected, const S& state, U&& input) const {
         constexpr std::size_t len = std::tuple_size<typename std::remove_reference<U>::type>::value;
 
         /*
@@ -388,7 +388,7 @@ private:
     }
 
     template <typename S, typename U, typename T1, typename T2, typename... Tail>
-    void calculate_field_measurements(DynamicMeasurementVector &expected, const S &state, U &&input) const {
+    void calculate_field_measurements(DynamicMeasurementVector& expected, const S& state, U&& input) const {
         calculate_field_measurements<S, U, T1>(expected, state, std::forward<U>(input));
         calculate_field_measurements<S, U, T2, Tail...>(expected, state, std::forward<U>(input));
     }
@@ -398,7 +398,7 @@ private:
     fields.
     */
     template <typename T>
-    void calculate_field_covariance(DynamicMeasurementVector &cov) const {
+    void calculate_field_covariance(DynamicMeasurementVector& cov) const {
         /*
         If this field has been set, then fill the measurement covariance for
         it. Otherwise, do nothing.
@@ -414,7 +414,7 @@ private:
     }
 
     template <typename T1, typename T2, typename... Tail>
-    void calculate_field_covariance(DynamicMeasurementVector &cov) const {
+    void calculate_field_covariance(DynamicMeasurementVector& cov) const {
         calculate_field_covariance<T1>(cov);
         calculate_field_covariance<T2, Tail...>(cov);
     }

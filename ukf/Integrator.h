@@ -30,7 +30,7 @@ namespace UKF {
 class IntegratorRK4 {
 public:
     template <typename S, typename... U>
-    static S integrate(real_t delta, const S &state, const U&... input) {
+    static S integrate(real_t delta, const S& state, const U&... input) {
         S a = state.derivative(input...);
         S b = S(state + 0.5 * delta * a).derivative(input...);
         S c = S(state + 0.5 * delta * b).derivative(input...);
@@ -42,7 +42,7 @@ public:
 class IntegratorHeun {
 public:
     template <typename S, typename... U>
-    static S integrate(real_t delta, const S &state, const U&... input) {
+    static S integrate(real_t delta, const S& state, const U&... input) {
         S initial = state.derivative(input...);
         S predictor = state + delta * initial;
         return state + (delta * 0.5) * (initial + predictor.derivative(input...));
@@ -52,7 +52,7 @@ public:
 class IntegratorEuler {
     public:
     template <typename S, typename... U>
-    static S integrate(real_t delta, const S &state, const U&... input) {
+    static S integrate(real_t delta, const S& state, const U&... input) {
         return state + delta * state.derivative(input...);
     }
 };

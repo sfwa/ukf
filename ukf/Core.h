@@ -61,7 +61,7 @@ public:
 
     /* Top-level function used to carry out a filter step. */
     template <typename... U>
-    void step(real_t delta, const MeasurementVectorType &z, const U&... input) {
+    void step(real_t delta, const MeasurementVectorType& z, const U&... input) {
         a_priori_step(delta, u);
         innovation_step(z);
         a_posteriori_step();
@@ -102,7 +102,7 @@ public:
     and innovation covariance are calculated.
     */
     template <typename... U>
-    void innovation_step(const MeasurementVectorType &z, const U&... input) {
+    void innovation_step(const MeasurementVectorType& z, const U&... input) {
         /* Propagate the sigma points through the measurement model. */
         MeasurementVectorType::SigmaPointDistribution<StateVectorType::num_sigma> measurement_sigma_points =
             z.calculate_sigma_point_distribution<StateVectorType>(sigma_points, input...);

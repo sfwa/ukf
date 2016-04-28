@@ -263,7 +263,7 @@ ProcessModelTestStateVector ProcessModelTestStateVector::derivative<>() const {
 
 template <> template <>
 ProcessModelTestStateVector ProcessModelTestStateVector::derivative<UKF::Vector<3>>(
-        const UKF::Vector<3> &acceleration) const {
+        const UKF::Vector<3>& acceleration) const {
     ProcessModelTestStateVector temp;
     /* Position derivative. */
     temp.set_field<Position>(get_field<Velocity>());

@@ -35,25 +35,25 @@ using MV_Fixed = UKF::FixedMeasurementVector<
 
 template <> template <>
 UKF::Vector<3> MV_Fixed::expected_measurement
-<MyStateVector, Accelerometer>(const MyStateVector &state) {
+<MyStateVector, Accelerometer>(const MyStateVector& state) {
     return state.get_field<Attitude>() * UKF::Vector<3>(0, 0, -9.8);
 }
 
 template <> template <>
 UKF::Vector<3> MV_Fixed::expected_measurement
-<MyStateVector, Gyroscope>(const MyStateVector &state) {
+<MyStateVector, Gyroscope>(const MyStateVector& state) {
     return state.get_field<AngularVelocity>();
 }
 
 template <> template <>
 real_t MV_Fixed::expected_measurement
-<MyStateVector, StaticPressure>(const MyStateVector &state) {
+<MyStateVector, StaticPressure>(const MyStateVector& state) {
     return 101.3 - 1.2*(state.get_field<Altitude>() / 100.0);
 }
 
 template <> template <>
 real_t MV_Fixed::expected_measurement
-<MyStateVector, DynamicPressure>(const MyStateVector &state) {
+<MyStateVector, DynamicPressure>(const MyStateVector& state) {
     return 0.5 * 1.225 * state.get_field<Velocity>().squaredNorm();
 }
 
@@ -66,25 +66,25 @@ using MV_Dynamic = UKF::DynamicMeasurementVector<
 
 template <> template <>
 UKF::Vector<3> MV_Dynamic::expected_measurement
-<MyStateVector, Accelerometer>(const MyStateVector &state) {
+<MyStateVector, Accelerometer>(const MyStateVector& state) {
     return state.get_field<Attitude>() * UKF::Vector<3>(0, 0, -9.8);
 }
 
 template <> template <>
 UKF::Vector<3> MV_Dynamic::expected_measurement
-<MyStateVector, Gyroscope>(const MyStateVector &state) {
+<MyStateVector, Gyroscope>(const MyStateVector& state) {
     return state.get_field<AngularVelocity>();
 }
 
 template <> template <>
 real_t MV_Dynamic::expected_measurement
-<MyStateVector, StaticPressure>(const MyStateVector &state) {
+<MyStateVector, StaticPressure>(const MyStateVector& state) {
     return 101.3 - 1.2*(state.get_field<Altitude>() / 100.0);
 }
 
 template <> template <>
 real_t MV_Dynamic::expected_measurement
-<MyStateVector, DynamicPressure>(const MyStateVector &state) {
+<MyStateVector, DynamicPressure>(const MyStateVector& state) {
     return 0.5 * 1.225 * state.get_field<Velocity>().squaredNorm();
 }
 
