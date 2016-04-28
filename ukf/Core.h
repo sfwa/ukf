@@ -81,7 +81,7 @@ public:
         the sigma point distribution.
         */
         sigma_points = state.calculate_sigma_point_distribution(
-            covariance + /* FIXME: Insert process noise covariance here. */);
+            covariance + StateVectorType::process_noise_covariance(delta));
 
         /* Propagate the sigma points through the process model. */
         for(int i = 0; i < StateVectorType::num_sigma(); i++) {
