@@ -38,11 +38,11 @@ namespace UKF {
 
 /* Alias for the Eigen type from which FixedMeasurementVector inherits. */
 template <typename... Fields>
-using MeasurementVectorFixedBaseType = Vector<Detail::GetCompositeVectorDimension<Fields...>()>;
+using MeasurementVectorFixedBaseType = Vector<Detail::get_composite_vector_dimension<Fields...>()>;
 
 /* Alias for the Eigen type from which DynamicMeasurementVector inherits. */
 template <typename... Fields>
-using MeasurementVectorDynamicBaseType = VectorDynamic<Detail::GetCompositeVectorDimension<Fields...>()>;
+using MeasurementVectorDynamicBaseType = VectorDynamic<Detail::get_composite_vector_dimension<Fields...>()>;
 
 /*
 This class provides a fixed measurement vector, to be used when the same
@@ -57,12 +57,12 @@ public:
 
     /* Get size of measurement vector. */
     static constexpr std::size_t size() {
-        return Detail::GetCompositeVectorDimension<typename Fields::type...>();
+        return Detail::get_composite_vector_dimension<typename Fields::type...>();
     }
 
     /* Get size of measurement vector covariance. */
     static constexpr std::size_t covariance_size() {
-        return Detail::GetCovarianceDimension<typename Fields::type...>();
+        return Detail::get_covariance_dimension<typename Fields::type...>();
     }
 
     /* Aliases for types needed during filter iteration. */
@@ -79,17 +79,19 @@ public:
     /* Functions for accessing individual fields. */
     template <int Key>
     typename Detail::FieldTypes<Key, Fields...>::type get_field() const {
-        static_assert(Detail::GetFieldOffset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
+        static_assert(Detail::get_field_offset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
             "Specified key not present in state vector");
-        return Detail::ConvertFromSegment<typename Detail::FieldTypes<Key, Fields...>::type>(
-            Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(Detail::GetFieldOffset<0, Fields...>(Key)));
+        return Detail::convert_from_segment<typename Detail::FieldTypes<Key, Fields...>::type>(
+            Base::template segment<Detail::get_field_size<Fields...>(Key)>(
+                Detail::get_field_offset<0, Fields...>(Key)));
     }
 
     template <int Key, typename T>
     void set_field(T in) {
-        static_assert(Detail::GetFieldOffset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
+        static_assert(Detail::get_field_offset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
             "Specified key not present in state vector");
-        Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(Detail::GetFieldOffset<0, Fields...>(Key)) << in;
+        Base::template segment<Detail::get_field_size<Fields...>(Key)>(
+            Detail::get_field_offset<0, Fields...>(Key)) << in;
     }
 
     /* Calculate the mean from a measurement sigma point distribution. */
@@ -179,7 +181,7 @@ private:
     static void calculate_field_measurements(FixedMeasurementVector& expected, const S& state, U&& input) {
         constexpr std::size_t len = std::tuple_size<typename std::remove_reference<U>::type>::value;
 
-        expected.segment(Detail::GetFieldOffset<0, Fields...>(T::key),
+        expected.segment(Detail::get_field_offset<0, Fields...>(T::key),
             Detail::StateVectorDimension<typename T::type>) << expected_measurement_helper<S, T::key, U>(
                 state, std::forward<U>(input), std::make_index_sequence<len>());
     }
@@ -204,12 +206,12 @@ public:
 
     /* Get maximum size of dynamic measurement vector. */
     static constexpr std::size_t max_size() {
-        return Detail::GetCompositeVectorDimension<typename Fields::type...>();
+        return Detail::get_composite_vector_dimension<typename Fields::type...>();
     }
 
     /* Get maximum size of dynamic measurement vector covariance. */
     static constexpr std::size_t max_covariance_size() {
-        return Detail::GetCovarianceDimension<typename Fields::type...>();
+        return Detail::get_covariance_dimension<typename Fields::type...>();
     }
 
     /* Aliases for types needed during filter iteration. */
@@ -226,41 +228,41 @@ public:
     /* Functions for accessing individual fields. */
     template <int Key>
     typename Detail::FieldTypes<Key, Fields...>::type get_field() const {
-        static_assert(Detail::GetFieldSize<Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
+        static_assert(Detail::get_field_size<Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
             "Specified key not present in measurement vector");
 
-        std::size_t offset = std::get<Detail::GetFieldOrder<0, Fields...>(Key)>(field_offsets);
+        std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(Key)>(field_offsets);
 
         assert(offset != std::numeric_limits<std::size_t>::max() &&
             "Specified key not present in measurement vector");
 
-        return Detail::ConvertFromSegment<typename Detail::FieldTypes<Key, Fields...>::type>(
-            Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(offset));
+        return Detail::convert_from_segment<typename Detail::FieldTypes<Key, Fields...>::type>(
+            Base::template segment<Detail::get_field_size<Fields...>(Key)>(offset));
     }
 
     template <int Key, typename T>
     void set_field(T in) {
-        static_assert(Detail::GetFieldSize<Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
+        static_assert(Detail::get_field_size<Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
             "Specified key not present in measurement vector");
 
-        std::size_t offset = std::get<Detail::GetFieldOrder<0, Fields...>(Key)>(field_offsets);
+        std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(Key)>(field_offsets);
 
         /* Check if this field has already been set. If so, replace it. */
         if(offset < Base::template size()) {
-            Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(offset) << in;
+            Base::template segment<Detail::get_field_size<Fields...>(Key)>(offset) << in;
         } else {
             /*
             Otherwise, resize the measurement vector to fit it and store the
             order in which fields have been set.
             */
             std::size_t previous_size = Base::template size();
-            Base::template conservativeResize(previous_size + Detail::GetFieldSize<Fields...>(Key));
+            Base::template conservativeResize(previous_size + Detail::get_field_size<Fields...>(Key));
 
             /* Assign the value to the field. */
-            Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(previous_size) << in;
+            Base::template segment<Detail::get_field_size<Fields...>(Key)>(previous_size) << in;
 
             /* Store the offset in field_offsets. */
-            std::get<Detail::GetFieldOrder<0, Fields...>(Key)>(field_offsets) = previous_size;
+            std::get<Detail::get_field_order<0, Fields...>(Key)>(field_offsets) = previous_size;
         }
     }
 
@@ -345,7 +347,7 @@ private:
     allows any combination of measurements to be supplied in any order and
     they will be handled correctly.
     */
-    std::array<std::size_t, sizeof...(Fields)> field_offsets = Detail::CreateArray<sizeof...(Fields)>(
+    std::array<std::size_t, sizeof...(Fields)> field_offsets = Detail::create_array<sizeof...(Fields)>(
         std::numeric_limits<std::size_t>::max());
 
     /*
@@ -377,7 +379,7 @@ private:
         If this field has been set, then generate an expected measurement for
         it. Otherwise, do nothing.
         */
-        std::size_t offset = std::get<Detail::GetFieldOrder<0, Fields...>(T::key)>(field_offsets);
+        std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(T::key)>(field_offsets);
         if(offset != std::numeric_limits<std::size_t>::max()) {
             expected.segment(offset, Detail::StateVectorDimension<typename T::type>) <<
                 expected_measurement_helper<S, T::key, U>(state, std::forward<U>(input),
@@ -403,11 +405,11 @@ private:
         If this field has been set, then fill the measurement covariance for
         it. Otherwise, do nothing.
         */
-        std::size_t offset = std::get<Detail::GetFieldOrder<0, Fields...>(T::key)>(field_offsets);
+        std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(T::key)>(field_offsets);
         if(offset != std::numeric_limits<std::size_t>::max()) {
             cov.segment(offset, Detail::CovarianceDimension<typename T::type>) << measurement_covariance.segment(
-                Detail::GetFieldCovarianceOffset<0, Fields...>(T::key),
-                Detail::GetFieldCovarianceSize<Fields...>(T::key));
+                Detail::get_field_covariance_offset<0, Fields...>(T::key),
+                Detail::get_field_covariance_size<Fields...>(T::key));
         } else {
             return;
         }

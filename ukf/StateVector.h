@@ -71,13 +71,13 @@ namespace UKF {
     constexpr std::size_t CovarianceDimension<Quaternion> = 3;
 
     template <typename T>
-    constexpr T Adder(T v) {
+    constexpr T adder(T v) {
         return v;
     }
 
     template <typename T, typename... Args>
-    constexpr T Adder(T first, Args... args) {
-        return first + Adder(args...);
+    constexpr T adder(T first, Args... args) {
+        return first + adder(args...);
     }
 
     /*
@@ -85,8 +85,8 @@ namespace UKF {
     fields.
     */
     template <typename... Fields>
-    constexpr std::size_t GetCompositeVectorDimension() {
-        return Adder(StateVectorDimension<Fields>...);
+    constexpr std::size_t get_composite_vector_dimension() {
+        return adder(StateVectorDimension<Fields>...);
     }
 
     /*
@@ -94,8 +94,8 @@ namespace UKF {
     all fields.
     */
     template <typename... Fields>
-    constexpr std::size_t GetCovarianceDimension() {
-        return Adder(CovarianceDimension<Fields>...);
+    constexpr std::size_t get_covariance_dimension() {
+        return adder(CovarianceDimension<Fields>...);
     }
 
     /*
@@ -103,37 +103,37 @@ namespace UKF {
     by matching the provided key parameter.
     */
     template <std::size_t Offset, typename T>
-    constexpr std::size_t GetFieldOffset(int Key) {
+    constexpr std::size_t get_field_offset(int Key) {
         return Key == T::key ? Offset : std::numeric_limits<std::size_t>::max();
     }
 
     template <std::size_t Offset, typename T1, typename T2, typename... Fields>
-    constexpr std::size_t GetFieldOffset(int Key) {
-        return Key == T1::key ? Offset : GetFieldOffset<
+    constexpr std::size_t get_field_offset(int Key) {
+        return Key == T1::key ? Offset : get_field_offset<
             Offset + StateVectorDimension<typename T1::type>, T2, Fields...>(Key);
     }
 
     /* Do the same as above, but for the covariance matrix. */
     template <std::size_t Offset, typename T>
-    constexpr std::size_t GetFieldCovarianceOffset(int Key) {
+    constexpr std::size_t get_field_covariance_offset(int Key) {
         return Key == T::key ? Offset : std::numeric_limits<std::size_t>::max();
     }
 
     template <std::size_t Offset, typename T1, typename T2, typename... Fields>
-    constexpr std::size_t GetFieldCovarianceOffset(int Key) {
-        return Key == T1::key ? Offset : GetFieldCovarianceOffset<
+    constexpr std::size_t get_field_covariance_offset(int Key) {
+        return Key == T1::key ? Offset : get_field_covariance_offset<
             Offset + CovarianceDimension<typename T1::type>, T2, Fields...>(Key);
     }
 
     /* Get the order of the specified key within the field pack. */
     template <std::size_t Offset, typename T>
-    constexpr std::size_t GetFieldOrder(int Key) {
+    constexpr std::size_t get_field_order(int Key) {
         return Key == T::key ? Offset : std::numeric_limits<std::size_t>::max();
     }
 
     template <std::size_t Offset, typename T1, typename T2, typename... Fields>
-    constexpr std::size_t GetFieldOrder(int Key) {
-        return Key == T1::key ? Offset : GetFieldOrder<Offset + 1, T2, Fields...>(Key);
+    constexpr std::size_t get_field_order(int Key) {
+        return Key == T1::key ? Offset : get_field_order<Offset + 1, T2, Fields...>(Key);
     }
 
     /*
@@ -164,12 +164,12 @@ namespace UKF {
     };
 
     template <typename T>
-    constexpr T ConvertFromSegment(const Vector<StateVectorDimension<T>>& state) {
+    constexpr T convert_from_segment(const Vector<StateVectorDimension<T>>& state) {
         return static_cast<T>(state);
     }
 
     template <>
-    constexpr real_t ConvertFromSegment<real_t>(const Vector<1>& state) {
+    constexpr real_t convert_from_segment<real_t>(const Vector<1>& state) {
         return static_cast<real_t>(state(0));
     }
 
@@ -178,36 +178,36 @@ namespace UKF {
     by matching the provided key parameter.
     */
     template <typename T>
-    constexpr std::size_t GetFieldSize(int Key) {
+    constexpr std::size_t get_field_size(int Key) {
         return Key == T::key ? StateVectorDimension<typename T::type> : std::numeric_limits<std::size_t>::max();
     }
 
     template <typename T1, typename T2, typename... Fields>
-    constexpr std::size_t GetFieldSize(int Key) {
-        return Key == T1::key ? StateVectorDimension<typename T1::type> : GetFieldSize<T2, Fields...>(Key);
+    constexpr std::size_t get_field_size(int Key) {
+        return Key == T1::key ? StateVectorDimension<typename T1::type> : get_field_size<T2, Fields...>(Key);
     }
 
     /* Do the same as above, but for the covariance matrix. */
     template <typename T>
-    constexpr std::size_t GetFieldCovarianceSize(int Key) {
+    constexpr std::size_t get_field_covariance_size(int Key) {
         return Key == T::key ? CovarianceDimension<typename T::type> : std::numeric_limits<std::size_t>::max();
     }
 
     template <typename T1, typename T2, typename... Fields>
-    constexpr std::size_t GetFieldCovarianceSize(int Key) {
-        return Key == T1::key ? CovarianceDimension<typename T1::type> : GetFieldCovarianceSize<T2, Fields...>(Key);
+    constexpr std::size_t get_field_covariance_size(int Key) {
+        return Key == T1::key ? CovarianceDimension<typename T1::type> : get_field_covariance_size<T2, Fields...>(Key);
     }
 
     /* Function for creating an array initialised to a specific value. */
     template <typename T, std::size_t... Indices>
-    constexpr std::array<T, sizeof...(Indices)> CreateArray(T value, std::index_sequence<Indices...>) {
+    constexpr std::array<T, sizeof...(Indices)> create_array(T value, std::index_sequence<Indices...>) {
         // Cast Indices to void to remove the unused value warning.
         return {{(static_cast<void>(Indices), value)...}};
     }
 
     template <std::size_t N, typename T>
-    constexpr std::array<T, N> CreateArray(const T& value) {
-        return CreateArray(value, std::make_index_sequence<N>());
+    constexpr std::array<T, N> create_array(const T& value) {
+        return create_array(value, std::make_index_sequence<N>());
     }
 
     }
@@ -270,7 +270,7 @@ public:
 
 /* Alias for the Eigen type from which StateVector inherits. */
 template <typename... Fields>
-using StateVectorBaseType = Vector<Detail::GetCompositeVectorDimension<Fields...>()>;
+using StateVectorBaseType = Vector<Detail::get_composite_vector_dimension<Fields...>()>;
 
 /*
 Templated state vector class. A particular UKF implementation should
@@ -290,12 +290,12 @@ public:
 
     /* Get size of state vector. */
     static constexpr std::size_t size() {
-        return Detail::GetCompositeVectorDimension<typename Fields::type...>();
+        return Detail::get_composite_vector_dimension<typename Fields::type...>();
     }
 
     /* Get size of state vector delta. */
     static constexpr std::size_t covariance_size() {
-        return Detail::GetCovarianceDimension<typename Fields::type...>();
+        return Detail::get_covariance_dimension<typename Fields::type...>();
     }
 
     static constexpr std::size_t num_sigma() {
@@ -311,25 +311,27 @@ public:
     /* Functions for accessing individual fields. */
     template <int Key>
     typename Detail::FieldTypes<Key, Fields...>::type get_field() const {
-        static_assert(Detail::GetFieldOffset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
+        static_assert(Detail::get_field_offset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
             "Specified key not present in state vector");
-        return Detail::ConvertFromSegment<typename Detail::FieldTypes<Key, Fields...>::type>(
-            Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(Detail::GetFieldOffset<0, Fields...>(Key)));
+        return Detail::convert_from_segment<typename Detail::FieldTypes<Key, Fields...>::type>(
+            Base::template segment<Detail::get_field_size<Fields...>(Key)>(
+                Detail::get_field_offset<0, Fields...>(Key)));
     }
 
     template <int Key, typename T>
     void set_field(T in) {
-        static_assert(Detail::GetFieldOffset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
+        static_assert(Detail::get_field_offset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
             "Specified key not present in state vector");
-        Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(Detail::GetFieldOffset<0, Fields...>(Key)) << in;
+        Base::template segment<Detail::get_field_size<Fields...>(Key)>(
+            Detail::get_field_offset<0, Fields...>(Key)) << in;
     }
 
     template <int Key>
     void set_field(Quaternion in) {
-        static_assert(Detail::GetFieldOffset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
+        static_assert(Detail::get_field_offset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
             "Specified key not present in state vector");
-        Base::template segment<Detail::GetFieldSize<Fields...>(Key)>(Detail::GetFieldOffset<0, Fields...>(Key)) <<
-            in.vec(), in.w();
+        Base::template segment<Detail::get_field_size<Fields...>(Key)>(
+            Detail::get_field_offset<0, Fields...>(Key)) << in.vec(), in.w();
     }
 
     /* Calculate the mean from a sigma point distribution. */
@@ -471,9 +473,9 @@ private:
 
     template <typename T>
     void calculate_field_sigmas(const CovarianceMatrix& S, SigmaPointDistribution& X) const {
-        X.block(Detail::GetFieldOffset<0, Fields...>(T::key), 0,
+        X.block(Detail::get_field_offset<0, Fields...>(T::key), 0,
             Detail::StateVectorDimension<typename T::type>, num_sigma()) = perturb_state(
-                get_field<T::key>(), S.block(Detail::GetFieldCovarianceOffset<0, Fields...>(T::key), 0,
+                get_field<T::key>(), S.block(Detail::get_field_covariance_offset<0, Fields...>(T::key), 0,
                     Detail::CovarianceDimension<typename T::type>, covariance_size()));
     }
 
@@ -521,9 +523,9 @@ private:
 
     template <typename T>
     static void calculate_field_mean(const SigmaPointDistribution& X, StateVector& mean) {
-        mean.segment(Detail::GetFieldOffset<0, Fields...>(T::key),
+        mean.segment(Detail::get_field_offset<0, Fields...>(T::key),
             Detail::StateVectorDimension<typename T::type>) << sigma_point_mean(
-                X.block(Detail::GetFieldOffset<0, Fields...>(T::key), 0,
+                X.block(Detail::get_field_offset<0, Fields...>(T::key), 0,
                     Detail::StateVectorDimension<typename T::type>, num_sigma()), typename T::type());
     }
 
@@ -565,9 +567,9 @@ private:
 
     template <typename T>
     void calculate_field_deltas(const SigmaPointDistribution& X, SigmaPointDeltas& w_prime) const {
-        w_prime.block(Detail::GetFieldCovarianceOffset<0, Fields...>(T::key), 0,
+        w_prime.block(Detail::get_field_covariance_offset<0, Fields...>(T::key), 0,
             Detail::CovarianceDimension<typename T::type>, num_sigma()) = sigma_point_deltas(
-                get_field<T::key>(), X.block(Detail::GetFieldOffset<0, Fields...>(T::key), 0,
+                get_field<T::key>(), X.block(Detail::get_field_offset<0, Fields...>(T::key), 0,
                     Detail::StateVectorDimension<typename T::type>, num_sigma()));
     }
 
@@ -613,8 +615,8 @@ private:
     template <typename T>
     void apply_field_deltas(const StateVectorDelta& delta) {
         set_field<T::key>(update_field(get_field<T::key>(),
-            delta.segment(Detail::GetFieldCovarianceOffset<0, Fields...>(T::key),
-                Detail::GetFieldCovarianceSize<Fields...>(T::key))));
+            delta.segment(Detail::get_field_covariance_offset<0, Fields...>(T::key),
+                Detail::get_field_covariance_size<Fields...>(T::key))));
     }
 
     template <typename T1, typename T2, typename... Tail>
