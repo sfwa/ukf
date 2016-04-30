@@ -181,5 +181,13 @@ MyMeasurementVector::CovarianceVector MyMeasurementVector::measurement_covarianc
     MyMeasurementVector::CovarianceVector();
 
 TEST(CoreTest, Initialisation) {
-    
+    MyMeasurementVector::measurement_covariance << 10, 10, 10, 1, 1, 1, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.05, 0.05, 0.05;
+
+    MyCore test_filter;
+    test_filter.state.set_field<Position>(UKF::Vector<3>(0, 0, 0));
+    test_filter.state.set_field<Velocity>(UKF::Vector<3>(0, 0, 0));
+    test_filter.state.set_field<Attitude>(UKF::Quaternion(1, 0, 0, 0));
+    test_filter.state.set_field<AngularVelocity>(UKF::Vector<3>(0, 0, 0));
+    test_filter.covariance = MyStateVector::CovarianceMatrix::Zero();
+    test_filter.covariance.diagonal() << 100, 100, 100, 10, 10, 10, 10, 10, 10, 1, 1, 1, 1, 1, 1;
 }

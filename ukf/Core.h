@@ -49,19 +49,26 @@ and F. Landis Markley.
 template <typename StateVectorType, typename MeasurementVectorType, typename IntegratorType>
 class Core {
 private:
-    StateVectorType state;
-    typename StateVectorType::CovarianceMatrix covariance;
     typename StateVectorType::SigmaPointDistribution sigma_points;
 
     StateVectorType a_priori_mean;
     typename StateVectorType::CovarianceMatrix a_priori_covariance;
     typename StateVectorType::SigmaPointDeltas w_prime;
 
-    MeasurementVectorType innovation;
-    typename MeasurementVectorType::CovarianceMatrix innovation_covariance;
-    typename MeasurementVectorType::template SigmaPointDeltas<StateVectorType::num_sigma> z_prime;
+    typename MeasurementVectorType::template SigmaPointDeltas<StateVectorType> z_prime;
 
 public:
+    /* State and covariance are public for simplicity of initialisation. */
+    StateVectorType state;
+    typename StateVectorType::CovarianceMatrix covariance;
+
+    /*
+    Innovation and innovation covariance are public to ease implementation of
+    filter health monitoring.
+    */
+    MeasurementVectorType innovation;
+    typename MeasurementVectorType::CovarianceMatrix innovation_covariance;
+
     /* Aliases needed during filter iteration. */
     using CrossCorrelation = Eigen::Matrix<
         real_t,
