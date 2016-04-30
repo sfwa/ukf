@@ -27,6 +27,7 @@ SOFTWARE.
 
 namespace UKF {
 
+/* Fourth-order integrator. */
 class IntegratorRK4 {
 public:
     template <typename S, typename... U>
@@ -39,6 +40,7 @@ public:
     }
 };
 
+/* Second-order integrator. */
 class IntegratorHeun {
 public:
     template <typename S, typename... U>
@@ -49,6 +51,7 @@ public:
     }
 };
 
+/* First-order integrator. */
 class IntegratorEuler {
     public:
     template <typename S, typename... U>

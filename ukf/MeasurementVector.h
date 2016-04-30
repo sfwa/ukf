@@ -73,7 +73,10 @@ public:
     using CovarianceMatrix = Matrix<covariance_size(), covariance_size()>;
     using CovarianceVector = FixedMeasurementVector<Fields...>;
 
-    /* Measurement noise covariance. */
+    /*
+    Measurement noise covariance. This is defined by the user and can be
+    adjusted between iterations.
+    */
     static CovarianceVector measurement_covariance;
 
     /* Functions for accessing individual fields. */
@@ -104,7 +107,6 @@ public:
     /*
     Calculate the set of sigma point delta vectors; these are used for
     calculating the measurement covariance and the Kalman gain.
-    The function isn't static; it uses the current measurement vector as the mean.
     */
     template <typename S>
     SigmaPointDeltas<S> calculate_sigma_point_deltas(const SigmaPointDistribution<S>& Z) const {

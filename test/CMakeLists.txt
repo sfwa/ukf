@@ -31,7 +31,8 @@ INCLUDE_DIRECTORIES(${googletest_dir}/include ../ukf ${eigen_dir} ${PROJECT_BINA
 ADD_EXECUTABLE(unittest
     TestStateVector.cpp
     TestFixedMeasurementVector.cpp
-    TestDynamicMeasurementVector.cpp)
+    TestDynamicMeasurementVector.cpp
+    TestCore.cpp)
 
 # Create dependency of test on googletest
 ADD_DEPENDENCIES(unittest googletest)

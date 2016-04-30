@@ -48,21 +48,33 @@ and F. Landis Markley.
 */
 template <typename StateVectorType, typename MeasurementVectorType, typename IntegratorType>
 class Core {
+private:
+    StateVectorType state;
+    typename StateVectorType::CovarianceMatrix covariance;
+    typename StateVectorType::SigmaPointDistribution sigma_points;
+
+    StateVectorType a_priori_mean;
+    typename StateVectorType::CovarianceMatrix a_priori_covariance;
+    typename StateVectorType::SigmaPointDeltas w_prime;
+
+    MeasurementVectorType innovation;
+    typename MeasurementVectorType::CovarianceMatrix innovation_covariance;
+    typename MeasurementVectorType::template SigmaPointDeltas<StateVectorType::num_sigma> z_prime;
+
 public:
     /* Aliases needed during filter iteration. */
-    template <S, M>
     using CrossCorrelation = Eigen::Matrix<
         real_t,
-        S::covariance_size(),
-        M::RowsAtCompileTime,
+        StateVectorType::covariance_size(),
+        MeasurementVectorType::RowsAtCompileTime,
         0,
-        S::covariance_size(),
-        M::MaxRowsAtCompileTime>;
+        StateVectorType::covariance_size(),
+        MeasurementVectorType::MaxRowsAtCompileTime>;
 
     /* Top-level function used to carry out a filter step. */
     template <typename... U>
     void step(real_t delta, const MeasurementVectorType& z, const U&... input) {
-        a_priori_step(delta, u);
+        a_priori_step(delta, input...);
         innovation_step(z);
         a_posteriori_step();
     }
@@ -85,7 +97,8 @@ public:
 
         /* Propagate the sigma points through the process model. */
         for(int i = 0; i < StateVectorType::num_sigma(); i++) {
-            sigma_points.col(i) << StateVectorType(sigma_points.col(i)).process_model<IntegratorType>(delta, input...);
+            sigma_points.col(i) <<
+                StateVectorType(sigma_points.col(i)).template process_model<IntegratorType>(delta, input...);
         }
 
         /* Calculate the a priori estimate mean, deltas and covariance. */
@@ -104,13 +117,15 @@ public:
     template <typename... U>
     void innovation_step(const MeasurementVectorType& z, const U&... input) {
         /* Propagate the sigma points through the measurement model. */
-        MeasurementVectorType::SigmaPointDistribution<StateVectorType::num_sigma> measurement_sigma_points =
-            z.calculate_sigma_point_distribution<StateVectorType>(sigma_points, input...);
+        typename MeasurementVectorType::template SigmaPointDistribution<StateVectorType::num_sigma>
+            measurement_sigma_points = z.template calculate_sigma_point_distribution<StateVectorType>(
+                sigma_points, input...);
 
         /* Calculate the measurement prediction mean, deltas and covariance. */
-        MeasurementVectorType z_pred = z.calculate_sigma_point_mean<StateVectorType>(measurement_sigma_points);
-        z_prime = z_pred.calculate_sigma_point_deltas<StateVectorType>(measurement_sigma_points);
-        innovation_covariance = z_pred.calculate_sigma_point_covariance<StateVectorType>(z_prime);
+        MeasurementVectorType z_pred =
+            z.template calculate_sigma_point_mean<StateVectorType>(measurement_sigma_points);
+        z_prime = z_pred.template calculate_sigma_point_deltas<StateVectorType>(measurement_sigma_points);
+        innovation_covariance = z_pred.template calculate_sigma_point_covariance<StateVectorType>(z_prime);
 
         /*
         Calculate innovation and innovation covariance. Innovation is simply
@@ -120,7 +135,7 @@ public:
         See equations 44 and 45 from the Kraft paper for details.
         */
         innovation = z - z_pred;
-        innovation_covariance += z.calculate_measurement_covariance();
+        innovation_covariance += z.template calculate_measurement_covariance();
     }
 
     /*
@@ -135,24 +150,24 @@ public:
         Calculate the cross-correlation matrix described in equations 70 and
         71 from from the Kraft paper.
         */
-        CrossCorrelation<StateVectorType, MeasurementVectorType> cross_correlation =
-            Parameters::Sigma_WC0<S> * (w_prime.col(0) * z_prime.col(0).transpose());
-        for(int i = 1; i < S::num_sigma(); i++) {
-            cross_correlation += Parameters::Sigma_WCI<S> * (w_prime.col(i) * z_prime.col(i).transpose());
+        CrossCorrelation cross_correlation = Parameters::Sigma_WC0<StateVectorType> *
+            (w_prime.col(0) * z_prime.col(0).transpose());
+        for(int i = 1; i < StateVectorType::num_sigma(); i++) {
+            cross_correlation += Parameters::Sigma_WCI<StateVectorType> *
+                (w_prime.col(i) * z_prime.col(i).transpose());
         }
 
         /*
         Calculate the Kalman gain as described in equation 72 from the Kraft
         paper.
         */
-        CrossCorrelation<StateVectorType, MeasurementVectorType> kalman_gain =
-            cross_correlation * innovation_covariance.inverse();
+        CrossCorrelation kalman_gain = cross_correlation * innovation_covariance.inverse();
 
         /*
         Calculate the update delta vector, to be applied to the a priori
         estimate.
         */
-        StateVector update_delta = kalman_gain * innovation;
+        StateVectorType update_delta = kalman_gain * innovation;
 
         /* Apply the update delta to the state vector. */
         state.apply_delta(update_delta);
@@ -163,18 +178,6 @@ public:
     }
 };
 
-private:
-    StateVectorType state;
-    StateVectorType::CovarianceMatrix covariance;
-    StateVectorType::SigmaPointDistribution sigma_points;
-
-    StateVectorType a_priori_mean;
-    StateVectorType::CovarianceMatrix a_priori_covariance;
-    StateVectorType::SigmaPointDeltas w_prime;
-
-    MeasurementVectorType innovation;
-    MeasurementVectorType::CovarianceMatrix innovation_covariance;
-    MeasurementVectorType::SigmaPointDeltas<StateVectorType::num_sigma> z_prime;
 }
 
 #endif
