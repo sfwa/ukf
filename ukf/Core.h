@@ -124,7 +124,7 @@ public:
     template <typename... U>
     void innovation_step(const MeasurementVectorType& z, const U&... input) {
         /* Propagate the sigma points through the measurement model. */
-        typename MeasurementVectorType::template SigmaPointDistribution<StateVectorType::num_sigma>
+        typename MeasurementVectorType::template SigmaPointDistribution<StateVectorType>
             measurement_sigma_points = z.template calculate_sigma_point_distribution<StateVectorType>(
                 sigma_points, input...);
 
@@ -174,7 +174,7 @@ public:
         Calculate the update delta vector, to be applied to the a priori
         estimate.
         */
-        StateVectorType update_delta = kalman_gain * innovation;
+        typename StateVectorType::StateVectorDelta update_delta = kalman_gain * innovation;
 
         /* Apply the update delta to the state vector. */
         state.apply_delta(update_delta);

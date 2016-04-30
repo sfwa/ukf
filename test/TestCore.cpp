@@ -180,9 +180,8 @@ template <>
 MyMeasurementVector::CovarianceVector MyMeasurementVector::measurement_covariance =
     MyMeasurementVector::CovarianceVector();
 
-TEST(CoreTest, Initialisation) {
+MyCore create_initialised_test_filter() {
     MyMeasurementVector::measurement_covariance << 10, 10, 10, 1, 1, 1, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.05, 0.05, 0.05;
-
     MyCore test_filter;
     test_filter.state.set_field<Position>(UKF::Vector<3>(0, 0, 0));
     test_filter.state.set_field<Velocity>(UKF::Vector<3>(0, 0, 0));
@@ -190,4 +189,104 @@ TEST(CoreTest, Initialisation) {
     test_filter.state.set_field<AngularVelocity>(UKF::Vector<3>(0, 0, 0));
     test_filter.covariance = MyStateVector::CovarianceMatrix::Zero();
     test_filter.covariance.diagonal() << 100, 100, 100, 10, 10, 10, 10, 10, 10, 1, 1, 1, 1, 1, 1;
+
+    return test_filter;
+}
+
+TEST(CoreTest, Initialisation) {
+    MyCore test_filter = create_initialised_test_filter();
+}
+
+TEST(CoreTest, APrioriStep) {
+    MyCore test_filter = create_initialised_test_filter();
+
+    test_filter.a_priori_step(0.01);
+
+    //EXPECT_EQ();
+}
+
+TEST(CoreTest, APrioriStepWithInputs) {
+    MyCore test_filter = create_initialised_test_filter();
+
+    test_filter.a_priori_step(0.01, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0));
+}
+
+TEST(CoreTest, InnovationStep) {
+    MyCore test_filter = create_initialised_test_filter();
+    MyMeasurementVector m;
+
+    m.set_field<GPS_Position>(UKF::Vector<3>(100, 10, -50));
+    m.set_field<GPS_Velocity>(UKF::Vector<3>(20, 0, 0));
+    m.set_field<Accelerometer>(UKF::Vector<3>(0, 0, -9.8));
+    m.set_field<Magnetometer>(UKF::Vector<3>(0, 1, 0));
+    m.set_field<Gyroscope>(UKF::Vector<3>(0.5, 0, 0));
+
+    test_filter.a_priori_step(0.01);
+    test_filter.innovation_step(m);
+}
+
+TEST(CoreTest, InnovationStepPartialMeasurement) {
+    MyCore test_filter = create_initialised_test_filter();
+    MyMeasurementVector m;
+
+    m.set_field<Accelerometer>(UKF::Vector<3>(0, 0, -9.8));
+    m.set_field<Magnetometer>(UKF::Vector<3>(0, 1, 0));
+    m.set_field<Gyroscope>(UKF::Vector<3>(0.5, 0, 0));
+
+    test_filter.a_priori_step(0.01);
+    test_filter.innovation_step(m);
+}
+
+TEST(CoreTest, InnovationStepWithInputs) {
+    MyCore test_filter = create_initialised_test_filter();
+    MyMeasurementVector m;
+
+    m.set_field<GPS_Position>(UKF::Vector<3>(100, 10, -50));
+    m.set_field<GPS_Velocity>(UKF::Vector<3>(20, 0, 0));
+    m.set_field<Accelerometer>(UKF::Vector<3>(0, 0, -15));
+    m.set_field<Magnetometer>(UKF::Vector<3>(0, 1, 0));
+    m.set_field<Gyroscope>(UKF::Vector<3>(0.5, 0, 0));
+
+    test_filter.a_priori_step(0.01, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0));
+    test_filter.innovation_step(m, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0));
+}
+
+TEST(CoreTest, InnovationStepPartialMeasurementWithInputs) {
+    MyCore test_filter = create_initialised_test_filter();
+    MyMeasurementVector m;
+
+    m.set_field<Accelerometer>(UKF::Vector<3>(0, 0, -15));
+    m.set_field<Magnetometer>(UKF::Vector<3>(0, 1, 0));
+    m.set_field<Gyroscope>(UKF::Vector<3>(0.5, 0, 0));
+
+    test_filter.a_priori_step(0.01, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0));
+    test_filter.innovation_step(m, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0));
+}
+
+TEST(CoreTest, APosterioriStep) {
+    MyCore test_filter = create_initialised_test_filter();
+    MyMeasurementVector m;
+
+    m.set_field<GPS_Position>(UKF::Vector<3>(100, 10, -50));
+    m.set_field<GPS_Velocity>(UKF::Vector<3>(20, 0, 0));
+    m.set_field<Accelerometer>(UKF::Vector<3>(0, 0, -9.8));
+    m.set_field<Magnetometer>(UKF::Vector<3>(0, 1, 0));
+    m.set_field<Gyroscope>(UKF::Vector<3>(0.5, 0, 0));
+
+    test_filter.a_priori_step(0.01);
+    test_filter.innovation_step(m);
+    test_filter.a_posteriori_step();
+}
+
+TEST(CoreTest, FullStep) {
+    MyCore test_filter = create_initialised_test_filter();
+    MyMeasurementVector m;
+
+    m.set_field<GPS_Position>(UKF::Vector<3>(100, 10, -50));
+    m.set_field<GPS_Velocity>(UKF::Vector<3>(20, 0, 0));
+    m.set_field<Accelerometer>(UKF::Vector<3>(0, 0, -15));
+    m.set_field<Magnetometer>(UKF::Vector<3>(0, 1, 0));
+    m.set_field<Gyroscope>(UKF::Vector<3>(0.5, 0, 0));
+
+    test_filter.step(0.01, m, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0));
 }
