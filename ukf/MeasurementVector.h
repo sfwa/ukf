@@ -277,7 +277,7 @@ public:
     DynamicMeasurementVector calculate_sigma_point_mean(const SigmaPointDistribution<S>& Z) const {
         DynamicMeasurementVector temp = DynamicMeasurementVector(
             Parameters::Sigma_WMI<S>*Z.block(0, 1, Base::template size(), S::num_sigma()-1).rowwise().sum()
-            + Parameters::Sigma_WM0<S>*Z.col(0));
+            + Parameters::Sigma_WM0<S>*Z.block(0, 0, Base::template size(), 1));
 
         temp.field_offsets = field_offsets;
 

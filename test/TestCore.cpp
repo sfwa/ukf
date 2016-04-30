@@ -43,6 +43,7 @@ MyStateVector MyStateVector::derivative<UKF::Vector<3>, UKF::Vector<3>>(
     UKF::Quaternion temp_q;
     temp_q.vec() = get_field<AngularVelocity>();
     temp_q.w() = 0;
+    temp.set_field<Attitude>(temp_q);
 
     /* Angular velocity derivative. */
     temp.set_field<AngularVelocity>(angular_acceleration);
