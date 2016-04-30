@@ -50,11 +50,7 @@ template <typename StateVectorType, typename MeasurementVectorType, typename Int
 class Core {
 private:
     typename StateVectorType::SigmaPointDistribution sigma_points;
-
-    StateVectorType a_priori_mean;
-    typename StateVectorType::CovarianceMatrix a_priori_covariance;
     typename StateVectorType::SigmaPointDeltas w_prime;
-
     typename MeasurementVectorType::template SigmaPointDeltas<StateVectorType> z_prime;
 
 public:
@@ -109,9 +105,9 @@ public:
         }
 
         /* Calculate the a priori estimate mean, deltas and covariance. */
-        a_priori_mean = StateVectorType::calculate_sigma_point_mean(sigma_points);
-        w_prime = a_priori_mean.calculate_sigma_point_deltas(sigma_points);
-        a_priori_covariance = StateVectorType::calculate_sigma_point_covariance(w_prime);
+        state = StateVectorType::calculate_sigma_point_mean(sigma_points);
+        w_prime = state.calculate_sigma_point_deltas(sigma_points);
+        covariance = StateVectorType::calculate_sigma_point_covariance(w_prime);
     }
 
     /*
@@ -180,8 +176,7 @@ public:
         state.apply_delta(update_delta);
 
         /* Update the covariance using equation 75 from the Kraft paper. */
-        covariance = a_priori_covariance -
-            (kalman_gain * innovation_covariance * kalman_gain.transpose());
+        covariance -= (kalman_gain * innovation_covariance * kalman_gain.transpose());
     }
 };
 
