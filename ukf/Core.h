@@ -85,7 +85,7 @@ public:
 
         /* Propagate the sigma points through the process model. */
         for(int i = 0; i < StateVectorType::num_sigma(); i++) {
-            sigma_points.col(i) << StateVectorType(sigma_points.col(i)).process_model(delta, input...);
+            sigma_points.col(i) << StateVectorType(sigma_points.col(i)).process_model<IntegratorType>(delta, input...);
         }
 
         /* Calculate the a priori estimate mean, deltas and covariance. */
