@@ -25,7 +25,7 @@ ADD_DEFINITIONS(-DEIGEN_NO_MALLOC)
 ExternalProject_Get_Property(googlebenchmark source_dir)
 SET(googlebenchmark_dir ${source_dir})
 
-INCLUDE_DIRECTORIES(${googlebenchmark_dir}/include ../ukf ${eigen_dir} ${PROJECT_BINARY_DIR})
+INCLUDE_DIRECTORIES(${googlebenchmark_dir}/include ../include ${eigen_dir} ${PROJECT_BINARY_DIR})
 
 # Add benchmark executable target
 ADD_EXECUTABLE(benchmark

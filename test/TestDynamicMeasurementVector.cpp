@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-#include "Types.h"
-#include "StateVector.h"
-#include "MeasurementVector.h"
+#include "UKF/Types.h"
+#include "UKF/StateVector.h"
+#include "UKF/MeasurementVector.h"
 #include "comparisons.h"
 
 enum MyFields {
