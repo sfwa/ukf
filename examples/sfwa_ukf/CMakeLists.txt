@@ -6,6 +6,6 @@ ADD_DEFINITIONS(-DEIGEN_NO_MALLOC)
 
 INCLUDE_DIRECTORIES(../../include ${eigen_dir})
 
-# Add executable target
-ADD_EXECUTABLE(sfwa_ukf
-    sfwa_ukf.cpp)
+cmake_policy(SET CMP0042 NEW)
+
+ADD_LIBRARY(cukf SHARED cukf.cpp)
