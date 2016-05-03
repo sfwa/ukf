@@ -29,7 +29,7 @@ extern "C" {
 
 #define UKF_STATE_DIM 24
 #define UKF_MEASUREMENT_DIM 17
-#define UKF_CONTROL_DIM 3
+#define UKF_CONTROL_DIM 4
 
 /* Dynamics model types. */
 enum ukf_model_t {

@@ -482,7 +482,7 @@ void ukf_set_custom_dynamics_model(ukf_model_function_t func) {
 
 }
 
-void ukf_iterate(float dt, real_t control_vector[3]) {
+void ukf_iterate(float dt, real_t control_vector[UKF_CONTROL_DIM]) {
     ukf.step(dt, meas);
 }
 
@@ -502,7 +502,7 @@ uint32_t ukf_config_get_measurement_dim() {
 }
 
 uint32_t ukf_config_get_control_dim() {
-    return 3;
+    return UKF_CONTROL_DIM;
 }
 
 enum ukf_precision_t ukf_config_get_precision() {
