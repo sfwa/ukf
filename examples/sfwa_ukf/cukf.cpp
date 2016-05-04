@@ -388,7 +388,7 @@ void ukf_get_state(struct ukf_state_t *in) {
     in->angular_acceleration[2] = ukf.state.get_field<AngularAcceleration>()[2];
     in->wind_velocity[0] = ukf.state.get_field<WindVelocity>()[0];
     in->wind_velocity[1] = ukf.state.get_field<WindVelocity>()[1];
-    in->wind_velocity[2] = ukf.state.get_field<WindVelocity>()[0];
+    in->wind_velocity[2] = ukf.state.get_field<WindVelocity>()[2];
     in->gyro_bias[0] = ukf.state.get_field<GyroBias>()[0];
     in->gyro_bias[1] = ukf.state.get_field<GyroBias>()[1];
     in->gyro_bias[2] = ukf.state.get_field<GyroBias>()[2];
