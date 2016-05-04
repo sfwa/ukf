@@ -191,7 +191,7 @@ SFWA_StateVector SFWA_StateVector::derivative<>() const {
     UKF::Quaternion omega_q;
     omega_q.vec() = get_field<AngularVelocity>() * 0.5;
     omega_q.w() = 0;
-    output.set_field<Attitude>(omega_q);
+    output.set_field<Attitude>(omega_q.conjugate() * get_field<Attitude>());
 
     /* Calculate change in angular velocity (just angular acceleration). */
     output.set_field<AngularVelocity>(get_field<AngularAcceleration>());
