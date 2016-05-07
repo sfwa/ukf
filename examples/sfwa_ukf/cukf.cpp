@@ -488,9 +488,8 @@ void ukf_iterate(float dt, real_t control_vector[UKF_CONTROL_DIM]) {
 
 void ukf_set_process_noise(real_t process_noise_covariance[SFWA_StateVector::covariance_size()]) {
     Eigen::Map<typename SFWA_StateVector::StateVectorDelta> covariance_map(process_noise_covariance);
-    typename SFWA_StateVector::CovarianceMatrix covariance = SFWA_StateVector::CovarianceMatrix::Zero();
-    covariance.diagonal() << covariance_map;
-    ukf.covariance = covariance;
+    process_noise = SFWA_StateVector::CovarianceMatrix::Zero();
+    process_noise.diagonal() << covariance_map;
 }
 
 uint32_t ukf_config_get_state_dim() {
