@@ -282,9 +282,11 @@ void ukf_init() {
 
     /*
     Set scale factor and bias error process noise. For biases, this is
-    derived from bias instability. For scale factors, this is set to zero
-    since scale factor instability is swamped by other sources of error in
-    cheap inertial sensors.
+    derived from bias instability.
+
+    Scale factor instability is basically irrelevant for these sensors, so
+    it's just set low enough to allow for the filter to adjust to scale
+    factor drift due to temperature.
 
     For MPU-6050: Allan variance was used to determine bias instability.
     Gyro bias instability is about 0.003 deg/s (5.2e-5 rad/s).
@@ -301,14 +303,11 @@ void ukf_init() {
     Note that these figures are probably too low because we're not explicitly
     compensating for bias change with temperature, which will have a similar
     effect.
-
-    UPDATE: The numbers below have been increased to allow for bias and scale
-    factor instability equivalent to a temperature drift of 1 K/s.
     */
     error_process_noise = AHRS_SensorErrorVector::CovarianceMatrix::Zero();
     error_process_noise.diagonal() <<
-        4.9e-3*4.9e-3 * UKF::Vector<3>::Ones(), 2.0e-4*2.0e-4 * UKF::Vector<3>::Ones(),
-        5.8e-3*5.8e-3 * UKF::Vector<3>::Ones(), 1.6e-4*1.6e-4 * UKF::Vector<3>::Ones(),
+        3.0e-3*3.0e-3 * UKF::Vector<3>::Ones(), 2.0e-4*2.0e-4 * UKF::Vector<3>::Ones(),
+        5.2e-5*5.2e-5 * UKF::Vector<3>::Ones(), 1.6e-4*1.6e-4 * UKF::Vector<3>::Ones(),
         1.5e-2*1.5e-2 * UKF::Vector<3>::Ones(), 1.0e-4*1.0e-4 * UKF::Vector<3>::Ones();
 }
 
