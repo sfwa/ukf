@@ -78,7 +78,7 @@ public:
     template <typename... U>
     void step(real_t delta, const MeasurementVectorType& z, const U&... input) {
         a_priori_step(delta, input...);
-        innovation_step(z);
+        innovation_step(z, input...);
         a_posteriori_step();
     }
 
