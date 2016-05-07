@@ -17,12 +17,6 @@ velocity and linear acceleration.
 /* Value of g. */
 #define G_ACCEL (9.80665)
 
-/*
-Approximate magnitude of Earth's magnetic field in microTesla. This is only
-used to initialise the scale factor matrix.
-*/
-#define EARTH_MAG (45.0)
-
 enum AHRS_Keys {
     /* AHRS filter fields. */
     Attitude,
@@ -129,7 +123,7 @@ UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
 template <> template <>
 UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
 <AHRS_StateVector, Magnetometer>(const AHRS_StateVector& state) {
-    return state.get_field<Attitude>() * UKF::Vector<3>(1.0, 0.0, 0.0);
+    return state.get_field<Attitude>() * UKF::Vector<3>(21.2578, 4.4132, -55.9578);
 }
 
 /*
@@ -158,7 +152,7 @@ UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
         const AHRS_StateVector& state, const AHRS_SensorErrorVector& input) {
     Eigen::Map<UKF::Matrix<3, 3>> mag_scale(input.get_field<MagnetometerScaleFactor>().data());
     return input.get_field<MagnetometerBias>() + 
-        mag_scale * (state.get_field<Attitude>() * UKF::Vector<3>(1.0, 0.0, 0.0));
+        mag_scale * (state.get_field<Attitude>() * UKF::Vector<3>(21.2578, 4.4132, -55.9578));
 }
 
 using AHRS_Filter = UKF::Core<
@@ -211,7 +205,7 @@ UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
         const AHRS_SensorErrorVector& state, const AHRS_StateVector& input) {
     Eigen::Map<UKF::Matrix<3, 3>> mag_scale(state.get_field<MagnetometerScaleFactor>().data());
     return state.get_field<MagnetometerBias>() + 
-        mag_scale * (input.get_field<Attitude>() * UKF::Vector<3>(1.0, 0.0, 0.0));
+        mag_scale * (input.get_field<Attitude>() * UKF::Vector<3>(21.2578, 4.4132, -55.9578));
 }
 
 /* Just use the Euler integrator since there's no process model. */
@@ -248,15 +242,15 @@ void ukf_init() {
     ahrs.state.set_field<Acceleration>(UKF::Vector<3>(0, 0, 0));
     ahrs.covariance = AHRS_StateVector::CovarianceMatrix::Zero();
     ahrs.covariance.diagonal() <<
-        1e1 * UKF::Vector<3>::Ones(),
-        1e-6 * UKF::Vector<3>::Ones(),
-        1e-6 * UKF::Vector<3>::Ones();
+        3e0 * UKF::Vector<3>::Ones(),
+        1e0 * UKF::Vector<3>::Ones(),
+        1e0 * UKF::Vector<3>::Ones();
 
     /* Set process noise covariance. */
     process_noise = AHRS_StateVector::CovarianceMatrix::Zero();
     process_noise.diagonal() <<
         7e-5 * UKF::Vector<3>::Ones(),
-        1e0 * UKF::Vector<3>::Ones(),
+        1e1 * UKF::Vector<3>::Ones(),
         2e1 * UKF::Vector<3>::Ones();
 
     /* Initialise scale factor and bias errors. */
@@ -266,7 +260,7 @@ void ukf_init() {
     ahrs_errors.state.set_field<GyroscopeScaleFactor>(UKF::Vector<3>(1, 1, 1));
     ahrs_errors.state.set_field<MagnetometerBias>(UKF::Vector<3>(0, 0, 0));
     UKF::Matrix<3, 3> init_scale = UKF::Matrix<3, 3>::Zero();
-    init_scale.diagonal() << EARTH_MAG, EARTH_MAG, EARTH_MAG;
+    init_scale.diagonal() << 1.0, 1.0, 1.0;
     Eigen::Map<UKF::Vector<9>> init_scale_map(init_scale.data());
     ahrs_errors.state.set_field<MagnetometerScaleFactor>(init_scale_map);
 
@@ -284,7 +278,7 @@ void ukf_init() {
     ahrs_errors.covariance.diagonal() <<
         0.49*0.49, 0.49*0.49, 0.784*0.784, 3.0e-2*3.0e-2 * UKF::Vector<3>::Ones(),
         0.35*0.35 * UKF::Vector<3>::Ones(), 3.0e-2*3.0e-2 * UKF::Vector<3>::Ones(),
-        1.0e1*1.0e1 * UKF::Vector<3>::Ones(), 5.0e-2*5.0e-2 * EARTH_MAG * UKF::Vector<9>::Ones();
+        4.0e1*4.0e1 * UKF::Vector<3>::Ones(), 5.0e-2*5.0e-2 * UKF::Vector<9>::Ones();
 
     /*
     Set scale factor and bias error process noise. For biases, this is
@@ -307,12 +301,15 @@ void ukf_init() {
     Note that these figures are probably too low because we're not explicitly
     compensating for bias change with temperature, which will have a similar
     effect.
+
+    UPDATE: The numbers below have been increased to allow for bias and scale
+    factor instability equivalent to a temperature drift of 1 K/s.
     */
     error_process_noise = AHRS_SensorErrorVector::CovarianceMatrix::Zero();
     error_process_noise.diagonal() <<
-        5.2e-5*5.2e-5 * UKF::Vector<3>::Ones(), UKF::Vector<3>::Zero(),
-        3.0e-3*3.0e-3 * UKF::Vector<3>::Ones(), UKF::Vector<3>::Zero(),
-        1.5e-2*1.5e-2 * UKF::Vector<3>::Ones(), UKF::Vector<9>::Zero();
+        4.9e-3*4.9e-3 * UKF::Vector<3>::Ones(), 2.0e-4*2.0e-4 * UKF::Vector<3>::Ones(),
+        5.8e-3*5.8e-3 * UKF::Vector<3>::Ones(), 1.6e-4*1.6e-4 * UKF::Vector<3>::Ones(),
+        1.5e-2*1.5e-2 * UKF::Vector<3>::Ones(), 1.0e-4*1.0e-4 * UKF::Vector<3>::Ones();
 }
 
 void ukf_set_acceleration(real_t x, real_t y, real_t z) {
@@ -396,6 +393,14 @@ void ukf_iterate(float dt) {
     */
     ahrs.a_priori_step(dt);
     ahrs.innovation_step(meas, ahrs_errors.state);
+
+    /*
+    Adjust the innovation covariance of the AHRS filter by adding the
+    innovation covariance of the parameter estimation filter, to properly
+    account for uncertainty in sensor biases and scale factors.
+    */
+    ahrs_errors.innovation_covariance += ahrs.innovation_covariance;
+
     ahrs.a_posteriori_step();
 
     /* Do the a priori step for the parameter estimation filter. */
