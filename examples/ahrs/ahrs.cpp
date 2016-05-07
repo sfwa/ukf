@@ -231,7 +231,10 @@ noise figures given in the datasheet.
 */
 template <>
 AHRS_MeasurementVector::CovarianceVector AHRS_MeasurementVector::measurement_covariance(
-    (AHRS_MeasurementVector::CovarianceVector() << 0.12, 0.12, 0.12, 0.003, 0.003, 0.003, 0.3, 0.3, 0.3).finished());
+    (AHRS_MeasurementVector::CovarianceVector() <<
+        0.12*0.12 * UKF::Vector<3>::Ones(),
+        0.003*0.003 * UKF::Vector<3>::Ones(),
+        0.3*0.3 * UKF::Vector<3>::Ones()).finished());
 
 /*
 The following functions provide a ctypes-compatible interface for ease of
@@ -244,7 +247,10 @@ void ukf_init() {
     ahrs.state.set_field<AngularVelocity>(UKF::Vector<3>(0, 0, 0));
     ahrs.state.set_field<Acceleration>(UKF::Vector<3>(0, 0, 0));
     ahrs.covariance = AHRS_StateVector::CovarianceMatrix::Zero();
-    ahrs.covariance.diagonal() << 1e0, 1e0, 1e0, 1e0, 1e0, 1e0, 5e0, 5e0, 5e0;
+    ahrs.covariance.diagonal() <<
+        1e1 * UKF::Vector<3>::Ones(),
+        1e-6 * UKF::Vector<3>::Ones(),
+        1e-6 * UKF::Vector<3>::Ones();
 
     /* Set process noise covariance. */
     process_noise = AHRS_StateVector::CovarianceMatrix::Zero();
@@ -276,9 +282,9 @@ void ukf_init() {
     */
     ahrs_errors.covariance = AHRS_SensorErrorVector::CovarianceMatrix::Zero();
     ahrs_errors.covariance.diagonal() <<
-        0.49, 0.49, 0.784, 3.0e-2 * UKF::Vector<3>::Ones(),
-        0.35 * UKF::Vector<3>::Ones(), 3.0e-2 * UKF::Vector<3>::Ones(),
-        1.0e1 * UKF::Vector<3>::Ones(), 5.0e-2 * EARTH_MAG * UKF::Vector<9>::Ones();
+        0.49*0.49, 0.49*0.49, 0.784*0.784, 3.0e-2*3.0e-2 * UKF::Vector<3>::Ones(),
+        0.35*0.35 * UKF::Vector<3>::Ones(), 3.0e-2*3.0e-2 * UKF::Vector<3>::Ones(),
+        1.0e1*1.0e1 * UKF::Vector<3>::Ones(), 5.0e-2*5.0e-2 * EARTH_MAG * UKF::Vector<9>::Ones();
 
     /*
     Set scale factor and bias error process noise. For biases, this is
@@ -304,9 +310,9 @@ void ukf_init() {
     */
     error_process_noise = AHRS_SensorErrorVector::CovarianceMatrix::Zero();
     error_process_noise.diagonal() <<
-        5.2e-5 * UKF::Vector<3>::Ones(), UKF::Vector<3>::Zero(),
-        3.0e-3 * UKF::Vector<3>::Ones(), UKF::Vector<3>::Zero(),
-        1.5e-2 * UKF::Vector<3>::Ones(), UKF::Vector<9>::Zero();
+        5.2e-5*5.2e-5 * UKF::Vector<3>::Ones(), UKF::Vector<3>::Zero(),
+        3.0e-3*3.0e-3 * UKF::Vector<3>::Ones(), UKF::Vector<3>::Zero(),
+        1.5e-2*1.5e-2 * UKF::Vector<3>::Ones(), UKF::Vector<9>::Zero();
 }
 
 void ukf_set_acceleration(real_t x, real_t y, real_t z) {

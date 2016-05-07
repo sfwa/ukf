@@ -45,10 +45,10 @@ struct ukf_sensor_params_t {
 };
 
 struct ukf_state_t {
-    real_t acceleration[3]; /* forwards (m/s), starboard (m/s), down (m/s) */
     real_t attitude[4]; /* x, y, z, W */
     real_t angular_velocity[3]; /* rolling (rad/s), pitching (rad/s),
                                    yawing (rad/s) */
+    real_t acceleration[3]; /* forwards (m/s^2), starboard (m/s^2), down (m/s^2) */
 };
 
 void ukf_init(void);
