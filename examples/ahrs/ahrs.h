@@ -51,6 +51,15 @@ struct ukf_state_t {
     real_t acceleration[3]; /* forwards (m/s^2), starboard (m/s^2), down (m/s^2) */
 };
 
+struct ukf_sensor_errors_t {
+    real_t accel_bias[3];
+    real_t accel_scale[3];
+    real_t gyro_bias[3];
+    real_t gyro_scale[3];
+    real_t mag_bias[3];
+    real_t mag_scale[9];
+};
+
 void ukf_init(void);
 
 /* Functions for setting different parts of the state vector. */
@@ -87,6 +96,12 @@ void ukf_set_params(struct ukf_sensor_params_t *in);
 void ukf_set_process_noise(real_t process_noise_covariance[UKF_STATE_DIM]);
 /* dt is the time delta in seconds */
 void ukf_iterate(float dt);
+
+/*
+Functions to get the current bias and scale factor estimates from the
+parameter estimation filter.
+*/
+void ukf_get_sensor_errors(struct ukf_sensor_errors_t *in);
 
 /*
 Functions to access the compiled configuration

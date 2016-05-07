@@ -429,6 +429,33 @@ void ukf_set_process_noise(real_t process_noise_covariance[AHRS_StateVector::cov
     process_noise.diagonal() << covariance_map;
 }
 
+void ukf_get_sensor_errors(struct ukf_sensor_errors_t *in) {
+    in->accel_bias[0] = ahrs_errors.state.get_field<AccelerometerBias>()[0];
+    in->accel_bias[1] = ahrs_errors.state.get_field<AccelerometerBias>()[1];
+    in->accel_bias[2] = ahrs_errors.state.get_field<AccelerometerBias>()[2];
+    in->accel_scale[0] = ahrs_errors.state.get_field<AccelerometerScaleFactor>()[0];
+    in->accel_scale[1] = ahrs_errors.state.get_field<AccelerometerScaleFactor>()[1];
+    in->accel_scale[2] = ahrs_errors.state.get_field<AccelerometerScaleFactor>()[2];
+    in->gyro_bias[0] = ahrs_errors.state.get_field<GyroscopeBias>()[0];
+    in->gyro_bias[1] = ahrs_errors.state.get_field<GyroscopeBias>()[1];
+    in->gyro_bias[2] = ahrs_errors.state.get_field<GyroscopeBias>()[2];
+    in->gyro_scale[0] = ahrs_errors.state.get_field<GyroscopeScaleFactor>()[0];
+    in->gyro_scale[1] = ahrs_errors.state.get_field<GyroscopeScaleFactor>()[1];
+    in->gyro_scale[2] = ahrs_errors.state.get_field<GyroscopeScaleFactor>()[2];
+    in->mag_bias[0] = ahrs_errors.state.get_field<MagnetometerBias>()[0];
+    in->mag_bias[1] = ahrs_errors.state.get_field<MagnetometerBias>()[1];
+    in->mag_bias[2] = ahrs_errors.state.get_field<MagnetometerBias>()[2];
+    in->mag_scale[0] = ahrs_errors.state.get_field<MagnetometerScaleFactor>()[0];
+    in->mag_scale[1] = ahrs_errors.state.get_field<MagnetometerScaleFactor>()[1];
+    in->mag_scale[2] = ahrs_errors.state.get_field<MagnetometerScaleFactor>()[2];
+    in->mag_scale[3] = ahrs_errors.state.get_field<MagnetometerScaleFactor>()[3];
+    in->mag_scale[4] = ahrs_errors.state.get_field<MagnetometerScaleFactor>()[4];
+    in->mag_scale[5] = ahrs_errors.state.get_field<MagnetometerScaleFactor>()[5];
+    in->mag_scale[6] = ahrs_errors.state.get_field<MagnetometerScaleFactor>()[6];
+    in->mag_scale[7] = ahrs_errors.state.get_field<MagnetometerScaleFactor>()[7];
+    in->mag_scale[8] = ahrs_errors.state.get_field<MagnetometerScaleFactor>()[8];
+}
+
 uint32_t ukf_config_get_state_dim() {
     return AHRS_StateVector::covariance_size();
 }

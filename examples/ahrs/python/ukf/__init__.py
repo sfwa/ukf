@@ -29,6 +29,7 @@ UKF_PRECISION_DOUBLE = 1
 
 state = None
 covariance = None
+sensor_errors = None
 
 
 # Internal globals, set during init
@@ -59,10 +60,21 @@ class _State(Structure):
         }
         return str(fields)
 
+class _SensorErrors(Structure):
+    def __repr__(self):
+        field = {
+            "accel_bias": tuple(self.accel_bias),
+            "accel_scale": tuple(self.accel_scale),
+            "gyro_bias": tuple(self.gyro_bias),
+            "gyro_scale": tuple(self.gyro_scale),
+            "mag_bias": tuple(self.mag_bias),
+            "mag_scale": tuple(self.mag_scale),
+        }
+        return std(fields)
 
 # Public interface
 def iterate(dt):
-    global _cukf, state
+    global _cukf, state, sensor_errors
 
     if not _cukf:
         raise RuntimeError("Please call ukf.init()")
@@ -72,6 +84,7 @@ def iterate(dt):
     _cukf.ukf_sensor_clear()
     _cukf.ukf_get_state(state)
     #_cukf.ukf_get_state_covariance(covariance)
+    _cukf.ukf_get_sensor_errors(sensor_errors)
 
 
 def set_sensors(accelerometer=None, gyroscope=None, magnetometer=None):
@@ -112,12 +125,11 @@ def configure_sensors(accelerometer_covariance=None,
 
 
 def configure_process_noise(process_noise_covariance):
-    _cukf.ukf_set_process_noise(
-        (_REAL_T * _STATE_DIM)(*process_noise_covariance))
+    _cukf.ukf_set_process_noise((_REAL_T * 9)(*process_noise_covariance))
 
 
 def init():
-    global _cukf, _REAL_T, state
+    global _cukf, _REAL_T, state, sensor_errors
 
     lib = os.path.join(os.path.dirname(__file__), "libahrs.dylib")
     _cukf = cdll.LoadLibrary(lib)
@@ -149,6 +161,15 @@ def init():
         ("attitude", _REAL_T * 4),
         ("angular_velocity", _REAL_T * 3),
         ("acceleration", _REAL_T * 3)
+    ]
+
+    _SensorErrors._fields_ = [
+        ("accel_bias", _REAL_T * 3),
+        ("accel_scale", _REAL_T * 3),
+        ("gyro_bias", _REAL_T * 3),
+        ("gyro_scale", _REAL_T * 3),
+        ("mag_bias", _REAL_T * 3),
+        ("mag_scale", _REAL_T * 9)
     ]
 
     # Set up the function prototypes
@@ -192,9 +213,16 @@ def init():
     _cukf.ukf_set_process_noise.argtypes = [POINTER(_REAL_T * _STATE_DIM)]
     _cukf.ukf_set_process_noise.restype = None
 
+    _cukf.ukf_get_sensor_errors.argtypes = [POINTER(_SensorErrors)]
+    _cukf.ukf_get_sensor_errors.restype = None
+
     # Initialize the library
     _cukf.ukf_init()
 
     # Set up the state
     state = _State()
     _cukf.ukf_get_state(state)
+
+    # Set up the sensor errors
+    sensor_errors = _SensorErrors()
+    _cukf.ukf_get_sensor_errors(sensor_errors)
