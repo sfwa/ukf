@@ -23,10 +23,24 @@ used to initialise the scale factor matrix.
 */
 #define EARTH_MAG (45.0)
 
-enum AHRS_States {
+enum AHRS_Keys {
+    /* AHRS filter fields. */
     Attitude,
     AngularVelocity,
-    Acceleration
+    Acceleration,
+
+    /* Parameter estimation filter fields. */
+    AccelerometerBias,
+    AccelerometerScaleFactor,
+    GyroscopeBias,
+    GyroscopeScaleFactor,
+    MagnetometerBias,
+    MagnetometerScaleFactor,
+
+    /* AHRS measurement vector fields. */
+    Accelerometer,
+    Gyroscope,
+    Magnetometer
 };
 
 /*
@@ -50,14 +64,6 @@ the sensors.
 The magnetometer scale factor is represented as a direction cosine matrix
 with no normalisation constraint.
 */
-enum AHRS_SensorErrors {
-    AccelerometerBias,
-    AccelerometerScaleFactor,
-    GyroscopeBias,
-    GyroscopeScaleFactor,
-    MagnetometerBias,
-    MagnetometerScaleFactor
-};
 
 using AHRS_SensorErrorVector = UKF::StateVector<
     UKF::Field<AccelerometerBias, UKF::Vector<3>>,
@@ -95,12 +101,6 @@ template <>
 AHRS_StateVector::CovarianceMatrix AHRS_StateVector::process_noise_covariance(real_t dt) {
     return process_noise * dt;
 }
-
-enum AHRS_Measurements {
-    Accelerometer,
-    Gyroscope,
-    Magnetometer
-};
 
 using AHRS_MeasurementVector = UKF::DynamicMeasurementVector<
     UKF::Field<Accelerometer, UKF::Vector<3>>,
