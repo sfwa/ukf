@@ -108,7 +108,34 @@ using AHRS_MeasurementVector = UKF::DynamicMeasurementVector<
     UKF::Field<Magnetometer, UKF::Vector<3>>
 >;
 
-/* AHRS measurement model. */
+/*
+AHRS measurement model.
+TODO: Work out why we need to put the versions with no inputs arguments in.
+For some reason, if it's not there, we get a strange compilation eroor which
+seems to be the Detail::FieldTypes helper returning 'void' for everything.
+*/
+template <> template <>
+UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
+<AHRS_StateVector, Accelerometer>(const AHRS_StateVector& state) {
+    return state.get_field<Acceleration>() + state.get_field<Attitude>() * UKF::Vector<3>(0, 0, -G_ACCEL);
+}
+
+template <> template <>
+UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
+<AHRS_StateVector, Gyroscope>(const AHRS_StateVector& state) {
+    return state.get_field<AngularVelocity>();
+}
+
+template <> template <>
+UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
+<AHRS_StateVector, Magnetometer>(const AHRS_StateVector& state) {
+    return state.get_field<Attitude>() * UKF::Vector<3>(1.0, 0.0, 0.0);
+}
+
+/*
+This is the measurement model that's actually used in the filter, because
+it's the one which takes the parameter estimation filter state as an input.
+*/
 template <> template <>
 UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
 <AHRS_StateVector, Accelerometer, AHRS_SensorErrorVector>(
