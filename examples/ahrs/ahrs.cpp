@@ -49,6 +49,10 @@ using AHRS_StateVector = UKF::StateVector<
     UKF::Field<Acceleration, UKF::Vector<3>>
 >;
 
+template <> constexpr real_t UKF::Parameters::AlphaSquared<AHRS_StateVector> = 1e-6;
+template <> constexpr real_t UKF::Parameters::Beta<AHRS_StateVector> = 0.0;
+template <> constexpr real_t UKF::Parameters::Kappa<AHRS_StateVector> = 3.0;
+
 static AHRS_StateVector::CovarianceMatrix process_noise;
 
 /*
@@ -134,16 +138,16 @@ template <> template <>
 UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
 <AHRS_StateVector, Accelerometer, AHRS_SensorErrorVector>(
         const AHRS_StateVector& state, const AHRS_SensorErrorVector& input) {
-    return input.get_field<AccelerometerScaleFactor>().array() * (input.get_field<AccelerometerBias>().array() +
-        (state.get_field<Acceleration>() + state.get_field<Attitude>() * UKF::Vector<3>(0, 0, -G_ACCEL)).array());
+    return input.get_field<AccelerometerBias>().array() + /* input.get_field<AccelerometerScaleFactor>().array() * */
+        (state.get_field<Acceleration>() + state.get_field<Attitude>() * UKF::Vector<3>(0, 0, -G_ACCEL)).array();
 }
 
 template <> template <>
 UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
 <AHRS_StateVector, Gyroscope, AHRS_SensorErrorVector>(
         const AHRS_StateVector& state, const AHRS_SensorErrorVector& input) {
-    return input.get_field<GyroscopeScaleFactor>().array() *
-        (input.get_field<GyroscopeBias>().array() + state.get_field<AngularVelocity>().array());
+    return input.get_field<GyroscopeBias>().array() +
+        (/* input.get_field<GyroscopeScaleFactor>().array() * */ state.get_field<AngularVelocity>().array());
 }
 
 template <> template <>
@@ -151,7 +155,7 @@ UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
 <AHRS_StateVector, Magnetometer, AHRS_SensorErrorVector>(
         const AHRS_StateVector& state, const AHRS_SensorErrorVector& input) {
     Eigen::Map<UKF::Matrix<3, 3>> mag_scale(input.get_field<MagnetometerScaleFactor>().data());
-    return mag_scale * (input.get_field<MagnetometerBias>() +
+    return input.get_field<MagnetometerBias>() + (mag_scale *
         (state.get_field<Attitude>() * UKF::Vector<3>(21.2578, 4.4132, -55.9578)));
 }
 
@@ -187,16 +191,16 @@ template <> template <>
 UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
 <AHRS_SensorErrorVector, Accelerometer, AHRS_StateVector>(
         const AHRS_SensorErrorVector& state, const AHRS_StateVector& input) {
-    return state.get_field<AccelerometerScaleFactor>().array() * (state.get_field<AccelerometerBias>().array() +
-        (input.get_field<Acceleration>() + input.get_field<Attitude>() * UKF::Vector<3>(0, 0, -G_ACCEL)).array());
+    return state.get_field<AccelerometerBias>().array() + /* state.get_field<AccelerometerScaleFactor>().array() * */
+        (input.get_field<Acceleration>() + input.get_field<Attitude>() * UKF::Vector<3>(0, 0, -G_ACCEL)).array();
 }
 
 template <> template <>
 UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
 <AHRS_SensorErrorVector, Gyroscope, AHRS_StateVector>(
         const AHRS_SensorErrorVector& state, const AHRS_StateVector& input) {
-    return state.get_field<GyroscopeScaleFactor>().array() *
-        (state.get_field<GyroscopeBias>().array() + input.get_field<AngularVelocity>().array());
+    return state.get_field<GyroscopeBias>().array() +
+        (/* state.get_field<GyroscopeScaleFactor>().array() * */ input.get_field<AngularVelocity>().array());
 }
 
 template <> template <>
@@ -204,7 +208,7 @@ UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
 <AHRS_SensorErrorVector, Magnetometer, AHRS_StateVector>(
         const AHRS_SensorErrorVector& state, const AHRS_StateVector& input) {
     Eigen::Map<UKF::Matrix<3, 3>> mag_scale(state.get_field<MagnetometerScaleFactor>().data());
-    return mag_scale * (state.get_field<MagnetometerBias>() + 
+    return state.get_field<MagnetometerBias>() + (mag_scale *
         (input.get_field<Attitude>() * UKF::Vector<3>(21.2578, 4.4132, -55.9578)));
 }
 
@@ -242,14 +246,14 @@ void ukf_init() {
     ahrs.state.set_field<Acceleration>(UKF::Vector<3>(0, 0, 0));
     ahrs.covariance = AHRS_StateVector::CovarianceMatrix::Zero();
     ahrs.covariance.diagonal() <<
-        3e0 * UKF::Vector<3>::Ones(),
         1e0 * UKF::Vector<3>::Ones(),
-        1e0 * UKF::Vector<3>::Ones();
+        1e-2 * UKF::Vector<3>::Ones(),
+        1e-2 * UKF::Vector<3>::Ones();
 
     /* Set process noise covariance. */
     process_noise = AHRS_StateVector::CovarianceMatrix::Zero();
     process_noise.diagonal() <<
-        7e-5 * UKF::Vector<3>::Ones(),
+        1e-6 * UKF::Vector<3>::Ones(),
         1e1 * UKF::Vector<3>::Ones(),
         2e1 * UKF::Vector<3>::Ones();
 
@@ -308,7 +312,7 @@ void ukf_init() {
     error_process_noise.diagonal() <<
         3.0e-3*3.0e-3 * UKF::Vector<3>::Ones(), 2.0e-4*2.0e-4 * UKF::Vector<3>::Ones(),
         5.2e-5*5.2e-5 * UKF::Vector<3>::Ones(), 1.6e-4*1.6e-4 * UKF::Vector<3>::Ones(),
-        1.5e-2*1.5e-2 * UKF::Vector<3>::Ones(), 1.0e-4*1.0e-4 * UKF::Vector<3>::Ones();
+        1.5e-2*1.5e-2 * UKF::Vector<3>::Ones(), 1.0e-4*1.0e-4 * UKF::Vector<9>::Ones();
 }
 
 void ukf_set_acceleration(real_t x, real_t y, real_t z) {
@@ -391,25 +395,25 @@ void ukf_iterate(float dt) {
     the parameter estimation filter as the measurement input.
     */
     ahrs.a_priori_step(dt);
-    ahrs.innovation_step(meas, ahrs_errors.state);
-
-    /*
-    Adjust the innovation covariance of the AHRS filter by adding the
-    innovation covariance of the parameter estimation filter, to properly
-    account for uncertainty in sensor biases and scale factors.
-    */
-    ahrs_errors.innovation_covariance += ahrs.innovation_covariance;
-
-    ahrs.a_posteriori_step();
 
     /* Do the a priori step for the parameter estimation filter. */
     ahrs_errors.a_priori_step(dt);
+
+    /* Do the innovation step for the AHRS filter. */
+    ahrs.innovation_step(meas, ahrs_errors.state);
 
     /*
     Call the innovation step using the AHRS filter a priori mean as the
     measurement.
     */
     ahrs_errors.innovation_step(meas, ahrs.state);
+
+    /*
+    Adjust the innovation covariance of the AHRS filter by adding the
+    innovation covariance of the parameter estimation filter, to properly
+    account for uncertainty in sensor biases and scale factors.
+    */
+    ahrs.innovation_covariance += ahrs_errors.innovation_covariance;
 
     /*
     Adjust the innovation covariance of the parameter estimation filter by
@@ -419,6 +423,7 @@ void ukf_iterate(float dt) {
     ahrs_errors.innovation_covariance += ahrs.innovation_covariance;
 
     /* Do the a posteriori step. */
+    ahrs.a_posteriori_step();
     ahrs_errors.a_posteriori_step();
 }
 
