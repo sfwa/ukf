@@ -366,10 +366,11 @@ public:
         CovarianceMatrix cov;
 
         /* Calculate the covariance using equation 64 from the Kraft paper. */
-        cov = Parameters::Sigma_WC0<StateVector> * (w_prime.col(0) * w_prime.col(0).transpose());
+        cov = CovarianceMatrix::Zero();
         for(int i = 1; i < num_sigma(); i++) {
             cov += Parameters::Sigma_WCI<StateVector> * (w_prime.col(i) * w_prime.col(i).transpose());
         }
+        cov += Parameters::Sigma_WC0<StateVector> * (w_prime.col(0) * w_prime.col(0).transpose());
 
         return cov;
     }
