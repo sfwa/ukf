@@ -312,7 +312,7 @@ void ukf_init() {
     error_process_noise.diagonal() <<
         3.0e-3*3.0e-3 * UKF::Vector<3>::Ones(), 2.0e-4*2.0e-4 * UKF::Vector<3>::Ones(),
         5.2e-5*5.2e-5 * UKF::Vector<3>::Ones(), 1.6e-4*1.6e-4 * UKF::Vector<3>::Ones(),
-        1.5e-2*1.5e-2 * UKF::Vector<3>::Ones(), 1.0e-4*1.0e-4 * UKF::Vector<9>::Ones();
+        1.5e-3*1.5e-3 * UKF::Vector<3>::Ones(), 1.0e-4*1.0e-4 * UKF::Vector<9>::Ones();
 }
 
 void ukf_set_acceleration(real_t x, real_t y, real_t z) {
