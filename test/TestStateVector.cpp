@@ -59,8 +59,8 @@ TEST(StateVectorTest, DefaultParameters) {
     EXPECT_FLOAT_EQ(0.0, UKF::Parameters::Beta<MyStateVector>);
     EXPECT_FLOAT_EQ(3.0, UKF::Parameters::Kappa<MyStateVector>);
     EXPECT_FLOAT_EQ(3.0, UKF::Parameters::Lambda<MyStateVector>);
-    EXPECT_FLOAT_EQ(1.0, UKF::Parameters::MRP_A<MyStateVector>);
-    EXPECT_FLOAT_EQ(4.0, UKF::Parameters::MRP_F<MyStateVector>);
+    EXPECT_FLOAT_EQ(0.0, UKF::Parameters::MRP_A<MyStateVector>);
+    EXPECT_FLOAT_EQ(2.0, UKF::Parameters::MRP_F<MyStateVector>);
     EXPECT_FLOAT_EQ(1.0 / 4.0, UKF::Parameters::Sigma_WM0<MyStateVector>);
     EXPECT_FLOAT_EQ(1.0 / 4.0, UKF::Parameters::Sigma_WC0<MyStateVector>);
     EXPECT_FLOAT_EQ(1.0 / 24.0, UKF::Parameters::Sigma_WMI<MyStateVector>);
@@ -84,8 +84,8 @@ TEST(StateVectorTest, CustomParameters) {
     EXPECT_FLOAT_EQ(2.0, UKF::Parameters::Beta<AlternateStateVector>);
     EXPECT_FLOAT_EQ(3.0, UKF::Parameters::Kappa<AlternateStateVector>);
     EXPECT_FLOAT_EQ(12e-6 - 9, UKF::Parameters::Lambda<AlternateStateVector>);
-    EXPECT_FLOAT_EQ(1.0, UKF::Parameters::MRP_A<AlternateStateVector>);
-    EXPECT_FLOAT_EQ(4.0, UKF::Parameters::MRP_F<AlternateStateVector>);
+    EXPECT_FLOAT_EQ(0.0, UKF::Parameters::MRP_A<AlternateStateVector>);
+    EXPECT_FLOAT_EQ(2.0, UKF::Parameters::MRP_F<AlternateStateVector>);
     EXPECT_FLOAT_EQ(-749999, UKF::Parameters::Sigma_WM0<AlternateStateVector>);
     EXPECT_FLOAT_EQ(-749996, UKF::Parameters::Sigma_WC0<AlternateStateVector>);
     EXPECT_FLOAT_EQ(41666.667, UKF::Parameters::Sigma_WMI<AlternateStateVector>);
@@ -95,8 +95,8 @@ TEST(StateVectorTest, CustomParameters) {
     EXPECT_FLOAT_EQ(0.0, UKF::Parameters::Beta<MyStateVector>);
     EXPECT_FLOAT_EQ(3.0, UKF::Parameters::Kappa<MyStateVector>);
     EXPECT_FLOAT_EQ(3.0, UKF::Parameters::Lambda<MyStateVector>);
-    EXPECT_FLOAT_EQ(1.0, UKF::Parameters::MRP_A<MyStateVector>);
-    EXPECT_FLOAT_EQ(4.0, UKF::Parameters::MRP_F<MyStateVector>);
+    EXPECT_FLOAT_EQ(0.0, UKF::Parameters::MRP_A<MyStateVector>);
+    EXPECT_FLOAT_EQ(2.0, UKF::Parameters::MRP_F<MyStateVector>);
     EXPECT_FLOAT_EQ(1.0 / 4.0, UKF::Parameters::Sigma_WM0<MyStateVector>);
     EXPECT_FLOAT_EQ(1.0 / 4.0, UKF::Parameters::Sigma_WC0<MyStateVector>);
     EXPECT_FLOAT_EQ(1.0 / 24.0, UKF::Parameters::Sigma_WMI<MyStateVector>);
@@ -121,10 +121,10 @@ TEST(StateVectorTest, SigmaPointGeneration) {
                             1,      1,      1,  4.464,      1,      1,      1,      1,      1,      1,      1,      1, -2.464,      1,      1,      1,      1,      1,      1,
                             2,      2,      2,      2,  5.464,      2,      2,      2,      2,      2,      2,      2,      2, -1.464,      2,      2,      2,      2,      2,
                             3,      3,      3,      3,      3,  6.464,      3,      3,      3,      3,      3,      3,      3,      3, -0.464,      3,      3,      3,      3,
-                            0,      0,      0,      0,      0,      0, 0.9897,      0,      0,      0,      0,      0,      0,      0,      0, -0.990,      0,      0,      0,
-                            0,      0,      0,      0,      0,      0,      0, 0.9897,      0,      0,      0,      0,      0,      0,      0,      0, -0.990,      0,      0,
-                            0,      0,      0,      0,      0,      0,      0,      0, 0.9897,      0,      0,      0,      0,      0,      0,      0,      0, -0.990,      0,
-                            1,      1,      1,      1,      1,      1, 0.1428, 0.1428, 0.1428,      1,      1,      1,      1,      1,      1, 0.1428, 0.1428, 0.1428,      1,
+                            0,      0,      0,      0,      0,      0,  0.866,      0,      0,      0,      0,      0,      0,      0,      0, -0.866,      0,      0,      0,
+                            0,      0,      0,      0,      0,      0,      0,  0.866,      0,      0,      0,      0,      0,      0,      0,      0, -0.866,      0,      0,
+                            0,      0,      0,      0,      0,      0,      0,      0,  0.866,      0,      0,      0,      0,      0,      0,      0,      0, -0.866,      0,
+                            1,      1,      1,      1,      1,      1,    0.5,    0.5,    0.5,      1,      1,      1,      1,      1,      1,    0.5,    0.5,    0.5,      1,
                            10,     10,     10,     10,     10,     10,     10,     10,     10, 13.464,     10,     10,     10,     10,     10,     10,     10,     10,  6.536;
     sigma_points = test_state.calculate_sigma_point_distribution(covariance);
 
@@ -247,7 +247,7 @@ TEST(StateVectorTest, SmallAlphaSigmaPoints) {
     test_state.set_field<Acceleration>(UKF::Vector<3>(1, 2, 3));
 
     AlternateStateVector::CovarianceMatrix covariance = MyStateVector::CovarianceMatrix::Zero();
-    covariance.diagonal() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
+    covariance.diagonal() << 1000.0, 1000.0, 1000.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
 
     AlternateStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution(covariance);
     AlternateStateVector test_mean = AlternateStateVector::calculate_sigma_point_mean(sigma_points);
@@ -264,7 +264,9 @@ TEST(StateVectorTest, SmallAlphaSigmaPoints) {
     EXPECT_VECTOR_EQ(covariance.col(7),  calculated_covariance.col(7));
     EXPECT_VECTOR_EQ(covariance.col(8),  calculated_covariance.col(8));
 
-    EXPECT_VECTOR_EQ(test_state, AlternateStateVector::calculate_sigma_point_mean(sigma_points));
+    EXPECT_QUATERNION_EQ(test_state.get_field<Attitude>(), test_mean.get_field<Attitude>());
+    EXPECT_VECTOR_EQ(test_state.get_field<AngularVelocity>(), test_mean.get_field<AngularVelocity>());
+    EXPECT_VECTOR_EQ(test_state.get_field<Acceleration>(), test_mean.get_field<Acceleration>());
 }
 
 /*

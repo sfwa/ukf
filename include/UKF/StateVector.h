@@ -241,8 +241,18 @@ namespace UKF {
     /*
     Definitions for parameters used to calculated MRP vectors.
     See the Markley paper for further details.
+
+    Note: By default, we use Gibbs vectors, which have a singularity at 180
+    degrees. This is to avoid numerical issues calculating the covariance
+    matrix when the quaternion covariance vector is large and the SUT scaling
+    parameter alpha is set very small.
+    
+    The singularity being 180 degrees instead of 360 is not a problem unless
+    the attitude is expected to change by more than 180 degrees in a single
+    filter iteration; if it is, setting the MRP_A parameter to 1.0 moves the
+    singularity to 360 degrees.
     */
-    template <typename T> constexpr real_t MRP_A = 1.0;
+    template <typename T> constexpr real_t MRP_A = 0.0;
     template <typename T> constexpr real_t MRP_F = 2.0 * (MRP_A<T> + 1.0);
 
     /*
