@@ -64,9 +64,7 @@ class _SensorErrors(Structure):
     def __repr__(self):
         field = {
             "accel_bias": tuple(self.accel_bias),
-            "accel_scale": tuple(self.accel_scale),
             "gyro_bias": tuple(self.gyro_bias),
-            "gyro_scale": tuple(self.gyro_scale),
             "mag_bias": tuple(self.mag_bias),
             "mag_scale": tuple(self.mag_scale),
         }
@@ -165,9 +163,7 @@ def init():
 
     _SensorErrors._fields_ = [
         ("accel_bias", _REAL_T * 3),
-        ("accel_scale", _REAL_T * 3),
         ("gyro_bias", _REAL_T * 3),
-        ("gyro_scale", _REAL_T * 3),
         ("mag_bias", _REAL_T * 3),
         ("mag_scale", _REAL_T * 9)
     ]

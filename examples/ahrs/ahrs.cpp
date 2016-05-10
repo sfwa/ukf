@@ -25,9 +25,7 @@ enum AHRS_Keys {
 
     /* Parameter estimation filter fields. */
     AccelerometerBias,
-    AccelerometerScaleFactor,
     GyroscopeBias,
-    GyroscopeScaleFactor,
     MagnetometerBias,
     MagnetometerScaleFactor,
 
@@ -57,17 +55,14 @@ static AHRS_StateVector::CovarianceMatrix process_noise;
 
 /*
 In addition to the AHRS filter, an online parameter estimation filter is also
-implemented in order to calculate scale factor errors and biases in each of
-the sensors.
+implemented in order to calculate biases in each of the sensors.
 The magnetometer scale factor is represented as a direction cosine matrix
 with no normalisation constraint.
 */
 
 using AHRS_SensorErrorVector = UKF::StateVector<
     UKF::Field<AccelerometerBias, UKF::Vector<3>>,
-    UKF::Field<AccelerometerScaleFactor, UKF::Vector<3>>,
     UKF::Field<GyroscopeBias, UKF::Vector<3>>,
-    UKF::Field<GyroscopeScaleFactor, UKF::Vector<3>>,
     UKF::Field<MagnetometerBias, UKF::Vector<3>>,
     UKF::Field<MagnetometerScaleFactor, UKF::Vector<9>>
 >;
@@ -138,16 +133,15 @@ template <> template <>
 UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
 <AHRS_StateVector, Accelerometer, AHRS_SensorErrorVector>(
         const AHRS_StateVector& state, const AHRS_SensorErrorVector& input) {
-    return input.get_field<AccelerometerBias>().array() + /* input.get_field<AccelerometerScaleFactor>().array() * */
-        (state.get_field<Acceleration>() + state.get_field<Attitude>() * UKF::Vector<3>(0, 0, -G_ACCEL)).array();
+    return input.get_field<AccelerometerBias>() + state.get_field<Acceleration>() +
+        state.get_field<Attitude>() * UKF::Vector<3>(0, 0, -G_ACCEL);
 }
 
 template <> template <>
 UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
 <AHRS_StateVector, Gyroscope, AHRS_SensorErrorVector>(
         const AHRS_StateVector& state, const AHRS_SensorErrorVector& input) {
-    return input.get_field<GyroscopeBias>().array() +
-        (/* input.get_field<GyroscopeScaleFactor>().array() * */ state.get_field<AngularVelocity>().array());
+    return input.get_field<GyroscopeBias>() + state.get_field<AngularVelocity>();
 }
 
 template <> template <>
@@ -191,16 +185,15 @@ template <> template <>
 UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
 <AHRS_SensorErrorVector, Accelerometer, AHRS_StateVector>(
         const AHRS_SensorErrorVector& state, const AHRS_StateVector& input) {
-    return state.get_field<AccelerometerBias>().array() + /* state.get_field<AccelerometerScaleFactor>().array() * */
-        (input.get_field<Acceleration>() + input.get_field<Attitude>() * UKF::Vector<3>(0, 0, -G_ACCEL)).array();
+    return state.get_field<AccelerometerBias>() + input.get_field<Acceleration>() +
+        input.get_field<Attitude>() * UKF::Vector<3>(0, 0, -G_ACCEL);
 }
 
 template <> template <>
 UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
 <AHRS_SensorErrorVector, Gyroscope, AHRS_StateVector>(
         const AHRS_SensorErrorVector& state, const AHRS_StateVector& input) {
-    return state.get_field<GyroscopeBias>().array() +
-        (/* state.get_field<GyroscopeScaleFactor>().array() * */ input.get_field<AngularVelocity>().array());
+    return state.get_field<GyroscopeBias>() + input.get_field<AngularVelocity>();
 }
 
 template <> template <>
@@ -246,7 +239,7 @@ void ukf_init() {
     ahrs.state.set_field<Acceleration>(UKF::Vector<3>(0, 0, 0));
     ahrs.covariance = AHRS_StateVector::CovarianceMatrix::Zero();
     ahrs.covariance.diagonal() <<
-        1e1 * UKF::Vector<3>::Ones(),
+        3e-1, 3e-1, 1e1,
         1e-2 * UKF::Vector<3>::Ones(),
         1e-2 * UKF::Vector<3>::Ones();
 
@@ -259,9 +252,7 @@ void ukf_init() {
 
     /* Initialise scale factor and bias errors. */
     ahrs_errors.state.set_field<AccelerometerBias>(UKF::Vector<3>(0, 0, 0));
-    ahrs_errors.state.set_field<AccelerometerScaleFactor>(UKF::Vector<3>(1, 1, 1));
     ahrs_errors.state.set_field<GyroscopeBias>(UKF::Vector<3>(0, 0, 0));
-    ahrs_errors.state.set_field<GyroscopeScaleFactor>(UKF::Vector<3>(1, 1, 1));
     ahrs_errors.state.set_field<MagnetometerBias>(UKF::Vector<3>(0, 0, 0));
     UKF::Matrix<3, 3> init_scale = UKF::Matrix<3, 3>::Zero();
     init_scale.diagonal() << 1.0, 1.0, 1.0;
@@ -280,17 +271,12 @@ void ukf_init() {
     */
     ahrs_errors.covariance = AHRS_SensorErrorVector::CovarianceMatrix::Zero();
     ahrs_errors.covariance.diagonal() <<
-        0.49*0.49, 0.49*0.49, 0.784*0.784, 3.0e-2*3.0e-2 * UKF::Vector<3>::Ones(),
-        0.35*0.35 * UKF::Vector<3>::Ones(), 3.0e-2*3.0e-2 * UKF::Vector<3>::Ones(),
+        0.49*0.49, 0.49*0.49, 0.784*0.784,
+        0.35*0.35 * UKF::Vector<3>::Ones(),
         4.0e-1*4.0e-1 * UKF::Vector<3>::Ones(), 5.0e-2*5.0e-2 * UKF::Vector<9>::Ones();
 
     /*
-    Set scale factor and bias error process noise. For biases, this is
-    derived from bias instability.
-
-    Scale factor instability is basically irrelevant for these sensors, so
-    it's just set low enough to allow for the filter to adjust to scale
-    factor drift due to temperature.
+    Set bias error process noise – this is derived from bias instability.
 
     For MPU-6050: Allan variance was used to determine bias instability.
     Gyro bias instability is about 0.003 deg/s (5.2e-5 rad/s).
@@ -310,8 +296,8 @@ void ukf_init() {
     */
     error_process_noise = AHRS_SensorErrorVector::CovarianceMatrix::Zero();
     error_process_noise.diagonal() <<
-        3.0e-3*3.0e-3 * UKF::Vector<3>::Ones(), 2.0e-4*2.0e-4 * UKF::Vector<3>::Ones(),
-        5.2e-5*5.2e-5 * UKF::Vector<3>::Ones(), 1.6e-4*1.6e-4 * UKF::Vector<3>::Ones(),
+        5.0e-3*5.0e-3 * UKF::Vector<3>::Ones(),
+        5.2e-5*5.2e-5 * UKF::Vector<3>::Ones(),
         1.5e-5*1.5e-5 * UKF::Vector<3>::Ones(), 1.0e-4*1.0e-4 * UKF::Vector<9>::Ones();
 }
 
@@ -437,15 +423,9 @@ void ukf_get_sensor_errors(struct ukf_sensor_errors_t *in) {
     in->accel_bias[0] = ahrs_errors.state.get_field<AccelerometerBias>()[0];
     in->accel_bias[1] = ahrs_errors.state.get_field<AccelerometerBias>()[1];
     in->accel_bias[2] = ahrs_errors.state.get_field<AccelerometerBias>()[2];
-    in->accel_scale[0] = ahrs_errors.state.get_field<AccelerometerScaleFactor>()[0];
-    in->accel_scale[1] = ahrs_errors.state.get_field<AccelerometerScaleFactor>()[1];
-    in->accel_scale[2] = ahrs_errors.state.get_field<AccelerometerScaleFactor>()[2];
     in->gyro_bias[0] = ahrs_errors.state.get_field<GyroscopeBias>()[0];
     in->gyro_bias[1] = ahrs_errors.state.get_field<GyroscopeBias>()[1];
     in->gyro_bias[2] = ahrs_errors.state.get_field<GyroscopeBias>()[2];
-    in->gyro_scale[0] = ahrs_errors.state.get_field<GyroscopeScaleFactor>()[0];
-    in->gyro_scale[1] = ahrs_errors.state.get_field<GyroscopeScaleFactor>()[1];
-    in->gyro_scale[2] = ahrs_errors.state.get_field<GyroscopeScaleFactor>()[2];
     in->mag_bias[0] = ahrs_errors.state.get_field<MagnetometerBias>()[0];
     in->mag_bias[1] = ahrs_errors.state.get_field<MagnetometerBias>()[1];
     in->mag_bias[2] = ahrs_errors.state.get_field<MagnetometerBias>()[2];

@@ -53,9 +53,7 @@ struct ukf_state_t {
 
 struct ukf_sensor_errors_t {
     real_t accel_bias[3];
-    real_t accel_scale[3];
     real_t gyro_bias[3];
-    real_t gyro_scale[3];
     real_t mag_bias[3];
     real_t mag_scale[9];
 };
