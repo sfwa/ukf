@@ -48,8 +48,8 @@ using AHRS_StateVector = UKF::StateVector<
 >;
 
 template <> constexpr real_t UKF::Parameters::AlphaSquared<AHRS_StateVector> = 1e-6;
-template <> constexpr real_t UKF::Parameters::Beta<AHRS_StateVector> = 0.0;
-template <> constexpr real_t UKF::Parameters::Kappa<AHRS_StateVector> = 3.0;
+template <> constexpr real_t UKF::Parameters::Beta<AHRS_StateVector> = 2.0;
+template <> constexpr real_t UKF::Parameters::Kappa<AHRS_StateVector> = -6.0;
 
 static AHRS_StateVector::CovarianceMatrix process_noise;
 
@@ -66,6 +66,10 @@ using AHRS_SensorErrorVector = UKF::StateVector<
     UKF::Field<MagnetometerBias, UKF::Vector<3>>,
     UKF::Field<MagnetometerScaleFactor, UKF::Vector<9>>
 >;
+
+template <> constexpr real_t UKF::Parameters::AlphaSquared<AHRS_SensorErrorVector> = 1e-6;
+template <> constexpr real_t UKF::Parameters::Beta<AHRS_SensorErrorVector> = 2.0;
+template <> constexpr real_t UKF::Parameters::Kappa<AHRS_SensorErrorVector> = -15.0;
 
 static AHRS_SensorErrorVector::CovarianceMatrix error_process_noise;
 
