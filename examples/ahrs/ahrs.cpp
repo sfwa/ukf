@@ -127,7 +127,7 @@ UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
 template <> template <>
 UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
 <AHRS_StateVector, Magnetometer>(const AHRS_StateVector& state) {
-    return state.get_field<Attitude>() * UKF::Vector<3>(21.2578, 4.4132, -55.9578);
+    return state.get_field<Attitude>() * UKF::Vector<3>(0.212578, 0.044132, -0.559578);
 }
 
 /*
@@ -156,7 +156,7 @@ UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
         const AHRS_StateVector& state, const AHRS_SensorErrorVector& input) {
     Eigen::Map<UKF::Matrix<3, 3>> mag_scale(input.get_field<MagnetometerScaleFactor>().data());
     return input.get_field<MagnetometerBias>() + (mag_scale *
-        (state.get_field<Attitude>() * UKF::Vector<3>(21.2578, 4.4132, -55.9578)));
+        (state.get_field<Attitude>() * UKF::Vector<3>(0.212578, 0.044132, -0.559578)));
 }
 
 using AHRS_Filter = UKF::Core<
@@ -209,7 +209,7 @@ UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
         const AHRS_SensorErrorVector& state, const AHRS_StateVector& input) {
     Eigen::Map<UKF::Matrix<3, 3>> mag_scale(state.get_field<MagnetometerScaleFactor>().data());
     return state.get_field<MagnetometerBias>() + (mag_scale *
-        (input.get_field<Attitude>() * UKF::Vector<3>(21.2578, 4.4132, -55.9578)));
+        (input.get_field<Attitude>() * UKF::Vector<3>(0.212578, 0.044132, -0.559578)));
 }
 
 /* Just use the Euler integrator since there's no process model. */
@@ -232,7 +232,7 @@ AHRS_MeasurementVector::CovarianceVector AHRS_MeasurementVector::measurement_cov
     (AHRS_MeasurementVector::CovarianceVector() <<
         0.12*0.12 * UKF::Vector<3>::Ones(),
         0.003*0.003 * UKF::Vector<3>::Ones(),
-        0.3*0.3 * UKF::Vector<3>::Ones()).finished());
+        0.003*0.003 * UKF::Vector<3>::Ones()).finished());
 
 /*
 The following functions provide a ctypes-compatible interface for ease of
@@ -246,7 +246,7 @@ void ukf_init() {
     ahrs.state.set_field<Acceleration>(UKF::Vector<3>(0, 0, 0));
     ahrs.covariance = AHRS_StateVector::CovarianceMatrix::Zero();
     ahrs.covariance.diagonal() <<
-        1e0 * UKF::Vector<3>::Ones(),
+        1e1 * UKF::Vector<3>::Ones(),
         1e-2 * UKF::Vector<3>::Ones(),
         1e-2 * UKF::Vector<3>::Ones();
 
@@ -282,7 +282,7 @@ void ukf_init() {
     ahrs_errors.covariance.diagonal() <<
         0.49*0.49, 0.49*0.49, 0.784*0.784, 3.0e-2*3.0e-2 * UKF::Vector<3>::Ones(),
         0.35*0.35 * UKF::Vector<3>::Ones(), 3.0e-2*3.0e-2 * UKF::Vector<3>::Ones(),
-        4.0e1*4.0e1 * UKF::Vector<3>::Ones(), 5.0e-2*5.0e-2 * UKF::Vector<9>::Ones();
+        4.0e-1*4.0e-1 * UKF::Vector<3>::Ones(), 5.0e-2*5.0e-2 * UKF::Vector<9>::Ones();
 
     /*
     Set scale factor and bias error process noise. For biases, this is
@@ -312,7 +312,7 @@ void ukf_init() {
     error_process_noise.diagonal() <<
         3.0e-3*3.0e-3 * UKF::Vector<3>::Ones(), 2.0e-4*2.0e-4 * UKF::Vector<3>::Ones(),
         5.2e-5*5.2e-5 * UKF::Vector<3>::Ones(), 1.6e-4*1.6e-4 * UKF::Vector<3>::Ones(),
-        1.5e-3*1.5e-3 * UKF::Vector<3>::Ones(), 1.0e-4*1.0e-4 * UKF::Vector<9>::Ones();
+        1.5e-5*1.5e-5 * UKF::Vector<3>::Ones(), 1.0e-4*1.0e-4 * UKF::Vector<9>::Ones();
 }
 
 void ukf_set_acceleration(real_t x, real_t y, real_t z) {
