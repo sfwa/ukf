@@ -28,8 +28,10 @@ UKF_PRECISION_DOUBLE = 1
 
 
 state = None
+state_error = None
 covariance = None
-sensor_errors = None
+parameters = None
+parameters_error = None
 
 
 # Internal globals, set during init
@@ -60,7 +62,16 @@ class _State(Structure):
         }
         return str(fields)
 
-class _SensorErrors(Structure):
+class _StateError(Structure):
+    def __repr__(self):
+        fields = {
+            "attitude": tuple(self.attitude),
+            "angular_velocity": tuple(self.angular_velocity),
+            "acceleration": tuple(self.acceleration)
+        }
+        return str(fields)
+
+class _Parameters(Structure):
     def __repr__(self):
         field = {
             "accel_bias": tuple(self.accel_bias),
@@ -72,7 +83,7 @@ class _SensorErrors(Structure):
 
 # Public interface
 def iterate(dt):
-    global _cukf, state, sensor_errors
+    global _cukf, state, state_error, parameters, parameters_error
 
     if not _cukf:
         raise RuntimeError("Please call ukf.init()")
@@ -81,8 +92,9 @@ def iterate(dt):
     _cukf.ukf_iterate(dt)
     _cukf.ukf_sensor_clear()
     _cukf.ukf_get_state(state)
-    #_cukf.ukf_get_state_covariance(covariance)
-    _cukf.ukf_get_sensor_errors(sensor_errors)
+    _cukf.ukf_get_state_error(state_error)
+    _cukf.ukf_get_parameters(parameters)
+    _cukf.ukf_get_parameters_error(parameters_error)
 
 
 def set_sensors(accelerometer=None, gyroscope=None, magnetometer=None):
@@ -127,7 +139,7 @@ def configure_process_noise(process_noise_covariance):
 
 
 def init():
-    global _cukf, _REAL_T, state, sensor_errors
+    global _cukf, _REAL_T, state, state_error, parameters, parameters_error
 
     lib = os.path.join(os.path.dirname(__file__), "libahrs.dylib")
     _cukf = cdll.LoadLibrary(lib)
@@ -161,7 +173,13 @@ def init():
         ("acceleration", _REAL_T * 3)
     ]
 
-    _SensorErrors._fields_ = [
+    _StateError._fields_ = [
+        ("attitude", _REAL_T * 3),
+        ("angular_velocity", _REAL_T * 3),
+        ("acceleration", _REAL_T * 3)
+    ]
+
+    _Parameters._fields_ = [
         ("accel_bias", _REAL_T * 3),
         ("gyro_bias", _REAL_T * 3),
         ("mag_bias", _REAL_T * 3),
@@ -183,6 +201,9 @@ def init():
 
     _cukf.ukf_set_state.argtypes = [POINTER(_State)]
     _cukf.ukf_set_state.restype = None
+
+    _cukf.ukf_get_state_error.argtypes = [POINTER(_StateError)]
+    _cukf.ukf_get_state_error.restype = None
 
     _cukf.ukf_get_state_covariance.argtypes = [
         POINTER(_REAL_T * (_STATE_DIM**2))]
@@ -209,8 +230,11 @@ def init():
     _cukf.ukf_set_process_noise.argtypes = [POINTER(_REAL_T * _STATE_DIM)]
     _cukf.ukf_set_process_noise.restype = None
 
-    _cukf.ukf_get_sensor_errors.argtypes = [POINTER(_SensorErrors)]
-    _cukf.ukf_get_sensor_errors.restype = None
+    _cukf.ukf_get_parameters.argtypes = [POINTER(_Parameters)]
+    _cukf.ukf_get_parameters.restype = None
+
+    _cukf.ukf_get_parameters_error.argtypes = [POINTER(_Parameters)]
+    _cukf.ukf_get_parameters_error.restype = None
 
     # Initialize the library
     _cukf.ukf_init()
@@ -219,6 +243,14 @@ def init():
     state = _State()
     _cukf.ukf_get_state(state)
 
-    # Set up the sensor errors
-    sensor_errors = _SensorErrors()
-    _cukf.ukf_get_sensor_errors(sensor_errors)
+    # Set up the state errors
+    state_error = _StateError()
+    _cukf.ukf_get_state_error(state_error)
+
+    # Set up the parameters
+    parameters = _Parameters()
+    _cukf.ukf_get_parameters(parameters)
+
+    # Set up the parameter errors
+    parameters_error = _Parameters()
+    _cukf.ukf_get_parameters_error(parameters_error)

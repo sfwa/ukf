@@ -51,6 +51,13 @@ struct ukf_state_t {
     real_t acceleration[3]; /* forwards (m/s^2), starboard (m/s^2), down (m/s^2) */
 };
 
+struct ukf_state_error_t {
+    real_t attitude[3]; /* roll, pitch, yaw */
+    real_t angular_velocity[3]; /* rolling (rad/s), pitching (rad/s),
+                                   yawing (rad/s) */
+    real_t acceleration[3]; /* forwards (m/s^2), starboard (m/s^2), down (m/s^2) */
+};
+
 struct ukf_sensor_errors_t {
     real_t accel_bias[3];
     real_t gyro_bias[3];
@@ -76,7 +83,7 @@ void ukf_get_state_covariance(
     real_t state_covariance[UKF_STATE_DIM * UKF_STATE_DIM]);
 void ukf_get_state_covariance_diagonal(
     real_t state_covariance_diagonal[UKF_STATE_DIM]);
-void ukf_get_state_error(real_t state_error[UKF_STATE_DIM]);
+void ukf_get_state_error(struct ukf_state_error_t *in);
 
 /*
 Functions for setting sensor data. Before each frame, call the sensor_clear()
@@ -99,7 +106,8 @@ void ukf_iterate(float dt);
 Functions to get the current bias and scale factor estimates from the
 parameter estimation filter.
 */
-void ukf_get_sensor_errors(struct ukf_sensor_errors_t *in);
+void ukf_get_parameters(struct ukf_sensor_errors_t *in);
+void ukf_get_parameters_error(struct ukf_sensor_errors_t *in);
 
 /*
 Functions to access the compiled configuration

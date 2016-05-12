@@ -318,9 +318,6 @@ void ukf_set_angular_velocity(real_t x, real_t y, real_t z) {
 }
 
 void ukf_get_state(struct ukf_state_t *in) {
-    in->acceleration[0] = ahrs.state.get_field<Acceleration>()[0];
-    in->acceleration[1] = ahrs.state.get_field<Acceleration>()[1];
-    in->acceleration[2] = ahrs.state.get_field<Acceleration>()[2];
     in->attitude[0] = ahrs.state.get_field<Attitude>().x();
     in->attitude[1] = ahrs.state.get_field<Attitude>().y();
     in->attitude[2] = ahrs.state.get_field<Attitude>().z();
@@ -328,6 +325,9 @@ void ukf_get_state(struct ukf_state_t *in) {
     in->angular_velocity[0] = ahrs.state.get_field<AngularVelocity>()[0];
     in->angular_velocity[1] = ahrs.state.get_field<AngularVelocity>()[1];
     in->angular_velocity[2] = ahrs.state.get_field<AngularVelocity>()[2];
+    in->acceleration[0] = ahrs.state.get_field<Acceleration>()[0];
+    in->acceleration[1] = ahrs.state.get_field<Acceleration>()[1];
+    in->acceleration[2] = ahrs.state.get_field<Acceleration>()[2];
 }
 
 void ukf_set_state(struct ukf_state_t *in) {
@@ -351,9 +351,19 @@ void ukf_get_state_covariance_diagonal(
     covariance_map = ahrs.covariance.diagonal();
 }
 
-void ukf_get_state_error(real_t state_error[AHRS_StateVector::covariance_size()]) {
-    Eigen::Map<typename AHRS_StateVector::StateVectorDelta> error_map(state_error);
-    error_map = ahrs.covariance.cwiseAbs().rowwise().sum().cwiseSqrt();
+void ukf_get_state_error(struct ukf_state_error_t *in) {
+    AHRS_StateVector::StateVectorDelta state_error;
+    state_error = ahrs.covariance.cwiseAbs().rowwise().sum().cwiseSqrt();
+
+    in->attitude[0] = state_error[0];
+    in->attitude[1] = state_error[1];
+    in->attitude[2] = state_error[2];
+    in->angular_velocity[0] = state_error[3];
+    in->angular_velocity[1] = state_error[4];
+    in->angular_velocity[2] = state_error[5];
+    in->acceleration[0] = state_error[6];
+    in->acceleration[1] = state_error[7];
+    in->acceleration[2] = state_error[8];
 }
 
 void ukf_sensor_clear() {
@@ -416,7 +426,7 @@ void ukf_set_process_noise(real_t process_noise_covariance[AHRS_StateVector::cov
     process_noise.diagonal() << covariance_map;
 }
 
-void ukf_get_sensor_errors(struct ukf_sensor_errors_t *in) {
+void ukf_get_parameters(struct ukf_sensor_errors_t *in) {
     in->accel_bias[0] = ahrs_errors.state.get_field<AccelerometerBias>()[0];
     in->accel_bias[1] = ahrs_errors.state.get_field<AccelerometerBias>()[1];
     in->accel_bias[2] = ahrs_errors.state.get_field<AccelerometerBias>()[2];
@@ -435,6 +445,30 @@ void ukf_get_sensor_errors(struct ukf_sensor_errors_t *in) {
     in->mag_scale[6] = ahrs_errors.state.get_field<MagnetometerScaleFactor>()[6];
     in->mag_scale[7] = ahrs_errors.state.get_field<MagnetometerScaleFactor>()[7];
     in->mag_scale[8] = ahrs_errors.state.get_field<MagnetometerScaleFactor>()[8];
+}
+
+void ukf_get_parameters_error(struct ukf_sensor_errors_t *in) {
+    AHRS_SensorErrorVector::StateVectorDelta parameters_error;
+    parameters_error = ahrs_errors.covariance.cwiseAbs().rowwise().sum().cwiseSqrt();
+
+    in->accel_bias[0] = parameters_error[0];
+    in->accel_bias[1] = parameters_error[1];
+    in->accel_bias[2] = parameters_error[2];
+    in->gyro_bias[0] = parameters_error[3];
+    in->gyro_bias[1] = parameters_error[4];
+    in->gyro_bias[2] = parameters_error[5];
+    in->mag_bias[0] = parameters_error[6];
+    in->mag_bias[1] = parameters_error[7];
+    in->mag_bias[2] = parameters_error[8];
+    in->mag_scale[0] = parameters_error[9];
+    in->mag_scale[1] = parameters_error[10];
+    in->mag_scale[2] = parameters_error[11];
+    in->mag_scale[3] = parameters_error[12];
+    in->mag_scale[4] = parameters_error[13];
+    in->mag_scale[5] = parameters_error[14];
+    in->mag_scale[6] = parameters_error[15];
+    in->mag_scale[7] = parameters_error[16];
+    in->mag_scale[8] = parameters_error[17];
 }
 
 uint32_t ukf_config_get_state_dim() {
