@@ -405,13 +405,6 @@ void ukf_iterate(float dt) {
     */
     ahrs.innovation_covariance += ahrs_errors.innovation_covariance;
 
-    /*
-    Adjust the innovation covariance of the parameter estimation filter by
-    adding the innovation covariance of the AHRS filter, to properly account
-    for state uncertainty.
-    */
-    ahrs_errors.innovation_covariance += ahrs.innovation_covariance;
-
     /* Do the a posteriori step. */
     ahrs.a_posteriori_step();
     ahrs_errors.a_posteriori_step();
