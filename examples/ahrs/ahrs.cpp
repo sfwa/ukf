@@ -227,7 +227,7 @@ noise figures given in the datasheet.
 template <>
 AHRS_MeasurementVector::CovarianceVector AHRS_MeasurementVector::measurement_covariance(
     (AHRS_MeasurementVector::CovarianceVector() <<
-        0.12*0.12 * UKF::Vector<3>::Ones(),
+        0.45*0.45 * UKF::Vector<3>::Ones(),
         0.003*0.003 * UKF::Vector<3>::Ones(),
         0.003*0.003 * UKF::Vector<3>::Ones()).finished());
 
