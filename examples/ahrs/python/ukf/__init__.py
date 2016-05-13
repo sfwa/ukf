@@ -29,6 +29,7 @@ UKF_PRECISION_DOUBLE = 1
 
 state = None
 state_error = None
+innovation = None
 covariance = None
 parameters = None
 parameters_error = None
@@ -71,6 +72,15 @@ class _StateError(Structure):
         }
         return str(fields)
 
+class _Innovation(Structure):
+    def __repr__(self):
+        fields = {
+            "accel": tuple(self.accel),
+            "gyro": tuple(self.gyro),
+            "mag": tuple(self.mag)
+        }
+        return str(fields)
+
 class _Parameters(Structure):
     def __repr__(self):
         field = {
@@ -85,7 +95,7 @@ class _Parameters(Structure):
 
 # Public interface
 def iterate(dt):
-    global _cukf, state, state_error, parameters, parameters_error
+    global _cukf, state, state_error, innovation, parameters, parameters_error
 
     if not _cukf:
         raise RuntimeError("Please call ukf.init()")
@@ -95,6 +105,7 @@ def iterate(dt):
     _cukf.ukf_sensor_clear()
     _cukf.ukf_get_state(state)
     _cukf.ukf_get_state_error(state_error)
+    _cukf.ukf_get_innovation(innovation)
     _cukf.ukf_get_parameters(parameters)
     _cukf.ukf_get_parameters_error(parameters_error)
 
@@ -141,7 +152,7 @@ def configure_process_noise(process_noise_covariance):
 
 
 def init():
-    global _cukf, _REAL_T, state, state_error, parameters, parameters_error
+    global _cukf, _REAL_T, state, state_error, innovation, parameters, parameters_error
 
     lib = os.path.join(os.path.dirname(__file__), "libahrs.dylib")
     _cukf = cdll.LoadLibrary(lib)
@@ -181,6 +192,12 @@ def init():
         ("acceleration", _REAL_T * 3)
     ]
 
+    _Innovation._fields_ = [
+        ("accel", _REAL_T * 3),
+        ("gyro", _REAL_T * 3),
+        ("mag", _REAL_T * 3)
+    ]
+
     _Parameters._fields_ = [
         ("accel_bias", _REAL_T * 3),
         ("gyro_bias", _REAL_T * 3),
@@ -208,6 +225,9 @@ def init():
 
     _cukf.ukf_get_state_error.argtypes = [POINTER(_StateError)]
     _cukf.ukf_get_state_error.restype = None
+
+    _cukf.ukf_get_innovation.argtypes = [POINTER(_Innovation)]
+    _cukf.ukf_get_innovation.restype = None
 
     _cukf.ukf_get_state_covariance.argtypes = [
         POINTER(_REAL_T * (_STATE_DIM**2))]
@@ -250,6 +270,9 @@ def init():
     # Set up the state errors
     state_error = _StateError()
     _cukf.ukf_get_state_error(state_error)
+
+    # Set up the innovation
+    innovation = _Innovation()
 
     # Set up the parameters
     parameters = _Parameters()

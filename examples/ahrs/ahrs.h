@@ -67,6 +67,12 @@ struct ukf_sensor_errors_t {
     real_t mag_field_inclination;
 };
 
+struct ukf_innovation_t {
+    real_t accel[3];
+    real_t gyro[3];
+    real_t mag[3];
+};
+
 void ukf_init(void);
 
 /* Functions for setting different parts of the state vector. */
@@ -86,6 +92,8 @@ void ukf_get_state_covariance(
 void ukf_get_state_covariance_diagonal(
     real_t state_covariance_diagonal[UKF_STATE_DIM]);
 void ukf_get_state_error(struct ukf_state_error_t *in);
+
+void ukf_get_innovation(struct ukf_innovation_t *in);
 
 /*
 Functions for setting sensor data. Before each frame, call the sensor_clear()

@@ -373,6 +373,22 @@ void ukf_get_state_error(struct ukf_state_error_t *in) {
     in->acceleration[2] = state_error[8];
 }
 
+/*
+This assumes accelerometer, gyroscope and magnetometer measurements are
+present and in that order.
+*/
+void ukf_get_innovation(struct ukf_innovation_t *in) {
+    in->accel[0] = ahrs.innovation[0];
+    in->accel[1] = ahrs.innovation[1];
+    in->accel[2] = ahrs.innovation[2];
+    in->gyro[0] = ahrs.innovation[3];
+    in->gyro[1] = ahrs.innovation[4];
+    in->gyro[2] = ahrs.innovation[5];
+    in->mag[0] = ahrs.innovation[6];
+    in->mag[1] = ahrs.innovation[7];
+    in->mag[2] = ahrs.innovation[8];
+}
+
 void ukf_sensor_clear() {
     meas = AHRS_MeasurementVector();
 }
