@@ -62,7 +62,9 @@ struct ukf_sensor_errors_t {
     real_t accel_bias[3];
     real_t gyro_bias[3];
     real_t mag_bias[3];
-    real_t mag_scale[9];
+    real_t mag_scale[3];
+    real_t mag_field_norm;
+    real_t mag_field_inclination;
 };
 
 void ukf_init(void);

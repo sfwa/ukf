@@ -78,6 +78,8 @@ class _Parameters(Structure):
             "gyro_bias": tuple(self.gyro_bias),
             "mag_bias": tuple(self.mag_bias),
             "mag_scale": tuple(self.mag_scale),
+            "mag_field_norm": tuple(self.mag_field_norm),
+            "mag_field_inclination": tuple(self.mag_field_inclination)
         }
         return std(fields)
 
@@ -183,7 +185,9 @@ def init():
         ("accel_bias", _REAL_T * 3),
         ("gyro_bias", _REAL_T * 3),
         ("mag_bias", _REAL_T * 3),
-        ("mag_scale", _REAL_T * 9)
+        ("mag_scale", _REAL_T * 3),
+        ("mag_field_norm", _REAL_T),
+        ("mag_field_inclination", _REAL_T),
     ]
 
     # Set up the function prototypes

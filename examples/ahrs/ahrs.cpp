@@ -14,8 +14,11 @@ using accelerometer, gyroscope and magnetometer to estimate attitude, angular
 velocity and linear acceleration.
 */
 
-/* Value of g. */
+/* Value of g in m/s^2. */
 #define G_ACCEL (9.80665)
+
+/* Default magnetic field norm in Gauss. */
+#define MAG_NORM (0.45)
 
 enum AHRS_Keys {
     /* AHRS filter fields. */
@@ -28,6 +31,8 @@ enum AHRS_Keys {
     GyroscopeBias,
     MagnetometerBias,
     MagnetometerScaleFactor,
+    MagneticFieldNorm,
+    MagneticFieldInclination,
 
     /* AHRS measurement vector fields. */
     Accelerometer,
@@ -47,9 +52,9 @@ using AHRS_StateVector = UKF::StateVector<
     UKF::Field<Acceleration, UKF::Vector<3>>
 >;
 
-template <> constexpr real_t UKF::Parameters::AlphaSquared<AHRS_StateVector> = 1e-6;
+template <> constexpr real_t UKF::Parameters::AlphaSquared<AHRS_StateVector> = 1e-4;
 template <> constexpr real_t UKF::Parameters::Beta<AHRS_StateVector> = 2.0;
-template <> constexpr real_t UKF::Parameters::Kappa<AHRS_StateVector> = -6.0;
+template <> constexpr real_t UKF::Parameters::Kappa<AHRS_StateVector> = 3.0;
 
 static AHRS_StateVector::CovarianceMatrix process_noise;
 
@@ -64,12 +69,14 @@ using AHRS_SensorErrorVector = UKF::StateVector<
     UKF::Field<AccelerometerBias, UKF::Vector<3>>,
     UKF::Field<GyroscopeBias, UKF::Vector<3>>,
     UKF::Field<MagnetometerBias, UKF::Vector<3>>,
-    UKF::Field<MagnetometerScaleFactor, UKF::Vector<9>>
+    UKF::Field<MagnetometerScaleFactor, UKF::Vector<3>>,
+    UKF::Field<MagneticFieldNorm, real_t>,
+    UKF::Field<MagneticFieldInclination, real_t>
 >;
 
-template <> constexpr real_t UKF::Parameters::AlphaSquared<AHRS_SensorErrorVector> = 1e-6;
+template <> constexpr real_t UKF::Parameters::AlphaSquared<AHRS_SensorErrorVector> = 1e-2;
 template <> constexpr real_t UKF::Parameters::Beta<AHRS_SensorErrorVector> = 2.0;
-template <> constexpr real_t UKF::Parameters::Kappa<AHRS_SensorErrorVector> = -15.0;
+template <> constexpr real_t UKF::Parameters::Kappa<AHRS_SensorErrorVector> = 3.0;
 
 static AHRS_SensorErrorVector::CovarianceMatrix error_process_noise;
 
@@ -126,7 +133,7 @@ UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
 template <> template <>
 UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
 <AHRS_StateVector, Magnetometer>(const AHRS_StateVector& state) {
-    return state.get_field<Attitude>() * UKF::Vector<3>(0.212578, 0.044132, -0.559578);
+    return state.get_field<Attitude>() * UKF::Vector<3>(MAG_NORM, 0, 0);
 }
 
 /*
@@ -152,9 +159,11 @@ template <> template <>
 UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
 <AHRS_StateVector, Magnetometer, AHRS_SensorErrorVector>(
         const AHRS_StateVector& state, const AHRS_SensorErrorVector& input) {
-    Eigen::Map<UKF::Matrix<3, 3>> mag_scale(input.get_field<MagnetometerScaleFactor>().data());
-    return input.get_field<MagnetometerBias>() + (mag_scale *
-        (state.get_field<Attitude>() * UKF::Vector<3>(0.212578, 0.044132, -0.559578)));
+    return input.get_field<MagnetometerBias>().array() + input.get_field<MagnetometerScaleFactor>().array() *
+        (state.get_field<Attitude>() * UKF::Vector<3>(
+            input.get_field<MagneticFieldNorm>() * std::cos(input.get_field<MagneticFieldInclination>()),
+            0.0,
+            -input.get_field<MagneticFieldNorm>() * std::sin(input.get_field<MagneticFieldInclination>()))).array();
 }
 
 using AHRS_Filter = UKF::Core<
@@ -204,9 +213,11 @@ template <> template <>
 UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
 <AHRS_SensorErrorVector, Magnetometer, AHRS_StateVector>(
         const AHRS_SensorErrorVector& state, const AHRS_StateVector& input) {
-    Eigen::Map<UKF::Matrix<3, 3>> mag_scale(state.get_field<MagnetometerScaleFactor>().data());
-    return state.get_field<MagnetometerBias>() + (mag_scale *
-        (input.get_field<Attitude>() * UKF::Vector<3>(0.212578, 0.044132, -0.559578)));
+    return state.get_field<MagnetometerBias>().array() + state.get_field<MagnetometerScaleFactor>().array() *
+        (input.get_field<Attitude>() * UKF::Vector<3>(
+            state.get_field<MagneticFieldNorm>() * std::cos(state.get_field<MagneticFieldInclination>()),
+            0.0,
+            -state.get_field<MagneticFieldNorm>() * std::sin(state.get_field<MagneticFieldInclination>()))).array();
 }
 
 /* Just use the Euler integrator since there's no process model. */
@@ -243,7 +254,7 @@ void ukf_init() {
     ahrs.state.set_field<Acceleration>(UKF::Vector<3>(0, 0, 0));
     ahrs.covariance = AHRS_StateVector::CovarianceMatrix::Zero();
     ahrs.covariance.diagonal() <<
-        3e-1, 3e-1, 1e1,
+        1e0, 1e0, 1e1,
         1e-2 * UKF::Vector<3>::Ones(),
         1e-2 * UKF::Vector<3>::Ones();
 
@@ -258,10 +269,9 @@ void ukf_init() {
     ahrs_errors.state.set_field<AccelerometerBias>(UKF::Vector<3>(0, 0, 0));
     ahrs_errors.state.set_field<GyroscopeBias>(UKF::Vector<3>(0, 0, 0));
     ahrs_errors.state.set_field<MagnetometerBias>(UKF::Vector<3>(0, 0, 0));
-    UKF::Matrix<3, 3> init_scale = UKF::Matrix<3, 3>::Zero();
-    init_scale.diagonal() << 1.0, 1.0, 1.0;
-    Eigen::Map<UKF::Vector<9>> init_scale_map(init_scale.data());
-    ahrs_errors.state.set_field<MagnetometerScaleFactor>(init_scale_map);
+    ahrs_errors.state.set_field<MagnetometerScaleFactor>(UKF::Vector<3>(1, 1, 1));
+    ahrs_errors.state.set_field<MagneticFieldNorm>(MAG_NORM);
+    ahrs_errors.state.set_field<MagneticFieldInclination>(0);
 
     /*
     Initialise scale factor and bias error covariance. These covariances are
@@ -277,7 +287,8 @@ void ukf_init() {
     ahrs_errors.covariance.diagonal() <<
         0.49*0.49, 0.49*0.49, 0.784*0.784,
         0.35*0.35 * UKF::Vector<3>::Ones(),
-        4.0e-1*4.0e-1 * UKF::Vector<3>::Ones(), 5.0e-2*5.0e-2 * UKF::Vector<9>::Ones();
+        4.0e-1*4.0e-1 * UKF::Vector<3>::Ones(), 5.0e-2*5.0e-2 * UKF::Vector<3>::Ones(),
+        0.2, 1e0;
 
     /*
     Set bias error process noise – this is derived from bias instability.
@@ -288,21 +299,17 @@ void ukf_init() {
     is a coincidence!
     HMC5883 Magnetometer bias instability is about 0.015 microTesla.
 
-    Bias instability is actually characterised as a 1/f flicker noise, so the
-    function to calculate process noise covariance given a time delta should
-    actually be a bunch more complex than it is. With these cheap sensors,
-    though, this is all very approximate, so we'll just treat it as additive
-    white noise.
-
-    Note that these figures are probably too low because we're not explicitly
-    compensating for bias change with temperature, which will have a similar
-    effect.
+    Bias instability is actually characterised as a 1/f flicker noise rather
+    than the white noise (which is what we're specifying using the process
+    noise covariance), so these are tuned by hand to values which allow the
+    filter to track biases over time, but not change too quickly.
     */
     error_process_noise = AHRS_SensorErrorVector::CovarianceMatrix::Zero();
     error_process_noise.diagonal() <<
-        5.0e-3*5.0e-3 * UKF::Vector<3>::Ones(),
-        5.2e-5*5.2e-5 * UKF::Vector<3>::Ones(),
-        1.5e-5*1.5e-5 * UKF::Vector<3>::Ones(), 1.0e-4*1.0e-4 * UKF::Vector<9>::Ones();
+        5.0e-4 * UKF::Vector<3>::Ones(),
+        2.0e-5 * UKF::Vector<3>::Ones(),
+        1.0e-6 * UKF::Vector<3>::Ones(), 1.0e-7 * UKF::Vector<3>::Ones(),
+        1.0e-9, 1.0e-9;
 }
 
 void ukf_set_acceleration(real_t x, real_t y, real_t z) {
@@ -414,6 +421,7 @@ void ukf_iterate(float dt) {
     account for uncertainty in sensor biases and scale factors.
     */
     ahrs.innovation_covariance += ahrs_errors.innovation_covariance;
+    ahrs_errors.innovation_covariance = ahrs.innovation_covariance;
 
     /* Do the a posteriori step. */
     ahrs.a_posteriori_step();
@@ -439,12 +447,8 @@ void ukf_get_parameters(struct ukf_sensor_errors_t *in) {
     in->mag_scale[0] = ahrs_errors.state.get_field<MagnetometerScaleFactor>()[0];
     in->mag_scale[1] = ahrs_errors.state.get_field<MagnetometerScaleFactor>()[1];
     in->mag_scale[2] = ahrs_errors.state.get_field<MagnetometerScaleFactor>()[2];
-    in->mag_scale[3] = ahrs_errors.state.get_field<MagnetometerScaleFactor>()[3];
-    in->mag_scale[4] = ahrs_errors.state.get_field<MagnetometerScaleFactor>()[4];
-    in->mag_scale[5] = ahrs_errors.state.get_field<MagnetometerScaleFactor>()[5];
-    in->mag_scale[6] = ahrs_errors.state.get_field<MagnetometerScaleFactor>()[6];
-    in->mag_scale[7] = ahrs_errors.state.get_field<MagnetometerScaleFactor>()[7];
-    in->mag_scale[8] = ahrs_errors.state.get_field<MagnetometerScaleFactor>()[8];
+    in->mag_field_norm = ahrs_errors.state.get_field<MagneticFieldNorm>();
+    in->mag_field_inclination = ahrs_errors.state.get_field<MagneticFieldInclination>();
 }
 
 void ukf_get_parameters_error(struct ukf_sensor_errors_t *in) {
@@ -463,12 +467,8 @@ void ukf_get_parameters_error(struct ukf_sensor_errors_t *in) {
     in->mag_scale[0] = parameters_error[9];
     in->mag_scale[1] = parameters_error[10];
     in->mag_scale[2] = parameters_error[11];
-    in->mag_scale[3] = parameters_error[12];
-    in->mag_scale[4] = parameters_error[13];
-    in->mag_scale[5] = parameters_error[14];
-    in->mag_scale[6] = parameters_error[15];
-    in->mag_scale[7] = parameters_error[16];
-    in->mag_scale[8] = parameters_error[17];
+    in->mag_field_norm = parameters_error[12];
+    in->mag_field_inclination = parameters_error[13];
 }
 
 uint32_t ukf_config_get_state_dim() {
