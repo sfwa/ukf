@@ -254,9 +254,9 @@ void ukf_init() {
     ahrs.state.set_field<Acceleration>(UKF::Vector<3>(0, 0, 0));
     ahrs.covariance = AHRS_StateVector::CovarianceMatrix::Zero();
     ahrs.covariance.diagonal() <<
-        1e0, 1e0, 1e1,
-        1e-2 * UKF::Vector<3>::Ones(),
-        1e-2 * UKF::Vector<3>::Ones();
+        1e0, 1e0, 1e-2,
+        1e-3 * UKF::Vector<3>::Ones(),
+        1e-3 * UKF::Vector<3>::Ones();
 
     /* Set process noise covariance. */
     process_noise = AHRS_StateVector::CovarianceMatrix::Zero();
@@ -273,19 +273,10 @@ void ukf_init() {
     ahrs_errors.state.set_field<MagneticFieldNorm>(MAG_NORM);
     ahrs_errors.state.set_field<MagneticFieldInclination>(0);
 
-    /*
-    Initialise scale factor and bias error covariance. These covariances are
-    derived from the switch-on biases given in the MPU-6050 and HMC5883
-    datasheets.
-
-    Covariance for the magnetometer scale factor matrix might need some
-    tweaking, because it's not just compensating for the scale factor error,
-    but also needs to capture the uncertainty as to the local magnetic field
-    vector.
-    */
+    /* Initialise scale factor and bias error covariance. */
     ahrs_errors.covariance = AHRS_SensorErrorVector::CovarianceMatrix::Zero();
     ahrs_errors.covariance.diagonal() <<
-        0.49*0.49, 0.49*0.49, 0.784*0.784,
+        3.0*3.0 * UKF::Vector<3>::Ones(),
         0.35*0.35 * UKF::Vector<3>::Ones(),
         4.0e-1*4.0e-1 * UKF::Vector<3>::Ones(), 5.0e-2*5.0e-2 * UKF::Vector<3>::Ones(),
         0.2, 1e0;
@@ -306,8 +297,8 @@ void ukf_init() {
     */
     error_process_noise = AHRS_SensorErrorVector::CovarianceMatrix::Zero();
     error_process_noise.diagonal() <<
-        5.0e-4 * UKF::Vector<3>::Ones(),
-        2.0e-5 * UKF::Vector<3>::Ones(),
+        1.0e-4 * UKF::Vector<3>::Ones(),
+        5.0e-7 * UKF::Vector<3>::Ones(),
         1.0e-6 * UKF::Vector<3>::Ones(), 1.0e-7 * UKF::Vector<3>::Ones(),
         1.0e-9, 1.0e-9;
 }
