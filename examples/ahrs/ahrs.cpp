@@ -52,7 +52,7 @@ using AHRS_StateVector = UKF::StateVector<
     UKF::Field<Acceleration, UKF::Vector<3>>
 >;
 
-template <> constexpr real_t UKF::Parameters::AlphaSquared<AHRS_StateVector> = 1e-4;
+template <> constexpr real_t UKF::Parameters::AlphaSquared<AHRS_StateVector> = 1e-6;
 template <> constexpr real_t UKF::Parameters::Beta<AHRS_StateVector> = 2.0;
 template <> constexpr real_t UKF::Parameters::Kappa<AHRS_StateVector> = 3.0;
 
@@ -74,7 +74,7 @@ using AHRS_SensorErrorVector = UKF::StateVector<
     UKF::Field<MagneticFieldInclination, real_t>
 >;
 
-template <> constexpr real_t UKF::Parameters::AlphaSquared<AHRS_SensorErrorVector> = 1e-2;
+template <> constexpr real_t UKF::Parameters::AlphaSquared<AHRS_SensorErrorVector> = 1e-6;
 template <> constexpr real_t UKF::Parameters::Beta<AHRS_SensorErrorVector> = 2.0;
 template <> constexpr real_t UKF::Parameters::Kappa<AHRS_SensorErrorVector> = 3.0;
 
@@ -238,9 +238,9 @@ noise figures given in the datasheet.
 template <>
 AHRS_MeasurementVector::CovarianceVector AHRS_MeasurementVector::measurement_covariance(
     (AHRS_MeasurementVector::CovarianceVector() <<
-        0.45*0.45 * UKF::Vector<3>::Ones(),
+        5.0*5.0 * UKF::Vector<3>::Ones(),
         0.003*0.003 * UKF::Vector<3>::Ones(),
-        0.003*0.003 * UKF::Vector<3>::Ones()).finished());
+        1.0*1.0 * UKF::Vector<3>::Ones()).finished());
 
 /*
 The following functions provide a ctypes-compatible interface for ease of
@@ -254,16 +254,16 @@ void ukf_init() {
     ahrs.state.set_field<Acceleration>(UKF::Vector<3>(0, 0, 0));
     ahrs.covariance = AHRS_StateVector::CovarianceMatrix::Zero();
     ahrs.covariance.diagonal() <<
-        1e0, 1e0, 1e-2,
-        1e-3 * UKF::Vector<3>::Ones(),
-        1e-3 * UKF::Vector<3>::Ones();
+        1e1, 1e1, 1e1,
+        1e0 * UKF::Vector<3>::Ones(),
+        1e1 * UKF::Vector<3>::Ones();
 
     /* Set process noise covariance. */
     process_noise = AHRS_StateVector::CovarianceMatrix::Zero();
     process_noise.diagonal() <<
         1e-6 * UKF::Vector<3>::Ones(),
-        1e1 * UKF::Vector<3>::Ones(),
-        2e1 * UKF::Vector<3>::Ones();
+        1e-1 * UKF::Vector<3>::Ones(),
+        1e-1 * UKF::Vector<3>::Ones();
 
     /* Initialise scale factor and bias errors. */
     ahrs_errors.state.set_field<AccelerometerBias>(UKF::Vector<3>(0, 0, 0));
@@ -276,7 +276,7 @@ void ukf_init() {
     /* Initialise scale factor and bias error covariance. */
     ahrs_errors.covariance = AHRS_SensorErrorVector::CovarianceMatrix::Zero();
     ahrs_errors.covariance.diagonal() <<
-        3.0*3.0 * UKF::Vector<3>::Ones(),
+        0.8*0.8 * UKF::Vector<3>::Ones(),
         0.35*0.35 * UKF::Vector<3>::Ones(),
         4.0e-1*4.0e-1 * UKF::Vector<3>::Ones(), 5.0e-2*5.0e-2 * UKF::Vector<3>::Ones(),
         0.2, 1e0;
@@ -299,7 +299,7 @@ void ukf_init() {
     error_process_noise.diagonal() <<
         1.0e-4 * UKF::Vector<3>::Ones(),
         5.0e-7 * UKF::Vector<3>::Ones(),
-        1.0e-6 * UKF::Vector<3>::Ones(), 1.0e-7 * UKF::Vector<3>::Ones(),
+        1.0e-7 * UKF::Vector<3>::Ones(), 1.0e-7 * UKF::Vector<3>::Ones(),
         1.0e-9, 1.0e-9;
 }
 
