@@ -255,8 +255,8 @@ void ukf_init() {
     ahrs.covariance = AHRS_StateVector::CovarianceMatrix::Zero();
     ahrs.covariance.diagonal() <<
         1e1, 1e1, 1e1,
-        1e0 * UKF::Vector<3>::Ones(),
-        1e1 * UKF::Vector<3>::Ones();
+        1e-4 * UKF::Vector<3>::Ones(),
+        1e-4 * UKF::Vector<3>::Ones();
 
     /* Set process noise covariance. */
     process_noise = AHRS_StateVector::CovarianceMatrix::Zero();
@@ -277,18 +277,12 @@ void ukf_init() {
     ahrs_errors.covariance = AHRS_SensorErrorVector::CovarianceMatrix::Zero();
     ahrs_errors.covariance.diagonal() <<
         0.8*0.8 * UKF::Vector<3>::Ones(),
-        0.35*0.35 * UKF::Vector<3>::Ones(),
-        4.0e-1*4.0e-1 * UKF::Vector<3>::Ones(), 5.0e-2*5.0e-2 * UKF::Vector<3>::Ones(),
-        0.2, 1e0;
+        0.02*0.02 * UKF::Vector<3>::Ones(),
+        2.0e-1*2.0e-1 * UKF::Vector<3>::Ones(), 1.0e-1*1.0e-1 * UKF::Vector<3>::Ones(),
+        0.4, 2e0;
 
     /*
     Set bias error process noise – this is derived from bias instability.
-
-    For MPU-6050: Allan variance was used to determine bias instability.
-    Gyro bias instability is about 0.003 deg/s (5.2e-5 rad/s).
-    Accelerometer bias instability is about 0.003 m/s^2 – similarity to gyro
-    is a coincidence!
-    HMC5883 Magnetometer bias instability is about 0.015 microTesla.
 
     Bias instability is actually characterised as a 1/f flicker noise rather
     than the white noise (which is what we're specifying using the process
@@ -297,10 +291,10 @@ void ukf_init() {
     */
     error_process_noise = AHRS_SensorErrorVector::CovarianceMatrix::Zero();
     error_process_noise.diagonal() <<
-        1.0e-4 * UKF::Vector<3>::Ones(),
-        5.0e-7 * UKF::Vector<3>::Ones(),
-        1.0e-7 * UKF::Vector<3>::Ones(), 1.0e-7 * UKF::Vector<3>::Ones(),
-        1.0e-9, 1.0e-9;
+        1.0e-5 * UKF::Vector<3>::Ones(),
+        2.0e-8 * UKF::Vector<3>::Ones(),
+        1.0e-5 * UKF::Vector<3>::Ones(), 1.0e-2 * UKF::Vector<3>::Ones(),
+        1.0e-10, 1.0e-10;
 }
 
 void ukf_set_acceleration(real_t x, real_t y, real_t z) {
@@ -421,14 +415,6 @@ void ukf_iterate(float dt) {
     measurement.
     */
     ahrs_errors.innovation_step(meas, ahrs.state);
-
-    /*
-    Adjust the innovation covariance of the AHRS filter by adding the
-    innovation covariance of the parameter estimation filter, to properly
-    account for uncertainty in sensor biases and scale factors.
-    */
-    ahrs.innovation_covariance += ahrs_errors.innovation_covariance;
-    ahrs_errors.innovation_covariance = ahrs.innovation_covariance;
 
     /* Do the a posteriori step. */
     ahrs.a_posteriori_step();
