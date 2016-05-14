@@ -30,9 +30,9 @@ SOFTWARE.
 #include <cstddef>
 #include <utility>
 #include <Eigen/Core>
-#include "Config.h"
-#include "Types.h"
-#include "StateVector.h"
+#include "UKF/Config.h"
+#include "UKF/Types.h"
+#include "UKF/StateVector.h"
 
 namespace UKF {
 

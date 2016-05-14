@@ -24,7 +24,7 @@ SOFTWARE.
 #define TYPES_H
 
 #include <Eigen/Core>
-#include "Config.h"
+#include "UKF/Config.h"
 
 namespace UKF {
 
