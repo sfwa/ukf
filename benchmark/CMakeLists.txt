@@ -19,13 +19,13 @@ LOG_CONFIGURE ON
 LOG_BUILD ON)
 
 # Disable dynamic memory allocation in Eigen
-ADD_DEFINITIONS(-DEIGEN_NO_MALLOC)
+ADD_DEFINITIONS(-DEIGEN_NO_MALLOC -DUKF_DOUBLE_PRECISION)
 
 # Specify include dir
 ExternalProject_Get_Property(googlebenchmark source_dir)
 SET(googlebenchmark_dir ${source_dir})
 
-INCLUDE_DIRECTORIES(${googlebenchmark_dir}/include ../include ${eigen_dir} ${PROJECT_BINARY_DIR})
+INCLUDE_DIRECTORIES(${googlebenchmark_dir}/include ../include ${eigen_dir})
 
 # Add benchmark executable target
 ADD_EXECUTABLE(benchmark

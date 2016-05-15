@@ -30,7 +30,6 @@ SOFTWARE.
 #include <cstddef>
 #include <utility>
 #include <Eigen/Core>
-#include "UKF/Config.h"
 #include "UKF/Types.h"
 #include "UKF/StateVector.h"
 

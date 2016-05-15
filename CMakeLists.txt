@@ -31,15 +31,7 @@ LOG_BUILD ON)
 ExternalProject_Get_Property(eigen3 source_dir)
 SET(eigen_dir ${source_dir})
 
-# Choose the floating-point precision to use.
-SET(UKF_REAL_TYPE double)
-
-CONFIGURE_FILE(
-	"${PROJECT_SOURCE_DIR}/Config.h.in"
-	"${PROJECT_BINARY_DIR}/include/UKF/Config.h"
-)
-
-INCLUDE_DIRECTORIES(${eigen_dir} ${PROJECT_BINARY_DIR}/include)
+INCLUDE_DIRECTORIES(${eigen_dir})
 
 ENABLE_TESTING()
 

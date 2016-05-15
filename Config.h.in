@@ -1,2 +1,0 @@
-/* Selects the floating-point precision to use. */
-typedef @UKF_REAL_TYPE@ real_t;
