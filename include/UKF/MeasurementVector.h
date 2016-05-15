@@ -66,9 +66,9 @@ public:
 
     /* Aliases for types needed during filter iteration. */
     template <typename S>
-    using SigmaPointDistribution = Matrix<size(), S::num_sigma()>;
+    using SigmaPointDistribution = Matrix<FixedMeasurementVector::size(), S::num_sigma()>;
     template <typename S>
-    using SigmaPointDeltas = Matrix<covariance_size(), S::num_sigma()>;
+    using SigmaPointDeltas = Matrix<FixedMeasurementVector::covariance_size(), S::num_sigma()>;
     using CovarianceMatrix = Matrix<covariance_size(), covariance_size()>;
     using CovarianceVector = FixedMeasurementVector<Fields...>;
 
@@ -218,9 +218,9 @@ public:
 
     /* Aliases for types needed during filter iteration. */
     template <typename S>
-    using SigmaPointDistribution = MatrixDynamic<max_size(), S::num_sigma()>;
+    using SigmaPointDistribution = MatrixDynamic<DynamicMeasurementVector::max_size(), S::num_sigma()>;
     template <typename S>
-    using SigmaPointDeltas = MatrixDynamic<max_covariance_size(), S::num_sigma()>;
+    using SigmaPointDeltas = MatrixDynamic<DynamicMeasurementVector::max_covariance_size(), S::num_sigma()>;
     using CovarianceMatrix = MatrixDynamic<max_covariance_size(), max_covariance_size()>;
     using CovarianceVector = FixedMeasurementVector<Fields...>;
 
