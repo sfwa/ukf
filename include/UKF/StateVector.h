@@ -163,12 +163,12 @@ namespace UKF {
     };
 
     template <typename T>
-    T convert_from_segment(const Vector<StateVectorDimension<T>>& state) {
+    inline T convert_from_segment(const Vector<StateVectorDimension<T>>& state) {
         return static_cast<T>(state);
     }
 
     template <>
-    real_t convert_from_segment<real_t>(const Vector<1>& state) {
+    inline real_t convert_from_segment<real_t>(const Vector<1>& state) {
         return static_cast<real_t>(state(0));
     }
 
