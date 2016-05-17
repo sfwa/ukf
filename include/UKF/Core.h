@@ -98,7 +98,7 @@ public:
             covariance + StateVectorType::process_noise_covariance(delta));
 
         /* Propagate the sigma points through the process model. */
-        for(int i = 0; i < StateVectorType::num_sigma(); i++) {
+        for(std::size_t i = 0; i < StateVectorType::num_sigma(); i++) {
             sigma_points.col(i) <<
                 StateVectorType(sigma_points.col(i)).template process_model<IntegratorType>(delta, input...);
         }
@@ -154,7 +154,7 @@ public:
         */
         CrossCorrelation cross_correlation = Parameters::Sigma_WC0<StateVectorType> *
             (w_prime.col(0) * z_prime.col(0).transpose());
-        for(int i = 1; i < StateVectorType::num_sigma(); i++) {
+        for(std::size_t i = 1; i < StateVectorType::num_sigma(); i++) {
             cross_correlation += Parameters::Sigma_WCI<StateVectorType> *
                 (w_prime.col(i) * z_prime.col(i).transpose());
         }

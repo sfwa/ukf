@@ -376,7 +376,7 @@ public:
 
         /* Calculate the covariance using equation 64 from the Kraft paper. */
         cov = CovarianceMatrix::Zero();
-        for(int i = 1; i < num_sigma(); i++) {
+        for(std::size_t i = 1; i < num_sigma(); i++) {
             cov += Parameters::Sigma_WCI<StateVector> * (w_prime.col(i) * w_prime.col(i).transpose());
         }
         cov += Parameters::Sigma_WC0<StateVector> * (w_prime.col(0) * w_prime.col(0).transpose());
@@ -468,12 +468,12 @@ private:
             cov.array().rowwise() * (err_w + Parameters::MRP_A<StateVector>) * (1.0 / Parameters::MRP_F<StateVector>);
 
         Quaternion temp_q;
-        for(int i = 0; i < covariance_size(); i++) {
+        for(std::size_t i = 0; i < covariance_size(); i++) {
             temp_q = Quaternion(err_w(i), err_xyz(0, i), err_xyz(1, i), err_xyz(2, i)) * state;
             temp.col(i+1) << temp_q.vec(), temp_q.w();
         }
 
-        for(int i = 0; i < covariance_size(); i++) {
+        for(std::size_t i = 0; i < covariance_size(); i++) {
             temp_q = Quaternion(err_w(i), err_xyz(0, i), err_xyz(1, i), err_xyz(2, i)).conjugate() * state;
             temp.col(i+covariance_size()+1) << temp_q.vec(), temp_q.w();
         }
@@ -566,7 +566,7 @@ private:
         The attitude part of this set of vectors is calculated using equation
         45 from the Kraft paper.
         */
-        for(int i = 0; i < num_sigma(); i++) {
+        for(std::size_t i = 0; i < num_sigma(); i++) {
             Quaternion delta_q = Quaternion(X.col(i)) * mean.conjugate();
             temp.col(i) = Parameters::MRP_F<StateVector>
                 * (delta_q.vec() / (Parameters::MRP_A<StateVector> + delta_q.w()));

@@ -127,7 +127,7 @@ public:
 
         /* Calculate the covariance using equation 64 from the Kraft paper. */
         cov = CovarianceMatrix::Zero();
-        for(int i = 1; i < S::num_sigma(); i++) {
+        for(std::size_t i = 1; i < S::num_sigma(); i++) {
             cov += Parameters::Sigma_WCI<S> * (z_prime.col(i) * z_prime.col(i).transpose());
         }
         cov += Parameters::Sigma_WC0<S> * (z_prime.col(0) * z_prime.col(0).transpose());
@@ -143,7 +143,7 @@ public:
             const typename S::SigmaPointDistribution& X, const U&... input) const {
         SigmaPointDistribution<S> Z(Base::template size(), S::num_sigma());
 
-        for(int i = 0; i < S::num_sigma(); i++) {
+        for(std::size_t i = 0; i < S::num_sigma(); i++) {
             FixedMeasurementVector temp;
             calculate_field_measurements<S, std::tuple<U...>, Fields...>(temp, X.col(i), std::make_tuple(input...));
             Z.col(i) = temp;
@@ -309,7 +309,7 @@ public:
         
         /* Calculate the covariance using equation 64 from the Kraft paper. */
         cov = CovarianceMatrix::Zero(Base::template size(), Base::template size());
-        for(int i = 1; i < S::num_sigma(); i++) {
+        for(std::size_t i = 1; i < S::num_sigma(); i++) {
             cov += Parameters::Sigma_WCI<S> * (z_prime.col(i) * z_prime.col(i).transpose());
         }
         cov += Parameters::Sigma_WC0<S> * (z_prime.col(0) * z_prime.col(0).transpose());
@@ -325,7 +325,7 @@ public:
             const typename S::SigmaPointDistribution& X, const U&... input) const {
         SigmaPointDistribution<S> Z(Base::template size(), S::num_sigma());
 
-        for(int i = 0; i < S::num_sigma(); i++) {
+        for(std::size_t i = 0; i < S::num_sigma(); i++) {
             DynamicMeasurementVector temp(Base::template size());
             calculate_field_measurements<S, std::tuple<U...>, Fields...>(temp, X.col(i), std::make_tuple(input...));
             Z.col(i) = temp;
