@@ -141,7 +141,7 @@ public:
     template <typename S, typename... U>
     SigmaPointDistribution<S> calculate_sigma_point_distribution(
             const typename S::SigmaPointDistribution& X, const U&... input) const {
-        SigmaPointDistribution<S> Z(Base::template size(), S::num_sigma());
+        SigmaPointDistribution<S> Z(size(), S::num_sigma());
 
         for(std::size_t i = 0; i < S::num_sigma(); i++) {
             FixedMeasurementVector temp;
