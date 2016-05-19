@@ -237,7 +237,7 @@ template <>
 AHRS_MeasurementVector::CovarianceVector AHRS_MeasurementVector::measurement_covariance(
     (AHRS_MeasurementVector::CovarianceVector() <<
         1.0 * UKF::Vector<3>::Ones(),
-        0.004*0.004 * UKF::Vector<3>::Ones(),
+        0.001*0.001 * UKF::Vector<3>::Ones(),
         1.0 * UKF::Vector<3>::Ones()).finished());
 
 /*
@@ -252,14 +252,14 @@ void ukf_init() {
     ahrs.state.set_field<Acceleration>(UKF::Vector<3>(0, 0, 0));
     ahrs.covariance = AHRS_StateVector::CovarianceMatrix::Zero();
     ahrs.covariance.diagonal() <<
-        1e1, 1e1, 1e1,
+        1e1, 1e1, 1e2,
         1e-4 * UKF::Vector<3>::Ones(),
         1e-4 * UKF::Vector<3>::Ones();
 
     /* Set process noise covariance. */
     process_noise = AHRS_StateVector::CovarianceMatrix::Zero();
     process_noise.diagonal() <<
-        1e-3 * UKF::Vector<3>::Ones(),
+        1e-5 * UKF::Vector<3>::Ones(),
         1e-2 * UKF::Vector<3>::Ones(),
         1e-2 * UKF::Vector<3>::Ones();
 
@@ -289,9 +289,9 @@ void ukf_init() {
     */
     error_process_noise = AHRS_SensorErrorVector::CovarianceMatrix::Zero();
     error_process_noise.diagonal() <<
-        1.0e-5 * UKF::Vector<3>::Ones(),
+        1.0e-7 * UKF::Vector<3>::Ones(),
         1.0e-8 * UKF::Vector<3>::Ones(),
-        1.0e-5 * UKF::Vector<3>::Ones(), 1.0e-4 * UKF::Vector<3>::Ones(),
+        1.0e-7 * UKF::Vector<3>::Ones(), 1.0e-4 * UKF::Vector<3>::Ones(),
         1.0e-10, 1.0e-10;
 }
 
