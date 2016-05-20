@@ -33,10 +33,10 @@ public:
     template <typename S, typename... U>
     static S integrate(real_t delta, const S& state, const U&... input) {
         S a = state.derivative(input...);
-        S b = S(state + 0.5 * delta * a).derivative(input...);
-        S c = S(state + 0.5 * delta * b).derivative(input...);
+        S b = S(state + real_t(0.5) * delta * a).derivative(input...);
+        S c = S(state + real_t(0.5) * delta * b).derivative(input...);
         S d = S(state + delta * c).derivative(input...);
-        return state + (delta / 6.0) * (a + (b * 2.0) + (c * 2.0) + d);
+        return state + (delta / real_t(6.0)) * (a + (b * real_t(2.0)) + (c * real_t(2.0)) + d);
     }
 };
 
@@ -47,7 +47,7 @@ public:
     static S integrate(real_t delta, const S& state, const U&... input) {
         S initial = state.derivative(input...);
         S predictor = state + delta * initial;
-        return state + (delta * 0.5) * (initial + predictor.derivative(input...));
+        return state + (delta * real_t(0.5)) * (initial + predictor.derivative(input...));
     }
 };
 

@@ -461,11 +461,11 @@ private:
         Array<1, covariance_size()> x_2 = cov.colwise().squaredNorm();
         Array<1, covariance_size()> err_w =
             (-Parameters::MRP_A<StateVector> * x_2 + Parameters::MRP_F<StateVector>
-                * (x_2 * (1.0 - Parameters::MRP_A<StateVector>*Parameters::MRP_A<StateVector>)
+                * (x_2 * (real_t(1.0) - Parameters::MRP_A<StateVector>*Parameters::MRP_A<StateVector>)
                 + Parameters::MRP_F<StateVector> * Parameters::MRP_F<StateVector>).sqrt())
             / (Parameters::MRP_F<StateVector> * Parameters::MRP_F<StateVector> + x_2);
-        Array<3, covariance_size()> err_xyz =
-            cov.array().rowwise() * (err_w + Parameters::MRP_A<StateVector>) * (1.0 / Parameters::MRP_F<StateVector>);
+        Array<3, covariance_size()> err_xyz = cov.array().rowwise() * (err_w + Parameters::MRP_A<StateVector>)
+            * (real_t(1.0) / Parameters::MRP_F<StateVector>);
 
         Quaternion temp_q;
         for(std::size_t i = 0; i < covariance_size(); i++) {
@@ -610,11 +610,11 @@ private:
         real_t x_2 = delta.squaredNorm();
         real_t d_q_w =
             (-Parameters::MRP_A<StateVector> * x_2 + Parameters::MRP_F<StateVector>
-                * std::sqrt(x_2 * (1.0 - Parameters::MRP_A<StateVector>*Parameters::MRP_A<StateVector>)
+                * std::sqrt(x_2 * (real_t(1.0) - Parameters::MRP_A<StateVector>*Parameters::MRP_A<StateVector>)
                 + Parameters::MRP_F<StateVector> * Parameters::MRP_F<StateVector>))
             / (Parameters::MRP_F<StateVector> * Parameters::MRP_F<StateVector> + x_2);
         Vector<3> d_q_xyz = delta *
-            (d_q_w + Parameters::MRP_A<StateVector>) * (1.0 / Parameters::MRP_F<StateVector>);
+            (d_q_w + Parameters::MRP_A<StateVector>) * (real_t(1.0) / Parameters::MRP_F<StateVector>);
         Quaternion d_q;
         d_q.vec() = d_q_xyz;
         d_q.w() = d_q_w;
