@@ -167,7 +167,7 @@ UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
 using AHRS_Filter = UKF::Core<
     AHRS_StateVector,
     AHRS_MeasurementVector,
-    UKF::IntegratorRK4
+    UKF::IntegratorHeun
 >;
 
 /*
