@@ -10,8 +10,8 @@
 
 /*
 This is an implementation of an Unscented Kalman filter for a 9-axis AHRS,
-using accelerometer, gyroscope and magnetometer to estimate attitude, angular
-velocity and linear acceleration.
+using accelerometer, gyroscope and magnetometer to estimate attitude and
+angular velocity.
 */
 
 /* Value of g in m/s^2. */
@@ -24,7 +24,6 @@ enum AHRS_Keys {
     /* AHRS filter fields. */
     Attitude,
     AngularVelocity,
-    Acceleration,
 
     /* Parameter estimation filter fields. */
     AccelerometerBias,
@@ -44,16 +43,15 @@ enum AHRS_Keys {
 The AHRS state vector contains the following:
 - Attitude as a quaternion (NED frame to body frame)
 - Angular velocity (body frame, rad/s)
-- Acceleration (body frame, m/s^2)
 */
 using AHRS_StateVector = UKF::StateVector<
     UKF::Field<Attitude, UKF::Quaternion>,
-    UKF::Field<AngularVelocity, UKF::Vector<3>>,
-    UKF::Field<Acceleration, UKF::Vector<3>>
+    UKF::Field<AngularVelocity, UKF::Vector<3>>
 >;
 
 template <> constexpr real_t UKF::Parameters::AlphaSquared<AHRS_StateVector> = 1e-2;
-template <> constexpr real_t UKF::Parameters::Kappa<AHRS_StateVector> = -6.0;
+template <> constexpr real_t UKF::Parameters::Beta<AHRS_StateVector> = 2.0;
+template <> constexpr real_t UKF::Parameters::Kappa<AHRS_StateVector> = 3.0;
 
 static AHRS_StateVector::CovarianceMatrix process_noise;
 
@@ -74,7 +72,8 @@ using AHRS_SensorErrorVector = UKF::StateVector<
 >;
 
 template <> constexpr real_t UKF::Parameters::AlphaSquared<AHRS_SensorErrorVector> = 1.0;
-template <> constexpr real_t UKF::Parameters::Kappa<AHRS_SensorErrorVector> = -11.0;
+template <> constexpr real_t UKF::Parameters::Beta<AHRS_SensorErrorVector> = 2.0;
+template <> constexpr real_t UKF::Parameters::Kappa<AHRS_SensorErrorVector> = 3.0;
 
 static AHRS_SensorErrorVector::CovarianceMatrix error_process_noise;
 
@@ -82,9 +81,6 @@ static AHRS_SensorErrorVector::CovarianceMatrix error_process_noise;
 template <> template <>
 AHRS_StateVector AHRS_StateVector::derivative<>() const {
     AHRS_StateVector output;
-
-    /* Assume constant linear acceleration. */
-    output.set_field<Acceleration>(UKF::Vector<3>(0, 0, 0));
 
     /* Calculate change in attitude. */
     UKF::Quaternion omega_q;
@@ -119,7 +115,7 @@ seems to be the Detail::FieldTypes helper returning 'void' for everything.
 template <> template <>
 UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
 <AHRS_StateVector, Accelerometer>(const AHRS_StateVector& state) {
-    return state.get_field<Acceleration>() + state.get_field<Attitude>() * UKF::Vector<3>(0, 0, -G_ACCEL);
+    return state.get_field<Attitude>() * UKF::Vector<3>(0, 0, -G_ACCEL);
 }
 
 template <> template <>
@@ -142,8 +138,7 @@ template <> template <>
 UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
 <AHRS_StateVector, Accelerometer, AHRS_SensorErrorVector>(
         const AHRS_StateVector& state, const AHRS_SensorErrorVector& input) {
-    return input.get_field<AccelerometerBias>() + state.get_field<Acceleration>() +
-        state.get_field<Attitude>() * UKF::Vector<3>(0, 0, -G_ACCEL);
+    return input.get_field<AccelerometerBias>() + state.get_field<Attitude>() * UKF::Vector<3>(0, 0, -G_ACCEL);
 }
 
 template <> template <>
@@ -196,8 +191,7 @@ template <> template <>
 UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
 <AHRS_SensorErrorVector, Accelerometer, AHRS_StateVector>(
         const AHRS_SensorErrorVector& state, const AHRS_StateVector& input) {
-    return state.get_field<AccelerometerBias>() + input.get_field<Acceleration>() +
-        input.get_field<Attitude>() * UKF::Vector<3>(0, 0, -G_ACCEL);
+    return state.get_field<AccelerometerBias>() + input.get_field<Attitude>() * UKF::Vector<3>(0, 0, -G_ACCEL);
 }
 
 template <> template <>
@@ -228,6 +222,7 @@ using AHRS_ParameterEstimationFilter = UKF::Core<
 static AHRS_Filter ahrs;
 static AHRS_ParameterEstimationFilter ahrs_errors;
 static AHRS_MeasurementVector meas;
+static UKF::Vector<3> acceleration;
 
 /*
 Set the initial measurement covariance vector. This is calculated from the
@@ -236,9 +231,9 @@ noise figures given in the datasheet.
 template <>
 AHRS_MeasurementVector::CovarianceVector AHRS_MeasurementVector::measurement_covariance(
     (AHRS_MeasurementVector::CovarianceVector() <<
-        1.0 * UKF::Vector<3>::Ones(),
-        0.001*0.001 * UKF::Vector<3>::Ones(),
-        1.0 * UKF::Vector<3>::Ones()).finished());
+        0.5 * UKF::Vector<3>::Ones(),
+        0.004*0.004 * UKF::Vector<3>::Ones(),
+        0.05 * UKF::Vector<3>::Ones()).finished());
 
 /*
 The following functions provide a ctypes-compatible interface for ease of
@@ -249,19 +244,17 @@ void ukf_init() {
     /* Initialise state vector and covariance. */
     ahrs.state.set_field<Attitude>(UKF::Quaternion(1, 0, 0, 0));
     ahrs.state.set_field<AngularVelocity>(UKF::Vector<3>(0, 0, 0));
-    ahrs.state.set_field<Acceleration>(UKF::Vector<3>(0, 0, 0));
+    acceleration << UKF::Vector<3>(0, 0, 0);
     ahrs.covariance = AHRS_StateVector::CovarianceMatrix::Zero();
     ahrs.covariance.diagonal() <<
-        1e1, 1e1, 1e2,
-        1e-4 * UKF::Vector<3>::Ones(),
-        1e-4 * UKF::Vector<3>::Ones();
+        1e0, 1e0, 1e1,
+        1e-6 * UKF::Vector<3>::Ones();
 
     /* Set process noise covariance. */
     process_noise = AHRS_StateVector::CovarianceMatrix::Zero();
     process_noise.diagonal() <<
-        1e-5 * UKF::Vector<3>::Ones(),
-        1e-2 * UKF::Vector<3>::Ones(),
-        1e-2 * UKF::Vector<3>::Ones();
+        1e-7 * UKF::Vector<3>::Ones(),
+        1e-1 * UKF::Vector<3>::Ones();
 
     /* Initialise scale factor and bias errors. */
     ahrs_errors.state.set_field<AccelerometerBias>(UKF::Vector<3>(0, 0, 0));
@@ -269,14 +262,14 @@ void ukf_init() {
     ahrs_errors.state.set_field<MagnetometerBias>(UKF::Vector<3>(0, 0, 0));
     ahrs_errors.state.set_field<MagnetometerScaleFactor>(UKF::Vector<3>(1, 1, 1));
     ahrs_errors.state.set_field<MagneticFieldNorm>(MAG_NORM);
-    ahrs_errors.state.set_field<MagneticFieldInclination>(0);
+    ahrs_errors.state.set_field<MagneticFieldInclination>(0.0);
 
     /* Initialise scale factor and bias error covariance. */
     ahrs_errors.covariance = AHRS_SensorErrorVector::CovarianceMatrix::Zero();
     ahrs_errors.covariance.diagonal() <<
         0.8*0.8 * UKF::Vector<3>::Ones(),
         0.02*0.02 * UKF::Vector<3>::Ones(),
-        2.0e-1*2.0e-1 * UKF::Vector<3>::Ones(), 1.0e-1*1.0e-1 * UKF::Vector<3>::Ones(),
+        5.0e-2*5.0e-2 * UKF::Vector<3>::Ones(), 1.0e-1*1.0e-1 * UKF::Vector<3>::Ones(),
         0.4, 2e0;
 
     /*
@@ -290,13 +283,9 @@ void ukf_init() {
     error_process_noise = AHRS_SensorErrorVector::CovarianceMatrix::Zero();
     error_process_noise.diagonal() <<
         1.0e-7 * UKF::Vector<3>::Ones(),
-        1.0e-8 * UKF::Vector<3>::Ones(),
-        1.0e-7 * UKF::Vector<3>::Ones(), 1.0e-4 * UKF::Vector<3>::Ones(),
-        1.0e-10, 1.0e-10;
-}
-
-void ukf_set_acceleration(real_t x, real_t y, real_t z) {
-    ahrs.state.set_field<Acceleration>(UKF::Vector<3>(x, y, z));
+        1.0e-9 * UKF::Vector<3>::Ones(),
+        1.0e-5 * UKF::Vector<3>::Ones(), 1.0e-5 * UKF::Vector<3>::Ones(),
+        1.0e-7, 1.0e-7;
 }
 
 void ukf_set_attitude(real_t w, real_t x, real_t y, real_t z) {
@@ -315,14 +304,12 @@ void ukf_get_state(struct ukf_state_t *in) {
     in->angular_velocity[0] = ahrs.state.get_field<AngularVelocity>()[0];
     in->angular_velocity[1] = ahrs.state.get_field<AngularVelocity>()[1];
     in->angular_velocity[2] = ahrs.state.get_field<AngularVelocity>()[2];
-    in->acceleration[0] = ahrs.state.get_field<Acceleration>()[0];
-    in->acceleration[1] = ahrs.state.get_field<Acceleration>()[1];
-    in->acceleration[2] = ahrs.state.get_field<Acceleration>()[2];
+    in->acceleration[0] = acceleration[0];
+    in->acceleration[1] = acceleration[1];
+    in->acceleration[2] = acceleration[2];
 }
 
 void ukf_set_state(struct ukf_state_t *in) {
-    ahrs.state.set_field<Acceleration>(
-        UKF::Vector<3>(in->acceleration[0], in->acceleration[1], in->acceleration[2]));
     ahrs.state.set_field<Attitude>(
         UKF::Quaternion(in->attitude[3], in->attitude[0], in->attitude[1], in->attitude[2]));
     ahrs.state.set_field<AngularVelocity>(
@@ -351,9 +338,6 @@ void ukf_get_state_error(struct ukf_state_error_t *in) {
     in->angular_velocity[0] = state_error[3];
     in->angular_velocity[1] = state_error[4];
     in->angular_velocity[2] = state_error[5];
-    in->acceleration[0] = state_error[6];
-    in->acceleration[1] = state_error[7];
-    in->acceleration[2] = state_error[8];
 }
 
 /*
@@ -417,6 +401,9 @@ void ukf_iterate(float dt) {
     /* Do the a posteriori step. */
     ahrs.a_posteriori_step();
     ahrs_errors.a_posteriori_step();
+
+    acceleration << meas.get_field<Accelerometer>() - ahrs_errors.state.get_field<AccelerometerBias>() -
+        (ahrs.state.get_field<Attitude>() * UKF::Vector<3>(0, 0, -G_ACCEL));
 }
 
 void ukf_set_process_noise(real_t process_noise_covariance[AHRS_StateVector::covariance_size()]) {

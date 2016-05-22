@@ -40,15 +40,6 @@ _cukf = None
 _REAL_T = None
 
 
-class _SigmaPoint(object):
-    def __init__(self, arr):
-        self.attitude = (arr[0], arr[1], arr[2], arr[3])
-        self.angular_velocity = (arr[4], arr[5], arr[6])
-        self.acceleration = (arr[7], arr[8], arr[9])
-
-    def __repr__(self):
-        return str(self.__dict__)
-
 # Internal classes, wrapping cukf structs directly
 class _SensorParams(Structure):
     pass
@@ -59,7 +50,7 @@ class _State(Structure):
         fields = {
             "attitude": tuple(self.attitude),
             "angular_velocity": tuple(self.angular_velocity),
-            "acceleration": tuple(self.acceleration)
+            "acceleration": tuple(self.angular_velocity)
         }
         return str(fields)
 
@@ -67,8 +58,7 @@ class _StateError(Structure):
     def __repr__(self):
         fields = {
             "attitude": tuple(self.attitude),
-            "angular_velocity": tuple(self.angular_velocity),
-            "acceleration": tuple(self.acceleration)
+            "angular_velocity": tuple(self.angular_velocity)
         }
         return str(fields)
 
@@ -148,7 +138,7 @@ def configure_sensors(accelerometer_covariance=None,
 
 
 def configure_process_noise(process_noise_covariance):
-    _cukf.ukf_set_process_noise((_REAL_T * 9)(*process_noise_covariance))
+    _cukf.ukf_set_process_noise((_REAL_T * 6)(*process_noise_covariance))
 
 
 def init():
@@ -188,8 +178,7 @@ def init():
 
     _StateError._fields_ = [
         ("attitude", _REAL_T * 3),
-        ("angular_velocity", _REAL_T * 3),
-        ("acceleration", _REAL_T * 3)
+        ("angular_velocity", _REAL_T * 3)
     ]
 
     _Innovation._fields_ = [
@@ -208,9 +197,6 @@ def init():
     ]
 
     # Set up the function prototypes
-    _cukf.ukf_set_acceleration.argtypes = [_REAL_T, _REAL_T, _REAL_T]
-    _cukf.ukf_set_acceleration.restype = None
-
     _cukf.ukf_set_attitude.argtypes = [_REAL_T, _REAL_T, _REAL_T, _REAL_T]
     _cukf.ukf_set_attitude.restype = None
 

@@ -27,7 +27,7 @@ SOFTWARE.
 extern "C" {
 #endif
 
-#define UKF_STATE_DIM 9
+#define UKF_STATE_DIM 6
 #define UKF_MEASUREMENT_DIM 9
 
 /*
@@ -48,14 +48,13 @@ struct ukf_state_t {
     real_t attitude[4]; /* x, y, z, W */
     real_t angular_velocity[3]; /* rolling (rad/s), pitching (rad/s),
                                    yawing (rad/s) */
-    real_t acceleration[3]; /* forwards (m/s^2), starboard (m/s^2), down (m/s^2) */
+    real_t acceleration[3]; /* x, y, z (m/s^2) */
 };
 
 struct ukf_state_error_t {
     real_t attitude[3]; /* roll, pitch, yaw */
     real_t angular_velocity[3]; /* rolling (rad/s), pitching (rad/s),
                                    yawing (rad/s) */
-    real_t acceleration[3]; /* forwards (m/s^2), starboard (m/s^2), down (m/s^2) */
 };
 
 struct ukf_sensor_errors_t {
@@ -75,8 +74,6 @@ struct ukf_innovation_t {
 
 void ukf_init(void);
 
-/* Functions for setting different parts of the state vector. */
-void ukf_set_acceleration(real_t x, real_t y, real_t z);
 /*
 Note: W, x, y, z in the parameters for ukf_set_attitude differs to the stored
 attitude representation in struct ukf_state_t, which is x, y, z, W
