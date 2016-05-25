@@ -126,7 +126,8 @@ TEST(StateVectorTest, SigmaPointGeneration) {
                             0,      0,      0,      0,      0,      0,      0,      0,  0.866,      0,      0,      0,      0,      0,      0,      0,      0, -0.866,      0,
                             1,      1,      1,      1,      1,      1,    0.5,    0.5,    0.5,      1,      1,      1,      1,      1,      1,    0.5,    0.5,    0.5,      1,
                            10,     10,     10,     10,     10,     10,     10,     10,     10, 13.464,     10,     10,     10,     10,     10,     10,     10,     10,  6.536;
-    sigma_points = test_state.calculate_sigma_point_distribution(covariance);
+    sigma_points = test_state.calculate_sigma_point_distribution((covariance *
+        (MyStateVector::covariance_size() + UKF::Parameters::Lambda<MyStateVector>)).llt().matrixL());
 
     EXPECT_VECTOR_EQ(target_sigma_points.col(0),  sigma_points.col(0));
     EXPECT_VECTOR_EQ(target_sigma_points.col(1),  sigma_points.col(1));
@@ -160,7 +161,8 @@ TEST(StateVectorTest, SigmaPointMean) {
     MyStateVector::CovarianceMatrix covariance = MyStateVector::CovarianceMatrix::Zero();
     covariance.diagonal() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
 
-    MyStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution(covariance);
+    MyStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution((covariance *
+        (MyStateVector::covariance_size() + UKF::Parameters::Lambda<MyStateVector>)).llt().matrixL());
 
     EXPECT_VECTOR_EQ(test_state, MyStateVector::calculate_sigma_point_mean(sigma_points));
 }
@@ -176,7 +178,8 @@ TEST(StateVectorTest, SigmaPointDeltas) {
     MyStateVector::CovarianceMatrix covariance = MyStateVector::CovarianceMatrix::Zero();
     covariance.diagonal() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
 
-    MyStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution(covariance);
+    MyStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution((covariance *
+        (MyStateVector::covariance_size() + UKF::Parameters::Lambda<MyStateVector>)).llt().matrixL());
     MyStateVector test_mean = MyStateVector::calculate_sigma_point_mean(sigma_points);
     MyStateVector::SigmaPointDeltas sigma_point_deltas, target_sigma_point_deltas;
 
@@ -223,7 +226,8 @@ TEST(StateVectorTest, SigmaPointCovariance) {
     MyStateVector::CovarianceMatrix covariance = MyStateVector::CovarianceMatrix::Zero();
     covariance.diagonal() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
 
-    MyStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution(covariance);
+    MyStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution((covariance *
+        (MyStateVector::covariance_size() + UKF::Parameters::Lambda<MyStateVector>)).llt().matrixL());
     MyStateVector test_mean = MyStateVector::calculate_sigma_point_mean(sigma_points);
     MyStateVector::SigmaPointDeltas sigma_point_deltas = test_mean.calculate_sigma_point_deltas(sigma_points);
     MyStateVector::CovarianceMatrix calculated_covariance = MyStateVector::calculate_sigma_point_covariance(sigma_point_deltas);
@@ -249,7 +253,8 @@ TEST(StateVectorTest, SmallAlphaSigmaPoints) {
     AlternateStateVector::CovarianceMatrix covariance = MyStateVector::CovarianceMatrix::Zero();
     covariance.diagonal() << 1000.0, 1000.0, 1000.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
 
-    AlternateStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution(covariance);
+    AlternateStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution((covariance *
+        (AlternateStateVector::covariance_size() + UKF::Parameters::Lambda<AlternateStateVector>)).llt().matrixL());
     AlternateStateVector test_mean = AlternateStateVector::calculate_sigma_point_mean(sigma_points);
     AlternateStateVector::SigmaPointDeltas sigma_point_deltas = test_mean.calculate_sigma_point_deltas(sigma_points);
     AlternateStateVector::CovarianceMatrix calculated_covariance = AlternateStateVector::calculate_sigma_point_covariance(sigma_point_deltas);

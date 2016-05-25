@@ -92,10 +92,15 @@ public:
     void a_priori_step(real_t delta, const U&... input) {
         /*
         Add process noise covariance to the state covariance and calculate
-        the sigma point distribution.
+        the LLT decomposition of the scaled covariance matrix.
         */
-        sigma_points = state.calculate_sigma_point_distribution(
-            covariance + StateVectorType::process_noise_covariance(delta));
+        covariance += StateVectorType::process_noise_covariance(delta);
+        assert(((covariance * (StateVectorType::covariance_size() +
+            Parameters::Lambda<StateVector>)).llt().info() == Eigen::Success)
+            && "Covariance matrix is not positive definite");
+
+        sigma_points = state.calculate_sigma_point_distribution((covariance *
+            (StateVectorType::covariance_size() + Parameters::Lambda<StateVectorType>)).llt().matrixL());
 
         /* Propagate the sigma points through the process model. */
         for(std::size_t i = 0; i < StateVectorType::num_sigma(); i++) {

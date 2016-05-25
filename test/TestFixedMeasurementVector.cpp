@@ -197,7 +197,8 @@ TEST(FixedMeasurementVectorTest, SigmaPointGeneration) {
     MyStateVector::CovarianceMatrix covariance = MyStateVector::CovarianceMatrix::Zero();
     covariance.diagonal() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
 
-    MyStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution(covariance);
+    MyStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution((covariance *
+        (MyStateVector::covariance_size() + UKF::Parameters::Lambda<MyStateVector>)).llt().matrixL());
 
     MyMeasurementVector::SigmaPointDistribution<MyStateVector> measurement_sigma_points, target_sigma_points;
 
@@ -246,7 +247,8 @@ TEST(FixedMeasurementVectorTest, SigmaPointGenerationWithInput) {
     MyStateVector::CovarianceMatrix covariance = MyStateVector::CovarianceMatrix::Zero();
     covariance.diagonal() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
 
-    MyStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution(covariance);
+    MyStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution((covariance *
+        (MyStateVector::covariance_size() + UKF::Parameters::Lambda<MyStateVector>)).llt().matrixL());
 
     MyMeasurementVector::SigmaPointDistribution<MyStateVector> measurement_sigma_points, target_sigma_points;
 
@@ -316,7 +318,8 @@ TEST(FixedMeasurementVectorTest, SigmaPointDeltas) {
     MyStateVector::CovarianceMatrix covariance = MyStateVector::CovarianceMatrix::Zero();
     covariance.diagonal() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
 
-    MyStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution(covariance);
+    MyStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution((covariance *
+        (MyStateVector::covariance_size() + UKF::Parameters::Lambda<MyStateVector>)).llt().matrixL());
 
     MyMeasurementVector::SigmaPointDistribution<MyStateVector> measurement_sigma_points =
         test_measurement.calculate_sigma_point_distribution<MyStateVector>(sigma_points);
@@ -369,7 +372,8 @@ TEST(FixedMeasurementVectorTest, SigmaPointCovariance) {
     MyStateVector::CovarianceMatrix covariance = MyStateVector::CovarianceMatrix::Zero();
     covariance.diagonal() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
 
-    MyStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution(covariance);
+    MyStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution((covariance *
+        (MyStateVector::covariance_size() + UKF::Parameters::Lambda<MyStateVector>)).llt().matrixL());
 
     MyMeasurementVector::SigmaPointDistribution<MyStateVector> measurement_sigma_points =
         test_measurement.calculate_sigma_point_distribution<MyStateVector>(sigma_points);

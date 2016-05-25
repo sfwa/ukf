@@ -387,12 +387,7 @@ public:
     /*
     Create a sigma point distribution using the provided covariance matrix.
     */
-    SigmaPointDistribution calculate_sigma_point_distribution(const CovarianceMatrix& P) const {
-        /* Calculate the LLT decomposition of the scaled covariance matrix. */
-        assert((P * (covariance_size() + Parameters::Lambda<StateVector>)).llt().info() == Eigen::Success
-            && "Covariance matrix is not positive definite");
-        CovarianceMatrix S = (P * (covariance_size() + Parameters::Lambda<StateVector>)).llt().matrixL();
-
+    SigmaPointDistribution calculate_sigma_point_distribution(const CovarianceMatrix& S) const {
         /* Calculate the sigma point distribution from all the fields. */
         SigmaPointDistribution X;
         calculate_field_sigmas<Fields...>(S, X);
