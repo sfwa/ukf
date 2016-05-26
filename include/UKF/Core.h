@@ -94,7 +94,6 @@ public:
         Add process noise covariance to the state covariance and calculate
         the LLT decomposition of the scaled covariance matrix.
         */
-        covariance += StateVectorType::process_noise_covariance(delta);
         assert(((covariance * (StateVectorType::covariance_size() +
             Parameters::Lambda<StateVector>)).llt().info() == Eigen::Success)
             && "Covariance matrix is not positive definite");
@@ -111,7 +110,8 @@ public:
         /* Calculate the a priori estimate mean, deltas and covariance. */
         state = StateVectorType::calculate_sigma_point_mean(sigma_points);
         w_prime = state.calculate_sigma_point_deltas(sigma_points);
-        covariance = StateVectorType::calculate_sigma_point_covariance(w_prime);
+        covariance = StateVectorType::calculate_sigma_point_covariance(w_prime) +
+            StateVectorType::process_noise_covariance(delta);
     }
 
     /*
@@ -128,11 +128,10 @@ public:
             measurement_sigma_points = z.template calculate_sigma_point_distribution<StateVectorType>(
                 sigma_points, input...);
 
-        /* Calculate the measurement prediction mean, deltas and covariance. */
+        /* Calculate the measurement prediction mean and deltas. */
         MeasurementVectorType z_pred =
             z.template calculate_sigma_point_mean<StateVectorType>(measurement_sigma_points);
         z_prime = z_pred.template calculate_sigma_point_deltas<StateVectorType>(measurement_sigma_points);
-        innovation_covariance = z_pred.template calculate_sigma_point_covariance<StateVectorType>(z_prime);
 
         /*
         Calculate innovation and innovation covariance. Innovation is simply
@@ -142,6 +141,7 @@ public:
         See equations 44 and 45 from the Kraft paper for details.
         */
         innovation = z - z_pred;
+        innovation_covariance = z_pred.template calculate_sigma_point_covariance<StateVectorType>(z_prime);
         innovation_covariance += z.template calculate_measurement_covariance();
     }
 
