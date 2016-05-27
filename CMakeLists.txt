@@ -21,6 +21,8 @@ ExternalProject_Add(
 eigen3
 URL https://bitbucket.org/eigen/eigen/get/3.2.8.tar.gz
 TIMEOUT 30
+# Apply the LLT malloc fix patch
+PATCH_COMMAND patch -p1 -t -N < ${CMAKE_SOURCE_DIR}/patch/eigen-3.2.8-no-malloc-in-llt.patch
 # Disable install step
 INSTALL_COMMAND ""
 # Wrap download, configure and build steps in a script to log output

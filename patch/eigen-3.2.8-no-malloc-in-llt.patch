@@ -1,0 +1,13 @@
+diff --git a/Eigen/src/Cholesky/LLT.h b/Eigen/src/Cholesky/LLT.h
+index 7c11a2d..21b824d 100644
+--- a/Eigen/src/Cholesky/LLT.h
++++ b/Eigen/src/Cholesky/LLT.h
+@@ -203,7 +203,7 @@ static typename MatrixType::Index llt_rank_update_lower(MatrixType& mat, const V
+   typedef typename MatrixType::ColXpr ColXpr;
+   typedef typename internal::remove_all<ColXpr>::type ColXprCleaned;
+   typedef typename ColXprCleaned::SegmentReturnType ColXprSegment;
+-  typedef Matrix<Scalar,Dynamic,1> TempVectorType;
++  typedef Matrix<Scalar,VectorType::RowsAtCompileTime,1,0,VectorType::MaxRowsAtCompileTime,1> TempVectorType;
+   typedef typename TempVectorType::SegmentReturnType TempVecSegment;
+ 
+   Index n = mat.cols();
