@@ -24,6 +24,8 @@ using MyStateVector = UKF::StateVector<
     UKF::Field<AngularVelocity, UKF::Vector<3>>
 >;
 
+template <> constexpr real_t UKF::Parameters::AlphaSquared<MyStateVector> = 1e-6;
+
 /*
 State vector process model. One version takes body frame kinematic
 acceleration and angular acceleration as inputs, the other doesn't (assumes
@@ -183,14 +185,14 @@ MyMeasurementVector::CovarianceVector MyMeasurementVector::measurement_covarianc
     MyMeasurementVector::CovarianceVector();
 
 MyCore create_initialised_test_filter() {
-    MyMeasurementVector::measurement_covariance << 10, 10, 10, 1, 1, 1, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 0.05, 0.05, 0.05;
+    MyMeasurementVector::measurement_covariance << 10, 10, 10, 1, 1, 1, 5e-1, 5e-1, 5e-1, 5e-1, 5e-1, 5e-1, 0.05, 0.05, 0.05;
     MyCore test_filter;
     test_filter.state.set_field<Position>(UKF::Vector<3>(0, 0, 0));
     test_filter.state.set_field<Velocity>(UKF::Vector<3>(0, 0, 0));
     test_filter.state.set_field<Attitude>(UKF::Quaternion(1, 0, 0, 0));
     test_filter.state.set_field<AngularVelocity>(UKF::Vector<3>(0, 0, 0));
     test_filter.covariance = MyStateVector::CovarianceMatrix::Zero();
-    test_filter.covariance.diagonal() << 10000, 10000, 10000, 100, 100, 100, 1, 1, 1, 10, 10, 10;
+    test_filter.covariance.diagonal() << 10000, 10000, 10000, 100, 100, 100, 1, 1, 5, 10, 10, 10;
 
     return test_filter;
 }
