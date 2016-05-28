@@ -212,16 +212,19 @@ protected:
         MeasurementVectorType::MaxRowsAtCompileTime>;
 
 public:
-    /* State and covariance are public for simplicity of initialisation. */
+    /*
+    For the SR-UKF, covariance is stored in square-root form. The variable
+    is named accordingly to avoid mix-ups.
+    */
     StateVectorType state;
-    typename StateVectorType::CovarianceMatrix covariance;
+    typename StateVectorType::CovarianceMatrix root_covariance;
 
     /*
-    Innovation and innovation covariance are public to ease implementation of
-    filter health monitoring.
+    Innovation covariance is also stored in square-root form as described
+    above.
     */
     MeasurementVectorType innovation;
-    typename MeasurementVectorType::CovarianceMatrix innovation_covariance;
+    typename MeasurementVectorType::CovarianceMatrix innovation_root_covariance;
 
     /* Top-level function used to carry out a filter step. */
     template <typename... U>
@@ -235,13 +238,13 @@ public:
     The a priori step differs from the standard UKF in that it doesn't
     compute the LLT decomposition of the state covariance matrix.
 
-    In addition, the a priori state covariance is recovered from the sigma
-    point distribution using a QR decomposition and a rank-one Cholesky
+    In addition, the a priori state root covariance is recovered from the
+    sigma point distribution using a QR decomposition and a rank-one Cholesky
     update.
     */
     template <typename... U>
     void a_priori_step(real_t delta, const U&... input) {
-        sigma_points = state.calculate_sigma_point_distribution(covariance *
+        sigma_points = state.calculate_sigma_point_distribution(root_covariance *
             std::sqrt(StateVectorType::covariance_size() + Parameters::Lambda<StateVectorType>));
 
         /* Propagate the sigma points through the process model. */
@@ -250,13 +253,13 @@ public:
                 StateVectorType(sigma_points.col(i)).template process_model<IntegratorType>(delta, input...);
         }
 
-        /* Calculate the a priori estimate mean, deltas and covariance. */
+        /* Calculate the a priori estimate mean, deltas and root covariance. */
         state = StateVectorType::calculate_sigma_point_mean(sigma_points);
         w_prime = state.calculate_sigma_point_deltas(sigma_points);
 
         /*
         Create an augmented matrix containing all but the centre sigma point
-        delta, with the root process noise covariance to the right.
+        delta, with the process noise root covariance to the right.
         */
         using AugmentedSigmaPointDeltas = Matrix<
             StateVectorType::covariance_size(),
@@ -265,26 +268,26 @@ public:
         AugmentedSigmaPointDeltas augmented_w_prime;
         augmented_w_prime <<
             std::sqrt(Parameters::Sigma_WCI<StateVectorType>) * w_prime.rightCols(StateVectorType::num_sigma() - 1),
-            StateVectorType::process_noise_covariance(delta);
+            StateVectorType::process_noise_root_covariance(delta);
 
         /*
         Calculate the QR decomposition of the augmented sigma point deltas.
         */
-        covariance = augmented_w_prime.transpose().householderQr().matrixQR().topLeftCorner(
+        root_covariance = augmented_w_prime.transpose().householderQr().matrixQR().topLeftCorner(
             StateVectorType::covariance_size(),
             StateVectorType::covariance_size()).template triangularView<Eigen::Upper>();
 
         /*
-        Do a rank-one Cholesky update of the covariance matrix using the
+        Do a rank-one Cholesky update of the root covariance matrix using the
         central sigma point delta.
         */
         Eigen::internal::llt_inplace<real_t, Eigen::Upper>::rankUpdate(
-            covariance, w_prime.col(0), Parameters::Sigma_WC0<StateVectorType>);
+            root_covariance, w_prime.col(0), Parameters::Sigma_WC0<StateVectorType>);
     }
 
     /*
     The innovation step differs from the standard UKF in the same way as the
-    a priori step; it recovers the innovation covariance using a QR
+    a priori step; it recovers the innovation root covariance using a QR
     decomposition and a rank-one Cholesky update.
     */
     template <typename... U>
@@ -300,14 +303,15 @@ public:
         z_prime = z_pred.template calculate_sigma_point_deltas<StateVectorType>(measurement_sigma_points);
 
         /*
-        Calculate innovation and innovation covariance. Innovation is simply
-        the difference between the measurement and the predicted measurement.
+        Calculate innovation and innovation root covariance. Innovation is
+        simply the difference between the measurement and the predicted
+        measurement.
         */
         innovation = z - z_pred;
 
         /*
         Create an augmented matrix containing all but the centre innovation
-        delta, with the root measurement covariance to the right.
+        delta, with the measurement root covariance to the right.
         */
         constexpr std::ptrdiff_t augmented_innovation_cols =
             (MeasurementVectorType::RowsAtCompileTime != Eigen::Dynamic) ?
@@ -325,26 +329,26 @@ public:
         augmented_z_prime.block(0, 0, z.size(), StateVectorType::num_sigma() - 1) =
             std::sqrt(Parameters::Sigma_WCI<StateVectorType>) * z_prime.rightCols(StateVectorType::num_sigma() - 1);
         augmented_z_prime.block(0, StateVectorType::num_sigma() - 1, z.size(), z.size()) =
-            z.template calculate_measurement_covariance();
+            z.template calculate_measurement_root_covariance();
 
         /*
         Calculate the QR decomposition of the augmented innovation deltas.
         */
-        innovation_covariance = augmented_z_prime.transpose().householderQr().matrixQR().topLeftCorner(
+        innovation_root_covariance = augmented_z_prime.transpose().householderQr().matrixQR().topLeftCorner(
             z.size(), z.size()).template triangularView<Eigen::Upper>();
 
         /*
-        Do a rank-one Cholesky update of the innovation covariance matrix
-        using the central innovation delta.
+        Do a rank-one Cholesky update of the innovation root covariance
+        matrix using the central innovation delta.
         */
         Eigen::internal::llt_inplace<real_t, Eigen::Upper>::rankUpdate(
-            innovation_covariance, z_prime.col(0), Parameters::Sigma_WC0<StateVectorType>);
+            innovation_root_covariance, z_prime.col(0), Parameters::Sigma_WC0<StateVectorType>);
     }
 
     /*
     Compared to the standard UKF, the a posteriori step calculates the Kalman
-    gain using a QR decomposition, and then updates the covariance using a
-    series of rank-one Cholesky updates.
+    gain using a QR decomposition, and then updates the root covariance using
+    a series of rank-one Cholesky updates.
     */
     void a_posteriori_step() {
         /*
@@ -366,8 +370,8 @@ public:
         literature. Eigen's QR decomposition implements a left-division,
         rather than the right-division assumed in the literature.
         */
-        CrossCorrelation kalman_gain = innovation_covariance.transpose().fullPivHouseholderQr().solve(
-            innovation_covariance.fullPivHouseholderQr().solve(cross_correlation.transpose())).transpose();
+        CrossCorrelation kalman_gain = innovation_root_covariance.transpose().fullPivHouseholderQr().solve(
+            innovation_root_covariance.fullPivHouseholderQr().solve(cross_correlation.transpose())).transpose();
 
         /*
         Calculate the update delta vector, to be applied to the a priori
@@ -382,14 +386,15 @@ public:
         Calculate the Cholesky update matrix. Reuse the cross-correlation
         variable, since we don't need it again.
         */
-        cross_correlation.noalias() = kalman_gain * innovation_covariance;
+        cross_correlation.noalias() = kalman_gain * innovation_root_covariance;
 
         /*
-        Update the covariance using a series of rank-one Cholesky downdates.
+        Update the root covariance using a series of rank-one Cholesky
+        downdates.
         */
         for(std::size_t i = 0; i < cross_correlation.cols(); i++) {
             Eigen::internal::llt_inplace<real_t, Eigen::Upper>::rankUpdate(
-                covariance, cross_correlation.col(i), real_t(-1.0));
+                root_covariance, cross_correlation.col(i), real_t(-1.0));
         }
     }
 };

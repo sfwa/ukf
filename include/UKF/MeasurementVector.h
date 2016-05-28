@@ -74,9 +74,14 @@ public:
 
     /*
     Measurement noise covariance. This is defined by the user and can be
-    adjusted between iterations.
+    adjusted between iterations. This is used for the standard UKF.
     */
     static CovarianceVector measurement_covariance;
+
+    /*
+    Measurement noise root covariance. This is used for the square-root UKF.
+    */
+    static CovarianceVector measurement_root_covariance;
 
     /* Functions for accessing individual fields. */
     template <int Key>
@@ -152,9 +157,20 @@ public:
         return Z;
     }
 
-    /* Returns a diagonal matrix containing the measurement covariance. */
+    /*
+    Returns a diagonal matrix containing the measurement covariance. Used for
+    the standard UKF.
+    */
     Eigen::DiagonalMatrix<real_t, covariance_size()> calculate_measurement_covariance() const {
         return Eigen::DiagonalMatrix<real_t, covariance_size()>(measurement_covariance);
+    }
+
+    /*
+    Returns a diagonal matrix containing the measurement root covariance.
+    Used for the square-root UKF.
+    */
+    Eigen::DiagonalMatrix<real_t, covariance_size()> calculate_measurement_root_covariance() const {
+        return Eigen::DiagonalMatrix<real_t, covariance_size()>(measurement_root_covariance);
     }
 
 private:
@@ -224,8 +240,15 @@ public:
     using CovarianceMatrix = MatrixDynamic<max_covariance_size(), max_covariance_size()>;
     using CovarianceVector = FixedMeasurementVector<Fields...>;
 
-    /* Measurement noise covariance. */
+    /*
+    Measurement noise covariance. This is used for the standard UKF.
+    */
     static CovarianceVector measurement_covariance;
+
+    /*
+    Measurement noise root covariance. This is used for the square-root UKF.
+    */
+    static CovarianceVector measurement_root_covariance;
 
     /* Functions for accessing individual fields. */
     template <int Key>
@@ -334,11 +357,27 @@ public:
         return Z;
     }
 
-    /* Returns a diagonal matrix containing the measurement covariance. */
+    /*
+    Returns a diagonal matrix containing the measurement covariance. This is
+    used for the standard UKF.
+    */
     Eigen::DiagonalMatrix<real_t, Eigen::Dynamic, max_covariance_size()> calculate_measurement_covariance() const {
         DynamicMeasurementVector temp(Base::template size());
 
         calculate_field_covariance<Fields...>(temp);
+        temp.field_offsets = field_offsets;
+        return Eigen::DiagonalMatrix<real_t, Eigen::Dynamic, max_covariance_size()>(temp);
+    }
+
+    /*
+    Returns a diagonal matrix containing the measurement root covariance.
+    This is used for the square-root UKF.
+    */
+    Eigen::DiagonalMatrix<real_t, Eigen::Dynamic, max_covariance_size()> calculate_measurement_root_covariance()
+            const {
+        DynamicMeasurementVector temp(Base::template size());
+
+        calculate_field_root_covariance<Fields...>(temp);
         temp.field_offsets = field_offsets;
         return Eigen::DiagonalMatrix<real_t, Eigen::Dynamic, max_covariance_size()>(temp);
     }
@@ -422,6 +461,28 @@ private:
     void calculate_field_covariance(DynamicMeasurementVector& cov) const {
         calculate_field_covariance<T1>(cov);
         calculate_field_covariance<T2, Tail...>(cov);
+    }
+
+    /*
+    These functions build the measurement root covariance from all populated
+    fields.
+    */
+    template <typename T>
+    void calculate_field_root_covariance(DynamicMeasurementVector& cov) const {
+        std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(T::key)>(field_offsets);
+        if(offset != std::numeric_limits<std::size_t>::max()) {
+            cov.segment(offset, Detail::CovarianceDimension<typename T::type>) << measurement_root_covariance.segment(
+                Detail::get_field_covariance_offset<0, Fields...>(T::key),
+                Detail::get_field_covariance_size<Fields...>(T::key));
+        } else {
+            return;
+        }
+    }
+
+    template <typename T1, typename T2, typename... Tail>
+    void calculate_field_root_covariance(DynamicMeasurementVector& cov) const {
+        calculate_field_root_covariance<T1>(cov);
+        calculate_field_root_covariance<T2, Tail...>(cov);
     }
 };
 
