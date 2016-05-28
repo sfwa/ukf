@@ -370,8 +370,8 @@ public:
         literature. Eigen's QR decomposition implements a left-division,
         rather than the right-division assumed in the literature.
         */
-        CrossCorrelation kalman_gain = innovation_root_covariance.transpose().fullPivHouseholderQr().solve(
-            innovation_root_covariance.fullPivHouseholderQr().solve(cross_correlation.transpose())).transpose();
+        CrossCorrelation kalman_gain = innovation_root_covariance.fullPivHouseholderQr().solve(
+            innovation_root_covariance.transpose().fullPivHouseholderQr().solve(cross_correlation.transpose())).transpose();
 
         /*
         Calculate the update delta vector, to be applied to the a priori
@@ -386,7 +386,7 @@ public:
         Calculate the Cholesky update matrix. Reuse the cross-correlation
         variable, since we don't need it again.
         */
-        cross_correlation.noalias() = kalman_gain * innovation_root_covariance;
+        cross_correlation.noalias() = kalman_gain * innovation_root_covariance.transpose();
 
         /*
         Update the root covariance using a series of rank-one Cholesky
@@ -552,8 +552,8 @@ public:
         literature. Eigen's QR decomposition implements a left-division,
         rather than the right-division assumed in the literature.
         */
-        CrossCorrelation kalman_gain = innovation_root_covariance.transpose().fullPivHouseholderQr().solve(
-            innovation_root_covariance.fullPivHouseholderQr().solve(cross_correlation.transpose())).transpose();
+        CrossCorrelation kalman_gain = innovation_root_covariance.fullPivHouseholderQr().solve(
+            innovation_root_covariance.transpose().fullPivHouseholderQr().solve(cross_correlation.transpose())).transpose();
 
         /*
         Calculate the update delta vector, to be applied to the a priori
@@ -568,7 +568,7 @@ public:
         Calculate the Cholesky update matrix. Reuse the cross-correlation
         variable, since we don't need it again.
         */
-        cross_correlation.noalias() = kalman_gain * innovation_root_covariance;
+        cross_correlation.noalias() = kalman_gain * innovation_root_covariance.transpose();
 
         /*
         Update the root covariance using a series of rank-one Cholesky
