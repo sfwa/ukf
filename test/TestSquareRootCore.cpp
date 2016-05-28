@@ -9,12 +9,15 @@
 #include "UKF/Core.h"
 #include "comparisons.h"
 
-/* Set up state vector class. */
+/*
+Set up state vector class. The order of these is changed to prevent
+linker collisions with the ones in TestCore.cpp.
+*/
 enum MyStateFields {
-    Position,
-    Velocity,
     Attitude,
-    AngularVelocity
+    AngularVelocity,
+    Position,
+    Velocity
 };
 
 using MyStateVector = UKF::StateVector<
@@ -23,6 +26,8 @@ using MyStateVector = UKF::StateVector<
     UKF::Field<Attitude, UKF::Quaternion>,
     UKF::Field<AngularVelocity, UKF::Vector<3>>
 >;
+
+template <> constexpr real_t UKF::Parameters::AlphaSquared<MyStateVector> = 1e-6;
 
 /*
 State vector process model. One version takes body frame kinematic
@@ -60,32 +65,39 @@ MyStateVector MyStateVector::derivative<>() const {
 /*
 State vector process noise covariance. These are just completely arbitrary
 for this test.
+Return square roots to make it comparable to TestCore.cpp.
 */
 template <>
 MyStateVector::CovarianceMatrix MyStateVector::process_noise_covariance(real_t dt) {
     MyStateVector::CovarianceMatrix temp;
-    temp << 0.1*dt*dt,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,
-                    0, 0.1*dt*dt,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,
-                    0,         0, 0.1*dt*dt,         0,         0,         0,         0,         0,         0,         0,         0,         0,
-                    0,         0,         0,    0.1*dt,         0,         0,         0,         0,         0,         0,         0,         0,
-                    0,         0,         0,         0,    0.1*dt,         0,         0,         0,         0,         0,         0,         0,
-                    0,         0,         0,         0,         0,    0.1*dt,         0,         0,         0,         0,         0,         0,
-                    0,         0,         0,         0,         0,         0, 0.1*dt*dt,         0,         0,         0,         0,         0,
-                    0,         0,         0,         0,         0,         0,         0, 0.1*dt*dt,         0,         0,         0,         0,
-                    0,         0,         0,         0,         0,         0,         0,         0, 0.1*dt*dt,         0,         0,         0,
-                    0,         0,         0,         0,         0,         0,         0,         0,         0,    0.1*dt,         0,         0,
-                    0,         0,         0,         0,         0,         0,         0,         0,         0,         0,    0.1*dt,         0,
-                    0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,    0.1*dt;
+    real_t a, b;
+    a = std::sqrt(0.1*dt*dt);
+    b = std::sqrt(0.1*dt);
+    temp << a, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, a, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, a, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, b, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, b, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, b, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, a, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, a, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, a, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, b, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, b, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, b;
     return temp;
 }
 
-/* Set up measurement vector class. */
+/*
+Set up measurement vector class. The order of these is changed to prevent
+linker collisions with the ones in TestCore.cpp.
+*/
 enum MyMeasurementFields {
-    GPS_Position,
-    GPS_Velocity,
     Accelerometer,
     Magnetometer,
-    Gyroscope
+    Gyroscope,
+    GPS_Position,
+    GPS_Velocity
 };
 
 using MyMeasurementVector = UKF::DynamicMeasurementVector<
@@ -96,7 +108,7 @@ using MyMeasurementVector = UKF::DynamicMeasurementVector<
     UKF::Field<Gyroscope, UKF::Vector<3>>
 >;
 
-using MyCore = UKF::Core<
+using MyCore = UKF::SquareRootCore<
     MyStateVector,
     MyMeasurementVector,
     UKF::IntegratorRK4
@@ -182,61 +194,66 @@ template <>
 MyMeasurementVector::CovarianceVector MyMeasurementVector::measurement_covariance =
     MyMeasurementVector::CovarianceVector();
 
-MyCore create_initialised_test_filter() {
-    MyMeasurementVector::measurement_covariance << 10, 10, 10, 1, 1, 1, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 0.05, 0.05, 0.05;
+/*
+Initialise covariances as square roots to be comparable with TestCore.cpp.
+*/
+MyCore create_initialised_sr_test_filter() {
+    MyMeasurementVector::measurement_covariance << 
+        10, 10, 10, 1, 1, 1, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 0.0005, 0.0005, 0.0005;
+    MyMeasurementVector::measurement_covariance = MyMeasurementVector::measurement_covariance.array().sqrt();
     MyCore test_filter;
     test_filter.state.set_field<Position>(UKF::Vector<3>(0, 0, 0));
     test_filter.state.set_field<Velocity>(UKF::Vector<3>(0, 0, 0));
     test_filter.state.set_field<Attitude>(UKF::Quaternion(1, 0, 0, 0));
     test_filter.state.set_field<AngularVelocity>(UKF::Vector<3>(0, 0, 0));
     test_filter.covariance = MyStateVector::CovarianceMatrix::Zero();
-    test_filter.covariance.diagonal() << 10000, 10000, 10000, 100, 100, 100, 1, 1, 1, 10, 10, 10;
+    test_filter.covariance.diagonal() <<
+        10000, 10000, 10000, 100, 100, 100, 1, 1, 1, 10, 10, 10;
+    test_filter.covariance = test_filter.covariance.llt().matrixL();
 
     return test_filter;
 }
 
-TEST(CoreTest, Initialisation) {
-    MyCore test_filter = create_initialised_test_filter();
+TEST(SquareRootCoreTest, Initialisation) {
+    MyCore test_filter = create_initialised_sr_test_filter();
 }
 
 /*
 All these tests check that the estimated state matches the 'actual' state to
 within 2-sigma.
 */
-TEST(CoreTest, APrioriStep) {
-    MyCore test_filter = create_initialised_test_filter();
+TEST(SquareRootCoreTest, APrioriStep) {
+    MyCore test_filter = create_initialised_sr_test_filter();
 
     test_filter.a_priori_step(0.01);
 
-    EXPECT_TRUE(test_filter.covariance.llt().info() == Eigen::Success);
     EXPECT_LT((UKF::Vector<3>(100, 10, -50) - test_filter.state.get_field<Position>()).norm(),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(0).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(0).norm()*2);
     EXPECT_LT((UKF::Vector<3>(20, 0, 0) - test_filter.state.get_field<Velocity>()).norm(),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(3).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(3).norm()*2);
     EXPECT_LT(2*std::acos(std::abs(UKF::Quaternion(0.7071, 0, 0, -0.7071).dot(test_filter.state.get_field<Attitude>()))),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(6).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(6).norm()*2);
     EXPECT_LT((UKF::Vector<3>(0.5, 0, 0) - test_filter.state.get_field<AngularVelocity>()).norm(),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(9).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(9).norm()*2);
 }
 
-TEST(CoreTest, APrioriStepWithInputs) {
-    MyCore test_filter = create_initialised_test_filter();
+TEST(SquareRootCoreTest, APrioriStepWithInputs) {
+    MyCore test_filter = create_initialised_sr_test_filter();
 
     test_filter.a_priori_step(0.01, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0));
 
-    EXPECT_TRUE(test_filter.covariance.llt().info() == Eigen::Success);
     EXPECT_LT((UKF::Vector<3>(100, 10, -50) - test_filter.state.get_field<Position>()).norm(),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(0).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(0).norm()*2);
     EXPECT_LT((UKF::Vector<3>(20, 0, 0) - test_filter.state.get_field<Velocity>()).norm(),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(3).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(3).norm()*2);
     EXPECT_LT(2*std::acos(std::abs(UKF::Quaternion(0.7071, 0, 0, -0.7071).dot(test_filter.state.get_field<Attitude>()))),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(6).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(6).norm()*2);
     EXPECT_LT((UKF::Vector<3>(0.5, 0, 0) - test_filter.state.get_field<AngularVelocity>()).norm(),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(9).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(9).norm()*2);
 }
 
-TEST(CoreTest, InnovationStep) {
-    MyCore test_filter = create_initialised_test_filter();
+TEST(SquareRootCoreTest, InnovationStep) {
+    MyCore test_filter = create_initialised_sr_test_filter();
     MyMeasurementVector m;
 
     m.set_field<GPS_Position>(UKF::Vector<3>(100, 10, -50));
@@ -248,23 +265,20 @@ TEST(CoreTest, InnovationStep) {
     test_filter.a_priori_step(0.01);
     test_filter.innovation_step(m);
 
-    EXPECT_TRUE(test_filter.innovation_covariance.llt().info() == Eigen::Success);
-
     test_filter.a_posteriori_step();
 
-    EXPECT_TRUE(test_filter.covariance.llt().info() == Eigen::Success);
     EXPECT_LT((UKF::Vector<3>(100, 10, -50) - test_filter.state.get_field<Position>()).norm(),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(0).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(0).norm()*2);
     EXPECT_LT((UKF::Vector<3>(20, 0, 0) - test_filter.state.get_field<Velocity>()).norm(),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(3).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(3).norm()*2);
     EXPECT_LT(2*std::acos(std::abs(UKF::Quaternion(0.7071, 0, 0, -0.7071).dot(test_filter.state.get_field<Attitude>()))),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(6).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(6).norm()*2);
     EXPECT_LT((UKF::Vector<3>(0.5, 0, 0) - test_filter.state.get_field<AngularVelocity>()).norm(),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(9).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(9).norm()*2);
 }
 
-TEST(CoreTest, InnovationStepPartialMeasurement) {
-    MyCore test_filter = create_initialised_test_filter();
+TEST(SquareRootCoreTest, InnovationStepPartialMeasurement) {
+    MyCore test_filter = create_initialised_sr_test_filter();
     MyMeasurementVector m;
 
     m.set_field<Accelerometer>(UKF::Vector<3>(0, 0, -9.8));
@@ -274,23 +288,20 @@ TEST(CoreTest, InnovationStepPartialMeasurement) {
     test_filter.a_priori_step(0.01);
     test_filter.innovation_step(m);
 
-    EXPECT_TRUE(test_filter.innovation_covariance.llt().info() == Eigen::Success);
-
     test_filter.a_posteriori_step();
 
-    EXPECT_TRUE(test_filter.covariance.llt().info() == Eigen::Success);
     EXPECT_LT((UKF::Vector<3>(100, 10, -50) - test_filter.state.get_field<Position>()).norm(),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(0).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(0).norm()*2);
     EXPECT_LT((UKF::Vector<3>(20, 0, 0) - test_filter.state.get_field<Velocity>()).norm(),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(3).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(3).norm()*2);
     EXPECT_LT(2*std::acos(std::abs(UKF::Quaternion(0.7071, 0, 0, -0.7071).dot(test_filter.state.get_field<Attitude>()))),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(6).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(6).norm()*2);
     EXPECT_LT((UKF::Vector<3>(0.5, 0, 0) - test_filter.state.get_field<AngularVelocity>()).norm(),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(9).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(9).norm()*2);
 }
 
-TEST(CoreTest, InnovationStepWithInputs) {
-    MyCore test_filter = create_initialised_test_filter();
+TEST(SquareRootCoreTest, InnovationStepWithInputs) {
+    MyCore test_filter = create_initialised_sr_test_filter();
     MyMeasurementVector m;
 
     m.set_field<GPS_Position>(UKF::Vector<3>(100, 10, -50));
@@ -302,23 +313,20 @@ TEST(CoreTest, InnovationStepWithInputs) {
     test_filter.a_priori_step(0.01, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0));
     test_filter.innovation_step(m, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0));
 
-    EXPECT_TRUE(test_filter.innovation_covariance.llt().info() == Eigen::Success);
-
     test_filter.a_posteriori_step();
 
-    EXPECT_TRUE(test_filter.covariance.llt().info() == Eigen::Success);
     EXPECT_LT((UKF::Vector<3>(100, 10, -50) - test_filter.state.get_field<Position>()).norm(),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(0).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(0).norm()*2);
     EXPECT_LT((UKF::Vector<3>(20, 0, 0) - test_filter.state.get_field<Velocity>()).norm(),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(3).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(3).norm()*2);
     EXPECT_LT(2*std::acos(std::abs(UKF::Quaternion(0.7071, 0, 0, -0.7071).dot(test_filter.state.get_field<Attitude>()))),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(6).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(6).norm()*2);
     EXPECT_LT((UKF::Vector<3>(0.5, 0, 0) - test_filter.state.get_field<AngularVelocity>()).norm(),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(9).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(9).norm()*2);
 }
 
-TEST(CoreTest, InnovationStepPartialMeasurementWithInputs) {
-    MyCore test_filter = create_initialised_test_filter();
+TEST(SquareRootCoreTest, InnovationStepPartialMeasurementWithInputs) {
+    MyCore test_filter = create_initialised_sr_test_filter();
     MyMeasurementVector m;
 
     m.set_field<Accelerometer>(UKF::Vector<3>(0, 0, -15));
@@ -328,23 +336,20 @@ TEST(CoreTest, InnovationStepPartialMeasurementWithInputs) {
     test_filter.a_priori_step(0.01, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0));
     test_filter.innovation_step(m, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0));
 
-    EXPECT_TRUE(test_filter.innovation_covariance.llt().info() == Eigen::Success);
-
     test_filter.a_posteriori_step();
 
-    EXPECT_TRUE(test_filter.covariance.llt().info() == Eigen::Success);
     EXPECT_LT((UKF::Vector<3>(100, 10, -50) - test_filter.state.get_field<Position>()).norm(),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(0).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(0).norm()*2);
     EXPECT_LT((UKF::Vector<3>(20, 0, 0) - test_filter.state.get_field<Velocity>()).norm(),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(3).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(3).norm()*2);
     EXPECT_LT(2*std::acos(std::abs(UKF::Quaternion(0.7071, 0, 0, -0.7071).dot(test_filter.state.get_field<Attitude>()))),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(6).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(6).norm()*2);
     EXPECT_LT((UKF::Vector<3>(0.5, 0, 0) - test_filter.state.get_field<AngularVelocity>()).norm(),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(9).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(9).norm()*2);
 }
 
-TEST(CoreTest, APosterioriStep) {
-    MyCore test_filter = create_initialised_test_filter();
+TEST(SquareRootCoreTest, APosterioriStep) {
+    MyCore test_filter = create_initialised_sr_test_filter();
     MyMeasurementVector m;
 
     m.set_field<GPS_Position>(UKF::Vector<3>(100, 10, -50));
@@ -357,19 +362,18 @@ TEST(CoreTest, APosterioriStep) {
     test_filter.innovation_step(m);
     test_filter.a_posteriori_step();
 
-    EXPECT_TRUE(test_filter.covariance.llt().info() == Eigen::Success);
     EXPECT_LT((UKF::Vector<3>(100, 10, -50) - test_filter.state.get_field<Position>()).norm(),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(0).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(0).norm()*2);
     EXPECT_LT((UKF::Vector<3>(20, 0, 0) - test_filter.state.get_field<Velocity>()).norm(),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(3).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(3).norm()*2);
     EXPECT_LT(2*std::acos(std::abs(UKF::Quaternion(0.7071, 0, 0, -0.7071).dot(test_filter.state.get_field<Attitude>()))),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(6).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(6).norm()*2);
     EXPECT_LT((UKF::Vector<3>(0.5, 0, 0) - test_filter.state.get_field<AngularVelocity>()).norm(),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(9).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(9).norm()*2);
 }
 
-TEST(CoreTest, FullStep) {
-    MyCore test_filter = create_initialised_test_filter();
+TEST(SquareRootCoreTest, FullStep) {
+    MyCore test_filter = create_initialised_sr_test_filter();
     MyMeasurementVector m;
 
     m.set_field<GPS_Position>(UKF::Vector<3>(100, 10, -50));
@@ -380,13 +384,12 @@ TEST(CoreTest, FullStep) {
 
     test_filter.step(0.01, m, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0));
 
-    EXPECT_TRUE(test_filter.covariance.llt().info() == Eigen::Success);
     EXPECT_LT((UKF::Vector<3>(100, 10, -50) - test_filter.state.get_field<Position>()).norm(),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(0).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(0).norm()*2);
     EXPECT_LT((UKF::Vector<3>(20, 0, 0) - test_filter.state.get_field<Velocity>()).norm(),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(3).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(3).norm()*2);
     EXPECT_LT(2*std::acos(std::abs(UKF::Quaternion(0.7071, 0, 0, -0.7071).dot(test_filter.state.get_field<Attitude>()))),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(6).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(6).norm()*2);
     EXPECT_LT((UKF::Vector<3>(0.5, 0, 0) - test_filter.state.get_field<AngularVelocity>()).norm(),
-        std::sqrt(test_filter.covariance.diagonal().segment<3>(9).norm())*2);
+        test_filter.covariance.diagonal().segment<3>(9).norm()*2);
 }
