@@ -50,7 +50,6 @@ using AHRS_StateVector = UKF::StateVector<
 >;
 
 template <> constexpr real_t UKF::Parameters::AlphaSquared<AHRS_StateVector> = 1e-2;
-template <> constexpr real_t UKF::Parameters::Beta<AHRS_StateVector> = 2.0;
 template <> constexpr real_t UKF::Parameters::Kappa<AHRS_StateVector> = 3.0;
 
 static AHRS_StateVector::CovarianceMatrix process_noise;
@@ -72,7 +71,6 @@ using AHRS_SensorErrorVector = UKF::StateVector<
 >;
 
 template <> constexpr real_t UKF::Parameters::AlphaSquared<AHRS_SensorErrorVector> = 1.0;
-template <> constexpr real_t UKF::Parameters::Beta<AHRS_SensorErrorVector> = 2.0;
 template <> constexpr real_t UKF::Parameters::Kappa<AHRS_SensorErrorVector> = 3.0;
 
 static AHRS_SensorErrorVector::CovarianceMatrix error_process_noise;
@@ -96,8 +94,8 @@ AHRS_StateVector AHRS_StateVector::derivative<>() const {
 
 /* AHRS process noise covariance. Scale based on the sample time delta. */
 template <>
-AHRS_StateVector::CovarianceMatrix AHRS_StateVector::process_noise_covariance(real_t dt) {
-    return process_noise * dt;
+AHRS_StateVector::CovarianceMatrix AHRS_StateVector::process_noise_root_covariance(real_t dt) {
+    return process_noise.cwiseSqrt() * std::sqrt(dt);
 }
 
 using AHRS_MeasurementVector = UKF::DynamicMeasurementVector<
@@ -159,7 +157,7 @@ UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
             -input.get_field<MagneticFieldNorm>() * std::sin(input.get_field<MagneticFieldInclination>()))).array();
 }
 
-using AHRS_Filter = UKF::Core<
+using AHRS_Filter = UKF::SquareRootCore<
     AHRS_StateVector,
     AHRS_MeasurementVector,
     UKF::IntegratorHeun
@@ -176,8 +174,8 @@ AHRS_SensorErrorVector AHRS_SensorErrorVector::derivative<>() const {
 
 /* AHRS parameter estimation filter process noise covariance. */
 template <>
-AHRS_SensorErrorVector::CovarianceMatrix AHRS_SensorErrorVector::process_noise_covariance(real_t dt) {
-    return error_process_noise * dt;
+AHRS_SensorErrorVector::CovarianceMatrix AHRS_SensorErrorVector::process_noise_root_covariance(real_t dt) {
+    return error_process_noise.cwiseSqrt() * std::sqrt(dt);
 }
 
 /*
@@ -213,7 +211,7 @@ UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
 }
 
 /* Just use the Euler integrator since there's no process model. */
-using AHRS_ParameterEstimationFilter = UKF::Core<
+using AHRS_ParameterEstimationFilter = UKF::SquareRootCore<
     AHRS_SensorErrorVector,
     AHRS_MeasurementVector,
     UKF::IntegratorEuler
@@ -225,15 +223,14 @@ static AHRS_MeasurementVector meas;
 static UKF::Vector<3> acceleration;
 
 /*
-Set the initial measurement covariance vector. This is calculated from the
-noise figures given in the datasheet.
+Set the initial measurement root covariance vector.
 */
 template <>
-AHRS_MeasurementVector::CovarianceVector AHRS_MeasurementVector::measurement_covariance(
+AHRS_MeasurementVector::CovarianceVector AHRS_MeasurementVector::measurement_root_covariance(
     (AHRS_MeasurementVector::CovarianceVector() <<
-        0.5 * UKF::Vector<3>::Ones(),
-        0.004*0.004 * UKF::Vector<3>::Ones(),
-        0.05 * UKF::Vector<3>::Ones()).finished());
+        0.7071 * UKF::Vector<3>::Ones(),
+        0.004 * UKF::Vector<3>::Ones(),
+        0.2236 * UKF::Vector<3>::Ones()).finished());
 
 /*
 The following functions provide a ctypes-compatible interface for ease of
@@ -245,10 +242,10 @@ void ukf_init() {
     ahrs.state.set_field<Attitude>(UKF::Quaternion(1, 0, 0, 0));
     ahrs.state.set_field<AngularVelocity>(UKF::Vector<3>(0, 0, 0));
     acceleration << UKF::Vector<3>(0, 0, 0);
-    ahrs.covariance = AHRS_StateVector::CovarianceMatrix::Zero();
-    ahrs.covariance.diagonal() <<
-        1e0, 1e0, 1e1,
-        1e-6 * UKF::Vector<3>::Ones();
+    ahrs.root_covariance = AHRS_StateVector::CovarianceMatrix::Zero();
+    ahrs.root_covariance.diagonal() <<
+        1e0, 1e0, 3.2e0,
+        1e-3 * UKF::Vector<3>::Ones();
 
     /* Set process noise covariance. */
     process_noise = AHRS_StateVector::CovarianceMatrix::Zero();
@@ -265,12 +262,12 @@ void ukf_init() {
     ahrs_errors.state.set_field<MagneticFieldInclination>(0.0);
 
     /* Initialise scale factor and bias error covariance. */
-    ahrs_errors.covariance = AHRS_SensorErrorVector::CovarianceMatrix::Zero();
-    ahrs_errors.covariance.diagonal() <<
-        0.8*0.8 * UKF::Vector<3>::Ones(),
-        0.02*0.02 * UKF::Vector<3>::Ones(),
-        5.0e-2*5.0e-2 * UKF::Vector<3>::Ones(), 1.0e-1*1.0e-1 * UKF::Vector<3>::Ones(),
-        0.4, 2e0;
+    ahrs_errors.root_covariance = AHRS_SensorErrorVector::CovarianceMatrix::Zero();
+    ahrs_errors.root_covariance.diagonal() <<
+        0.8 * UKF::Vector<3>::Ones(),
+        0.02 * UKF::Vector<3>::Ones(),
+        5.0e-2 * UKF::Vector<3>::Ones(), 1.0e-1 * UKF::Vector<3>::Ones(),
+        0.4, 1.0;
 
     /*
     Set bias error process noise – this is derived from bias instability.
@@ -283,9 +280,9 @@ void ukf_init() {
     error_process_noise = AHRS_SensorErrorVector::CovarianceMatrix::Zero();
     error_process_noise.diagonal() <<
         1.0e-7 * UKF::Vector<3>::Ones(),
-        1.0e-9 * UKF::Vector<3>::Ones(),
-        1.0e-5 * UKF::Vector<3>::Ones(), 1.0e-5 * UKF::Vector<3>::Ones(),
-        1.0e-7, 1.0e-7;
+        1.0e-8 * UKF::Vector<3>::Ones(),
+        1.0e-6 * UKF::Vector<3>::Ones(), 1.0e-6 * UKF::Vector<3>::Ones(),
+        1.0e-9, 1.0e-9;
 }
 
 void ukf_set_attitude(real_t w, real_t x, real_t y, real_t z) {
@@ -319,18 +316,18 @@ void ukf_set_state(struct ukf_state_t *in) {
 void ukf_get_state_covariance(
         real_t state_covariance[AHRS_StateVector::covariance_size()*AHRS_StateVector::covariance_size()]) {
     Eigen::Map<typename AHRS_StateVector::CovarianceMatrix> covariance_map(state_covariance);
-    covariance_map = ahrs.covariance;
+    covariance_map = ahrs.root_covariance * ahrs.root_covariance.transpose();
 }
 
 void ukf_get_state_covariance_diagonal(
         real_t state_covariance_diagonal[AHRS_StateVector::covariance_size()]) {
     Eigen::Map<UKF::Vector<AHRS_StateVector::covariance_size()>> covariance_map(state_covariance_diagonal);
-    covariance_map = ahrs.covariance.diagonal();
+    covariance_map = (ahrs.root_covariance * ahrs.root_covariance.transpose()).diagonal();
 }
 
 void ukf_get_state_error(struct ukf_state_error_t *in) {
     AHRS_StateVector::StateVectorDelta state_error;
-    state_error = ahrs.covariance.cwiseAbs().rowwise().sum().cwiseSqrt();
+    state_error = (ahrs.root_covariance * ahrs.root_covariance.transpose()).cwiseAbs().rowwise().sum().cwiseSqrt();
 
     in->attitude[0] = state_error[0];
     in->attitude[1] = state_error[1];
@@ -373,10 +370,10 @@ void ukf_sensor_set_magnetometer(real_t x, real_t y, real_t z) {
 }
 
 void ukf_set_params(struct ukf_sensor_params_t *in) {
-    AHRS_MeasurementVector::measurement_covariance <<
-        in->accel_covariance[0], in->accel_covariance[1], in->accel_covariance[2],
-        in->gyro_covariance[0], in->gyro_covariance[1], in->gyro_covariance[2],
-        in->mag_covariance[0], in->mag_covariance[1], in->mag_covariance[2];
+    AHRS_MeasurementVector::measurement_root_covariance <<
+        std::sqrt(in->accel_covariance[0]), std::sqrt(in->accel_covariance[1]), std::sqrt(in->accel_covariance[2]),
+        std::sqrt(in->gyro_covariance[0]), std::sqrt(in->gyro_covariance[1]), std::sqrt(in->gyro_covariance[2]),
+        std::sqrt(in->mag_covariance[0]), std::sqrt(in->mag_covariance[1]), std::sqrt(in->mag_covariance[2]);
 }
 
 void ukf_iterate(float dt) {
@@ -431,7 +428,8 @@ void ukf_get_parameters(struct ukf_sensor_errors_t *in) {
 
 void ukf_get_parameters_error(struct ukf_sensor_errors_t *in) {
     AHRS_SensorErrorVector::StateVectorDelta parameters_error;
-    parameters_error = ahrs_errors.covariance.cwiseAbs().rowwise().sum().cwiseSqrt();
+    parameters_error =
+        (ahrs_errors.root_covariance * ahrs_errors.root_covariance.transpose()).cwiseAbs().rowwise().sum().cwiseSqrt();
 
     in->accel_bias[0] = parameters_error[0];
     in->accel_bias[1] = parameters_error[1];

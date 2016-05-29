@@ -371,7 +371,8 @@ public:
         rather than the right-division assumed in the literature.
         */
         CrossCorrelation kalman_gain = innovation_root_covariance.fullPivHouseholderQr().solve(
-            innovation_root_covariance.transpose().fullPivHouseholderQr().solve(cross_correlation.transpose())).transpose();
+            innovation_root_covariance.transpose().fullPivHouseholderQr().solve(
+                cross_correlation.transpose())).transpose();
 
         /*
         Calculate the update delta vector, to be applied to the a priori
@@ -451,7 +452,6 @@ public:
     There's no need to propagate the sigma points through a process model,
     and we only have to add the process noise to the root covariance.
     */
-    template <typename... U>
     void a_priori_step(real_t delta) {
         sigma_points = state.calculate_sigma_point_distribution(root_covariance *
             std::sqrt(StateVectorType::covariance_size() + Parameters::Lambda<StateVectorType>));
@@ -553,7 +553,8 @@ public:
         rather than the right-division assumed in the literature.
         */
         CrossCorrelation kalman_gain = innovation_root_covariance.fullPivHouseholderQr().solve(
-            innovation_root_covariance.transpose().fullPivHouseholderQr().solve(cross_correlation.transpose())).transpose();
+            innovation_root_covariance.transpose().fullPivHouseholderQr().solve(
+                cross_correlation.transpose())).transpose();
 
         /*
         Calculate the update delta vector, to be applied to the a priori
