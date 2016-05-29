@@ -407,7 +407,7 @@ estimation, described in the paper
 by Rudolph van der Merwe and Eric A. Wan, retrieved from:
 http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.80.1421&rep=rep1&type=pdf
 */
-template <typename StateVectorType, typename MeasurementVectorType, typename IntegratorType>
+template <typename StateVectorType, typename MeasurementVectorType>
 class SquareRootParameterEstimationCore {
 protected:
     typename StateVectorType::SigmaPointDistribution sigma_points;
