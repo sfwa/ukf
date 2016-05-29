@@ -393,7 +393,7 @@ public:
         Update the root covariance using a series of rank-one Cholesky
         downdates.
         */
-        for(std::size_t i = 0; i < cross_correlation.cols(); i++) {
+        for(std::ptrdiff_t i = 0; i < cross_correlation.cols(); i++) {
             Eigen::internal::llt_inplace<real_t, Eigen::Upper>::rankUpdate(
                 root_covariance, cross_correlation.col(i), real_t(-1.0));
         }
@@ -575,7 +575,7 @@ public:
         Update the root covariance using a series of rank-one Cholesky
         downdates.
         */
-        for(std::size_t i = 0; i < cross_correlation.cols(); i++) {
+        for(std::ptrdiff_t i = 0; i < cross_correlation.cols(); i++) {
             Eigen::internal::llt_inplace<real_t, Eigen::Upper>::rankUpdate(
                 root_covariance, cross_correlation.col(i), real_t(-1.0));
         }
