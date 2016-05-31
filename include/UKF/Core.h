@@ -283,6 +283,7 @@ public:
         */
         Eigen::internal::llt_inplace<real_t, Eigen::Upper>::rankUpdate(
             root_covariance, w_prime.col(0), Parameters::Sigma_WC0<StateVectorType>);
+        root_covariance.transposeInPlace();
     }
 
     /*
@@ -343,6 +344,7 @@ public:
         */
         Eigen::internal::llt_inplace<real_t, Eigen::Upper>::rankUpdate(
             innovation_root_covariance, z_prime.col(0), Parameters::Sigma_WC0<StateVectorType>);
+        innovation_root_covariance.transposeInPlace();
     }
 
     /*
@@ -370,8 +372,8 @@ public:
         literature. Eigen's QR decomposition implements a left-division,
         rather than the right-division assumed in the literature.
         */
-        CrossCorrelation kalman_gain = innovation_root_covariance.fullPivHouseholderQr().solve(
-            innovation_root_covariance.transpose().fullPivHouseholderQr().solve(
+        CrossCorrelation kalman_gain = innovation_root_covariance.transpose().fullPivHouseholderQr().solve(
+            innovation_root_covariance.fullPivHouseholderQr().solve(
                 cross_correlation.transpose())).transpose();
 
         /*
@@ -387,14 +389,14 @@ public:
         Calculate the Cholesky update matrix. Reuse the cross-correlation
         variable, since we don't need it again.
         */
-        cross_correlation.noalias() = kalman_gain * innovation_root_covariance.transpose();
+        cross_correlation.noalias() = kalman_gain * innovation_root_covariance;
 
         /*
         Update the root covariance using a series of rank-one Cholesky
         downdates.
         */
         for(std::ptrdiff_t i = 0; i < cross_correlation.cols(); i++) {
-            Eigen::internal::llt_inplace<real_t, Eigen::Upper>::rankUpdate(
+            Eigen::internal::llt_inplace<real_t, Eigen::Lower>::rankUpdate(
                 root_covariance, cross_correlation.col(i), real_t(-1.0));
         }
     }
@@ -464,7 +466,7 @@ public:
         methods for doing this; this one has been chosen as it still allows
         individual fields to have different process noise values.
         */
-        root_covariance += StateVectorType::process_noise_root_covariance(delta);
+        // root_covariance += StateVectorType::process_noise_root_covariance(delta);
     }
 
     /*
@@ -525,6 +527,7 @@ public:
         */
         Eigen::internal::llt_inplace<real_t, Eigen::Upper>::rankUpdate(
             innovation_root_covariance, z_prime.col(0), Parameters::Sigma_WC0<StateVectorType>);
+        innovation_root_covariance.transposeInPlace();
     }
 
     /*
@@ -552,8 +555,8 @@ public:
         literature. Eigen's QR decomposition implements a left-division,
         rather than the right-division assumed in the literature.
         */
-        CrossCorrelation kalman_gain = innovation_root_covariance.fullPivHouseholderQr().solve(
-            innovation_root_covariance.transpose().fullPivHouseholderQr().solve(
+        CrossCorrelation kalman_gain = innovation_root_covariance.transpose().fullPivHouseholderQr().solve(
+            innovation_root_covariance.fullPivHouseholderQr().solve(
                 cross_correlation.transpose())).transpose();
 
         /*
@@ -569,14 +572,14 @@ public:
         Calculate the Cholesky update matrix. Reuse the cross-correlation
         variable, since we don't need it again.
         */
-        cross_correlation.noalias() = kalman_gain * innovation_root_covariance.transpose();
+        cross_correlation.noalias() = kalman_gain * innovation_root_covariance;
 
         /*
         Update the root covariance using a series of rank-one Cholesky
         downdates.
         */
         for(std::ptrdiff_t i = 0; i < cross_correlation.cols(); i++) {
-            Eigen::internal::llt_inplace<real_t, Eigen::Upper>::rankUpdate(
+            Eigen::internal::llt_inplace<real_t, Eigen::Lower>::rankUpdate(
                 root_covariance, cross_correlation.col(i), real_t(-1.0));
         }
     }
