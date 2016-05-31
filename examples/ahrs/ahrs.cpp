@@ -211,10 +211,9 @@ UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
 }
 
 /* Just use the Euler integrator since there's no process model. */
-using AHRS_ParameterEstimationFilter = UKF::SquareRootCore<
+using AHRS_ParameterEstimationFilter = UKF::SquareRootParameterEstimationCore<
     AHRS_SensorErrorVector,
-    AHRS_MeasurementVector,
-    UKF::IntegratorEuler
+    AHRS_MeasurementVector
 >;
 
 static AHRS_Filter ahrs;
