@@ -227,9 +227,9 @@ Set the initial measurement root covariance vector.
 template <>
 AHRS_MeasurementVector::CovarianceVector AHRS_MeasurementVector::measurement_root_covariance(
     (AHRS_MeasurementVector::CovarianceVector() <<
-        0.7071 * UKF::Vector<3>::Ones(),
+        0.5 * UKF::Vector<3>::Ones(),
         0.004 * UKF::Vector<3>::Ones(),
-        0.2236 * UKF::Vector<3>::Ones()).finished());
+        0.1 * UKF::Vector<3>::Ones()).finished());
 
 /*
 The following functions provide a ctypes-compatible interface for ease of
@@ -249,8 +249,8 @@ void ukf_init() {
     /* Set process noise covariance. */
     process_noise = AHRS_StateVector::CovarianceMatrix::Zero();
     process_noise.diagonal() <<
-        1e-7 * UKF::Vector<3>::Ones(),
-        1e-1 * UKF::Vector<3>::Ones();
+        1e-6 * UKF::Vector<3>::Ones(),
+        1e-0 * UKF::Vector<3>::Ones();
 
     /* Initialise scale factor and bias errors. */
     ahrs_errors.state.set_field<AccelerometerBias>(UKF::Vector<3>(0, 0, 0));
@@ -266,7 +266,7 @@ void ukf_init() {
         0.8 * UKF::Vector<3>::Ones(),
         0.02 * UKF::Vector<3>::Ones(),
         5.0e-2 * UKF::Vector<3>::Ones(), 1.0e-1 * UKF::Vector<3>::Ones(),
-        0.4, 1.0;
+        0.4, 0.7;
 
     /*
     Set bias error process noise – this is derived from bias instability.
@@ -279,8 +279,8 @@ void ukf_init() {
     error_process_noise = AHRS_SensorErrorVector::CovarianceMatrix::Zero();
     error_process_noise.diagonal() <<
         1.0e-7 * UKF::Vector<3>::Ones(),
-        1.0e-8 * UKF::Vector<3>::Ones(),
-        1.0e-6 * UKF::Vector<3>::Ones(), 1.0e-6 * UKF::Vector<3>::Ones(),
+        1.0e-9 * UKF::Vector<3>::Ones(),
+        1.0e-7 * UKF::Vector<3>::Ones(), 1.0e-5 * UKF::Vector<3>::Ones(),
         1.0e-9, 1.0e-9;
 }
 
