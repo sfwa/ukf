@@ -466,7 +466,10 @@ public:
         methods for doing this; this one has been chosen as it still allows
         individual fields to have different process noise values.
         */
-        // root_covariance += StateVectorType::process_noise_root_covariance(delta);
+        typename StateVectorType::StateVectorDelta R_diag =
+            StateVectorType::process_noise_root_covariance(delta).diagonal();
+        typename StateVectorType::StateVectorDelta S_diag = root_covariance.diagonal();
+        root_covariance.diagonal() = (S_diag.cwiseProduct(S_diag) + R_diag.cwiseProduct(R_diag)).cwiseSqrt();
     }
 
     /*
