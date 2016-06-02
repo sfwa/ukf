@@ -255,7 +255,7 @@ void ukf_init() {
     process_noise = AHRS_StateVector::CovarianceMatrix::Zero();
     process_noise.diagonal() <<
         1e-6 * UKF::Vector<3>::Ones(),
-        1e-0 * UKF::Vector<3>::Ones();
+        1e-2 * UKF::Vector<3>::Ones();
 
     /* Initialise scale factor and bias errors. */
     ahrs_errors.state.set_field<AccelerometerBias>(UKF::Vector<3>(0, 0, 0));
@@ -284,7 +284,7 @@ void ukf_init() {
     error_process_noise = AHRS_SensorErrorVector::CovarianceMatrix::Zero();
     error_process_noise.diagonal() <<
         1e-5f * UKF::Vector<3>::Ones(),
-        1e-6f * UKF::Vector<3>::Ones(),
+        1e-7f * UKF::Vector<3>::Ones(),
         1e-5f * UKF::Vector<3>::Ones(), 1e-6f * UKF::Vector<3>::Ones(),
         1e-7f, 1e-7f;
 }
@@ -382,26 +382,35 @@ void ukf_set_params(struct ukf_sensor_params_t *in) {
 
 void ukf_iterate(float dt) {
     /*
+    Do a new parameter estimation filter step each iteration, so that a
+    complete iteration is done once every three AHRS iterations.
+    */
+    static int step = 0;
+
+    switch(step++) {
+        case 0:
+            /*
+            The time delta is not used by the parameter estimation filter, so
+            there's no need to adjust it.
+            */
+            ahrs_errors.a_priori_step(dt);
+            break;
+        case 1:
+            ahrs_errors.innovation_step(meas, ahrs.state);
+            break;
+        case 2:
+            ahrs_errors.a_posteriori_step();
+            step = 0;
+            break;
+    }
+
+    /*
     Do a normal iteration for the AHRS filter, with the current state of
     the parameter estimation filter as the measurement input.
     */
     ahrs.a_priori_step(dt);
-
-    /* Do the a priori step for the parameter estimation filter. */
-    ahrs_errors.a_priori_step(dt);
-
-    /* Do the innovation step for the AHRS filter. */
     ahrs.innovation_step(meas, ahrs_errors.state);
-
-    /*
-    Call the innovation step using the AHRS filter a priori mean as the
-    measurement.
-    */
-    ahrs_errors.innovation_step(meas, ahrs.state);
-
-    /* Do the a posteriori step. */
     ahrs.a_posteriori_step();
-    ahrs_errors.a_posteriori_step();
 
     acceleration << meas.get_field<Accelerometer>() - ahrs_errors.state.get_field<AccelerometerBias>() -
         (ahrs.state.get_field<Attitude>() * UKF::Vector<3>(0, 0, -G_ACCEL));
