@@ -152,9 +152,11 @@ UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
         const AHRS_StateVector& state, const AHRS_SensorErrorVector& input) {
     return input.get_field<MagnetometerBias>().array() + input.get_field<MagnetometerScaleFactor>().array() *
         (state.get_field<Attitude>() * UKF::Vector<3>(
-            input.get_field<MagneticFieldNorm>() * std::cos(input.get_field<MagneticFieldInclination>()),
+            input.get_field<MagneticFieldNorm>() *
+                std::cos(std::atan(input.get_field<MagneticFieldInclination>())),
             0.0,
-            -input.get_field<MagneticFieldNorm>() * std::sin(input.get_field<MagneticFieldInclination>()))).array();
+            -input.get_field<MagneticFieldNorm>() *
+                std::sin(std::atan(input.get_field<MagneticFieldInclination>())))).array();
 }
 
 using AHRS_Filter = UKF::SquareRootCore<
@@ -210,9 +212,11 @@ UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
         const AHRS_SensorErrorVector& state, const AHRS_StateVector& input) {
     return state.get_field<MagnetometerBias>().array() + state.get_field<MagnetometerScaleFactor>().array() *
         (input.get_field<Attitude>() * UKF::Vector<3>(
-            state.get_field<MagneticFieldNorm>() * std::cos(state.get_field<MagneticFieldInclination>()),
+            state.get_field<MagneticFieldNorm>() *
+                std::cos(std::atan(state.get_field<MagneticFieldInclination>())),
             0.0,
-            -state.get_field<MagneticFieldNorm>() * std::sin(state.get_field<MagneticFieldInclination>()))).array();
+            -state.get_field<MagneticFieldNorm>() *
+                std::sin(std::atan(state.get_field<MagneticFieldInclination>())))).array();
 }
 
 /* Just use the Euler integrator since there's no process model. */
@@ -400,6 +404,24 @@ void ukf_iterate(float dt) {
             break;
         case 2:
             ahrs_errors.a_posteriori_step();
+
+            /* Clip parameters to physically reasonable values. */
+            ahrs_errors.state.set_field<MagneticFieldNorm>(
+                std::max(0.2f, std::min(0.7f, ahrs_errors.state.get_field<MagneticFieldNorm>())));
+
+            UKF::Vector<3> temp;
+            temp = ahrs_errors.state.get_field<AccelerometerBias>();
+            temp[0] = std::max(real_t(-G_ACCEL/4.0), std::min(real_t(G_ACCEL/4.0), temp[0]));
+            temp[1] = std::max(real_t(-G_ACCEL/4.0), std::min(real_t(G_ACCEL/4.0), temp[1]));
+            temp[2] = std::max(real_t(-G_ACCEL/4.0), std::min(real_t(G_ACCEL/4.0), temp[2]));
+            ahrs_errors.state.set_field<AccelerometerBias>(temp);
+
+            temp = ahrs_errors.state.get_field<MagnetometerScaleFactor>();
+            temp[0] = std::max(real_t(0.5f), std::min(2.0f, temp[0]));
+            temp[1] = std::max(real_t(0.5f), std::min(2.0f, temp[1]));
+            temp[2] = std::max(real_t(0.5f), std::min(2.0f, temp[2]));
+            ahrs_errors.state.set_field<MagnetometerScaleFactor>(temp);
+
             step = 0;
             break;
     }
@@ -436,7 +458,7 @@ void ukf_get_parameters(struct ukf_sensor_errors_t *in) {
     in->mag_scale[1] = ahrs_errors.state.get_field<MagnetometerScaleFactor>()[1];
     in->mag_scale[2] = ahrs_errors.state.get_field<MagnetometerScaleFactor>()[2];
     in->mag_field_norm = ahrs_errors.state.get_field<MagneticFieldNorm>();
-    in->mag_field_inclination = ahrs_errors.state.get_field<MagneticFieldInclination>();
+    in->mag_field_inclination = std::atan(ahrs_errors.state.get_field<MagneticFieldInclination>());
 }
 
 void ukf_get_parameters_error(struct ukf_sensor_errors_t *in) {
