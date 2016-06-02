@@ -172,10 +172,15 @@ AHRS_SensorErrorVector AHRS_SensorErrorVector::derivative<>() const {
     return AHRS_SensorErrorVector::Zero();
 }
 
-/* AHRS parameter estimation filter process noise covariance. */
+/*
+AHRS parameter estimation filter process noise covariance. Parameter
+estimation process noise is quite approximately and determines the rate at
+which the filter 'forgets' its current bias estimate, so we don't bother
+multiplying by the square root of time.
+*/
 template <>
 AHRS_SensorErrorVector::CovarianceMatrix AHRS_SensorErrorVector::process_noise_root_covariance(real_t dt) {
-    return error_process_noise.cwiseSqrt() * std::sqrt(dt);
+    return error_process_noise;
 }
 
 /*
@@ -278,10 +283,10 @@ void ukf_init() {
     */
     error_process_noise = AHRS_SensorErrorVector::CovarianceMatrix::Zero();
     error_process_noise.diagonal() <<
-        1.0e-7 * UKF::Vector<3>::Ones(),
-        1.0e-9 * UKF::Vector<3>::Ones(),
-        1.0e-7 * UKF::Vector<3>::Ones(), 1.0e-5 * UKF::Vector<3>::Ones(),
-        1.0e-9, 1.0e-9;
+        1e-5f * UKF::Vector<3>::Ones(),
+        1e-6f * UKF::Vector<3>::Ones(),
+        1e-5f * UKF::Vector<3>::Ones(), 1e-6f * UKF::Vector<3>::Ones(),
+        1e-7f, 1e-7f;
 }
 
 void ukf_set_attitude(real_t w, real_t x, real_t y, real_t z) {
