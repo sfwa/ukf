@@ -386,8 +386,8 @@ void ukf_set_params(struct ukf_sensor_params_t *in) {
 
 void ukf_iterate(float dt) {
     /*
-    Do a new parameter estimation filter step each iteration, so that a
-    complete iteration is done once every three AHRS iterations.
+    Split the parameter estimation filter into a priori and a posteriori
+    steps, to reduce the CPU load each iteration.
     */
     static int step = 0;
 
@@ -398,11 +398,9 @@ void ukf_iterate(float dt) {
             there's no need to adjust it.
             */
             ahrs_errors.a_priori_step(dt);
-            break;
-        case 1:
             ahrs_errors.innovation_step(meas, ahrs.state);
             break;
-        case 2:
+        case 1:
             ahrs_errors.a_posteriori_step();
 
             /* Clip parameters to physically reasonable values. */
