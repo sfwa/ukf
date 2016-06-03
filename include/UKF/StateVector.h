@@ -143,7 +143,7 @@ namespace UKF {
     struct IfHelper {
       using type = U;
     };
-     
+
     template <class T, class U>
     struct IfHelper<true, T, U> {
       using type = T;
@@ -245,7 +245,7 @@ namespace UKF {
     degrees. This is to avoid numerical issues calculating the covariance
     matrix when the quaternion covariance vector is large and the SUT scaling
     parameter alpha is set very small.
-    
+
     The singularity being 180 degrees instead of 360 is not a problem unless
     the attitude is expected to change by more than 180 degrees in a single
     filter iteration; if it is, setting the MRP_A parameter to 1.0 moves the
@@ -377,9 +377,9 @@ public:
         /* Calculate the covariance using equation 64 from the Kraft paper. */
         cov = CovarianceMatrix::Zero();
         for(std::size_t i = 1; i < num_sigma(); i++) {
-            cov += Parameters::Sigma_WCI<StateVector> * (w_prime.col(i) * w_prime.col(i).transpose());
+            cov.noalias() += Parameters::Sigma_WCI<StateVector> * (w_prime.col(i) * w_prime.col(i).transpose());
         }
-        cov += Parameters::Sigma_WC0<StateVector> * (w_prime.col(0) * w_prime.col(0).transpose());
+        cov.noalias() += Parameters::Sigma_WC0<StateVector> * (w_prime.col(0) * w_prime.col(0).transpose());
 
         return cov;
     }
