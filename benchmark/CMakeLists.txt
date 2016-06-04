@@ -34,7 +34,7 @@ ADD_EXECUTABLE(benchmark
     BenchmarkMain.cpp)
 
 # Create dependency of benchmark on googlebenchmark
-ADD_DEPENDENCIES(benchmark googlebenchmark)
+ADD_DEPENDENCIES(benchmark googlebenchmark eigen3)
 
 # Specify benchmark's link libraries
 ExternalProject_Get_Property(googlebenchmark binary_dir)
