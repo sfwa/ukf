@@ -4,16 +4,17 @@ Unscented Kalman filter library. Several different UKF implementations are
 provided:
 
   * Standard Unscented Kalman Filter for state estimation, as originally
-    described in [^1], with extensions for quaternions as described in [^2].
+    described in <sup>[1](#ref1)</sup>, with extensions for
+    quaternions as described in <sup>[2](#ref2)</sup>.
   * Square-root Unscented Kalman Filter for state estimation, implemented as
-    described in [^3].
+    described in <sup>[3](#ref3)</sup>.
   * Optimised form of square-root Unscented Kalman filter for parameter
-    estimation, implemented as described in [^3].
+    estimation, implemented as described in <sup>[3](#ref3)</sup>.
 
-This library makes use of the Eigen library for linear algebra routines and
-matrix and vector operations. Heavy use is made of C++11 and C++14 features
-in an attempt to avoid any dynamic memory allocations and maximise
-opportunities for compile-time optimisations.
+This library makes use of the [Eigen](https://eigen.tuxfamily.org) library
+for linear algebra routines and matrix and vector operations. Heavy use is
+made of C++11 and C++14 features in an attempt to avoid any dynamic memory
+allocations and maximise opportunities for compile-time optimisations.
 
 A primary goal of the library is to provide efficient UKF implementations for
 use on embedded systems, so there is a strong focus on having minimal
@@ -70,8 +71,9 @@ UKF scaling parameters can be adjusted in the following way:
 template <> constexpr real_t UKF::Parameters::AlphaSquared<MyStateVector> = 1e-6;
 ```
 
-For a description of what the scaling parameters do, see [^2] or read the
-comments in the [code](include/UKF/StateVector.h).
+For a description of what the scaling parameters do, see
+<sup>[2](#ref2)</sup> or read the comments in the
+[code](include/UKF/StateVector.h).
 
 ### Measurement vector
 
@@ -239,9 +241,14 @@ ProcessModelTestStateVector::CovarianceMatrix ProcessModelTestStateVector::proce
 ### Measurement model
 
 The measurement model is specified per field, in order to allow the expected
-measurement vector to be constructed for the dynamic measurement vector,
-where not all measurements may be available each iteration. Each measurement
-model function takes a state vector as an input.
+measurement vector to be constructed for the dynamic measurement vector where
+not all measurements may be available each iteration. Each measurement model
+function takes a state vector as an input.
+
+The state vector type is provided to the measurement model specialisation as
+a template parameter; this allows a measurement vector class to be shared
+across multiple state vectors, with difference process model defined for
+each.
 
 Here is an example of a measurement model for a simple measurement vector and
 state vector:
@@ -289,7 +296,7 @@ real_t MyMeasurementVector::expected_measurement
 As with the process model, the measurement model can take an arbitrary number
 of user-specified inputs:
 
-```
+```C++
 template <> template <>
 UKF::Vector<3> MyMeasurementVector::expected_measurement
 <MyStateVector, Accelerometer, UKF::Vector<3>>(const MyStateVector& state, const UKF::Vector<3>& input) {
@@ -409,11 +416,13 @@ test_filter.a_posteriori_step();
 
 Some examples are provided [here](examples/).
 
-[^1]: "A New Extension of the Kalman Filter to Nonlinear Systems:,
+## References
+
+<a name="ref1">[1]</a> "A New Extension of the Kalman Filter to Nonlinear Systems:,
 S. J. Julier and J. K. Uhlmann,
 https://www.cs.unc.edu/~welch/kalman/media/pdf/Julier1997_SPIE_KF.pdf
-[^2]: "Unscented Filtering for Spacecraft Attitude Estimation", John L.
+<a name="ref2">[2]</a> "Unscented Filtering for Spacecraft Attitude Estimation", John L.
 Crassidis and F. Landis Markley, http://www.acsu.buffalo.edu/~johnc/uf_att.pdf
-[^3]: "The Square-Root Unscented Kalman Filter for State and Parameter-Estimation",
+<a name="ref3">[3]</a> "The Square-Root Unscented Kalman Filter for State and Parameter-Estimation",
 Rudolph van der Merwe and Eric A. Wan,
 http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.80.1421&rep=rep1&type=pdf
