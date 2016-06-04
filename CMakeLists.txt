@@ -1,15 +1,28 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.7 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8.4 FATAL_ERROR)
 PROJECT(ukf)
 INCLUDE(ExternalProject)
+INCLUDE(CheckCXXCompilerFlag)
+
+# Check for C++14 support.
+CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
+IF(COMPILER_SUPPORTS_CXX14)
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+ELSE()
+    MESSAGE(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++14 support. Please use a different C++ compiler.")
+ENDIF()
+
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-register")
 
 # Set default ExternalProject root directory
 SET_DIRECTORY_PROPERTIES(PROPERTIES EP_PREFIX .)
 
-# Add eigen3.2
+# Add eigen3.2.8
 ExternalProject_Add(
 eigen3
-URL https://bitbucket.org/eigen/eigen/get/3.2.0.tar.gz
+URL https://bitbucket.org/eigen/eigen/get/3.2.8.tar.gz
 TIMEOUT 30
+# Apply the LLT malloc fix patch
+PATCH_COMMAND patch -p1 -t -N < ${CMAKE_SOURCE_DIR}/patch/eigen-3.2.8-no-malloc-in-llt.patch
 # Disable install step
 INSTALL_COMMAND ""
 # Wrap download, configure and build steps in a script to log output
@@ -20,22 +33,10 @@ LOG_BUILD ON)
 ExternalProject_Get_Property(eigen3 source_dir)
 SET(eigen_dir ${source_dir})
 
-INCLUDE_DIRECTORIES(include ${eigen_dir})
-
-SET(CMAKE_CXX_FLAGS "-isystem ${eigen_dir} -O3 -Weverything -Werror -Wno-documentation -Wno-system-headers -Wno-padded")
-
-ADD_LIBRARY(ukf STATIC
-    src/state.cpp
-    src/dynamics.cpp
-    src/sensors.cpp
-    src/ukf.cpp)
-
-ADD_SUBDIRECTORY(c EXCLUDE_FROM_ALL)
-
-ADD_SUBDIRECTORY(ccs-c66x EXCLUDE_FROM_ALL)
-
-ADD_DEPENDENCIES(ukf eigen3)
+INCLUDE_DIRECTORIES(${eigen_dir})
 
 ENABLE_TESTING()
 
 ADD_SUBDIRECTORY(test EXCLUDE_FROM_ALL)
+ADD_SUBDIRECTORY(benchmark EXCLUDE_FROM_ALL)
+ADD_SUBDIRECTORY(examples EXCLUDE_FROM_ALL)
