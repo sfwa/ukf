@@ -36,7 +36,7 @@ ADD_EXECUTABLE(unittest
     TestSquareRootCore.cpp)
 
 # Create dependency of test on googletest
-ADD_DEPENDENCIES(unittest googletest)
+ADD_DEPENDENCIES(unittest googletest eigen3)
 
 # Specify test's link libraries
 ExternalProject_Get_Property(googletest binary_dir)
