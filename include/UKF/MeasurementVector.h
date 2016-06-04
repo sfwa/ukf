@@ -133,9 +133,9 @@ public:
         /* Calculate the covariance using equation 64 from the Kraft paper. */
         cov = CovarianceMatrix::Zero();
         for(std::size_t i = 1; i < S::num_sigma(); i++) {
-            cov += Parameters::Sigma_WCI<S> * (z_prime.col(i) * z_prime.col(i).transpose());
+            cov.noalias() += Parameters::Sigma_WCI<S> * (z_prime.col(i) * z_prime.col(i).transpose());
         }
-        cov += Parameters::Sigma_WC0<S> * (z_prime.col(0) * z_prime.col(0).transpose());
+        cov.noalias() += Parameters::Sigma_WC0<S> * (z_prime.col(0) * z_prime.col(0).transpose());
 
         return cov;
     }
@@ -329,13 +329,13 @@ public:
     template <typename S>
     CovarianceMatrix calculate_sigma_point_covariance(const SigmaPointDeltas<S>& z_prime) const {
         CovarianceMatrix cov(Base::template size(), Base::template size());
-        
+
         /* Calculate the covariance using equation 64 from the Kraft paper. */
         cov = CovarianceMatrix::Zero(Base::template size(), Base::template size());
         for(std::size_t i = 1; i < S::num_sigma(); i++) {
-            cov += Parameters::Sigma_WCI<S> * (z_prime.col(i) * z_prime.col(i).transpose());
+            cov.noalias() += Parameters::Sigma_WCI<S> * (z_prime.col(i) * z_prime.col(i).transpose());
         }
-        cov += Parameters::Sigma_WC0<S> * (z_prime.col(0) * z_prime.col(0).transpose());
+        cov.noalias() += Parameters::Sigma_WC0<S> * (z_prime.col(0) * z_prime.col(0).transpose());
 
         return cov;
     }

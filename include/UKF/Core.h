@@ -160,10 +160,10 @@ public:
         CrossCorrelation cross_correlation = CrossCorrelation::Zero(
             StateVectorType::covariance_size(), innovation.size());
         for(std::size_t i = 1; i < StateVectorType::num_sigma(); i++) {
-            cross_correlation += Parameters::Sigma_WCI<StateVectorType> *
+            cross_correlation.noalias() += Parameters::Sigma_WCI<StateVectorType> *
                 (w_prime.col(i) * z_prime.col(i).transpose());
         }
-        cross_correlation += Parameters::Sigma_WC0<StateVectorType> *
+        cross_correlation.noalias() += Parameters::Sigma_WC0<StateVectorType> *
             (w_prime.col(0) * z_prime.col(0).transpose());
 
         /*
@@ -182,7 +182,7 @@ public:
         state.apply_delta(update_delta);
 
         /* Update the covariance using equation 75 from the Kraft paper. */
-        covariance -= (kalman_gain * innovation_covariance * kalman_gain.transpose());
+        covariance.noalias() -= (kalman_gain * innovation_covariance * kalman_gain.transpose());
     }
 };
 
@@ -360,10 +360,10 @@ public:
         CrossCorrelation cross_correlation = CrossCorrelation::Zero(
             StateVectorType::covariance_size(), innovation.size());
         for(std::size_t i = 1; i < StateVectorType::num_sigma(); i++) {
-            cross_correlation += Parameters::Sigma_WCI<StateVectorType> *
+            cross_correlation.noalias() += Parameters::Sigma_WCI<StateVectorType> *
                 (w_prime.col(i) * z_prime.col(i).transpose());
         }
-        cross_correlation += Parameters::Sigma_WC0<StateVectorType> *
+        cross_correlation.noalias() += Parameters::Sigma_WC0<StateVectorType> *
             (w_prime.col(0) * z_prime.col(0).transpose());
 
         /*
@@ -546,10 +546,10 @@ public:
         CrossCorrelation cross_correlation = CrossCorrelation::Zero(
             StateVectorType::covariance_size(), innovation.size());
         for(std::size_t i = 1; i < StateVectorType::num_sigma(); i++) {
-            cross_correlation += Parameters::Sigma_WCI<StateVectorType> *
+            cross_correlation.noalias() += Parameters::Sigma_WCI<StateVectorType> *
                 (w_prime.col(i) * z_prime.col(i).transpose());
         }
-        cross_correlation += Parameters::Sigma_WC0<StateVectorType> *
+        cross_correlation.noalias() += Parameters::Sigma_WC0<StateVectorType> *
             (w_prime.col(0) * z_prime.col(0).transpose());
 
         /*
