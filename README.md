@@ -4,12 +4,12 @@ Unscented Kalman filter library. Several different UKF implementations are
 provided:
 
   * Standard Unscented Kalman Filter for state estimation, as originally
-    described in <sup>[1](#ref1)</sup>, with extensions for
-    quaternions as described in <sup>[2](#ref2)</sup>.
+    described in [[1]](#ref1), with extensions for quaternions as described
+    in [[2]](#ref2).
   * Square-root Unscented Kalman Filter for state estimation, implemented as
-    described in <sup>[3](#ref3)</sup>.
+    described in [[3]](#ref3).
   * Optimised form of square-root Unscented Kalman filter for parameter
-    estimation, implemented as described in <sup>[3](#ref3)</sup>.
+    estimation, implemented as described in [[3]](#ref3).
 
 This library makes use of the [Eigen](https://eigen.tuxfamily.org) library
 for linear algebra routines and matrix and vector operations. Heavy use is
@@ -71,9 +71,8 @@ UKF scaling parameters can be adjusted in the following way:
 template <> constexpr real_t UKF::Parameters::AlphaSquared<MyStateVector> = 1e-6;
 ```
 
-For a description of what the scaling parameters do, see
-<sup>[2](#ref2)</sup> or read the comments in the
-[code](include/UKF/StateVector.h).
+For a description of what the scaling parameters do, see [[2]](#ref2) or read
+the comments in the [code](include/UKF/StateVector.h).
 
 ### Measurement vector
 
@@ -421,8 +420,10 @@ Some examples are provided [here](examples/).
 <a name="ref1">[1]</a> "A New Extension of the Kalman Filter to Nonlinear Systems:,
 S. J. Julier and J. K. Uhlmann,
 https://www.cs.unc.edu/~welch/kalman/media/pdf/Julier1997_SPIE_KF.pdf
+
 <a name="ref2">[2]</a> "Unscented Filtering for Spacecraft Attitude Estimation", John L.
 Crassidis and F. Landis Markley, http://www.acsu.buffalo.edu/~johnc/uf_att.pdf
+
 <a name="ref3">[3]</a> "The Square-Root Unscented Kalman Filter for State and Parameter-Estimation",
 Rudolph van der Merwe and Eric A. Wan,
 http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.80.1421&rep=rep1&type=pdf
