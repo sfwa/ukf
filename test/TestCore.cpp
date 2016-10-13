@@ -59,28 +59,6 @@ MyStateVector MyStateVector::derivative<>() const {
     return derivative(UKF::Vector<3>(0, 0, 0), UKF::Vector<3>(0, 0, 0));
 }
 
-/*
-State vector process noise covariance. These are just completely arbitrary
-for this test.
-*/
-template <>
-MyStateVector::CovarianceMatrix MyStateVector::process_noise_covariance(real_t dt) {
-    MyStateVector::CovarianceMatrix temp;
-    temp << 0.1*dt*dt,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,
-                    0, 0.1*dt*dt,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,
-                    0,         0, 0.1*dt*dt,         0,         0,         0,         0,         0,         0,         0,         0,         0,
-                    0,         0,         0,    0.1*dt,         0,         0,         0,         0,         0,         0,         0,         0,
-                    0,         0,         0,         0,    0.1*dt,         0,         0,         0,         0,         0,         0,         0,
-                    0,         0,         0,         0,         0,    0.1*dt,         0,         0,         0,         0,         0,         0,
-                    0,         0,         0,         0,         0,         0, 0.1*dt*dt,         0,         0,         0,         0,         0,
-                    0,         0,         0,         0,         0,         0,         0, 0.1*dt*dt,         0,         0,         0,         0,
-                    0,         0,         0,         0,         0,         0,         0,         0, 0.1*dt*dt,         0,         0,         0,
-                    0,         0,         0,         0,         0,         0,         0,         0,         0,    0.1*dt,         0,         0,
-                    0,         0,         0,         0,         0,         0,         0,         0,         0,         0,    0.1*dt,         0,
-                    0,         0,         0,         0,         0,         0,         0,         0,         0,         0,         0,    0.1*dt;
-    return temp;
-}
-
 /* Set up measurement vector class. */
 enum MyMeasurementFields {
     GPS_Position,
@@ -193,6 +171,23 @@ MyCore create_initialised_test_filter() {
     test_filter.state.set_field<AngularVelocity>(UKF::Vector<3>(0, 0, 0));
     test_filter.covariance = MyStateVector::CovarianceMatrix::Zero();
     test_filter.covariance.diagonal() << 10000, 10000, 10000, 100, 100, 100, 1, 1, 5, 10, 10, 10;
+
+    real_t a, b;
+    real_t dt = 0.01;
+    a = std::sqrt(0.1*dt*dt);
+    b = std::sqrt(0.1*dt);
+    test_filter.process_noise_covariance << a, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                            0, a, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                            0, 0, a, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                            0, 0, 0, b, 0, 0, 0, 0, 0, 0, 0, 0,
+                                            0, 0, 0, 0, b, 0, 0, 0, 0, 0, 0, 0,
+                                            0, 0, 0, 0, 0, b, 0, 0, 0, 0, 0, 0,
+                                            0, 0, 0, 0, 0, 0, a, 0, 0, 0, 0, 0,
+                                            0, 0, 0, 0, 0, 0, 0, a, 0, 0, 0, 0,
+                                            0, 0, 0, 0, 0, 0, 0, 0, a, 0, 0, 0,
+                                            0, 0, 0, 0, 0, 0, 0, 0, 0, b, 0, 0,
+                                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, b, 0,
+                                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, b;
 
     return test_filter;
 }
