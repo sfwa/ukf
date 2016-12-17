@@ -561,7 +561,8 @@ private:
         for(std::size_t i = 0; i < num_sigma(); i++) {
             Quaternion delta_q = Quaternion(X.col(i)) * mean.conjugate();
             temp.col(i) = Parameters::MRP_F<StateVector> * delta_q.vec() /
-                std::max(Parameters::MRP_A<StateVector> + delta_q.w(), std::numeric_limits<real_t>::epsilon());
+                (std::abs(Parameters::MRP_A<StateVector> + delta_q.w()) > std::numeric_limits<real_t>::epsilon() ?
+                    Parameters::MRP_A<StateVector> + delta_q.w() : std::numeric_limits<real_t>::epsilon());
         }
 
         return temp;

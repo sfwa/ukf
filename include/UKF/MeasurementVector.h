@@ -173,6 +173,15 @@ public:
         return Eigen::DiagonalMatrix<real_t, covariance_size()>(measurement_root_covariance);
     }
 
+    /* Return the innovation using the supplied measurement vector. */
+    FixedMeasurementVector calculate_innovation(const FixedMeasurementVector& z) const {
+        FixedMeasurementVector temp;
+
+        temp = z;
+        calculate_field_innovation<Fields...>(temp);
+        return temp;
+    }
+
 private:
     /*
     This function is intended to be specialised by the user for each field in
@@ -208,6 +217,50 @@ private:
     static void calculate_field_measurements(FixedMeasurementVector& expected, const S& state, U&& input) {
         calculate_field_measurements<S, U, T1>(expected, state, std::forward<U>(input));
         calculate_field_measurements<S, U, T2, Tail...>(expected, state, std::forward<U>(input));
+    }
+
+    /* These functions build the innovation from all populated fields. */
+    template <typename T>
+    static T measurement_delta(const T& z, const T& z_pred) {
+        return z - z_pred;
+    }
+
+    static real_t measurement_delta(const real_t& z, const real_t& z_pred) {
+        return z - z_pred;
+    }
+
+    static FieldVector measurement_delta(const FieldVector& z, const FieldVector& z_pred) {
+        Vector<3> axis;
+
+        /*
+        Calculate the rotation vector corresponding to a transformation
+        between z_pred and z.
+        */
+        real_t q_w = std::sqrt(z_pred.squaredNorm() * z.squaredNorm()) + z_pred.dot(z);
+
+        if(q_w < std::numeric_limits<real_t>::epsilon()) {
+            /* Vectors are antiparallel. */
+            axis = Vector<3>(-z_pred(2), z_pred(1), z_pred(0)); 
+        } else {
+            axis = z_pred.cross(z);
+        }
+
+        FieldVector temp = Parameters::MRP_F<FixedMeasurementVector> * axis /
+            (std::abs(Parameters::MRP_A<FixedMeasurementVector> + q_w) > std::numeric_limits<real_t>::epsilon() ?
+                Parameters::MRP_A<FixedMeasurementVector> + q_w : std::numeric_limits<real_t>::epsilon());
+
+        return temp;
+    }
+
+    template <typename T>
+    void calculate_field_innovation(FixedMeasurementVector& z) const {
+        z.set_field<T::key>(measurement_delta(z.get_field<T::key>(), get_field<T::key>()));
+    }
+
+    template <typename T1, typename T2, typename... Tail>
+    void calculate_field_innovation(FixedMeasurementVector& z) const {
+        calculate_field_innovation<T1>(z);
+        calculate_field_innovation<T2, Tail...>(z);
     }
 };
 
@@ -382,6 +435,15 @@ public:
         return Eigen::DiagonalMatrix<real_t, Eigen::Dynamic, max_covariance_size()>(temp);
     }
 
+    /* Return the innovation using the supplied measurement vector. */
+    DynamicMeasurementVector calculate_innovation(const DynamicMeasurementVector& z) const {
+        DynamicMeasurementVector temp(Base::template size());
+
+        temp = z;
+        calculate_field_innovation<Fields...>(temp);
+        return temp;
+    }
+
 private:
     /*
     This vector keeps track of which fields have been set in the measurement
@@ -435,6 +497,55 @@ private:
     void calculate_field_measurements(DynamicMeasurementVector& expected, const S& state, U&& input) const {
         calculate_field_measurements<S, U, T1>(expected, state, std::forward<U>(input));
         calculate_field_measurements<S, U, T2, Tail...>(expected, state, std::forward<U>(input));
+    }
+
+    /* These functions build the innovation from all populated fields. */
+    template <typename T>
+    static T measurement_delta(const T& z, const T& z_pred) {
+        return z - z_pred;
+    }
+
+    static real_t measurement_delta(const real_t& z, const real_t& z_pred) {
+        return z - z_pred;
+    }
+
+    static FieldVector measurement_delta(const FieldVector& z, const FieldVector& z_pred) {
+        Vector<3> axis;
+
+        /*
+        Calculate the rotation vector corresponding to a transformation
+        between z_pred and z.
+        */
+        real_t q_w = std::sqrt(z_pred.squaredNorm() * z.squaredNorm()) + z_pred.dot(z);
+
+        if(q_w < std::numeric_limits<real_t>::epsilon()) {
+            /* Vectors are antiparallel. */
+            axis = Vector<3>(-z_pred(2), z_pred(1), z_pred(0)); 
+        } else {
+            axis = z_pred.cross(z);
+        }
+
+        FieldVector temp = Parameters::MRP_F<DynamicMeasurementVector> * axis /
+            (std::abs(Parameters::MRP_A<DynamicMeasurementVector> + q_w) > std::numeric_limits<real_t>::epsilon() ?
+                Parameters::MRP_A<DynamicMeasurementVector> + q_w : std::numeric_limits<real_t>::epsilon());
+
+        return temp;
+    }
+
+    template <typename T>
+    void calculate_field_innovation(DynamicMeasurementVector& z) const {
+        std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(T::key)>(field_offsets);
+        if(offset != std::numeric_limits<std::size_t>::max()) {
+            z.set_field<T::key>(measurement_delta(z.get_field<T::key>(), get_field<T::key>()));
+        } else {
+            return;
+        }
+    }
+
+    template <typename T1, typename T2, typename... Tail>
+    void calculate_field_innovation(DynamicMeasurementVector& z) const {
+        calculate_field_innovation<T1>(z);
+        calculate_field_innovation<T2, Tail...>(z);
     }
 
     /*

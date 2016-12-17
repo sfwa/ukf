@@ -360,6 +360,39 @@ TEST(FixedMeasurementVectorTest, SigmaPointDeltas) {
     EXPECT_VECTOR_EQ(target_sigma_point_deltas.col(20), sigma_point_deltas.col(20));
 }
 
+TEST(FixedMeasurementVectorTest, Innovation) {
+    MyStateVector test_state;
+    MyMeasurementVector test_measurement, target_innovation;
+
+    test_state.set_field<Velocity>(UKF::Vector<3>(10, 0, 0));
+    test_state.set_field<AngularVelocity>(UKF::Vector<3>(0, 0, 1));
+    test_state.set_field<Attitude>(UKF::Quaternion(1, 0, 0, 0));
+    test_state.set_field<Altitude>(1000);
+
+    test_measurement.set_field<Gyroscope>(UKF::Vector<3>(1, 0, 0));
+    test_measurement.set_field<DynamicPressure>(0.5 * 122.5);
+    test_measurement.set_field<Accelerometer>(UKF::Vector<3>(0, 0, 9.8));
+    test_measurement.set_field<StaticPressure>(101.3);
+
+    MyStateVector::CovarianceMatrix covariance = MyStateVector::CovarianceMatrix::Zero();
+    covariance.diagonal() << 1e-9, 1e-9, 1e-9, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
+
+    MyStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution((covariance *
+        (MyStateVector::covariance_size() + UKF::Parameters::Lambda<MyStateVector>)).llt().matrixL());
+
+    MyMeasurementVector::SigmaPointDistribution<MyStateVector> measurement_sigma_points =
+        test_measurement.calculate_sigma_point_distribution<MyStateVector>(sigma_points);
+
+    MyMeasurementVector mean_measurement = test_measurement.calculate_sigma_point_mean<MyStateVector>(measurement_sigma_points);
+
+    target_innovation.set_field<Gyroscope>(UKF::Vector<3>(1, 0, -1));
+    target_innovation.set_field<DynamicPressure>(0);
+    target_innovation.set_field<Accelerometer>(UKF::Vector<3>(0, 0, 17.294));
+    target_innovation.set_field<StaticPressure>(12.0);
+
+    EXPECT_VECTOR_EQ(target_innovation, mean_measurement.calculate_innovation(test_measurement));
+}
+
 TEST(FixedMeasurementVectorTest, SigmaPointCovariance) {
     MyStateVector test_state;
     MyMeasurementVector test_measurement;

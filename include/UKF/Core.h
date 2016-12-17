@@ -134,13 +134,10 @@ public:
         z_prime = z_pred.template calculate_sigma_point_deltas<StateVectorType>(measurement_sigma_points);
 
         /*
-        Calculate innovation and innovation covariance. Innovation is simply
-        the difference between the measurement and the predicted measurement,
-        and innovation covariance is the sum of the predicted measurement
-        covariance and the measurement covariance.
+        Calculate innovation and innovation covariance.
         See equations 44 and 45 from the Kraft paper for details.
         */
-        innovation = z - z_pred;
+        innovation = z_pred.template calculate_innovation(z);
         innovation_covariance = z_pred.template calculate_sigma_point_covariance<StateVectorType>(z_prime);
         innovation_covariance += z.template calculate_measurement_covariance();
     }
@@ -304,12 +301,8 @@ public:
             z.template calculate_sigma_point_mean<StateVectorType>(measurement_sigma_points);
         z_prime = z_pred.template calculate_sigma_point_deltas<StateVectorType>(measurement_sigma_points);
 
-        /*
-        Calculate innovation and innovation root covariance. Innovation is
-        simply the difference between the measurement and the predicted
-        measurement.
-        */
-        innovation = z - z_pred;
+        /* Calculate innovation and innovation root covariance. */
+        innovation = z_pred.template calculate_innovation(z);
 
         /*
         Create an augmented matrix containing all but the centre innovation
@@ -490,12 +483,8 @@ public:
             z.template calculate_sigma_point_mean<StateVectorType>(measurement_sigma_points);
         z_prime = z_pred.template calculate_sigma_point_deltas<StateVectorType>(measurement_sigma_points);
 
-        /*
-        Calculate innovation and innovation root covariance. Innovation is
-        simply the difference between the measurement and the predicted
-        measurement.
-        */
-        innovation = z - z_pred;
+        /* Calculate innovation and innovation root covariance. */
+        innovation = z_pred.template calculate_innovation(z);
 
         /*
         Create an augmented matrix containing all but the centre innovation
