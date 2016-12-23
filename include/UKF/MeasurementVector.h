@@ -117,7 +117,7 @@ public:
         SigmaPointDeltas<S> z_prime;
 
         /* Calculate the delta vectors. */
-        z_prime = Z.colwise() - *this;
+        calculate_field_deltas<S, Fields...>(Z, z_prime);
 
         return z_prime;
     }
@@ -262,6 +262,63 @@ private:
         calculate_field_innovation<T1>(z);
         calculate_field_innovation<T2, Tail...>(z);
     }
+
+    /*
+    Private functions for calculating the delta vectors between each sigma
+    point and the mean.
+    */
+    template <typename S, typename T>
+    static Matrix<Detail::CovarianceDimension<T>, S::num_sigma()> sigma_point_deltas(
+            const T& mean, const Matrix<Detail::StateVectorDimension<T>, S::num_sigma()>& Z) {
+        return Z.colwise() - mean;
+    }
+
+    template <typename S>
+    static Matrix<1, S::num_sigma()> sigma_point_deltas(real_t mean, const Matrix<1, S::num_sigma()>& Z) {
+        return Z.array() - mean;
+    }
+
+    template <typename S>
+    static Matrix<3, S::num_sigma()> sigma_point_deltas(const FieldVector& mean, const Matrix<3, S::num_sigma()>& Z) {
+        Matrix<3, S::num_sigma()> temp;
+
+        for(std::size_t i = 0; i < S::num_sigma(); i++) {
+            Vector<3> axis;
+
+            /*
+            Calculate the rotation vectors corresponding to a transformation
+            between the mean and each column of Z.
+            */
+            real_t q_w = std::sqrt(mean.squaredNorm() * Z.col(i).squaredNorm()) + mean.dot(Z.col(i));
+
+            if(q_w < std::numeric_limits<real_t>::epsilon()) {
+                /* Vectors are antiparallel. */
+                axis = Vector<3>(-mean(2), mean(1), mean(0)); 
+            } else {
+                axis = mean.cross(Z.col(i));
+            }
+
+            temp.col(i) = Parameters::MRP_F<FixedMeasurementVector> * axis /
+                (std::abs(Parameters::MRP_A<FixedMeasurementVector> + q_w) > std::numeric_limits<real_t>::epsilon() ?
+                    Parameters::MRP_A<FixedMeasurementVector> + q_w : std::numeric_limits<real_t>::epsilon());
+        }
+
+        return temp;
+    }
+
+    template <typename S, typename T>
+    void calculate_field_deltas(const SigmaPointDistribution<S>& Z, SigmaPointDeltas<S>& z_prime) const {
+        z_prime.block(Detail::get_field_covariance_offset<0, Fields...>(T::key), 0,
+            Detail::CovarianceDimension<typename T::type>, S::num_sigma()) = sigma_point_deltas<S>(
+                get_field<T::key>(), Z.block(Detail::get_field_offset<0, Fields...>(T::key), 0,
+                    Detail::StateVectorDimension<typename T::type>, S::num_sigma()));
+    }
+
+    template <typename S, typename T1, typename T2, typename... Tail>
+    void calculate_field_deltas(const SigmaPointDistribution<S>& Z, SigmaPointDeltas<S>& z_prime) const {
+        calculate_field_deltas<S, T1>(Z, z_prime);
+        calculate_field_deltas<S, T2, Tail...>(Z, z_prime);
+    }
 };
 
 /*
@@ -370,6 +427,7 @@ public:
         SigmaPointDeltas<S> z_prime(Base::template size(), S::num_sigma());
 
         /* Calculate the delta vectors. */
+        // calculate_field_deltas<S, Fields...>(Z, z_prime);
         z_prime = Z.colwise() - *this;
 
         return z_prime;
@@ -546,6 +604,67 @@ private:
     void calculate_field_innovation(DynamicMeasurementVector& z) const {
         calculate_field_innovation<T1>(z);
         calculate_field_innovation<T2, Tail...>(z);
+    }
+
+    /*
+    Private functions for calculating the delta vectors between each sigma
+    point and the mean.
+    */
+    template <typename S, typename T>
+    static Matrix<Detail::CovarianceDimension<T>, S::num_sigma()> sigma_point_deltas(
+            const T& mean, const Matrix<Detail::StateVectorDimension<T>, S::num_sigma()>& Z) {
+        return Z.colwise() - mean;
+    }
+
+    template <typename S>
+    static Matrix<1, S::num_sigma()> sigma_point_deltas(real_t mean, const Matrix<1, S::num_sigma()>& Z) {
+        return Z.array() - mean;
+    }
+
+    template <typename S>
+    static Matrix<3, S::num_sigma()> sigma_point_deltas(const FieldVector& mean, const Matrix<3, S::num_sigma()>& Z) {
+        Matrix<3, S::num_sigma()> temp;
+
+        for(std::size_t i = 0; i < S::num_sigma(); i++) {
+            Vector<3> axis;
+
+            /*
+            Calculate the rotation vectors corresponding to a transformation
+            between the mean and each column of Z.
+            */
+            real_t q_w = std::sqrt(mean.squaredNorm() * Z.col(i).squaredNorm()) + mean.dot(Z.col(i));
+
+            if(q_w < std::numeric_limits<real_t>::epsilon()) {
+                /* Vectors are antiparallel. */
+                axis = Vector<3>(-mean(2), mean(1), mean(0)); 
+            } else {
+                axis = mean.cross(Z.col(i));
+            }
+
+            temp.col(i) = Parameters::MRP_F<DynamicMeasurementVector> * axis /
+                (std::abs(Parameters::MRP_A<DynamicMeasurementVector> + q_w) > std::numeric_limits<real_t>::epsilon() ?
+                    Parameters::MRP_A<DynamicMeasurementVector> + q_w : std::numeric_limits<real_t>::epsilon());
+        }
+
+        return temp;
+    }
+
+    template <typename S, typename T>
+    void calculate_field_deltas(const SigmaPointDistribution<S>& Z, SigmaPointDeltas<S>& z_prime) const {
+        std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(T::key)>(field_offsets);
+        if(offset != std::numeric_limits<std::size_t>::max()) {
+            z_prime.block(offset, 0, Detail::CovarianceDimension<typename T::type>, S::num_sigma()) =
+                sigma_point_deltas<S>(get_field<T::key>(), Z.block(offset, 0,
+                    Detail::StateVectorDimension<typename T::type>, S::num_sigma()));
+        } else {
+            return;
+        }
+    }
+
+    template <typename S, typename T1, typename T2, typename... Tail>
+    void calculate_field_deltas(const SigmaPointDistribution<S>& Z, SigmaPointDeltas<S>& z_prime) const {
+        calculate_field_deltas<S, T1>(Z, z_prime);
+        calculate_field_deltas<S, T2, Tail...>(Z, z_prime);
     }
 
     /*
