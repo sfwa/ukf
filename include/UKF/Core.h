@@ -139,7 +139,7 @@ public:
         */
         innovation = z_pred.template calculate_innovation(z);
         innovation_covariance = z_pred.template calculate_sigma_point_covariance<StateVectorType>(z_prime);
-        innovation_covariance += z.template calculate_measurement_covariance();
+        innovation_covariance += z.template calculate_measurement_covariance(z_pred);
     }
 
     /*
@@ -324,7 +324,7 @@ public:
         augmented_z_prime.block(0, 0, z.size(), StateVectorType::num_sigma() - 1) =
             std::sqrt(Parameters::Sigma_WCI<StateVectorType>) * z_prime.rightCols(StateVectorType::num_sigma() - 1);
         augmented_z_prime.block(0, StateVectorType::num_sigma() - 1, z.size(), z.size()) =
-            z.template calculate_measurement_root_covariance();
+            z.template calculate_measurement_root_covariance(z_pred);
 
         /*
         Calculate the QR decomposition of the augmented innovation deltas.
@@ -506,7 +506,7 @@ public:
         augmented_z_prime.block(0, 0, z.size(), StateVectorType::num_sigma() - 1) =
             std::sqrt(Parameters::Sigma_WCI<StateVectorType>) * z_prime.rightCols(StateVectorType::num_sigma() - 1);
         augmented_z_prime.block(0, StateVectorType::num_sigma() - 1, z.size(), z.size()) =
-            z.template calculate_measurement_root_covariance();
+            z.template calculate_measurement_root_covariance(z_pred);
 
         /*
         Calculate the QR decomposition of the augmented innovation deltas.

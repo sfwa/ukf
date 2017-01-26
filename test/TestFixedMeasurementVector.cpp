@@ -442,17 +442,28 @@ template <>
 MyMeasurementVector::CovarianceVector MyMeasurementVector::measurement_covariance = MyMeasurementVector::CovarianceVector();
 
 TEST(FixedMeasurementVectorTest, MeasurementCovariance) {
-    MyMeasurementVector test_measurement;
+    MyMeasurementVector test_measurement, expected_measurement;
 
     MyMeasurementVector::measurement_covariance.set_field<Gyroscope>(UKF::Vector<3>(1, 2, 3));
     MyMeasurementVector::measurement_covariance.set_field<DynamicPressure>(4);
     MyMeasurementVector::measurement_covariance.set_field<Accelerometer>(UKF::Vector<3>(5, 6, 7));
     MyMeasurementVector::measurement_covariance.set_field<StaticPressure>(8);
 
+    test_measurement.set_field<Gyroscope>(UKF::Vector<3>(0, 0, 0));
+    test_measurement.set_field<DynamicPressure>(0);
+    test_measurement.set_field<Accelerometer>(UKF::Vector<3>(0, 0, -9.8));
+    test_measurement.set_field<StaticPressure>(101.3);
+
+    expected_measurement.set_field<Gyroscope>(UKF::Vector<3>(0, 0, 0));
+    expected_measurement.set_field<DynamicPressure>(0);
+    expected_measurement.set_field<Accelerometer>(UKF::Vector<3>(0, 0, -9.8));
+    expected_measurement.set_field<StaticPressure>(101.3);
+
     MyMeasurementVector::CovarianceMatrix expected_measurement_covariance = MyMeasurementVector::CovarianceMatrix::Zero();
     expected_measurement_covariance.diagonal() << 5, 6, 7, 1, 2, 3, 8, 4;
 
-    MyMeasurementVector::CovarianceMatrix measurement_covariance = test_measurement.calculate_measurement_covariance();
+    MyMeasurementVector::CovarianceMatrix measurement_covariance =
+        test_measurement.calculate_measurement_covariance(expected_measurement);
 
     EXPECT_VECTOR_EQ(expected_measurement_covariance.col(0),  measurement_covariance.col(0));
     EXPECT_VECTOR_EQ(expected_measurement_covariance.col(1),  measurement_covariance.col(1));
@@ -468,17 +479,28 @@ template <>
 MyMeasurementVector::CovarianceVector MyMeasurementVector::measurement_root_covariance = MyMeasurementVector::CovarianceVector();
 
 TEST(FixedMeasurementVectorTest, MeasurementRootCovariance) {
-    MyMeasurementVector test_measurement;
+    MyMeasurementVector test_measurement, expected_measurement;
 
     MyMeasurementVector::measurement_root_covariance.set_field<Gyroscope>(UKF::Vector<3>(1, 2, 3));
     MyMeasurementVector::measurement_root_covariance.set_field<DynamicPressure>(4);
     MyMeasurementVector::measurement_root_covariance.set_field<Accelerometer>(UKF::Vector<3>(5, 6, 7));
     MyMeasurementVector::measurement_root_covariance.set_field<StaticPressure>(8);
 
+    test_measurement.set_field<Gyroscope>(UKF::Vector<3>(0, 0, 0));
+    test_measurement.set_field<DynamicPressure>(0);
+    test_measurement.set_field<Accelerometer>(UKF::Vector<3>(0, 0, -9.8));
+    test_measurement.set_field<StaticPressure>(101.3);
+
+    expected_measurement.set_field<Gyroscope>(UKF::Vector<3>(0, 0, 0));
+    expected_measurement.set_field<DynamicPressure>(0);
+    expected_measurement.set_field<Accelerometer>(UKF::Vector<3>(0, 0, -9.8));
+    expected_measurement.set_field<StaticPressure>(101.3);
+
     MyMeasurementVector::CovarianceMatrix expected_measurement_root_covariance = MyMeasurementVector::CovarianceMatrix::Zero();
     expected_measurement_root_covariance.diagonal() << 5, 6, 7, 1, 2, 3, 8, 4;
 
-    MyMeasurementVector::CovarianceMatrix measurement_root_covariance = test_measurement.calculate_measurement_root_covariance();
+    MyMeasurementVector::CovarianceMatrix measurement_root_covariance =
+        test_measurement.calculate_measurement_root_covariance(expected_measurement);
 
     EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(0),  measurement_root_covariance.col(0));
     EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(1),  measurement_root_covariance.col(1));
