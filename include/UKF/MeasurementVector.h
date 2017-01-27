@@ -35,6 +35,28 @@ SOFTWARE.
 
 namespace UKF {
 
+    namespace Detail {
+
+    /* Calculate the smallest rotation vector which transforms v1 into v2. */
+    template <typename T>
+    inline Vector<3> calculate_rotation_vector(const Vector<3>& v2, const Vector<3>& v1) {
+        Vector<3> axis;
+        real_t q_w = std::sqrt(v1.squaredNorm() * v2.squaredNorm()) + v1.dot(v2);
+
+        if(q_w < std::numeric_limits<real_t>::epsilon()) {
+            /* Vectors are antiparallel. */
+            axis = Vector<3>(-v1(2), v1(1), v1(0)); 
+        } else {
+            axis = v1.cross(v2);
+        }
+
+        return Parameters::MRP_F<T> * axis /
+            (std::abs(Parameters::MRP_A<T> + q_w) > std::numeric_limits<real_t>::epsilon() ?
+            Parameters::MRP_A<T> + q_w : std::numeric_limits<real_t>::epsilon());
+    }
+
+    }
+
 /* Alias for the Eigen type from which FixedMeasurementVector inherits. */
 template <typename... Fields>
 using MeasurementVectorFixedBaseType = Vector<Detail::get_composite_vector_dimension<Fields...>()>;
@@ -238,13 +260,13 @@ private:
         return temp;
     }
 
-    // static Matrix<3, 3> field_covariance(const FieldVector& p, const FieldVector& z_pred, const FieldVector& z) {
-    //     Matrix<3, 3> temp;
+    static Matrix<3, 3> field_covariance(const FieldVector& p, const FieldVector& z_pred, const FieldVector& z) {
+        Matrix<3, 3> temp;
 
 
 
-    //     return temp;
-    // }
+        return temp;
+    }
 
     template <typename T>
     void calculate_field_covariance(CovarianceMatrix& P, const FixedMeasurementVector& z_pred) const {
@@ -274,13 +296,13 @@ private:
         return temp;
     }
 
-    // static Matrix<3, 3> field_root_covariance(const FieldVector& p, const FieldVector& z_pred, const FieldVector& z) {
-    //     Matrix<3, 3> temp;
+    static Matrix<3, 3> field_root_covariance(const FieldVector& p, const FieldVector& z_pred, const FieldVector& z) {
+        Matrix<3, 3> temp;
 
 
 
-    //     return temp;
-    // }
+        return temp;
+    }
 
     template <typename T>
     void calculate_field_root_covariance(CovarianceMatrix& P, const FixedMeasurementVector& z_pred) const {
@@ -308,26 +330,7 @@ private:
     }
 
     static FieldVector measurement_delta(const FieldVector& z, const FieldVector& z_pred) {
-        Vector<3> axis;
-
-        /*
-        Calculate the rotation vector corresponding to a transformation
-        between z_pred and z.
-        */
-        real_t q_w = std::sqrt(z_pred.squaredNorm() * z.squaredNorm()) + z_pred.dot(z);
-
-        if(q_w < std::numeric_limits<real_t>::epsilon()) {
-            /* Vectors are antiparallel. */
-            axis = Vector<3>(-z_pred(2), z_pred(1), z_pred(0)); 
-        } else {
-            axis = z_pred.cross(z);
-        }
-
-        FieldVector temp = Parameters::MRP_F<FixedMeasurementVector> * axis /
-            (std::abs(Parameters::MRP_A<FixedMeasurementVector> + q_w) > std::numeric_limits<real_t>::epsilon() ?
-                Parameters::MRP_A<FixedMeasurementVector> + q_w : std::numeric_limits<real_t>::epsilon());
-
-        return temp;
+        return Detail::calculate_rotation_vector<FixedMeasurementVector>(z, z_pred);
     }
 
     template <typename T>
@@ -361,24 +364,7 @@ private:
         Matrix<3, S::num_sigma()> temp;
 
         for(std::size_t i = 0; i < S::num_sigma(); i++) {
-            Vector<3> axis;
-
-            /*
-            Calculate the rotation vectors corresponding to a transformation
-            between the mean and each column of Z.
-            */
-            real_t q_w = std::sqrt(mean.squaredNorm() * Z.col(i).squaredNorm()) + mean.dot(Z.col(i));
-
-            if(q_w < std::numeric_limits<real_t>::epsilon()) {
-                /* Vectors are antiparallel. */
-                axis = Vector<3>(-mean(2), mean(1), mean(0)); 
-            } else {
-                axis = mean.cross(Z.col(i));
-            }
-
-            temp.col(i) = Parameters::MRP_F<FixedMeasurementVector> * axis /
-                (std::abs(Parameters::MRP_A<FixedMeasurementVector> + q_w) > std::numeric_limits<real_t>::epsilon() ?
-                    Parameters::MRP_A<FixedMeasurementVector> + q_w : std::numeric_limits<real_t>::epsilon());
+            temp.col(i) = Detail::calculate_rotation_vector<FixedMeasurementVector>(Z.col(i), mean);
         }
 
         return temp;
@@ -645,13 +631,13 @@ private:
         return temp;
     }
 
-    // static Matrix<3, 3> field_covariance(const FieldVector& p, const FieldVector& z_pred, const FieldVector& z) {
-    //     Matrix<3, 3> temp;
+    static Matrix<3, 3> field_covariance(const FieldVector& p, const FieldVector& z_pred, const FieldVector& z) {
+        Matrix<3, 3> temp;
 
 
 
-    //     return temp;
-    // }
+        return temp;
+    }
 
     template <typename T>
     void calculate_field_covariance(CovarianceMatrix& P, const DynamicMeasurementVector& z_pred) const {
@@ -689,13 +675,13 @@ private:
         return temp;
     }
 
-    // static Matrix<3, 3> field_root_covariance(const FieldVector& p, const FieldVector& z_pred, const FieldVector& z) {
-    //     Matrix<3, 3> temp;
+    static Matrix<3, 3> field_root_covariance(const FieldVector& p, const FieldVector& z_pred, const FieldVector& z) {
+        Matrix<3, 3> temp;
 
 
 
-    //     return temp;
-    // }
+        return temp;
+    }
 
     template <typename T>
     void calculate_field_root_covariance(CovarianceMatrix& P, const DynamicMeasurementVector& z_pred) const {
@@ -727,26 +713,7 @@ private:
     }
 
     static FieldVector measurement_delta(const FieldVector& z, const FieldVector& z_pred) {
-        Vector<3> axis;
-
-        /*
-        Calculate the rotation vector corresponding to a transformation
-        between z_pred and z.
-        */
-        real_t q_w = std::sqrt(z_pred.squaredNorm() * z.squaredNorm()) + z_pred.dot(z);
-
-        if(q_w < std::numeric_limits<real_t>::epsilon()) {
-            /* Vectors are antiparallel. */
-            axis = Vector<3>(-z_pred(2), z_pred(1), z_pred(0)); 
-        } else {
-            axis = z_pred.cross(z);
-        }
-
-        FieldVector temp = Parameters::MRP_F<DynamicMeasurementVector> * axis /
-            (std::abs(Parameters::MRP_A<DynamicMeasurementVector> + q_w) > std::numeric_limits<real_t>::epsilon() ?
-                Parameters::MRP_A<DynamicMeasurementVector> + q_w : std::numeric_limits<real_t>::epsilon());
-
-        return temp;
+        return Detail::calculate_rotation_vector<DynamicMeasurementVector>(z, z_pred);
     }
 
     template <typename T>
@@ -785,24 +752,7 @@ private:
         Matrix<3, S::num_sigma()> temp;
 
         for(std::size_t i = 0; i < S::num_sigma(); i++) {
-            Vector<3> axis;
-
-            /*
-            Calculate the rotation vectors corresponding to a transformation
-            between the mean and each column of Z.
-            */
-            real_t q_w = std::sqrt(mean.squaredNorm() * Z.col(i).squaredNorm()) + mean.dot(Z.col(i));
-
-            if(q_w < std::numeric_limits<real_t>::epsilon()) {
-                /* Vectors are antiparallel. */
-                axis = Vector<3>(-mean(2), mean(1), mean(0)); 
-            } else {
-                axis = mean.cross(Z.col(i));
-            }
-
-            temp.col(i) = Parameters::MRP_F<DynamicMeasurementVector> * axis /
-                (std::abs(Parameters::MRP_A<DynamicMeasurementVector> + q_w) > std::numeric_limits<real_t>::epsilon() ?
-                    Parameters::MRP_A<DynamicMeasurementVector> + q_w : std::numeric_limits<real_t>::epsilon());
+            temp.col(i) = Detail::calculate_rotation_vector<DynamicMeasurementVector>(Z.col(i), mean);
         }
 
         return temp;
