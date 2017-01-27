@@ -55,6 +55,22 @@ namespace UKF {
             Parameters::MRP_A<T> + q_w : std::numeric_limits<real_t>::epsilon());
     }
 
+    /*
+    Calculate the transformation matrix to transform a covariance matrix of
+    field vector noise for the field vector v2 into a covariance matrix for the
+    rotation vector corresponding to the transformation between the field
+    vector v1 and v2.
+
+    This is done by using an expression for the exact Jacobian of the rotation
+    vector, as a function of the field vector.
+    */
+    template <typename T>
+    inline Matrix<3, 3> calculate_rotation_vector_jacobian(const Vector<3>& v2, const Vector<3>& v1) {
+        Matrix<3, 3> j;
+
+        return j;
+    }
+
     }
 
 /* Alias for the Eigen type from which FixedMeasurementVector inherits. */
@@ -261,11 +277,13 @@ private:
     }
 
     static Matrix<3, 3> field_covariance(const FieldVector& p, const FieldVector& z_pred, const FieldVector& z) {
-        Matrix<3, 3> temp;
+        Matrix<3, 3> temp = Detail::calculate_rotation_vector_jacobian<FixedMeasurementVector>(z, z_pred);
 
-
-
-        return temp;
+        /*
+        To calculate the covariance, pre-multiply by the transformation matrix
+        and then post-multiply by the transformation matrix transpose.
+        */
+        return temp * p * temp.transpose();
     }
 
     template <typename T>
@@ -297,11 +315,16 @@ private:
     }
 
     static Matrix<3, 3> field_root_covariance(const FieldVector& p, const FieldVector& z_pred, const FieldVector& z) {
-        Matrix<3, 3> temp;
+        /*
+        To calculate the root covariance, we simply pre-multiply it by the
+        transformation matrix. This will yield a positive-indefinite and
+        possibly non-triangular matrix, but it can be shown that since it
+        multiplied by its transpose it equal to the covariance matrix, it gives
+        the correct result in QR decomposition used by the square-root filter.
 
-
-
-        return temp;
+        A proof of this is left as an exercise to the reader.
+        */
+        return Detail::calculate_rotation_vector_jacobian<FixedMeasurementVector>(z, z_pred) * p;
     }
 
     template <typename T>
@@ -632,11 +655,9 @@ private:
     }
 
     static Matrix<3, 3> field_covariance(const FieldVector& p, const FieldVector& z_pred, const FieldVector& z) {
-        Matrix<3, 3> temp;
+        Matrix<3, 3> temp = Detail::calculate_rotation_vector_jacobian<DynamicMeasurementVector>(z, z_pred);
 
-
-
-        return temp;
+        return temp * p * temp.transpose();
     }
 
     template <typename T>
@@ -676,11 +697,7 @@ private:
     }
 
     static Matrix<3, 3> field_root_covariance(const FieldVector& p, const FieldVector& z_pred, const FieldVector& z) {
-        Matrix<3, 3> temp;
-
-
-
-        return temp;
+        return Detail::calculate_rotation_vector_jacobian<DynamicMeasurementVector>(z, z_pred) * p;
     }
 
     template <typename T>
