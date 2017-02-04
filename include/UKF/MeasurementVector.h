@@ -183,7 +183,7 @@ public:
     /* Calculate the mean from a measurement sigma point distribution. */
     template <typename S>
     FixedMeasurementVector calculate_sigma_point_mean(const SigmaPointDistribution<S>& Z) const {
-        return Parameters::Sigma_WMI<S>*Z.block(0, 1, size(), S::num_sigma()-1).rowwise().sum()
+        return Parameters::Sigma_WMI<S>*Z.template block<size(), S::num_sigma()-1>(0, 1).rowwise().sum()
             + Parameters::Sigma_WM0<S>*Z.col(0);
     }
 
@@ -293,8 +293,8 @@ private:
     static void calculate_field_measurements(FixedMeasurementVector& expected, const S& state, U&& input) {
         constexpr std::size_t len = std::tuple_size<typename std::remove_reference<U>::type>::value;
 
-        expected.segment(Detail::get_field_offset<0, Fields...>(T::key),
-            Detail::StateVectorDimension<typename T::type>) << expected_measurement_helper<S, T::key, U>(
+        expected.template segment<Detail::StateVectorDimension<typename T::type>>(
+            Detail::get_field_offset<0, Fields...>(T::key)) << expected_measurement_helper<S, T::key, U>(
                 state, std::forward<U>(input), std::make_index_sequence<len>());
     }
 
@@ -436,10 +436,10 @@ private:
 
     template <typename S, typename T>
     void calculate_field_deltas(const SigmaPointDistribution<S>& Z, SigmaPointDeltas<S>& z_prime) const {
-        z_prime.block(Detail::get_field_covariance_offset<0, Fields...>(T::key), 0,
-            Detail::CovarianceDimension<typename T::type>, S::num_sigma()) = sigma_point_deltas<S>(
-                get_field<T::key>(), Z.block(Detail::get_field_offset<0, Fields...>(T::key), 0,
-                    Detail::StateVectorDimension<typename T::type>, S::num_sigma()));
+        z_prime.template block<Detail::CovarianceDimension<typename T::type>, S::num_sigma()>(
+            Detail::get_field_covariance_offset<0, Fields...>(T::key), 0) = sigma_point_deltas<S>(
+                get_field<T::key>(), Z.template block<Detail::StateVectorDimension<typename T::type>, S::num_sigma()>(
+                    Detail::get_field_offset<0, Fields...>(T::key), 0));
     }
 
     template <typename S, typename T1, typename T2, typename... Tail>
@@ -668,7 +668,7 @@ private:
         */
         std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(T::key)>(field_offsets);
         if(offset != std::numeric_limits<std::size_t>::max()) {
-            expected.segment(offset, Detail::StateVectorDimension<typename T::type>) <<
+            expected.template segment<Detail::StateVectorDimension<typename T::type>>(offset) <<
                 expected_measurement_helper<S, T::key, U>(state, std::forward<U>(input),
                     std::make_index_sequence<len>());
         } else {
@@ -820,9 +820,9 @@ private:
     void calculate_field_deltas(const SigmaPointDistribution<S>& Z, SigmaPointDeltas<S>& z_prime) const {
         std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(T::key)>(field_offsets);
         if(offset != std::numeric_limits<std::size_t>::max()) {
-            z_prime.block(offset, 0, Detail::CovarianceDimension<typename T::type>, S::num_sigma()) =
-                sigma_point_deltas<S>(get_field<T::key>(), Z.block(offset, 0,
-                    Detail::StateVectorDimension<typename T::type>, S::num_sigma()));
+            z_prime.template block<Detail::CovarianceDimension<typename T::type>, S::num_sigma()>(offset, 0) =
+                sigma_point_deltas<S>(get_field<T::key>(), 
+                    Z.template block<Detail::StateVectorDimension<typename T::type>, S::num_sigma()>(offset, 0));
         } else {
             return;
         }
