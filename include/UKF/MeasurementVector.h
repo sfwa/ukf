@@ -40,14 +40,15 @@ namespace UKF {
     /* Calculate the smallest rotation vector which transforms v1 into v2. */
     template <typename T>
     inline Vector<3> calculate_rotation_vector(const Vector<3>& v2, const Vector<3>& v1) {
-        Vector<3> axis;
-        real_t q_w = std::sqrt(v1.squaredNorm() * v2.squaredNorm()) + v1.dot(v2);
+        Vector<3> axis = Vector<3>::Zero();
+        real_t norm = std::sqrt(v1.squaredNorm() * v2.squaredNorm());
+        real_t q_w = norm + v1.dot(v2);
 
-        if(q_w < std::numeric_limits<real_t>::epsilon()) {
-            /* Vectors are antiparallel. */
-            axis = Vector<3>(-v1(2), v1(1), v1(0)); 
-        } else {
+        /* Check whether the vectors are antiparallel or too small. */
+        if(q_w > std::numeric_limits<real_t>::epsilon()) {
             axis = v1.cross(v2);
+        } else if(norm > std::numeric_limits<real_t>::epsilon()) {
+            axis = Vector<3>(-v1(2), v1(1), v1(0));
         }
 
         return Parameters::MRP_F<T> * axis /
@@ -63,10 +64,50 @@ namespace UKF {
 
     This is done by using an expression for the exact Jacobian of the rotation
     vector, as a function of the field vector.
+
+    The expression for the exact Jacobian was derived using the following
+    MATLAB commands (with the Symbolic Toolbox):
+
+    v1_ = sym('v1_', [3 1], 'real');
+    v2_ = sym('v2_', [3 1], 'real');
+    f = sym('f', 1, 'real');
+    a = sym('a', 1, 'real');
+    Ra = cross(v1_, v2_) * (f/(a + sqrt(dot(v1_, v1_) * dot(v2_, v2_)) + dot(v1_, v2_)));
+    J_Ra = jacobian(Ra, v2_);
+    pretty(J_Ra);
     */
     template <typename T>
     inline Matrix<3, 3> calculate_rotation_vector_jacobian(const Vector<3>& v2, const Vector<3>& v1) {
         Matrix<3, 3> j;
+        real_t c8 = std::sqrt(v1.squaredNorm() * v2.squaredNorm());
+        real_t q_w = c8 + v1.dot(v2);
+        real_t c9_8 = real_t(0.0);
+
+        /* Check whether the vectors are antiparallel or too small. */
+        Vector<3> c123 = Vector<3>::Zero();
+        if(c8 > std::numeric_limits<real_t>::epsilon()) {
+            c9_8 = v1.squaredNorm() / c8;
+
+            if(q_w > std::numeric_limits<real_t>::epsilon()) {
+                c123 = v1.cross(v2);
+            } else {
+                c123 = Vector<3>(-v1(2), v1(1), v1(0));
+            }
+            c123(1) = -c123(1);
+        }
+
+        real_t c4 = Parameters::MRP_A<T> + q_w;
+        if(std::abs(c4) < std::numeric_limits<real_t>::epsilon()) {
+            c4 = std::numeric_limits<real_t>::epsilon();
+        }
+        real_t c4_2 = c4*c4;
+
+        Vector<3> c765 = v1 + v2*c9_8;
+
+        j <<            -c123(0)*c765(0)/c4_2, -v1(2)/c4 - c123(0)*c765(1)/c4_2,  v1(1)/c4 - c123(0)*c765(2)/c4_2,
+              v1(2)/c4 + c123(1)*c765(0)/c4_2,             c123(1)*c765(1)/c4_2, -v1(0)/c4 + c123(1)*c765(2)/c4_2,
+             -v1(1)/c4 - c123(2)*c765(0)/c4_2,  v1(0)/c4 - c123(2)*c765(1)/c4_2,            -c123(2)*c765(2)/c4_2;
+        j *= Parameters::MRP_F<T>;
 
         return j;
     }

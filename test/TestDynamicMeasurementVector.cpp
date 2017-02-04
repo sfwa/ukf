@@ -795,3 +795,120 @@ TEST(DynamicMeasurementVectorTest, PartialMeasurementRootCovariance) {
     EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(1),  measurement_root_covariance.col(1));
     EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(2),  measurement_root_covariance.col(2));
 }
+
+TEST(DynamicMeasurementVectorTest, CalculateRotationVector) {
+    UKF::Vector<3> test;
+
+    test = UKF::Detail::calculate_rotation_vector<MyMeasurementVector>(UKF::Vector<3>(0, 0, 0), UKF::Vector<3>(0, 0, 0));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 0, 0), test);
+
+    test = UKF::Detail::calculate_rotation_vector<MyMeasurementVector>(UKF::Vector<3>(1, 0, 0), UKF::Vector<3>(0, 0, 0));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 0, 0), test);
+
+    test = UKF::Detail::calculate_rotation_vector<MyMeasurementVector>(UKF::Vector<3>(0, 0, 0), UKF::Vector<3>(1, 0, 0));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 0, 0), test);
+
+    test = UKF::Detail::calculate_rotation_vector<MyMeasurementVector>(UKF::Vector<3>(1, 0, 0), UKF::Vector<3>(1, 0, 0));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 0, 0), test);
+
+    test = UKF::Detail::calculate_rotation_vector<MyMeasurementVector>(UKF::Vector<3>(1, 0, 0), UKF::Vector<3>(-1, 0, 0));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 0, -2/std::numeric_limits<real_t>::epsilon()), test);
+
+    test = UKF::Detail::calculate_rotation_vector<MyMeasurementVector>(UKF::Vector<3>(1, 0, 0), UKF::Vector<3>(0, 1, 0));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 0, -2), test);
+
+    test = UKF::Detail::calculate_rotation_vector<MyMeasurementVector>(UKF::Vector<3>(1, 0, 0), UKF::Vector<3>(0, -1, 0));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 0, 2), test);
+
+    test = UKF::Detail::calculate_rotation_vector<MyMeasurementVector>(UKF::Vector<3>(1, 0, 0), UKF::Vector<3>(0, 0, 1));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 2, 0), test);
+
+    test = UKF::Detail::calculate_rotation_vector<MyMeasurementVector>(UKF::Vector<3>(1, 0, 0), UKF::Vector<3>(0, 0, -1));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, -2, 0), test);
+
+    /* Some random vectors, for the a = 0, f = 2 case. */
+    test = UKF::Detail::calculate_rotation_vector<MyMeasurementVector>(
+        UKF::Vector<3>(5.0746, -2.3911, 1.3564), UKF::Vector<3>(8.3439, -4.2832, 5.1440));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0.1070, 0.2438, 0.0294), test);
+
+    test = UKF::Detail::calculate_rotation_vector<MyMeasurementVector>(
+        UKF::Vector<3>(5.5833, 8.6802, -7.4019), UKF::Vector<3>(-8.4829, -8.9210, 0.6160));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(4.4643, -4.3661, -1.7527), test);
+
+    test = UKF::Detail::calculate_rotation_vector<MyMeasurementVector>(
+        UKF::Vector<3>(2.0396, -4.7406, 3.0816), UKF::Vector<3>(-3.7757, 0.5707, -6.6870));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(-3.9209, -0.2624, 2.1914), test);
+}
+
+TEST(DynamicMeasurementVectorTest, CalculateRotationVectorJacobian) {
+    UKF::Matrix<3, 3> test;
+
+    test = UKF::Detail::calculate_rotation_vector_jacobian<MyMeasurementVector>(UKF::Vector<3>(0, 0, 0), UKF::Vector<3>(0, 0, 0));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 0, 0).transpose(), (test*test.transpose()).row(0));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 0, 0).transpose(), (test*test.transpose()).row(1));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 0, 0).transpose(), (test*test.transpose()).row(2));
+
+    test = UKF::Detail::calculate_rotation_vector_jacobian<MyMeasurementVector>(UKF::Vector<3>(1, 0, 0), UKF::Vector<3>(0, 0, 0));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 0, 0).transpose(), (test*test.transpose()).row(0));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 0, 0).transpose(), (test*test.transpose()).row(1));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 0, 0).transpose(), (test*test.transpose()).row(2));
+
+    test = UKF::Detail::calculate_rotation_vector_jacobian<MyMeasurementVector>(UKF::Vector<3>(0, 0, 0), UKF::Vector<3>(1, 0, 0));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 0, 0).transpose(), (test*test.transpose()).row(0));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 4/(std::numeric_limits<real_t>::epsilon()*std::numeric_limits<real_t>::epsilon()), 0).transpose(),
+            (test*test.transpose()).row(1));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 0, 4/(std::numeric_limits<real_t>::epsilon()*std::numeric_limits<real_t>::epsilon())).transpose(),
+            (test*test.transpose()).row(2));
+
+    test = UKF::Detail::calculate_rotation_vector_jacobian<MyMeasurementVector>(UKF::Vector<3>(1, 0, 0), UKF::Vector<3>(1, 0, 0));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 0, 0).transpose(), (test*test.transpose()).row(0));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 1, 0).transpose(), (test*test.transpose()).row(1));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 0, 1).transpose(), (test*test.transpose()).row(2));
+
+    test = UKF::Detail::calculate_rotation_vector_jacobian<MyMeasurementVector>(UKF::Vector<3>(1, 0, 0), UKF::Vector<3>(-1, 0, 0));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 0, 0).transpose(), (test*test.transpose()).row(0));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 4/(std::numeric_limits<real_t>::epsilon()*std::numeric_limits<real_t>::epsilon()), 0).transpose(),
+            (test*test.transpose()).row(1));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 0, 4/(std::numeric_limits<real_t>::epsilon()*std::numeric_limits<real_t>::epsilon())).transpose(),
+            (test*test.transpose()).row(2));
+
+    test = UKF::Detail::calculate_rotation_vector_jacobian<MyMeasurementVector>(UKF::Vector<3>(1, 0, 0), UKF::Vector<3>(0, 1, 0));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(4, 0, 0).transpose(), (test*test.transpose()).row(0));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 0, 0).transpose(), (test*test.transpose()).row(1));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 0, 4).transpose(), (test*test.transpose()).row(2));
+
+    test = UKF::Detail::calculate_rotation_vector_jacobian<MyMeasurementVector>(UKF::Vector<3>(1, 0, 0), UKF::Vector<3>(0, -1, 0));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(4, 0, 0).transpose(), (test*test.transpose()).row(0));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 0, 0).transpose(), (test*test.transpose()).row(1));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 0, 4).transpose(), (test*test.transpose()).row(2));
+
+    test = UKF::Detail::calculate_rotation_vector_jacobian<MyMeasurementVector>(UKF::Vector<3>(1, 0, 0), UKF::Vector<3>(0, 0, 1));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(4, 0, 0).transpose(), (test*test.transpose()).row(0));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 4, 0).transpose(), (test*test.transpose()).row(1));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 0, 0).transpose(), (test*test.transpose()).row(2));
+
+    test = UKF::Detail::calculate_rotation_vector_jacobian<MyMeasurementVector>(UKF::Vector<3>(1, 0, 0), UKF::Vector<3>(0, 0, -1));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(4, 0, 0).transpose(), (test*test.transpose()).row(0));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 4, 0).transpose(), (test*test.transpose()).row(1));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 0, 0).transpose(), (test*test.transpose()).row(2));
+
+    /* Some random vectors, for the a = 0, f = 2 case. */
+    Eigen::DiagonalMatrix<real_t, 3> c(UKF::Vector<3>(1, 2, 3));
+    test = UKF::Detail::calculate_rotation_vector_jacobian<MyMeasurementVector>(
+        UKF::Vector<3>(5.0746, -2.3911, 1.3564), UKF::Vector<3>(8.3439, -4.2832, 5.1440));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>( 0.030105,  0.032038, -0.022155).transpose(), (test*c*test.transpose()).row(0));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>( 0.032038,  0.073227,  0.009005).transpose(), (test*c*test.transpose()).row(1));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(-0.022155,  0.009005,  0.043436).transpose(), (test*c*test.transpose()).row(2));
+
+    test = UKF::Detail::calculate_rotation_vector_jacobian<MyMeasurementVector>(
+        UKF::Vector<3>(5.5833, 8.6802, -7.4019), UKF::Vector<3>(-8.4829, -8.9210, 0.6160));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>( 0.790494, -0.776049, -0.353005).transpose(), (test*c*test.transpose()).row(0));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(-0.776049,  0.768788,  0.446778).transpose(), (test*c*test.transpose()).row(1));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(-0.353005,  0.446778,  1.609094).transpose(), (test*c*test.transpose()).row(2));
+
+    test = UKF::Detail::calculate_rotation_vector_jacobian<MyMeasurementVector>(
+        UKF::Vector<3>(2.0396, -4.7406, 3.0816), UKF::Vector<3>(-3.7757, 0.5707, -6.6870));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>( 1.850606, -0.474603, -1.085418).transpose(), (test*c*test.transpose()).row(0));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(-0.474603,  1.420474,  0.389206).transpose(), (test*c*test.transpose()).row(1));
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(-1.085418,  0.389206,  0.646079).transpose(), (test*c*test.transpose()).row(2));
+}
