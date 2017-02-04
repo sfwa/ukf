@@ -318,13 +318,13 @@ private:
     }
 
     static Matrix<3, 3> field_covariance(const FieldVector& p, const FieldVector& z_pred, const FieldVector& z) {
-        Matrix<3, 3> temp = Detail::calculate_rotation_vector_jacobian<FixedMeasurementVector>(z, z_pred);
+        Matrix<3, 3> T = Detail::calculate_rotation_vector_jacobian<FixedMeasurementVector>(z, z_pred);
 
         /*
         To calculate the covariance, pre-multiply by the transformation matrix
         and then post-multiply by the transformation matrix transpose.
         */
-        return temp * p * temp.transpose();
+        return T * Eigen::DiagonalMatrix<real_t, 3>(p) * T.transpose();
     }
 
     template <typename T>
@@ -365,7 +365,8 @@ private:
 
         A proof of this is left as an exercise to the reader.
         */
-        return Detail::calculate_rotation_vector_jacobian<FixedMeasurementVector>(z, z_pred) * p;
+        return Detail::calculate_rotation_vector_jacobian<FixedMeasurementVector>(z, z_pred) *
+            Eigen::DiagonalMatrix<real_t, 3>(p);
     }
 
     template <typename T>
@@ -555,8 +556,7 @@ public:
         SigmaPointDeltas<S> z_prime(Base::template size(), S::num_sigma());
 
         /* Calculate the delta vectors. */
-        // calculate_field_deltas<S, Fields...>(Z, z_prime);
-        z_prime = Z.colwise() - *this;
+        calculate_field_deltas<S, Fields...>(Z, z_prime);
 
         return z_prime;
     }
@@ -696,9 +696,12 @@ private:
     }
 
     static Matrix<3, 3> field_covariance(const FieldVector& p, const FieldVector& z_pred, const FieldVector& z) {
-        Matrix<3, 3> temp = Detail::calculate_rotation_vector_jacobian<DynamicMeasurementVector>(z, z_pred);
-
-        return temp * p * temp.transpose();
+        Matrix<3, 3> T = Detail::calculate_rotation_vector_jacobian<DynamicMeasurementVector>(z, z_pred);
+        /*
+        To calculate the covariance, pre-multiply by the transformation matrix
+        and then post-multiply by the transformation matrix transpose.
+        */
+        return T * Eigen::DiagonalMatrix<real_t, 3>(p) * T.transpose();
     }
 
     template <typename T>
@@ -738,7 +741,8 @@ private:
     }
 
     static Matrix<3, 3> field_root_covariance(const FieldVector& p, const FieldVector& z_pred, const FieldVector& z) {
-        return Detail::calculate_rotation_vector_jacobian<DynamicMeasurementVector>(z, z_pred) * p;
+        return Detail::calculate_rotation_vector_jacobian<DynamicMeasurementVector>(z, z_pred) *
+            Eigen::DiagonalMatrix<real_t, 3>(p);
     }
 
     template <typename T>

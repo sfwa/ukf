@@ -10,12 +10,14 @@ enum MyFields {
     StaticPressure,
     DynamicPressure,
     Accelerometer,
-    Gyroscope
+    Gyroscope,
+    Magnetometer
 };
 
 using MyMeasurementVector = UKF::DynamicMeasurementVector<
     UKF::Field<StaticPressure, real_t>,
     UKF::Field<DynamicPressure, real_t>,
+    UKF::Field<Magnetometer, UKF::FieldVector>,
     UKF::Field<Accelerometer, UKF::Vector<3>>,
     UKF::Field<Gyroscope, UKF::Vector<3>>
 >;
@@ -23,8 +25,8 @@ using MyMeasurementVector = UKF::DynamicMeasurementVector<
 TEST(DynamicMeasurementVectorTest, Instantiation) {
     MyMeasurementVector test_measurement;
 
-    EXPECT_EQ(8, MyMeasurementVector::MaxRowsAtCompileTime);
-    EXPECT_EQ(8, test_measurement.max_size());
+    EXPECT_EQ(11, MyMeasurementVector::MaxRowsAtCompileTime);
+    EXPECT_EQ(11, test_measurement.max_size());
 }
 
 TEST(DynamicMeasurementVectorTest, Assignment) {
@@ -50,8 +52,13 @@ TEST(DynamicMeasurementVectorTest, Assignment) {
     EXPECT_EQ(8, test_measurement.size());
     EXPECT_EQ(8, test_measurement.get_field<StaticPressure>());
 
-    UKF::Vector<8> expected;
-    expected << 1, 2, 3, 4, 5, 6, 7, 8;
+    test_measurement.set_field<Magnetometer>(UKF::FieldVector(9, 10, 11));
+
+    EXPECT_EQ(11, test_measurement.size());
+    EXPECT_VECTOR_EQ(UKF::FieldVector(9, 10, 11), test_measurement.get_field<Magnetometer>());
+
+    UKF::Vector<11> expected;
+    expected << 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11;
     EXPECT_VECTOR_EQ(expected, test_measurement);
 }
 
@@ -78,38 +85,46 @@ TEST(DynamicMeasurementVectorTest, MultipleReassignment) {
     test_measurement.set_field<DynamicPressure>(4);
     test_measurement.set_field<Accelerometer>(UKF::Vector<3>(5, 6, 7));
     test_measurement.set_field<StaticPressure>(8);
+    test_measurement.set_field<Magnetometer>(UKF::FieldVector(9, 10, 11));
 
-    EXPECT_EQ(8, test_measurement.size());
-    UKF::Vector<8> expected;
-    expected << 1, 2, 3, 4, 5, 6, 7, 8;
+    EXPECT_EQ(11, test_measurement.size());
+    UKF::Vector<11> expected;
+    expected << 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11;
     EXPECT_VECTOR_EQ(expected, test_measurement);
 
     test_measurement.set_field<Gyroscope>(UKF::Vector<3>(4, 5, 6));
 
-    EXPECT_EQ(8, test_measurement.size());
+    EXPECT_EQ(11, test_measurement.size());
     EXPECT_VECTOR_EQ(UKF::Vector<3>(4, 5, 6), test_measurement.get_field<Gyroscope>());
-    expected << 4, 5, 6, 4, 5, 6, 7, 8;
+    expected << 4, 5, 6, 4, 5, 6, 7, 8, 9, 10, 11;
     EXPECT_VECTOR_EQ(expected, test_measurement);
 
     test_measurement.set_field<Accelerometer>(UKF::Vector<3>(7, 8, 9));
 
-    EXPECT_EQ(8, test_measurement.size());
+    EXPECT_EQ(11, test_measurement.size());
     EXPECT_VECTOR_EQ(UKF::Vector<3>(7, 8, 9), test_measurement.get_field<Accelerometer>());
-    expected << 4, 5, 6, 4, 7, 8, 9, 8;
+    expected << 4, 5, 6, 4, 7, 8, 9, 8, 9, 10, 11;
     EXPECT_VECTOR_EQ(expected, test_measurement);
 
     test_measurement.set_field<DynamicPressure>(1);
 
-    EXPECT_EQ(8, test_measurement.size());
+    EXPECT_EQ(11, test_measurement.size());
     EXPECT_EQ(1, test_measurement.get_field<DynamicPressure>());
-    expected << 4, 5, 6, 1, 7, 8, 9, 8;
+    expected << 4, 5, 6, 1, 7, 8, 9, 8, 9, 10, 11;
     EXPECT_VECTOR_EQ(expected, test_measurement);
 
     test_measurement.set_field<StaticPressure>(3);
 
-    EXPECT_EQ(8, test_measurement.size());
+    EXPECT_EQ(11, test_measurement.size());
     EXPECT_EQ(3, test_measurement.get_field<StaticPressure>());
-    expected << 4, 5, 6, 1, 7, 8, 9, 3;
+    expected << 4, 5, 6, 1, 7, 8, 9, 3, 9, 10, 11;
+    EXPECT_VECTOR_EQ(expected, test_measurement);
+
+    test_measurement.set_field<Magnetometer>(UKF::FieldVector(4, 5, 6));
+
+    EXPECT_EQ(11, test_measurement.size());
+    EXPECT_VECTOR_EQ(UKF::FieldVector(4, 5, 6), test_measurement.get_field<Magnetometer>());
+    expected << 4, 5, 6, 1, 7, 8, 9, 3, 4, 5, 6;
     EXPECT_VECTOR_EQ(expected, test_measurement);
 }
 
@@ -120,6 +135,7 @@ TEST(DynamicMeasurementVectorTest, CopyConstructor) {
     test_measurement_1.set_field<DynamicPressure>(4);
     test_measurement_1.set_field<Accelerometer>(UKF::Vector<3>(5, 6, 7));
     test_measurement_1.set_field<StaticPressure>(8);
+    test_measurement_1.set_field<Magnetometer>(UKF::FieldVector(9, 10, 11));
 
     test_measurement_2 = test_measurement_1;
 
@@ -129,10 +145,7 @@ TEST(DynamicMeasurementVectorTest, CopyConstructor) {
     EXPECT_EQ(4, test_measurement_2.get_field<DynamicPressure>());
     EXPECT_VECTOR_EQ(UKF::Vector<3>(5, 6, 7), test_measurement_2.get_field<Accelerometer>());
     EXPECT_EQ(8, test_measurement_2.get_field<StaticPressure>());
-}
-
-TEST(DynamicMeasurementVectorTest, Arithmetic) {
-    
+    EXPECT_VECTOR_EQ(UKF::FieldVector(9, 10, 11), test_measurement_2.get_field<Magnetometer>());
 }
 
 enum MyStateVectorFields {
@@ -177,6 +190,12 @@ real_t MyMeasurementVector::expected_measurement
     return 0.5 * 1.225 * state.get_field<Velocity>().squaredNorm();
 }
 
+template <> template <>
+UKF::FieldVector MyMeasurementVector::expected_measurement
+<MyStateVector, Magnetometer>(const MyStateVector& state) {
+    return state.get_field<Attitude>() * UKF::FieldVector(0.45, 0, 0);
+}
+
 /*
 These versions of the predicted measurement functions have non-state inputs.
 This could be used to add predicted kinematic acceleration by feeding control
@@ -206,12 +225,19 @@ real_t MyMeasurementVector::expected_measurement
     return 0.5 * 1.225 * state.get_field<Velocity>().squaredNorm();
 }
 
+template <> template <>
+UKF::FieldVector MyMeasurementVector::expected_measurement
+<MyStateVector, Magnetometer, UKF::Vector<3>>(const MyStateVector& state, const UKF::Vector<3>& input) {
+    return state.get_field<Attitude>() * UKF::FieldVector(0.45, 0, 0) + input;
+}
+
 TEST(DynamicMeasurementVectorTest, SigmaPointGeneration) {
     MyStateVector test_state;
     MyMeasurementVector test_measurement;
 
     test_measurement.set_field<Accelerometer>(UKF::Vector<3>(0, 0, 0));
     test_measurement.set_field<Gyroscope>(UKF::Vector<3>(0, 0, 0));
+    test_measurement.set_field<Magnetometer>(UKF::FieldVector(0, 0, 0));
     test_measurement.set_field<StaticPressure>(0);
     test_measurement.set_field<DynamicPressure>(0);
 
@@ -235,6 +261,9 @@ TEST(DynamicMeasurementVectorTest, SigmaPointGeneration) {
                             1,      1,      1,      1,  4.606,      1,      1,      1,      1,      1,      1,      1,      1,      1, -2.606,      1,      1,      1,      1,      1,      1,
                             0,      0,      0,      0,      0,  3.606,      0,      0,      0,      0,      0,      0,      0,      0,      0, -3.606,      0,      0,      0,      0,      0,
                             0,      0,      0,      0,      0,      0,  3.606,      0,      0,      0,      0,      0,      0,      0,      0,      0, -3.606,      0,      0,      0,      0,
+                         0.45,   0.45,   0.45,   0.45,   0.45,   0.45,   0.45,   0.45, -0.238, -0.238,   0.45,   0.45,   0.45,   0.45,   0.45,   0.45,   0.45,   0.45, -0.238, -0.238,   0.45,
+                            0,      0,      0,      0,      0,      0,      0,      0,      0,  0.382,      0,      0,      0,      0,      0,      0,      0,      0,      0, -0.382,      0,
+                            0,      0,      0,      0,      0,      0,      0,      0, -0.382,      0,      0,      0,      0,      0,      0,      0,      0,      0,  0.382,      0,      0,
                          89.3,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3, 89.257,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3, 89.343,
                         8.575, 20.954, 25.371, 29.788,  8.575,  8.575,  8.575,  8.575,  8.575,  8.575,  8.575, 12.121,  7.704,  3.287,  8.575,  8.575,  8.575,  8.575,  8.575,  8.575,  8.575;
     MyMeasurementVector::SigmaPointDistribution<MyStateVector> measurement_sigma_points;
@@ -269,6 +298,7 @@ TEST(DynamicMeasurementVectorTest, SigmaPointGenerationWithInput) {
 
     test_measurement.set_field<Accelerometer>(UKF::Vector<3>(0, 0, 0));
     test_measurement.set_field<Gyroscope>(UKF::Vector<3>(0, 0, 0));
+    test_measurement.set_field<Magnetometer>(UKF::FieldVector(0, 0, 0));
     test_measurement.set_field<StaticPressure>(0);
     test_measurement.set_field<DynamicPressure>(0);
 
@@ -292,6 +322,9 @@ TEST(DynamicMeasurementVectorTest, SigmaPointGenerationWithInput) {
                             1,      1,      1,      1,  4.606,      1,      1,      1,      1,      1,      1,      1,      1,      1, -2.606,      1,      1,      1,      1,      1,      1,
                             0,      0,      0,      0,      0,  3.606,      0,      0,      0,      0,      0,      0,      0,      0,      0, -3.606,      0,      0,      0,      0,      0,
                             0,      0,      0,      0,      0,      0,  3.606,      0,      0,      0,      0,      0,      0,      0,      0,      0, -3.606,      0,      0,      0,      0,
+                         1.45,   1.45,   1.45,   1.45,   1.45,   1.45,   1.45,   1.45,  0.762,  0.762,   1.45,   1.45,   1.45,   1.45,   1.45,   1.45,   1.45,   1.45,  0.762,  0.762,   1.45,
+                            2,      2,      2,      2,      2,      2,      2,      2,      2,  2.382,      2,      2,      2,      2,      2,      2,      2,      2,      2,  1.618,      2,
+                            3,      3,      3,      3,      3,      3,      3,      3,  2.618,      3,      3,      3,      3,      3,      3,      3,      3,      3,  3.382,      3,      3,
                          89.3,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3, 89.257,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3, 89.343,
                         8.575, 20.954, 25.371, 29.788,  8.575,  8.575,  8.575,  8.575,  8.575,  8.575,  8.575, 12.121,  7.704,  3.287,  8.575,  8.575,  8.575,  8.575,  8.575,  8.575,  8.575;
     MyMeasurementVector::SigmaPointDistribution<MyStateVector> measurement_sigma_points;
@@ -377,6 +410,7 @@ TEST(DynamicMeasurementVectorTest, SigmaPointMean) {
 
     test_measurement.set_field<Accelerometer>(UKF::Vector<3>(0, 0, 0));
     test_measurement.set_field<Gyroscope>(UKF::Vector<3>(0, 0, 0));
+    test_measurement.set_field<Magnetometer>(UKF::FieldVector(0, 0, 0));
     test_measurement.set_field<StaticPressure>(0);
     test_measurement.set_field<DynamicPressure>(0);
 
@@ -386,6 +420,9 @@ TEST(DynamicMeasurementVectorTest, SigmaPointMean) {
                                  1,      1,      1,      1,  4.606,      1,      1,      1,      1,      1,      1,      1,      1,      1, -2.606,      1,      1,      1,      1,      1,      1,
                                  0,      0,      0,      0,      0,  3.606,      0,      0,      0,      0,      0,      0,      0,      0,      0, -3.606,      0,      0,      0,      0,      0,
                                  0,      0,      0,      0,      0,      0,  3.606,      0,      0,      0,      0,      0,      0,      0,      0,      0, -3.606,      0,      0,      0,      0,
+                              0.45,   0.45,   0.45,   0.45,   0.45,   0.45,   0.45,   0.45, -0.238, -0.238,   0.45,   0.45,   0.45,   0.45,   0.45,   0.45,   0.45,   0.45, -0.238, -0.238,   0.45,
+                                 0,      0,      0,      0,      0,      0,      0,      0,      0,  0.382,      0,      0,      0,      0,      0,      0,      0,      0,      0, -0.382,      0,
+                                 0,      0,      0,      0,      0,      0,      0,      0, -0.382,      0,      0,      0,      0,      0,      0,      0,      0,      0,  0.382,      0,      0,
                               89.3,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3, 89.257,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3,   89.3, 89.343,
                              8.575, 20.954, 25.371, 29.788,  8.575,  8.575,  8.575,  8.575,  8.575,  8.575,  8.575, 12.121,  7.704,  3.287,  8.575,  8.575,  8.575,  8.575,  8.575,  8.575,  8.575;
 
@@ -393,6 +430,7 @@ TEST(DynamicMeasurementVectorTest, SigmaPointMean) {
 
     expected_mean.set_field<Accelerometer>(UKF::Vector<3>(0.0, 0.0, -7.494));
     expected_mean.set_field<Gyroscope>(UKF::Vector<3>(1.0, 0.0, 0.0));
+    expected_mean.set_field<Magnetometer>(UKF::FieldVector(0.344, 0, 0));
     expected_mean.set_field<StaticPressure>(89.3);
     expected_mean.set_field<DynamicPressure>(10.4125);
 
@@ -423,6 +461,7 @@ TEST(DynamicMeasurementVectorTest, SigmaPointDeltas) {
 
     test_measurement.set_field<Accelerometer>(UKF::Vector<3>(0, 0, 0));
     test_measurement.set_field<Gyroscope>(UKF::Vector<3>(0, 0, 0));
+    test_measurement.set_field<Magnetometer>(UKF::FieldVector(1, 0, 0));
     test_measurement.set_field<StaticPressure>(0);
     test_measurement.set_field<DynamicPressure>(0);
 
@@ -444,14 +483,17 @@ TEST(DynamicMeasurementVectorTest, SigmaPointDeltas) {
     MyMeasurementVector::SigmaPointDeltas<MyStateVector> sigma_point_deltas(mean_measurement.size(), MyStateVector::num_sigma());
     MyMeasurementVector::SigmaPointDeltas<MyStateVector> target_sigma_point_deltas(mean_measurement.size(), MyStateVector::num_sigma());
 
-    target_sigma_point_deltas <<       0,       0,       0,       0,       0,       0,       0,       0,  -8.314,       0,       0,      0,       0,       0,       0,       0,       0,       0,   8.314,       0,       0,
-                                       0,       0,       0,       0,       0,       0,       0,   8.314,       0,       0,       0,      0,       0,       0,       0,       0,       0,  -8.314,       0,       0,       0,
-                                  -2.306,  -2.306,  -2.306,  -2.306,  -2.306,  -2.306,  -2.306,  12.682,  12.682,  -2.306,  -2.306, -2.306,  -2.306,  -2.306,  -2.306,  -2.306,  -2.306,  12.682,  12.682,  -2.306,  -2.306,
-                                       0,       0,       0,       0,   3.606,       0,       0,       0,       0,       0,       0,      0,       0,       0,  -3.606,       0,       0,       0,       0,       0,       0,
-                                       0,       0,       0,       0,       0,   3.606,       0,       0,       0,       0,       0,      0,       0,       0,       0,  -3.606,       0,       0,       0,       0,       0,
-                                       0,       0,       0,       0,       0,       0,   3.606,       0,       0,       0,       0,      0,       0,       0,       0,       0,  -3.606,       0,       0,       0,       0,
-                                       0,       0,       0,       0,       0,       0,       0,       0,       0,       0,  -0.043,      0,       0,       0,       0,       0,       0,       0,       0,       0,   0.043,
-                                 -1.8375,  10.542,  14.959,  19.376, -1.8375, -1.8375, -1.8375, -1.8375, -1.8375, -1.8375, -1.8375, 1.7082, -2.7086,  -7.126, -1.8375, -1.8375, -1.8375, -1.8375, -1.8375, -1.8375, -1.8375;
+    target_sigma_point_deltas <<       0,       0,       0,       0,       0,       0,       0,       0,  -8.314,       0,       0,       0,       0,       0,       0,       0,       0,       0,   8.314,       0,       0,
+                                       0,       0,       0,       0,       0,       0,       0,   8.314,       0,       0,       0,       0,       0,       0,       0,       0,       0,  -8.314,       0,       0,       0,
+                                  -2.306,  -2.306,  -2.306,  -2.306,  -2.306,  -2.306,  -2.306,  12.682,  12.682,  -2.306,  -2.306,  -2.306,  -2.306,  -2.306,  -2.306,  -2.306,  -2.306,  12.682,  12.682,  -2.306,  -2.306,
+                                       0,       0,       0,       0,   3.606,       0,       0,       0,       0,       0,       0,       0,       0,       0,  -3.606,       0,       0,       0,       0,       0,       0,
+                                       0,       0,       0,       0,       0,   3.606,       0,       0,       0,       0,       0,       0,       0,       0,       0,  -3.606,       0,       0,       0,       0,       0,
+                                       0,       0,       0,       0,       0,       0,   3.606,       0,       0,       0,       0,       0,       0,       0,       0,       0,  -3.606,       0,       0,       0,       0,
+                                       0,       0,       0,       0,       0,       0,       0,       0,       0,       0,       0,       0,       0,       0,       0,       0,       0,       0,       0,       0,       0,
+                                       0,       0,       0,       0,       0,       0,       0,       0,   3.606,       0,       0,       0,       0,       0,       0,       0,       0,       0,  -3.606,       0,       0,
+                                       0,       0,       0,       0,       0,       0,       0,       0,       0,   3.606,       0,       0,       0,       0,       0,       0,       0,       0,       0,  -3.606,       0,
+                                       0,       0,       0,       0,       0,       0,       0,       0,       0,       0,  -0.043,       0,       0,       0,       0,       0,       0,       0,       0,       0,   0.043,
+                                 -1.8375,  10.542,  14.959,  19.376, -1.8375, -1.8375, -1.8375, -1.8375, -1.8375, -1.8375, -1.8375,  1.7082, -2.7086,  -7.126, -1.8375, -1.8375, -1.8375, -1.8375, -1.8375, -1.8375, -1.8375;
     sigma_point_deltas = mean_measurement.calculate_sigma_point_deltas<MyStateVector>(measurement_sigma_points);
 
     EXPECT_VECTOR_EQ(target_sigma_point_deltas.col(0),  sigma_point_deltas.col(0));
@@ -542,6 +584,7 @@ TEST(DynamicMeasurementVectorTest, Innovation) {
     test_measurement.set_field<DynamicPressure>(0.5 * 122.5);
     test_measurement.set_field<Accelerometer>(UKF::Vector<3>(0, 0, 9.8));
     test_measurement.set_field<StaticPressure>(101.3);
+    test_measurement.set_field<Magnetometer>(UKF::FieldVector(0, 0.45, 0));
 
     MyStateVector::CovarianceMatrix covariance = MyStateVector::CovarianceMatrix::Zero();
     covariance.diagonal() << 1e-9, 1e-9, 1e-9, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
@@ -558,6 +601,7 @@ TEST(DynamicMeasurementVectorTest, Innovation) {
     target_innovation.set_field<DynamicPressure>(0);
     target_innovation.set_field<Accelerometer>(UKF::Vector<3>(0, 0, 17.294));
     target_innovation.set_field<StaticPressure>(12.0);
+    target_innovation.set_field<Magnetometer>(UKF::FieldVector(0, 0, 2));
 
     EXPECT_VECTOR_EQ(target_innovation, mean_measurement.calculate_innovation(test_measurement));
 }
@@ -595,6 +639,7 @@ TEST(DynamicMeasurementVectorTest, SigmaPointCovariance) {
 
     test_measurement.set_field<Accelerometer>(UKF::Vector<3>(0, 0, 0));
     test_measurement.set_field<Gyroscope>(UKF::Vector<3>(0, 0, 0));
+    test_measurement.set_field<Magnetometer>(UKF::FieldVector(1, 0, 0));
     test_measurement.set_field<StaticPressure>(0);
     test_measurement.set_field<DynamicPressure>(0);
 
@@ -620,14 +665,17 @@ TEST(DynamicMeasurementVectorTest, SigmaPointCovariance) {
 
     MyMeasurementVector::CovarianceMatrix expected_covariance(mean_measurement.size(), mean_measurement.size());
 
-    expected_covariance << 5.31709,       0,       0,       0,       0,       0,       0,       0,
-                                 0, 5.31709,       0,       0,       0,       0,       0,       0,
-                                 0,       0, 29.2440,       0,       0,       0,       0,  -4.237,
-                                 0,       0,       0,       1,       0,       0,       0,       0,
-                                 0,       0,       0,       0,       1,       0,       0,       0,
-                                 0,       0,       0,       0,       0,       1,       0,       0,
-                                 0,       0,       0,       0,       0,       0, 1.44e-4,       0,
-                                 0,       0,  -4.237,       0,       0,       0,       0,  32.263;
+    expected_covariance << 5.31709,       0,       0,       0,       0,       0,       0, -2.3059,       0,       0,       0,
+                                 0, 5.31709,       0,       0,       0,       0,       0,       0,       0,       0,       0,
+                                 0,       0, 29.2440,       0,       0,       0,       0,       0,       0,       0,  -4.237,
+                                 0,       0,       0,       1,       0,       0,       0,       0,       0,       0,       0,
+                                 0,       0,       0,       0,       1,       0,       0,       0,       0,       0,       0,
+                                 0,       0,       0,       0,       0,       1,       0,       0,       0,       0,       0,
+                                 0,       0,       0,       0,       0,       0,       0,       0,       0,       0,       0,
+                           -2.3059,       0,       0,       0,       0,       0,       0,       1,       0,       0,       0,
+                                 0,       0,       0,       0,       0,       0,       0,       0,       1,       0,       0,
+                                 0,       0,       0,       0,       0,       0,       0,       0,       0, 1.44e-4,       0,
+                                 0,       0,  -4.237,       0,       0,       0,       0,       0,       0,       0,  32.263;
 
     EXPECT_VECTOR_EQ(expected_covariance.col(0),  calculated_covariance.col(0));
     EXPECT_VECTOR_EQ(expected_covariance.col(1),  calculated_covariance.col(1));
@@ -637,6 +685,9 @@ TEST(DynamicMeasurementVectorTest, SigmaPointCovariance) {
     EXPECT_VECTOR_EQ(expected_covariance.col(5),  calculated_covariance.col(5));
     EXPECT_VECTOR_EQ(expected_covariance.col(6),  calculated_covariance.col(6));
     EXPECT_VECTOR_EQ(expected_covariance.col(7),  calculated_covariance.col(7));
+    EXPECT_VECTOR_EQ(expected_covariance.col(8),  calculated_covariance.col(8));
+    EXPECT_VECTOR_EQ(expected_covariance.col(9),  calculated_covariance.col(9));
+    EXPECT_VECTOR_EQ(expected_covariance.col(10),  calculated_covariance.col(10));
 }
 
 TEST(DynamicMeasurementVectorTest, PartialSigmaPointCovariance) {
@@ -686,19 +737,25 @@ TEST(DynamicMeasurementVectorTest, MeasurementCovariance) {
     MyMeasurementVector::measurement_covariance.set_field<DynamicPressure>(4);
     MyMeasurementVector::measurement_covariance.set_field<Accelerometer>(UKF::Vector<3>(5, 6, 7));
     MyMeasurementVector::measurement_covariance.set_field<StaticPressure>(8);
+    MyMeasurementVector::measurement_covariance.set_field<Magnetometer>(UKF::FieldVector(1, 2, 3));
 
     test_measurement.set_field<Gyroscope>(UKF::Vector<3>(0, 0, 0));
     test_measurement.set_field<DynamicPressure>(0);
     test_measurement.set_field<Accelerometer>(UKF::Vector<3>(0, 0, -9.8));
     test_measurement.set_field<StaticPressure>(101.3);
+    test_measurement.set_field<Magnetometer>(UKF::FieldVector(-1, 0, 1));
 
     expected_measurement.set_field<Gyroscope>(UKF::Vector<3>(0, 0, 0));
     expected_measurement.set_field<DynamicPressure>(0);
     expected_measurement.set_field<Accelerometer>(UKF::Vector<3>(0, 0, -9.8));
     expected_measurement.set_field<StaticPressure>(101.3);
+    expected_measurement.set_field<Magnetometer>(UKF::FieldVector(1, 1, 0));
 
-    MyMeasurementVector::CovarianceMatrix expected_measurement_covariance = MyMeasurementVector::CovarianceMatrix::Zero(8, 8);
-    expected_measurement_covariance.diagonal() << 1, 2, 3, 4, 5, 6, 7, 8;
+    MyMeasurementVector::CovarianceMatrix expected_measurement_covariance = MyMeasurementVector::CovarianceMatrix::Zero(11, 11);
+    expected_measurement_covariance.diagonal() << 1, 2, 3, 4, 5, 6, 7, 8, 0, 0, 0;
+    expected_measurement_covariance.block<3, 3>(8, 8) <<  8, -8,  0,
+                                                         -8,  8,  0,
+                                                          0,  0, 16;
 
     MyMeasurementVector::CovarianceMatrix measurement_covariance =
         test_measurement.calculate_measurement_covariance(expected_measurement);
@@ -711,6 +768,9 @@ TEST(DynamicMeasurementVectorTest, MeasurementCovariance) {
     EXPECT_VECTOR_EQ(expected_measurement_covariance.col(5),  measurement_covariance.col(5));
     EXPECT_VECTOR_EQ(expected_measurement_covariance.col(6),  measurement_covariance.col(6));
     EXPECT_VECTOR_EQ(expected_measurement_covariance.col(7),  measurement_covariance.col(7));
+    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(8),  measurement_covariance.col(8));
+    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(9),  measurement_covariance.col(9));
+    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(10),  measurement_covariance.col(10));
 }
 
 TEST(DynamicMeasurementVectorTest, PartialMeasurementCovariance) {
@@ -720,6 +780,7 @@ TEST(DynamicMeasurementVectorTest, PartialMeasurementCovariance) {
     MyMeasurementVector::measurement_covariance.set_field<DynamicPressure>(4);
     MyMeasurementVector::measurement_covariance.set_field<Accelerometer>(UKF::Vector<3>(5, 6, 7));
     MyMeasurementVector::measurement_covariance.set_field<StaticPressure>(8);
+    MyMeasurementVector::measurement_covariance.set_field<Magnetometer>(UKF::FieldVector(1, 2, 3));
 
     test_measurement.set_field<Gyroscope>(UKF::Vector<3>(0, 0, 0));
 
@@ -746,19 +807,25 @@ TEST(DynamicMeasurementVectorTest, MeasurementRootCovariance) {
     MyMeasurementVector::measurement_root_covariance.set_field<DynamicPressure>(4);
     MyMeasurementVector::measurement_root_covariance.set_field<Accelerometer>(UKF::Vector<3>(5, 6, 7));
     MyMeasurementVector::measurement_root_covariance.set_field<StaticPressure>(8);
+    MyMeasurementVector::measurement_root_covariance.set_field<Magnetometer>(UKF::FieldVector(1, 2, 3));
 
-    test_measurement.set_field<Accelerometer>(UKF::Vector<3>(0, 0, 0));
     test_measurement.set_field<Gyroscope>(UKF::Vector<3>(0, 0, 0));
-    test_measurement.set_field<StaticPressure>(0);
     test_measurement.set_field<DynamicPressure>(0);
+    test_measurement.set_field<Accelerometer>(UKF::Vector<3>(0, 0, 0));
+    test_measurement.set_field<StaticPressure>(0);
+    test_measurement.set_field<Magnetometer>(UKF::FieldVector(-1, 0, 1));
 
     expected_measurement.set_field<Gyroscope>(UKF::Vector<3>(0, 0, 0));
     expected_measurement.set_field<DynamicPressure>(0);
     expected_measurement.set_field<Accelerometer>(UKF::Vector<3>(0, 0, -9.8));
     expected_measurement.set_field<StaticPressure>(101.3);
+    expected_measurement.set_field<Magnetometer>(UKF::FieldVector(1, 1, 0));
 
-    MyMeasurementVector::CovarianceMatrix expected_measurement_root_covariance = MyMeasurementVector::CovarianceMatrix::Zero(8, 8);
-    expected_measurement_root_covariance.diagonal() << 5, 6, 7, 1, 2, 3, 8, 4;
+    MyMeasurementVector::CovarianceMatrix expected_measurement_root_covariance = MyMeasurementVector::CovarianceMatrix::Zero(11, 11);
+    expected_measurement_root_covariance.diagonal() << 1, 2, 3, 4, 5, 6, 7, 8, 0, 0, 0;
+    expected_measurement_root_covariance.block<3, 3>(8, 8) <<  0, -4,  0,
+                                                               0,  4,  0,
+                                                              -2,  0, -6;
 
     MyMeasurementVector::CovarianceMatrix measurement_root_covariance =
         test_measurement.calculate_measurement_root_covariance(expected_measurement);
@@ -771,6 +838,9 @@ TEST(DynamicMeasurementVectorTest, MeasurementRootCovariance) {
     EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(5),  measurement_root_covariance.col(5));
     EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(6),  measurement_root_covariance.col(6));
     EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(7),  measurement_root_covariance.col(7));
+    EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(8),  measurement_root_covariance.col(8));
+    EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(9),  measurement_root_covariance.col(9));
+    EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(10),  measurement_root_covariance.col(10));
 }
 
 TEST(DynamicMeasurementVectorTest, PartialMeasurementRootCovariance) {
@@ -780,6 +850,7 @@ TEST(DynamicMeasurementVectorTest, PartialMeasurementRootCovariance) {
     MyMeasurementVector::measurement_root_covariance.set_field<DynamicPressure>(4);
     MyMeasurementVector::measurement_root_covariance.set_field<Accelerometer>(UKF::Vector<3>(5, 6, 7));
     MyMeasurementVector::measurement_root_covariance.set_field<StaticPressure>(8);
+    MyMeasurementVector::measurement_root_covariance.set_field<Magnetometer>(UKF::FieldVector(1, 2, 3));
 
     test_measurement.set_field<Gyroscope>(UKF::Vector<3>(0, 0, 0));
 
