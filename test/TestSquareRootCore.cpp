@@ -78,7 +78,7 @@ using MyMeasurementVector = UKF::DynamicMeasurementVector<
     UKF::Field<GPS_Position, UKF::Vector<3>>,
     UKF::Field<GPS_Velocity, UKF::Vector<3>>,
     UKF::Field<Accelerometer, UKF::Vector<3>>,
-    UKF::Field<Magnetometer, UKF::Vector<3>>,
+    UKF::Field<Magnetometer, UKF::FieldVector>,
     UKF::Field<Gyroscope, UKF::Vector<3>>
 >;
 
@@ -111,9 +111,9 @@ UKF::Vector<3> MyMeasurementVector::expected_measurement
 }
 
 template <> template <>
-UKF::Vector<3> MyMeasurementVector::expected_measurement
+UKF::FieldVector MyMeasurementVector::expected_measurement
 <MyStateVector, Magnetometer>(const MyStateVector& state) {
-    return state.get_field<Attitude>() * UKF::Vector<3>(1, 0, 0);
+    return state.get_field<Attitude>() * UKF::FieldVector(1, 0, 0);
 }
 
 template <> template <>
@@ -150,10 +150,10 @@ UKF::Vector<3> MyMeasurementVector::expected_measurement
 }
 
 template <> template <>
-UKF::Vector<3> MyMeasurementVector::expected_measurement
+UKF::FieldVector MyMeasurementVector::expected_measurement
 <MyStateVector, Magnetometer, UKF::Vector<3>>(const MyStateVector& state,
         const UKF::Vector<3>& acceleration, const UKF::Vector<3>& angular_acceleration) {
-    return state.get_field<Attitude>() * UKF::Vector<3>(1, 0, 0);
+    return state.get_field<Attitude>() * UKF::FieldVector(1, 0, 0);
 }
 
 template <> template <>
@@ -251,7 +251,7 @@ TEST(SquareRootCoreTest, InnovationStep) {
     m.set_field<GPS_Position>(UKF::Vector<3>(100, 10, -50));
     m.set_field<GPS_Velocity>(UKF::Vector<3>(20, 0, 0));
     m.set_field<Accelerometer>(UKF::Vector<3>(0, 0, -9.8));
-    m.set_field<Magnetometer>(UKF::Vector<3>(0, -1, 0));
+    m.set_field<Magnetometer>(UKF::FieldVector(0, -1, 0));
     m.set_field<Gyroscope>(UKF::Vector<3>(0.5, 0, 0));
 
     test_filter.a_priori_step(0.01);
@@ -274,7 +274,7 @@ TEST(SquareRootCoreTest, InnovationStepPartialMeasurement) {
     MyMeasurementVector m;
 
     m.set_field<Accelerometer>(UKF::Vector<3>(0, 0, -9.8));
-    m.set_field<Magnetometer>(UKF::Vector<3>(0, -1, 0));
+    m.set_field<Magnetometer>(UKF::FieldVector(0, -1, 0));
     m.set_field<Gyroscope>(UKF::Vector<3>(0.5, 0, 0));
 
     test_filter.a_priori_step(0.01);
@@ -299,7 +299,7 @@ TEST(SquareRootCoreTest, InnovationStepWithInputs) {
     m.set_field<GPS_Position>(UKF::Vector<3>(100, 10, -50));
     m.set_field<GPS_Velocity>(UKF::Vector<3>(20, 0, 0));
     m.set_field<Accelerometer>(UKF::Vector<3>(0, 0, -15));
-    m.set_field<Magnetometer>(UKF::Vector<3>(0, -1, 0));
+    m.set_field<Magnetometer>(UKF::FieldVector(0, -1, 0));
     m.set_field<Gyroscope>(UKF::Vector<3>(0.5, 0, 0));
 
     test_filter.a_priori_step(0.01, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0));
@@ -322,7 +322,7 @@ TEST(SquareRootCoreTest, InnovationStepPartialMeasurementWithInputs) {
     MyMeasurementVector m;
 
     m.set_field<Accelerometer>(UKF::Vector<3>(0, 0, -15));
-    m.set_field<Magnetometer>(UKF::Vector<3>(0, -1, 0));
+    m.set_field<Magnetometer>(UKF::FieldVector(0, -1, 0));
     m.set_field<Gyroscope>(UKF::Vector<3>(0.5, 0, 0));
 
     test_filter.a_priori_step(0.01, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0));
@@ -347,7 +347,7 @@ TEST(SquareRootCoreTest, APosterioriStep) {
     m.set_field<GPS_Position>(UKF::Vector<3>(100, 10, -50));
     m.set_field<GPS_Velocity>(UKF::Vector<3>(20, 0, 0));
     m.set_field<Accelerometer>(UKF::Vector<3>(0, 0, -9.8));
-    m.set_field<Magnetometer>(UKF::Vector<3>(0, -1, 0));
+    m.set_field<Magnetometer>(UKF::FieldVector(0, -1, 0));
     m.set_field<Gyroscope>(UKF::Vector<3>(0.5, 0, 0));
 
     test_filter.a_priori_step(0.01);
@@ -371,7 +371,7 @@ TEST(SquareRootCoreTest, FullStep) {
     m.set_field<GPS_Position>(UKF::Vector<3>(100, 10, -50));
     m.set_field<GPS_Velocity>(UKF::Vector<3>(20, 0, 0));
     m.set_field<Accelerometer>(UKF::Vector<3>(0, 0, -14.8));
-    m.set_field<Magnetometer>(UKF::Vector<3>(0, -1, 0));
+    m.set_field<Magnetometer>(UKF::FieldVector(0, -1, 0));
     m.set_field<Gyroscope>(UKF::Vector<3>(0.5, 0, 0));
 
     test_filter.step(0.01, m, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0));
