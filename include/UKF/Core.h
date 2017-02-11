@@ -366,8 +366,8 @@ public:
         literature. Eigen's QR decomposition implements a left-division,
         rather than the right-division assumed in the literature.
         */
-        CrossCorrelation kalman_gain = innovation_root_covariance.transpose().colPivHouseholderQr().solve(
-            innovation_root_covariance.colPivHouseholderQr().solve(
+        CrossCorrelation kalman_gain = innovation_root_covariance.transpose().householderQr().solve(
+            innovation_root_covariance.householderQr().solve(
                 cross_correlation.transpose())).transpose();
 
         /*
@@ -548,8 +548,8 @@ public:
         literature. Eigen's QR decomposition implements a left-division,
         rather than the right-division assumed in the literature.
         */
-        CrossCorrelation kalman_gain = innovation_root_covariance.transpose().colPivHouseholderQr().solve(
-            innovation_root_covariance.colPivHouseholderQr().solve(
+        CrossCorrelation kalman_gain = innovation_root_covariance.transpose().householderQr().solve(
+            innovation_root_covariance.householderQr().solve(
                 cross_correlation.transpose())).transpose();
 
         /*
