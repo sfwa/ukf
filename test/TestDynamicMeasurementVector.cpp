@@ -430,7 +430,7 @@ TEST(DynamicMeasurementVectorTest, SigmaPointMean) {
 
     expected_mean.set_field<Accelerometer>(UKF::Vector<3>(0.0, 0.0, -7.494));
     expected_mean.set_field<Gyroscope>(UKF::Vector<3>(1.0, 0.0, 0.0));
-    expected_mean.set_field<Magnetometer>(UKF::FieldVector(0.344, 0, 0));
+    expected_mean.set_field<Magnetometer>(UKF::FieldVector(0.45, 0, 0));
     expected_mean.set_field<StaticPressure>(89.3);
     expected_mean.set_field<DynamicPressure>(10.4125);
 

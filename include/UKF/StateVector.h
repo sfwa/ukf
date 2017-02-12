@@ -265,6 +265,25 @@ namespace UKF {
 
     }
 
+    /* Functions requiring things from the "Parameters" namespace. */
+    namespace Detail {
+        /* Convert a rotation vector into a quaternion. */
+        template <typename T>
+        inline Quaternion rotation_vector_to_quaternion(const Vector<3>& r) {
+            real_t x_2 = r.squaredNorm();
+            real_t d_q_w = (-UKF::Parameters::MRP_A<T> * x_2 + UKF::Parameters::MRP_F<T>
+                * std::sqrt(x_2 * (real_t(1.0) - UKF::Parameters::MRP_A<T>*UKF::Parameters::MRP_A<T>)
+                + UKF::Parameters::MRP_F<T> * UKF::Parameters::MRP_F<T>))
+                / (UKF::Parameters::MRP_F<T> * UKF::Parameters::MRP_F<T> + x_2);
+            Vector<3> d_q_xyz = r * (d_q_w + UKF::Parameters::MRP_A<T>) * (real_t(1.0) / UKF::Parameters::MRP_F<T>);
+            Quaternion d_q;
+            d_q.vec() = d_q_xyz;
+            d_q.w() = d_q_w;
+
+            return d_q;
+        }
+    }
+
 /*
 A StateVector object takes a variable number of Fields as template parameters.
 Each field has a type (from which the size of the field is inferred) and a
@@ -598,19 +617,7 @@ private:
         Update the attitude quaternion from the MRP vector, equation 45 from
         the Markley paper.
         */
-        real_t x_2 = delta.squaredNorm();
-        real_t d_q_w =
-            (-Parameters::MRP_A<StateVector> * x_2 + Parameters::MRP_F<StateVector>
-                * std::sqrt(x_2 * (real_t(1.0) - Parameters::MRP_A<StateVector>*Parameters::MRP_A<StateVector>)
-                + Parameters::MRP_F<StateVector> * Parameters::MRP_F<StateVector>))
-            / (Parameters::MRP_F<StateVector> * Parameters::MRP_F<StateVector> + x_2);
-        Vector<3> d_q_xyz = delta *
-            (d_q_w + Parameters::MRP_A<StateVector>) * (real_t(1.0) / Parameters::MRP_F<StateVector>);
-        Quaternion d_q;
-        d_q.vec() = d_q_xyz;
-        d_q.w() = d_q_w;
-
-        return d_q * state;
+        return Detail::rotation_vector_to_quaternion<StateVector>(delta) * state;
     }
 
     template <typename T>

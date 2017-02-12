@@ -183,8 +183,10 @@ public:
     /* Calculate the mean from a measurement sigma point distribution. */
     template <typename S>
     FixedMeasurementVector calculate_sigma_point_mean(const SigmaPointDistribution<S>& Z) const {
-        return Parameters::Sigma_WMI<S>*Z.template block<size(), S::num_sigma()-1>(0, 1).rowwise().sum()
-            + Parameters::Sigma_WM0<S>*Z.col(0);
+        FixedMeasurementVector mean;
+        calculate_field_mean<S, Fields...>(Z, mean);
+
+        return mean;
     }
 
     /*
@@ -384,6 +386,55 @@ private:
         calculate_field_root_covariance<T2, Tail...>(P, z_pred);
     }
 
+    /*
+    Private functions for calculating the mean of each field in a sigma point
+    distribution. Note that sigma_point_mean takes a dummy argument so that
+    the overrides work properly.
+    */
+    template <typename S, typename T>
+    static T sigma_point_mean(const Matrix<Detail::StateVectorDimension<T>, S::num_sigma()>& sigma, const T& field) {
+        return Parameters::Sigma_WMI<S>*sigma.template block<Detail::StateVectorDimension<T>, S::num_sigma()-1>(
+            0, 1).rowwise().sum() + Parameters::Sigma_WM0<S>*sigma.col(0);
+    }
+
+    template <typename S>
+    static real_t sigma_point_mean(const Matrix<1, S::num_sigma()>& sigma, const real_t& field) {
+        return Parameters::Sigma_WMI<S>*sigma.template segment<S::num_sigma()-1>(1).sum()
+            + Parameters::Sigma_WM0<S>*sigma(0);
+    }
+
+    /*
+    Calculate the field vector mean by first calculating the set of rotation
+    vectors which transforms the central sigma point into the set of sigma
+    points. Then, calculate the mean of these rotations and apply it to the
+    central sigma point.
+    */
+    template <typename S>
+    static FieldVector sigma_point_mean(const Matrix<3, S::num_sigma()>& sigma, const FieldVector& field) {
+        Vector<3> temp = Vector<3>::Zero();
+
+        for(std::size_t i = 0; i < S::num_sigma()-1; i++) {
+            temp += Parameters::Sigma_WMI<S>*Detail::calculate_rotation_vector<FixedMeasurementVector>(
+                sigma.col(i+1), sigma.col(0));
+        }
+
+        return Detail::rotation_vector_to_quaternion<FixedMeasurementVector>(temp) * sigma.col(0);
+    }
+
+    template <typename S, typename T>
+    void calculate_field_mean(const SigmaPointDistribution<S>& Z, FixedMeasurementVector& mean) const {
+        mean.template segment<Detail::StateVectorDimension<typename T::type>>(
+            Detail::get_field_offset<0, Fields...>(T::key)) << sigma_point_mean<S>(
+                Z.template block<Detail::StateVectorDimension<typename T::type>, S::num_sigma()>(
+                    Detail::get_field_offset<0, Fields...>(T::key), 0), typename T::type());
+    }
+
+    template <typename S, typename T1, typename T2, typename... Tail>
+    void calculate_field_mean(const SigmaPointDistribution<S>& Z, FixedMeasurementVector& mean) const {
+        calculate_field_mean<S, T1>(Z, mean);
+        calculate_field_mean<S, T2, Tail...>(Z, mean);
+    }
+
     /* These functions build the innovation from all populated fields. */
     template <typename T>
     static T measurement_delta(const T& z, const T& z_pred) {
@@ -537,13 +588,12 @@ public:
     */
     template <typename S>
     DynamicMeasurementVector calculate_sigma_point_mean(const SigmaPointDistribution<S>& Z) const {
-        DynamicMeasurementVector temp = DynamicMeasurementVector(
-            Parameters::Sigma_WMI<S>*Z.block(0, 1, Base::template size(), S::num_sigma()-1).rowwise().sum()
-            + Parameters::Sigma_WM0<S>*Z.block(0, 0, Base::template size(), 1));
+        DynamicMeasurementVector mean(Base::template size());
+        calculate_field_mean<S, Fields...>(Z, mean);
 
-        temp.field_offsets = field_offsets;
+        mean.field_offsets = field_offsets;
 
-        return temp;
+        return mean;
     }
 
     /*
@@ -762,6 +812,59 @@ private:
     void calculate_field_root_covariance(CovarianceMatrix& P, const DynamicMeasurementVector& z_pred) const {
         calculate_field_root_covariance<T1>(P, z_pred);
         calculate_field_root_covariance<T2, Tail...>(P, z_pred);
+    }
+
+    /*
+    Private functions for calculating the mean of each field in a sigma point
+    distribution. Note that sigma_point_mean takes a dummy argument so that
+    the overrides work properly.
+    */
+    template <typename S, typename T>
+    static T sigma_point_mean(const Matrix<Detail::StateVectorDimension<T>, S::num_sigma()>& sigma, const T& field) {
+        return Parameters::Sigma_WMI<S>*sigma.template block<Detail::StateVectorDimension<T>, S::num_sigma()-1>(
+            0, 1).rowwise().sum() + Parameters::Sigma_WM0<S>*sigma.col(0);
+    }
+
+    template <typename S>
+    static real_t sigma_point_mean(const Matrix<1, S::num_sigma()>& sigma, const real_t& field) {
+        return Parameters::Sigma_WMI<S>*sigma.template segment<S::num_sigma()-1>(1).sum()
+            + Parameters::Sigma_WM0<S>*sigma(0);
+    }
+
+    /*
+    Calculate the field vector mean by first calculating the set of rotation
+    vectors which transforms the central sigma point into the set of sigma
+    points. Then, calculate the mean of these rotations and apply it to the
+    central sigma point.
+    */
+    template <typename S>
+    static FieldVector sigma_point_mean(const Matrix<3, S::num_sigma()>& sigma, const FieldVector& field) {
+        Vector<3> temp = Vector<3>::Zero();
+
+        for(std::size_t i = 0; i < S::num_sigma()-1; i++) {
+            temp += Parameters::Sigma_WMI<S>*Detail::calculate_rotation_vector<DynamicMeasurementVector>(
+                sigma.col(i+1), sigma.col(0));
+        }
+
+        return Detail::rotation_vector_to_quaternion<DynamicMeasurementVector>(temp) * sigma.col(0);
+    }
+
+    template <typename S, typename T>
+    void calculate_field_mean(const SigmaPointDistribution<S>& Z, DynamicMeasurementVector& mean) const {
+        std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(T::key)>(field_offsets);
+        if(offset != std::numeric_limits<std::size_t>::max()) {
+            mean.template segment<Detail::StateVectorDimension<typename T::type>>(offset) << sigma_point_mean<S>(
+                Z.template block<Detail::StateVectorDimension<typename T::type>, S::num_sigma()>(
+                offset, 0), typename T::type());
+        } else {
+            return;
+        }
+    }
+
+    template <typename S, typename T1, typename T2, typename... Tail>
+    void calculate_field_mean(const SigmaPointDistribution<S>& Z, DynamicMeasurementVector& mean) const {
+        calculate_field_mean<S, T1>(Z, mean);
+        calculate_field_mean<S, T2, Tail...>(Z, mean);
     }
 
     /* These functions build the innovation from all populated fields. */

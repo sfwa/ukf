@@ -331,7 +331,7 @@ TEST(FixedMeasurementVectorTest, SigmaPointMean) {
 
     MyMeasurementVector expected_mean;
 
-    expected_mean << 0.0, 0.0, -7.494, 1, 0, 0, 0.344, 0, 0, 89.3, 10.4125;
+    expected_mean << 0.0, 0.0, -7.494, 1, 0, 0, 0.45, 0, 0, 89.3, 10.4125;
 
     EXPECT_VECTOR_EQ(expected_mean, test_measurement.calculate_sigma_point_mean<MyStateVector>(measurement_sigma_points));
 }
