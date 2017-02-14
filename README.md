@@ -149,10 +149,9 @@ using MyCore = UKF::SquareRootCore<
 >;
 ```
 
-Specialisations of the process noise covariance (or process noise root
-covariance for the SR-UKF), measurement noise covariance (or measurement
-noise root covariance for the SR-UKF), process model (for state estimation
-filters) and measurement model must also be provided.
+Specialisations of the measurement noise covariance (or measurement noise
+root covariance for the SR-UKF), process model (for state estimation filters)
+and measurement model must also be provided.
 
 ### Process model
 
@@ -195,44 +194,6 @@ ProcessModelTestStateVector ProcessModelTestStateVector::derivative<UKF::Vector<
     /* Velocity derivative. */
     temp.set_field<Velocity>(acceleration);
 
-    return temp;
-}
-```
-
-### Process noise covariance
-
-The process noise covariance function should return a covariance matrix,
-which can be dependent upon the time step size if desired:
-
-```C++
-template <>
-ProcessModelTestStateVector::CovarianceMatrix ProcessModelTestStateVector::process_noise_covariance(real_t delta) {
-    ProcessModelTestStateVector::CovarianceMatrix temp;
-    temp << 0.1*delta*delta,               0,               0,         0,         0,         0,
-                          0, 0.1*delta*delta,               0,         0,         0,         0,
-                          0,               0, 0.1*delta*delta,         0,         0,         0,
-                          0,               0,               0, 0.1*delta,         0,         0,
-                          0,               0,               0,         0, 0.1*delta,         0,
-                          0,               0,               0,         0,         0, 0.1*delta;
-    return temp;
-}
-```
-
-For the SR-UKF, the process noise root covariance should be provided instead,
-which could be something like:
-
-```C++
-template <>
-ProcessModelTestStateVector::CovarianceMatrix ProcessModelTestStateVector::process_noise_root_covariance(real_t delta) {
-    ProcessModelTestStateVector::CovarianceMatrix temp;
-    real_t a = std::sqrt(0.1*delta*delta);
-    real_t b = std::sqrt(0.1*delta);
-    temp << a, 0, 0, 0, 0, 0,
-            0, a, 0, 0, 0, 0,
-            0, 0, a, 0, 0, 0,
-            0, 0, 0, b, 0, 0,
-            0, 0, 0, 0, b, 0,
-            0, 0, 0, 0, 0, b;
     return temp;
 }
 ```
@@ -352,8 +313,8 @@ MyMeasurementVector::CovarianceVector MyMeasurementVector::measurement_root_cova
 
 ### Initialisation
 
-The filter state and covariance should be initialised to appropriate values,
-e.g.:
+The filter state, covariance and process noise covariance should be
+initialised to appropriate values, e.g.:
 
 ```C++
 MyCore test_filter;
@@ -363,6 +324,7 @@ test_filter.state.set_field<Attitude>(UKF::Quaternion(1, 0, 0, 0));
 test_filter.state.set_field<AngularVelocity>(UKF::Vector<3>(0, 0, 0));
 test_filter.covariance = MyStateVector::CovarianceMatrix::Zero();
 test_filter.covariance.diagonal() << 10000, 10000, 10000, 100, 100, 100, 1, 1, 5, 10, 10, 10;
+test_filter.process_noise_covariance = MyStateVector::CovarianceMatrix::Identity()*1e-5;
 ```
 
 Or, for the SR-UKF:
@@ -374,6 +336,7 @@ test_filter.state.set_field<Attitude>(UKF::Quaternion(1, 0, 0, 0));
 test_filter.state.set_field<AngularVelocity>(UKF::Vector<3>(0, 0, 0));
 test_filter.root_covariance = MyStateVector::CovarianceMatrix::Zero();
 test_filter.root_covariance.diagonal() << 100, 100, 100, 10, 10, 10, 1, 1, 2.2, 3.2, 3.2, 3.2;
+test_filter.process_noise_root_covariance = MyStateVector::CovarianceMatrix::Identity()*3e-2;
 ```
 
 ### Iteration

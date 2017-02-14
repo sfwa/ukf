@@ -63,32 +63,6 @@ MyStateVector MyStateVector::derivative<>() const {
 }
 
 /*
-State vector process noise covariance. These are just completely arbitrary
-for this test.
-Return square roots to make it comparable to TestCore.cpp.
-*/
-template <>
-MyStateVector::CovarianceMatrix MyStateVector::process_noise_root_covariance(real_t dt) {
-    MyStateVector::CovarianceMatrix temp;
-    real_t a, b;
-    a = std::sqrt(0.1*dt*dt);
-    b = std::sqrt(0.1*dt);
-    temp << a, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, a, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, a, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, b, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, b, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, b, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, a, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, a, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, a, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, b, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, b, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, b;
-    return temp;
-}
-
-/*
 Set up measurement vector class. The order of these is changed to prevent
 linker collisions with the ones in TestCore.cpp.
 */
@@ -210,6 +184,24 @@ MyCore create_initialised_sr_test_filter() {
     test_filter.root_covariance.diagonal() <<
         10000, 10000, 10000, 100, 100, 100, 1, 1, 5, 10, 10, 10;
     test_filter.root_covariance = test_filter.root_covariance.llt().matrixU();
+
+    real_t a, b;
+    real_t dt = 0.01;
+    a = std::sqrt(0.1*dt*dt);
+    b = std::sqrt(0.1*dt);
+    test_filter.process_noise_root_covariance << a, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                                 0, a, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                                 0, 0, a, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                                 0, 0, 0, b, 0, 0, 0, 0, 0, 0, 0, 0,
+                                                 0, 0, 0, 0, b, 0, 0, 0, 0, 0, 0, 0,
+                                                 0, 0, 0, 0, 0, b, 0, 0, 0, 0, 0, 0,
+                                                 0, 0, 0, 0, 0, 0, a, 0, 0, 0, 0, 0,
+                                                 0, 0, 0, 0, 0, 0, 0, a, 0, 0, 0, 0,
+                                                 0, 0, 0, 0, 0, 0, 0, 0, a, 0, 0, 0,
+                                                 0, 0, 0, 0, 0, 0, 0, 0, 0, b, 0, 0,
+                                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, b, 0,
+                                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, b;
+    test_filter.process_noise_root_covariance = test_filter.process_noise_root_covariance.llt().matrixU();
 
     return test_filter;
 }

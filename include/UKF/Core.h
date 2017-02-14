@@ -65,6 +65,7 @@ public:
     /* State and covariance are public for simplicity of initialisation. */
     StateVectorType state;
     typename StateVectorType::CovarianceMatrix covariance;
+    typename StateVectorType::CovarianceMatrix process_noise_covariance;
 
     /*
     Innovation and innovation covariance are public to ease implementation of
@@ -110,8 +111,7 @@ public:
         /* Calculate the a priori estimate mean, deltas and covariance. */
         state = StateVectorType::calculate_sigma_point_mean(sigma_points);
         w_prime = state.calculate_sigma_point_deltas(sigma_points);
-        covariance = StateVectorType::calculate_sigma_point_covariance(w_prime) +
-            StateVectorType::process_noise_covariance(delta);
+        covariance = StateVectorType::calculate_sigma_point_covariance(w_prime) + process_noise_covariance;
     }
 
     /*
@@ -218,6 +218,7 @@ public:
     */
     StateVectorType state;
     typename StateVectorType::CovarianceMatrix root_covariance;
+    typename StateVectorType::CovarianceMatrix process_noise_root_covariance;
 
     /*
     Innovation covariance is also stored in square-root form as described
@@ -268,7 +269,7 @@ public:
         AugmentedSigmaPointDeltas augmented_w_prime;
         augmented_w_prime <<
             std::sqrt(Parameters::Sigma_WCI<StateVectorType>) * w_prime.rightCols(StateVectorType::num_sigma() - 1),
-            StateVectorType::process_noise_root_covariance(delta);
+            process_noise_root_covariance;
 
         /*
         Calculate the QR decomposition of the augmented sigma point deltas.
@@ -432,6 +433,7 @@ public:
     */
     StateVectorType state;
     typename StateVectorType::CovarianceMatrix root_covariance;
+    typename StateVectorType::CovarianceMatrix process_noise_root_covariance;
 
     /*
     Innovation covariance is also stored in square-root form as described
@@ -466,8 +468,7 @@ public:
         methods for doing this; this one has been chosen as it still allows
         individual fields to have different process noise values.
         */
-        typename StateVectorType::StateVectorDelta R_diag =
-            StateVectorType::process_noise_root_covariance(delta).diagonal();
+        typename StateVectorType::StateVectorDelta R_diag = process_noise_root_covariance.diagonal();
         typename StateVectorType::StateVectorDelta S_diag = root_covariance.diagonal();
         root_covariance.diagonal() = (S_diag.cwiseProduct(S_diag) + R_diag.cwiseProduct(R_diag)).cwiseSqrt();
     }

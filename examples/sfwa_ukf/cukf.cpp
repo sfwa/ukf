@@ -40,8 +40,6 @@ using SFWA_StateVector = UKF::StateVector<
     UKF::Field<GyroBias, UKF::Vector<3>>                /* Gyro bias (body frame, rad/s) */
 >;
 
-static SFWA_StateVector::CovarianceMatrix process_noise;
-
 /* WGS84 reference ellipsoid constants. */
 #define WGS84_A (6378137.0)
 #define WGS84_B (6356752.314245)
@@ -208,12 +206,6 @@ SFWA_StateVector SFWA_StateVector::derivative<>() const {
     return output;
 }
 
-/* State vector process noise covariance. */
-template <>
-SFWA_StateVector::CovarianceMatrix SFWA_StateVector::process_noise_covariance(real_t dt) {
-    return process_noise;
-}
-
 enum SFWA_Measurements {
     Accelerometer,
     Gyroscope,
@@ -321,8 +313,8 @@ void ukf_init() {
 
     local_mag_field = UKF::Vector<3>(21.2584, 4.4306, -55.9677);
 
-    process_noise = SFWA_StateVector::CovarianceMatrix::Zero();
-    process_noise.diagonal() <<
+    ukf.process_noise_covariance = SFWA_StateVector::CovarianceMatrix::Zero();
+    ukf.process_noise_covariance.diagonal() <<
         1e-17, 1e-17, 1e-4,     /* lat, lon, alt */
         2e-3, 2e-3, 2e-3,       /* velocity N, E, D */
         2e-2, 2e-2, 2e-2,       /* acceleration x, y, z */
@@ -488,8 +480,8 @@ void ukf_iterate(float dt, real_t control_vector[UKF_CONTROL_DIM]) {
 
 void ukf_set_process_noise(real_t process_noise_covariance[SFWA_StateVector::covariance_size()]) {
     Eigen::Map<typename SFWA_StateVector::StateVectorDelta> covariance_map(process_noise_covariance);
-    process_noise = SFWA_StateVector::CovarianceMatrix::Zero();
-    process_noise.diagonal() << covariance_map;
+    ukf.process_noise_covariance = SFWA_StateVector::CovarianceMatrix::Zero();
+    ukf.process_noise_covariance.diagonal() << covariance_map;
 }
 
 uint32_t ukf_config_get_state_dim() {

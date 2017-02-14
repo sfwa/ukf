@@ -52,8 +52,6 @@ using AHRS_StateVector = UKF::StateVector<
 template <> constexpr real_t UKF::Parameters::AlphaSquared<AHRS_StateVector> = 1e-2;
 template <> constexpr real_t UKF::Parameters::Kappa<AHRS_StateVector> = 3.0;
 
-static AHRS_StateVector::CovarianceMatrix process_noise;
-
 /*
 In addition to the AHRS filter, an online parameter estimation filter is also
 implemented in order to calculate biases in each of the sensors.
@@ -73,8 +71,6 @@ using AHRS_SensorErrorVector = UKF::StateVector<
 template <> constexpr real_t UKF::Parameters::AlphaSquared<AHRS_SensorErrorVector> = 1.0;
 template <> constexpr real_t UKF::Parameters::Kappa<AHRS_SensorErrorVector> = 3.0;
 
-static AHRS_SensorErrorVector::CovarianceMatrix error_process_noise;
-
 /* AHRS process model. */
 template <> template <>
 AHRS_StateVector AHRS_StateVector::derivative<>() const {
@@ -90,12 +86,6 @@ AHRS_StateVector AHRS_StateVector::derivative<>() const {
     output.set_field<AngularVelocity>(UKF::Vector<3>(0, 0, 0));
 
     return output;
-}
-
-/* AHRS process noise covariance. Scale based on the sample time delta. */
-template <>
-AHRS_StateVector::CovarianceMatrix AHRS_StateVector::process_noise_root_covariance(real_t dt) {
-    return process_noise.cwiseSqrt() * std::sqrt(dt);
 }
 
 using AHRS_MeasurementVector = UKF::DynamicMeasurementVector<
@@ -175,17 +165,6 @@ AHRS_SensorErrorVector AHRS_SensorErrorVector::derivative<>() const {
 }
 
 /*
-AHRS parameter estimation filter process noise covariance. Parameter
-estimation process noise is quite approximately and determines the rate at
-which the filter 'forgets' its current bias estimate, so we don't bother
-multiplying by the square root of time.
-*/
-template <>
-AHRS_SensorErrorVector::CovarianceMatrix AHRS_SensorErrorVector::process_noise_root_covariance(real_t dt) {
-    return error_process_noise;
-}
-
-/*
 AHRS parameter estimation filter measurement model. These take in the current
 state estimate and sensor scale factor and bias estimates, and use them to
 calculate predicted measurements.
@@ -256,10 +235,10 @@ void ukf_init() {
         1e-3 * UKF::Vector<3>::Ones();
 
     /* Set process noise covariance. */
-    process_noise = AHRS_StateVector::CovarianceMatrix::Zero();
-    process_noise.diagonal() <<
-        1e-6 * UKF::Vector<3>::Ones(),
-        1e-2 * UKF::Vector<3>::Ones();
+    ahrs.process_noise_root_covariance = AHRS_StateVector::CovarianceMatrix::Zero();
+    ahrs.process_noise_root_covariance.diagonal() <<
+        5e-5 * UKF::Vector<3>::Ones(),
+        5e-3 * UKF::Vector<3>::Ones();
 
     /* Initialise scale factor and bias errors. */
     ahrs_errors.state.set_field<AccelerometerBias>(UKF::Vector<3>(0, 0, 0));
@@ -285,8 +264,8 @@ void ukf_init() {
     noise covariance), so these are tuned by hand to values which allow the
     filter to track biases over time, but not change too quickly.
     */
-    error_process_noise = AHRS_SensorErrorVector::CovarianceMatrix::Zero();
-    error_process_noise.diagonal() <<
+    ahrs_errors.process_noise_root_covariance = AHRS_SensorErrorVector::CovarianceMatrix::Zero();
+    ahrs_errors.process_noise_root_covariance.diagonal() <<
         1e-5f * UKF::Vector<3>::Ones(),
         1e-7f * UKF::Vector<3>::Ones(),
         1e-5f * UKF::Vector<3>::Ones(), 1e-6f * UKF::Vector<3>::Ones(),
@@ -438,8 +417,9 @@ void ukf_iterate(float dt) {
 
 void ukf_set_process_noise(real_t process_noise_covariance[AHRS_StateVector::covariance_size()]) {
     Eigen::Map<typename AHRS_StateVector::StateVectorDelta> covariance_map(process_noise_covariance);
-    process_noise = AHRS_StateVector::CovarianceMatrix::Zero();
-    process_noise.diagonal() << covariance_map;
+    ahrs.process_noise_root_covariance = AHRS_StateVector::CovarianceMatrix::Zero();
+    ahrs.process_noise_root_covariance.diagonal() << covariance_map;
+    ahrs.process_noise_root_covariance = ahrs.process_noise_root_covariance.llt().matrixU();
 }
 
 void ukf_get_parameters(struct ukf_sensor_errors_t *in) {
