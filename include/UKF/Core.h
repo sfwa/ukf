@@ -441,8 +441,8 @@ public:
 
     /* Top-level function used to carry out a filter step. */
     template <typename... U>
-    void step(real_t delta, const MeasurementVectorType& z, const U&... input) {
-        a_priori_step(delta);
+    void step(const MeasurementVectorType& z, const U&... input) {
+        a_priori_step();
         innovation_step(z, input...);
         a_posteriori_step();
     }
@@ -453,7 +453,7 @@ public:
     There's no need to propagate the sigma points through a process model,
     and we only have to add the process noise to the root covariance.
     */
-    void a_priori_step(real_t delta) {
+    void a_priori_step() {
         sigma_points = state.calculate_sigma_point_distribution(root_covariance *
             std::sqrt(StateVectorType::covariance_size() + Parameters::Lambda<StateVectorType>));
 
