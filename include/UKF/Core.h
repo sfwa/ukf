@@ -165,9 +165,13 @@ public:
 
         /*
         Calculate the Kalman gain as described in equation 72 from the Kraft
-        paper.
+        paper, with a slight change in that we're using a column-pivoting QR
+        decomposition to calculate the Moore-Penrose pseudoinverse rather than
+        the inverse. This allows the innovation covariance to be positive semi-
+        definite.
         */
-        CrossCorrelation kalman_gain = cross_correlation * innovation_covariance.inverse();
+        CrossCorrelation kalman_gain = cross_correlation * innovation_covariance.colPivHouseholderQr().solve(
+            MeasurementVectorType::CovarianceMatrix::Identity(innovation.size(), innovation.size()));
 
         /*
         Calculate the update delta vector, to be applied to the a priori
