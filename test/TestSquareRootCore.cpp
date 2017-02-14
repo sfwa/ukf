@@ -219,6 +219,7 @@ TEST(SquareRootCoreTest, APrioriStep) {
 
     test_filter.a_priori_step(0.01);
 
+    EXPECT_GT(test_filter.root_covariance.determinant(), std::numeric_limits<real_t>::epsilon());
     EXPECT_LT((UKF::Vector<3>(100, 10, -50) - test_filter.state.get_field<Position>()).norm(),
         test_filter.root_covariance.diagonal().segment<3>(0).norm()*2);
     EXPECT_LT((UKF::Vector<3>(20, 0, 0) - test_filter.state.get_field<Velocity>()).norm(),
@@ -234,6 +235,7 @@ TEST(SquareRootCoreTest, APrioriStepWithInputs) {
 
     test_filter.a_priori_step(0.01, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0));
 
+    EXPECT_GT(test_filter.root_covariance.determinant(), std::numeric_limits<real_t>::epsilon());
     EXPECT_LT((UKF::Vector<3>(100, 10, -50) - test_filter.state.get_field<Position>()).norm(),
         test_filter.root_covariance.diagonal().segment<3>(0).norm()*2);
     EXPECT_LT((UKF::Vector<3>(20, 0, 0) - test_filter.state.get_field<Velocity>()).norm(),
@@ -257,8 +259,15 @@ TEST(SquareRootCoreTest, InnovationStep) {
     test_filter.a_priori_step(0.01);
     test_filter.innovation_step(m);
 
+    /*
+    With the field vector, we expect the determinant to be approximately zero,
+    so allow for it to be slightly negative due to numerical precision.
+    */
+    EXPECT_GE(test_filter.innovation_root_covariance.determinant(), -std::numeric_limits<real_t>::epsilon());
+
     test_filter.a_posteriori_step();
 
+    EXPECT_GT(test_filter.root_covariance.determinant(), std::numeric_limits<real_t>::epsilon());
     EXPECT_LT((UKF::Vector<3>(100, 10, -50) - test_filter.state.get_field<Position>()).norm(),
         test_filter.root_covariance.diagonal().segment<3>(0).norm()*2);
     EXPECT_LT((UKF::Vector<3>(20, 0, 0) - test_filter.state.get_field<Velocity>()).norm(),
@@ -280,8 +289,11 @@ TEST(SquareRootCoreTest, InnovationStepPartialMeasurement) {
     test_filter.a_priori_step(0.01);
     test_filter.innovation_step(m);
 
+    EXPECT_GE(test_filter.innovation_root_covariance.determinant(), -std::numeric_limits<real_t>::epsilon());
+
     test_filter.a_posteriori_step();
 
+    EXPECT_GT(test_filter.root_covariance.determinant(), std::numeric_limits<real_t>::epsilon());
     EXPECT_LT((UKF::Vector<3>(100, 10, -50) - test_filter.state.get_field<Position>()).norm(),
         test_filter.root_covariance.diagonal().segment<3>(0).norm()*2);
     EXPECT_LT((UKF::Vector<3>(20, 0, 0) - test_filter.state.get_field<Velocity>()).norm(),
@@ -305,8 +317,11 @@ TEST(SquareRootCoreTest, InnovationStepWithInputs) {
     test_filter.a_priori_step(0.01, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0));
     test_filter.innovation_step(m, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0));
 
+    EXPECT_GE(test_filter.innovation_root_covariance.determinant(), -std::numeric_limits<real_t>::epsilon());
+
     test_filter.a_posteriori_step();
 
+    EXPECT_GT(test_filter.root_covariance.determinant(), std::numeric_limits<real_t>::epsilon());
     EXPECT_LT((UKF::Vector<3>(100, 10, -50) - test_filter.state.get_field<Position>()).norm(),
         test_filter.root_covariance.diagonal().segment<3>(0).norm()*2);
     EXPECT_LT((UKF::Vector<3>(20, 0, 0) - test_filter.state.get_field<Velocity>()).norm(),
@@ -328,8 +343,11 @@ TEST(SquareRootCoreTest, InnovationStepPartialMeasurementWithInputs) {
     test_filter.a_priori_step(0.01, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0));
     test_filter.innovation_step(m, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0));
 
+    EXPECT_GE(test_filter.innovation_root_covariance.determinant(), -std::numeric_limits<real_t>::epsilon());
+
     test_filter.a_posteriori_step();
 
+    EXPECT_GT(test_filter.root_covariance.determinant(), std::numeric_limits<real_t>::epsilon());
     EXPECT_LT((UKF::Vector<3>(100, 10, -50) - test_filter.state.get_field<Position>()).norm(),
         test_filter.root_covariance.diagonal().segment<3>(0).norm()*2);
     EXPECT_LT((UKF::Vector<3>(20, 0, 0) - test_filter.state.get_field<Velocity>()).norm(),
@@ -354,6 +372,7 @@ TEST(SquareRootCoreTest, APosterioriStep) {
     test_filter.innovation_step(m);
     test_filter.a_posteriori_step();
 
+    EXPECT_GT(test_filter.root_covariance.determinant(), std::numeric_limits<real_t>::epsilon());
     EXPECT_LT((UKF::Vector<3>(100, 10, -50) - test_filter.state.get_field<Position>()).norm(),
         test_filter.root_covariance.diagonal().segment<3>(0).norm()*2);
     EXPECT_LT((UKF::Vector<3>(20, 0, 0) - test_filter.state.get_field<Velocity>()).norm(),
@@ -376,6 +395,7 @@ TEST(SquareRootCoreTest, FullStep) {
 
     test_filter.step(0.01, m, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0));
 
+    EXPECT_GT(test_filter.root_covariance.determinant(), std::numeric_limits<real_t>::epsilon());
     EXPECT_LT((UKF::Vector<3>(100, 10, -50) - test_filter.state.get_field<Position>()).norm(),
         test_filter.root_covariance.diagonal().segment<3>(0).norm()*2);
     EXPECT_LT((UKF::Vector<3>(20, 0, 0) - test_filter.state.get_field<Velocity>()).norm(),
