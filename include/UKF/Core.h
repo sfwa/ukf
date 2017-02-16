@@ -134,15 +134,12 @@ public:
         z_prime = z_pred.template calculate_sigma_point_deltas<StateVectorType>(measurement_sigma_points);
 
         /*
-        Calculate innovation and innovation covariance. Innovation is simply
-        the difference between the measurement and the predicted measurement,
-        and innovation covariance is the sum of the predicted measurement
-        covariance and the measurement covariance.
+        Calculate innovation and innovation covariance.
         See equations 44 and 45 from the Kraft paper for details.
         */
-        innovation = z - z_pred;
+        innovation = z_pred.template calculate_innovation(z);
         innovation_covariance = z_pred.template calculate_sigma_point_covariance<StateVectorType>(z_prime);
-        innovation_covariance += z.template calculate_measurement_covariance();
+        innovation_covariance += z.template calculate_measurement_covariance(z_pred);
     }
 
     /*
@@ -168,9 +165,13 @@ public:
 
         /*
         Calculate the Kalman gain as described in equation 72 from the Kraft
-        paper.
+        paper, with a slight change in that we're using a column-pivoting QR
+        decomposition to calculate the Moore-Penrose pseudoinverse rather than
+        the inverse. This allows the innovation covariance to be positive semi-
+        definite.
         */
-        CrossCorrelation kalman_gain = cross_correlation * innovation_covariance.inverse();
+        CrossCorrelation kalman_gain = cross_correlation * innovation_covariance.colPivHouseholderQr().solve(
+            MeasurementVectorType::CovarianceMatrix::Identity(innovation.size(), innovation.size()));
 
         /*
         Calculate the update delta vector, to be applied to the a priori
@@ -304,12 +305,8 @@ public:
             z.template calculate_sigma_point_mean<StateVectorType>(measurement_sigma_points);
         z_prime = z_pred.template calculate_sigma_point_deltas<StateVectorType>(measurement_sigma_points);
 
-        /*
-        Calculate innovation and innovation root covariance. Innovation is
-        simply the difference between the measurement and the predicted
-        measurement.
-        */
-        innovation = z - z_pred;
+        /* Calculate innovation and innovation root covariance. */
+        innovation = z_pred.template calculate_innovation(z);
 
         /*
         Create an augmented matrix containing all but the centre innovation
@@ -331,7 +328,7 @@ public:
         augmented_z_prime.block(0, 0, z.size(), StateVectorType::num_sigma() - 1) =
             std::sqrt(Parameters::Sigma_WCI<StateVectorType>) * z_prime.rightCols(StateVectorType::num_sigma() - 1);
         augmented_z_prime.block(0, StateVectorType::num_sigma() - 1, z.size(), z.size()) =
-            z.template calculate_measurement_root_covariance();
+            z.template calculate_measurement_root_covariance(z_pred);
 
         /*
         Calculate the QR decomposition of the augmented innovation deltas.
@@ -373,8 +370,8 @@ public:
         literature. Eigen's QR decomposition implements a left-division,
         rather than the right-division assumed in the literature.
         */
-        CrossCorrelation kalman_gain = innovation_root_covariance.transpose().householderQr().solve(
-            innovation_root_covariance.householderQr().solve(
+        CrossCorrelation kalman_gain = innovation_root_covariance.transpose().colPivHouseholderQr().solve(
+            innovation_root_covariance.colPivHouseholderQr().solve(
                 cross_correlation.transpose())).transpose();
 
         /*
@@ -444,8 +441,8 @@ public:
 
     /* Top-level function used to carry out a filter step. */
     template <typename... U>
-    void step(real_t delta, const MeasurementVectorType& z, const U&... input) {
-        a_priori_step(delta);
+    void step(const MeasurementVectorType& z, const U&... input) {
+        a_priori_step();
         innovation_step(z, input...);
         a_posteriori_step();
     }
@@ -456,7 +453,7 @@ public:
     There's no need to propagate the sigma points through a process model,
     and we only have to add the process noise to the root covariance.
     */
-    void a_priori_step(real_t delta) {
+    void a_priori_step() {
         sigma_points = state.calculate_sigma_point_distribution(root_covariance *
             std::sqrt(StateVectorType::covariance_size() + Parameters::Lambda<StateVectorType>));
 
@@ -490,12 +487,8 @@ public:
             z.template calculate_sigma_point_mean<StateVectorType>(measurement_sigma_points);
         z_prime = z_pred.template calculate_sigma_point_deltas<StateVectorType>(measurement_sigma_points);
 
-        /*
-        Calculate innovation and innovation root covariance. Innovation is
-        simply the difference between the measurement and the predicted
-        measurement.
-        */
-        innovation = z - z_pred;
+        /* Calculate innovation and innovation root covariance. */
+        innovation = z_pred.template calculate_innovation(z);
 
         /*
         Create an augmented matrix containing all but the centre innovation
@@ -517,7 +510,7 @@ public:
         augmented_z_prime.block(0, 0, z.size(), StateVectorType::num_sigma() - 1) =
             std::sqrt(Parameters::Sigma_WCI<StateVectorType>) * z_prime.rightCols(StateVectorType::num_sigma() - 1);
         augmented_z_prime.block(0, StateVectorType::num_sigma() - 1, z.size(), z.size()) =
-            z.template calculate_measurement_root_covariance();
+            z.template calculate_measurement_root_covariance(z_pred);
 
         /*
         Calculate the QR decomposition of the augmented innovation deltas.
@@ -559,8 +552,8 @@ public:
         literature. Eigen's QR decomposition implements a left-division,
         rather than the right-division assumed in the literature.
         */
-        CrossCorrelation kalman_gain = innovation_root_covariance.transpose().householderQr().solve(
-            innovation_root_covariance.householderQr().solve(
+        CrossCorrelation kalman_gain = innovation_root_covariance.transpose().colPivHouseholderQr().solve(
+            innovation_root_covariance.colPivHouseholderQr().solve(
                 cross_correlation.transpose())).transpose();
 
         /*

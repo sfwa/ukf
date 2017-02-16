@@ -35,6 +35,85 @@ SOFTWARE.
 
 namespace UKF {
 
+    namespace Detail {
+
+    /* Calculate the smallest rotation vector which transforms v1 into v2. */
+    template <typename T>
+    inline Vector<3> calculate_rotation_vector(const Vector<3>& v2, const Vector<3>& v1) {
+        Vector<3> axis = Vector<3>::Zero();
+        real_t norm = std::sqrt(v1.squaredNorm() * v2.squaredNorm());
+        real_t q_w = norm + v1.dot(v2);
+
+        /* Check whether the vectors are antiparallel or too small. */
+        if(q_w > std::numeric_limits<real_t>::epsilon()) {
+            axis = v1.cross(v2);
+        } else if(norm > std::numeric_limits<real_t>::epsilon()) {
+            axis = Vector<3>(-v1(2), v1(1), v1(0));
+        }
+
+        return Parameters::MRP_F<T> * axis /
+            (std::abs(Parameters::MRP_A<T> + q_w) > std::numeric_limits<real_t>::epsilon() ?
+            Parameters::MRP_A<T> + q_w : std::numeric_limits<real_t>::epsilon());
+    }
+
+    /*
+    Calculate the transformation matrix to transform a covariance matrix of
+    field vector noise for the field vector v2 into a covariance matrix for the
+    rotation vector corresponding to the transformation between the field
+    vector v1 and v2.
+
+    This is done by using an expression for the exact Jacobian of the rotation
+    vector, as a function of the field vector.
+
+    The expression for the exact Jacobian was derived using the following
+    MATLAB commands (with the Symbolic Toolbox):
+
+    v1_ = sym('v1_', [3 1], 'real');
+    v2_ = sym('v2_', [3 1], 'real');
+    f = sym('f', 1, 'real');
+    a = sym('a', 1, 'real');
+    Ra = cross(v1_, v2_) * (f/(a + sqrt(dot(v1_, v1_) * dot(v2_, v2_)) + dot(v1_, v2_)));
+    J_Ra = jacobian(Ra, v2_);
+    pretty(J_Ra);
+    */
+    template <typename T>
+    inline Matrix<3, 3> calculate_rotation_vector_jacobian(const Vector<3>& v2, const Vector<3>& v1) {
+        Matrix<3, 3> j;
+        real_t c8 = std::sqrt(v1.squaredNorm() * v2.squaredNorm());
+        real_t q_w = c8 + v1.dot(v2);
+        real_t c9_8 = real_t(0.0);
+
+        /* Check whether the vectors are antiparallel or too small. */
+        Vector<3> c123 = Vector<3>::Zero();
+        if(c8 > std::numeric_limits<real_t>::epsilon()) {
+            c9_8 = v1.squaredNorm() / c8;
+
+            if(q_w > std::numeric_limits<real_t>::epsilon()) {
+                c123 = v1.cross(v2);
+            } else {
+                c123 = Vector<3>(-v1(2), v1(1), v1(0));
+            }
+            c123(1) = -c123(1);
+        }
+
+        real_t c4 = Parameters::MRP_A<T> + q_w;
+        if(std::abs(c4) < std::numeric_limits<real_t>::epsilon()) {
+            c4 = std::numeric_limits<real_t>::epsilon();
+        }
+        real_t c4_2 = c4*c4;
+
+        Vector<3> c765 = v1 + v2*c9_8;
+
+        j <<            -c123(0)*c765(0)/c4_2, -v1(2)/c4 - c123(0)*c765(1)/c4_2,  v1(1)/c4 - c123(0)*c765(2)/c4_2,
+              v1(2)/c4 + c123(1)*c765(0)/c4_2,             c123(1)*c765(1)/c4_2, -v1(0)/c4 + c123(1)*c765(2)/c4_2,
+             -v1(1)/c4 - c123(2)*c765(0)/c4_2,  v1(0)/c4 - c123(2)*c765(1)/c4_2,            -c123(2)*c765(2)/c4_2;
+        j *= Parameters::MRP_F<T>;
+
+        return j;
+    }
+
+    }
+
 /* Alias for the Eigen type from which FixedMeasurementVector inherits. */
 template <typename... Fields>
 using MeasurementVectorFixedBaseType = Vector<Detail::get_composite_vector_dimension<Fields...>()>;
@@ -104,8 +183,10 @@ public:
     /* Calculate the mean from a measurement sigma point distribution. */
     template <typename S>
     FixedMeasurementVector calculate_sigma_point_mean(const SigmaPointDistribution<S>& Z) const {
-        return Parameters::Sigma_WMI<S>*Z.block(0, 1, size(), S::num_sigma()-1).rowwise().sum()
-            + Parameters::Sigma_WM0<S>*Z.col(0);
+        FixedMeasurementVector mean;
+        calculate_field_mean<S, Fields...>(Z, mean);
+
+        return mean;
     }
 
     /*
@@ -117,7 +198,7 @@ public:
         SigmaPointDeltas<S> z_prime;
 
         /* Calculate the delta vectors. */
-        z_prime = Z.colwise() - *this;
+        calculate_field_deltas<S, Fields...>(Z, z_prime);
 
         return z_prime;
     }
@@ -158,19 +239,34 @@ public:
     }
 
     /*
-    Returns a diagonal matrix containing the measurement covariance. Used for
-    the standard UKF.
+    Returns a matrix containing the measurement covariance. Used for the
+    standard UKF.
     */
-    Eigen::DiagonalMatrix<real_t, covariance_size()> calculate_measurement_covariance() const {
-        return Eigen::DiagonalMatrix<real_t, covariance_size()>(measurement_covariance);
+    CovarianceMatrix calculate_measurement_covariance(const FixedMeasurementVector& z_pred) const {
+        CovarianceMatrix temp = CovarianceMatrix::Zero();
+
+        calculate_field_covariance<Fields...>(temp, z_pred);
+        return temp;
     }
 
     /*
-    Returns a diagonal matrix containing the measurement root covariance.
-    Used for the square-root UKF.
+    Returns a matrix containing the measurement root covariance. Used for the
+    square-root UKF.
     */
-    Eigen::DiagonalMatrix<real_t, covariance_size()> calculate_measurement_root_covariance() const {
-        return Eigen::DiagonalMatrix<real_t, covariance_size()>(measurement_root_covariance);
+    CovarianceMatrix calculate_measurement_root_covariance(const FixedMeasurementVector& z_pred) const {
+        CovarianceMatrix temp = CovarianceMatrix::Zero();
+
+        calculate_field_root_covariance<Fields...>(temp, z_pred);
+        return temp;
+    }
+
+    /* Return the innovation using the supplied measurement vector. */
+    FixedMeasurementVector calculate_innovation(const FixedMeasurementVector& z) const {
+        FixedMeasurementVector temp;
+
+        temp = z;
+        calculate_field_innovation<Fields...>(temp);
+        return temp;
     }
 
 private:
@@ -199,8 +295,8 @@ private:
     static void calculate_field_measurements(FixedMeasurementVector& expected, const S& state, U&& input) {
         constexpr std::size_t len = std::tuple_size<typename std::remove_reference<U>::type>::value;
 
-        expected.segment(Detail::get_field_offset<0, Fields...>(T::key),
-            Detail::StateVectorDimension<typename T::type>) << expected_measurement_helper<S, T::key, U>(
+        expected.template segment<Detail::StateVectorDimension<typename T::type>>(
+            Detail::get_field_offset<0, Fields...>(T::key)) << expected_measurement_helper<S, T::key, U>(
                 state, std::forward<U>(input), std::make_index_sequence<len>());
     }
 
@@ -208,6 +304,200 @@ private:
     static void calculate_field_measurements(FixedMeasurementVector& expected, const S& state, U&& input) {
         calculate_field_measurements<S, U, T1>(expected, state, std::forward<U>(input));
         calculate_field_measurements<S, U, T2, Tail...>(expected, state, std::forward<U>(input));
+    }
+
+    /*
+    These functions build the measurement covariance from all fields in the
+    measurement vector.
+    */
+    template <typename T>
+    static Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> field_covariance(
+            const T& p, const T& z_pred, const T& z) {
+        Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> temp =
+            Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>>::Zero();
+        temp.diagonal() << p;
+        return temp;
+    }
+
+    static Matrix<3, 3> field_covariance(const FieldVector& p, const FieldVector& z_pred, const FieldVector& z) {
+        Matrix<3, 3> T = Detail::calculate_rotation_vector_jacobian<FixedMeasurementVector>(z, z_pred);
+
+        /*
+        To calculate the covariance, pre-multiply by the transformation matrix
+        and then post-multiply by the transformation matrix transpose.
+        */
+        return T * Eigen::DiagonalMatrix<real_t, 3>(p) * T.transpose();
+    }
+
+    template <typename T>
+    void calculate_field_covariance(CovarianceMatrix& P, const FixedMeasurementVector& z_pred) const {
+        P.template block<Detail::CovarianceDimension<typename T::type>, Detail::CovarianceDimension<typename T::type>>(
+            Detail::get_field_covariance_offset<0, Fields...>(T::key),
+            Detail::get_field_covariance_offset<0, Fields...>(T::key)) = field_covariance(
+                measurement_covariance.template get_field<T::key>(),
+                z_pred.get_field<T::key>(), get_field<T::key>());
+    }
+
+    template <typename T1, typename T2, typename... Tail>
+    void calculate_field_covariance(CovarianceMatrix& P, const FixedMeasurementVector& z_pred) const {
+        calculate_field_covariance<T1>(P, z_pred);
+        calculate_field_covariance<T2, Tail...>(P, z_pred);
+    }
+
+    /*
+    These functions build the measurement root covariance from all fields in
+    the measurement vector.
+    */
+    template <typename T>
+    static Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> field_root_covariance(
+            const T& p, const T& z_pred, const T& z) {
+        Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> temp =
+            Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>>::Zero();
+        temp.diagonal() << p;
+        return temp;
+    }
+
+    static Matrix<3, 3> field_root_covariance(const FieldVector& p, const FieldVector& z_pred, const FieldVector& z) {
+        /*
+        To calculate the root covariance, we simply pre-multiply it by the
+        transformation matrix. This will yield a positive-indefinite and
+        possibly non-triangular matrix, but it can be shown that since it
+        multiplied by its transpose it equal to the covariance matrix, it gives
+        the correct result in QR decomposition used by the square-root filter.
+
+        A proof of this is left as an exercise to the reader.
+        */
+        return Detail::calculate_rotation_vector_jacobian<FixedMeasurementVector>(z, z_pred) *
+            Eigen::DiagonalMatrix<real_t, 3>(p);
+    }
+
+    template <typename T>
+    void calculate_field_root_covariance(CovarianceMatrix& P, const FixedMeasurementVector& z_pred) const {
+        P.template block<Detail::CovarianceDimension<typename T::type>, Detail::CovarianceDimension<typename T::type>>(
+            Detail::get_field_covariance_offset<0, Fields...>(T::key),
+            Detail::get_field_covariance_offset<0, Fields...>(T::key)) = field_root_covariance(
+                measurement_root_covariance.template get_field<T::key>(),
+                z_pred.get_field<T::key>(), get_field<T::key>());
+    }
+
+    template <typename T1, typename T2, typename... Tail>
+    void calculate_field_root_covariance(CovarianceMatrix& P, const FixedMeasurementVector& z_pred) const {
+        calculate_field_root_covariance<T1>(P, z_pred);
+        calculate_field_root_covariance<T2, Tail...>(P, z_pred);
+    }
+
+    /*
+    Private functions for calculating the mean of each field in a sigma point
+    distribution. Note that sigma_point_mean takes a dummy argument so that
+    the overrides work properly.
+    */
+    template <typename S, typename T>
+    static T sigma_point_mean(const Matrix<Detail::StateVectorDimension<T>, S::num_sigma()>& sigma, const T& field) {
+        return Parameters::Sigma_WMI<S>*sigma.template block<Detail::StateVectorDimension<T>, S::num_sigma()-1>(
+            0, 1).rowwise().sum() + Parameters::Sigma_WM0<S>*sigma.col(0);
+    }
+
+    template <typename S>
+    static real_t sigma_point_mean(const Matrix<1, S::num_sigma()>& sigma, const real_t& field) {
+        return Parameters::Sigma_WMI<S>*sigma.template segment<S::num_sigma()-1>(1).sum()
+            + Parameters::Sigma_WM0<S>*sigma(0);
+    }
+
+    /*
+    Calculate the field vector mean by first calculating the set of rotation
+    vectors which transforms the central sigma point into the set of sigma
+    points. Then, calculate the mean of these rotations and apply it to the
+    central sigma point.
+    */
+    template <typename S>
+    static FieldVector sigma_point_mean(const Matrix<3, S::num_sigma()>& sigma, const FieldVector& field) {
+        Vector<3> temp = Vector<3>::Zero();
+
+        for(std::size_t i = 0; i < S::num_sigma()-1; i++) {
+            temp += Parameters::Sigma_WMI<S>*Detail::calculate_rotation_vector<FixedMeasurementVector>(
+                sigma.col(i+1), sigma.col(0));
+        }
+
+        return Detail::rotation_vector_to_quaternion<FixedMeasurementVector>(temp) * sigma.col(0);
+    }
+
+    template <typename S, typename T>
+    void calculate_field_mean(const SigmaPointDistribution<S>& Z, FixedMeasurementVector& mean) const {
+        mean.template segment<Detail::StateVectorDimension<typename T::type>>(
+            Detail::get_field_offset<0, Fields...>(T::key)) << sigma_point_mean<S>(
+                Z.template block<Detail::StateVectorDimension<typename T::type>, S::num_sigma()>(
+                    Detail::get_field_offset<0, Fields...>(T::key), 0), typename T::type());
+    }
+
+    template <typename S, typename T1, typename T2, typename... Tail>
+    void calculate_field_mean(const SigmaPointDistribution<S>& Z, FixedMeasurementVector& mean) const {
+        calculate_field_mean<S, T1>(Z, mean);
+        calculate_field_mean<S, T2, Tail...>(Z, mean);
+    }
+
+    /* These functions build the innovation from all populated fields. */
+    template <typename T>
+    static T measurement_delta(const T& z, const T& z_pred) {
+        return z - z_pred;
+    }
+
+    static real_t measurement_delta(const real_t& z, const real_t& z_pred) {
+        return z - z_pred;
+    }
+
+    static FieldVector measurement_delta(const FieldVector& z, const FieldVector& z_pred) {
+        return Detail::calculate_rotation_vector<FixedMeasurementVector>(z, z_pred);
+    }
+
+    template <typename T>
+    void calculate_field_innovation(FixedMeasurementVector& z) const {
+        z.set_field<T::key>(measurement_delta(z.get_field<T::key>(), get_field<T::key>()));
+    }
+
+    template <typename T1, typename T2, typename... Tail>
+    void calculate_field_innovation(FixedMeasurementVector& z) const {
+        calculate_field_innovation<T1>(z);
+        calculate_field_innovation<T2, Tail...>(z);
+    }
+
+    /*
+    Private functions for calculating the delta vectors between each sigma
+    point and the mean.
+    */
+    template <typename S, typename T>
+    static Matrix<Detail::CovarianceDimension<T>, S::num_sigma()> sigma_point_deltas(
+            const T& mean, const Matrix<Detail::StateVectorDimension<T>, S::num_sigma()>& Z) {
+        return Z.colwise() - mean;
+    }
+
+    template <typename S>
+    static Matrix<1, S::num_sigma()> sigma_point_deltas(real_t mean, const Matrix<1, S::num_sigma()>& Z) {
+        return Z.array() - mean;
+    }
+
+    template <typename S>
+    static Matrix<3, S::num_sigma()> sigma_point_deltas(const FieldVector& mean, const Matrix<3, S::num_sigma()>& Z) {
+        Matrix<3, S::num_sigma()> temp;
+
+        for(std::size_t i = 0; i < S::num_sigma(); i++) {
+            temp.col(i) = Detail::calculate_rotation_vector<FixedMeasurementVector>(Z.col(i), mean);
+        }
+
+        return temp;
+    }
+
+    template <typename S, typename T>
+    void calculate_field_deltas(const SigmaPointDistribution<S>& Z, SigmaPointDeltas<S>& z_prime) const {
+        z_prime.template block<Detail::CovarianceDimension<typename T::type>, S::num_sigma()>(
+            Detail::get_field_covariance_offset<0, Fields...>(T::key), 0) = sigma_point_deltas<S>(
+                get_field<T::key>(), Z.template block<Detail::StateVectorDimension<typename T::type>, S::num_sigma()>(
+                    Detail::get_field_offset<0, Fields...>(T::key), 0));
+    }
+
+    template <typename S, typename T1, typename T2, typename... Tail>
+    void calculate_field_deltas(const SigmaPointDistribution<S>& Z, SigmaPointDeltas<S>& z_prime) const {
+        calculate_field_deltas<S, T1>(Z, z_prime);
+        calculate_field_deltas<S, T2, Tail...>(Z, z_prime);
     }
 };
 
@@ -298,13 +588,12 @@ public:
     */
     template <typename S>
     DynamicMeasurementVector calculate_sigma_point_mean(const SigmaPointDistribution<S>& Z) const {
-        DynamicMeasurementVector temp = DynamicMeasurementVector(
-            Parameters::Sigma_WMI<S>*Z.block(0, 1, Base::template size(), S::num_sigma()-1).rowwise().sum()
-            + Parameters::Sigma_WM0<S>*Z.block(0, 0, Base::template size(), 1));
+        DynamicMeasurementVector mean(Base::template size());
+        calculate_field_mean<S, Fields...>(Z, mean);
 
-        temp.field_offsets = field_offsets;
+        mean.field_offsets = field_offsets;
 
-        return temp;
+        return mean;
     }
 
     /*
@@ -317,7 +606,7 @@ public:
         SigmaPointDeltas<S> z_prime(Base::template size(), S::num_sigma());
 
         /* Calculate the delta vectors. */
-        z_prime = Z.colwise() - *this;
+        calculate_field_deltas<S, Fields...>(Z, z_prime);
 
         return z_prime;
     }
@@ -361,25 +650,31 @@ public:
     Returns a diagonal matrix containing the measurement covariance. This is
     used for the standard UKF.
     */
-    Eigen::DiagonalMatrix<real_t, Eigen::Dynamic, max_covariance_size()> calculate_measurement_covariance() const {
-        DynamicMeasurementVector temp(Base::template size());
+    CovarianceMatrix calculate_measurement_covariance(const DynamicMeasurementVector& z_pred) const {
+        CovarianceMatrix temp = CovarianceMatrix::Zero(Base::template size(), Base::template size());
 
-        calculate_field_covariance<Fields...>(temp);
-        temp.field_offsets = field_offsets;
-        return Eigen::DiagonalMatrix<real_t, Eigen::Dynamic, max_covariance_size()>(temp);
+        calculate_field_covariance<Fields...>(temp, z_pred);
+        return temp;
     }
 
     /*
     Returns a diagonal matrix containing the measurement root covariance.
     This is used for the square-root UKF.
     */
-    Eigen::DiagonalMatrix<real_t, Eigen::Dynamic, max_covariance_size()> calculate_measurement_root_covariance()
-            const {
+    CovarianceMatrix calculate_measurement_root_covariance(const DynamicMeasurementVector& z_pred) const {
+        CovarianceMatrix temp = CovarianceMatrix::Zero(Base::template size(), Base::template size());
+
+        calculate_field_root_covariance<Fields...>(temp, z_pred);
+        return temp;
+    }
+
+    /* Return the innovation using the supplied measurement vector. */
+    DynamicMeasurementVector calculate_innovation(const DynamicMeasurementVector& z) const {
         DynamicMeasurementVector temp(Base::template size());
 
-        calculate_field_root_covariance<Fields...>(temp);
-        temp.field_offsets = field_offsets;
-        return Eigen::DiagonalMatrix<real_t, Eigen::Dynamic, max_covariance_size()>(temp);
+        temp = z;
+        calculate_field_innovation<Fields...>(temp);
+        return temp;
     }
 
 private:
@@ -423,7 +718,7 @@ private:
         */
         std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(T::key)>(field_offsets);
         if(offset != std::numeric_limits<std::size_t>::max()) {
-            expected.segment(offset, Detail::StateVectorDimension<typename T::type>) <<
+            expected.template segment<Detail::StateVectorDimension<typename T::type>>(offset) <<
                 expected_measurement_helper<S, T::key, U>(state, std::forward<U>(input),
                     std::make_index_sequence<len>());
         } else {
@@ -442,25 +737,44 @@ private:
     fields.
     */
     template <typename T>
-    void calculate_field_covariance(DynamicMeasurementVector& cov) const {
+    static Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> field_covariance(
+            const T& p, const T& z_pred, const T& z) {
+        Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> temp =
+            Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>>::Zero();
+        temp.diagonal() << p;
+        return temp;
+    }
+
+    static Matrix<3, 3> field_covariance(const FieldVector& p, const FieldVector& z_pred, const FieldVector& z) {
+        Matrix<3, 3> T = Detail::calculate_rotation_vector_jacobian<DynamicMeasurementVector>(z, z_pred);
+        /*
+        To calculate the covariance, pre-multiply by the transformation matrix
+        and then post-multiply by the transformation matrix transpose.
+        */
+        return T * Eigen::DiagonalMatrix<real_t, 3>(p) * T.transpose();
+    }
+
+    template <typename T>
+    void calculate_field_covariance(CovarianceMatrix& P, const DynamicMeasurementVector& z_pred) const {
         /*
         If this field has been set, then fill the measurement covariance for
         it. Otherwise, do nothing.
         */
         std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(T::key)>(field_offsets);
         if(offset != std::numeric_limits<std::size_t>::max()) {
-            cov.segment(offset, Detail::CovarianceDimension<typename T::type>) << measurement_covariance.segment(
-                Detail::get_field_covariance_offset<0, Fields...>(T::key),
-                Detail::get_field_covariance_size<Fields...>(T::key));
+            P.template block<Detail::CovarianceDimension<typename T::type>,
+                Detail::CovarianceDimension<typename T::type>>(offset, offset) =
+                field_covariance(measurement_covariance.template get_field<T::key>(),
+                    z_pred.get_field<T::key>(), get_field<T::key>());
         } else {
             return;
         }
     }
 
     template <typename T1, typename T2, typename... Tail>
-    void calculate_field_covariance(DynamicMeasurementVector& cov) const {
-        calculate_field_covariance<T1>(cov);
-        calculate_field_covariance<T2, Tail...>(cov);
+    void calculate_field_covariance(CovarianceMatrix& P, const DynamicMeasurementVector& z_pred) const {
+        calculate_field_covariance<T1>(P, z_pred);
+        calculate_field_covariance<T2, Tail...>(P, z_pred);
     }
 
     /*
@@ -468,21 +782,163 @@ private:
     fields.
     */
     template <typename T>
-    void calculate_field_root_covariance(DynamicMeasurementVector& cov) const {
+    static Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> field_root_covariance(
+            const T& p, const T& z_pred, const T& z) {
+        Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> temp =
+            Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>>::Zero();
+        temp.diagonal() << p;
+        return temp;
+    }
+
+    static Matrix<3, 3> field_root_covariance(const FieldVector& p, const FieldVector& z_pred, const FieldVector& z) {
+        return Detail::calculate_rotation_vector_jacobian<DynamicMeasurementVector>(z, z_pred) *
+            Eigen::DiagonalMatrix<real_t, 3>(p);
+    }
+
+    template <typename T>
+    void calculate_field_root_covariance(CovarianceMatrix& P, const DynamicMeasurementVector& z_pred) const {
         std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(T::key)>(field_offsets);
         if(offset != std::numeric_limits<std::size_t>::max()) {
-            cov.segment(offset, Detail::CovarianceDimension<typename T::type>) << measurement_root_covariance.segment(
-                Detail::get_field_covariance_offset<0, Fields...>(T::key),
-                Detail::get_field_covariance_size<Fields...>(T::key));
+            P.template block<Detail::CovarianceDimension<typename T::type>,
+                Detail::CovarianceDimension<typename T::type>>(offset, offset) =
+                field_root_covariance(measurement_root_covariance.template get_field<T::key>(),
+                    z_pred.get_field<T::key>(), get_field<T::key>());
         } else {
             return;
         }
     }
 
     template <typename T1, typename T2, typename... Tail>
-    void calculate_field_root_covariance(DynamicMeasurementVector& cov) const {
-        calculate_field_root_covariance<T1>(cov);
-        calculate_field_root_covariance<T2, Tail...>(cov);
+    void calculate_field_root_covariance(CovarianceMatrix& P, const DynamicMeasurementVector& z_pred) const {
+        calculate_field_root_covariance<T1>(P, z_pred);
+        calculate_field_root_covariance<T2, Tail...>(P, z_pred);
+    }
+
+    /*
+    Private functions for calculating the mean of each field in a sigma point
+    distribution. Note that sigma_point_mean takes a dummy argument so that
+    the overrides work properly.
+    */
+    template <typename S, typename T>
+    static T sigma_point_mean(const Matrix<Detail::StateVectorDimension<T>, S::num_sigma()>& sigma, const T& field) {
+        return Parameters::Sigma_WMI<S>*sigma.template block<Detail::StateVectorDimension<T>, S::num_sigma()-1>(
+            0, 1).rowwise().sum() + Parameters::Sigma_WM0<S>*sigma.col(0);
+    }
+
+    template <typename S>
+    static real_t sigma_point_mean(const Matrix<1, S::num_sigma()>& sigma, const real_t& field) {
+        return Parameters::Sigma_WMI<S>*sigma.template segment<S::num_sigma()-1>(1).sum()
+            + Parameters::Sigma_WM0<S>*sigma(0);
+    }
+
+    /*
+    Calculate the field vector mean by first calculating the set of rotation
+    vectors which transforms the central sigma point into the set of sigma
+    points. Then, calculate the mean of these rotations and apply it to the
+    central sigma point.
+    */
+    template <typename S>
+    static FieldVector sigma_point_mean(const Matrix<3, S::num_sigma()>& sigma, const FieldVector& field) {
+        Vector<3> temp = Vector<3>::Zero();
+
+        for(std::size_t i = 0; i < S::num_sigma()-1; i++) {
+            temp += Parameters::Sigma_WMI<S>*Detail::calculate_rotation_vector<DynamicMeasurementVector>(
+                sigma.col(i+1), sigma.col(0));
+        }
+
+        return Detail::rotation_vector_to_quaternion<DynamicMeasurementVector>(temp) * sigma.col(0);
+    }
+
+    template <typename S, typename T>
+    void calculate_field_mean(const SigmaPointDistribution<S>& Z, DynamicMeasurementVector& mean) const {
+        std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(T::key)>(field_offsets);
+        if(offset != std::numeric_limits<std::size_t>::max()) {
+            mean.template segment<Detail::StateVectorDimension<typename T::type>>(offset) << sigma_point_mean<S>(
+                Z.template block<Detail::StateVectorDimension<typename T::type>, S::num_sigma()>(
+                offset, 0), typename T::type());
+        } else {
+            return;
+        }
+    }
+
+    template <typename S, typename T1, typename T2, typename... Tail>
+    void calculate_field_mean(const SigmaPointDistribution<S>& Z, DynamicMeasurementVector& mean) const {
+        calculate_field_mean<S, T1>(Z, mean);
+        calculate_field_mean<S, T2, Tail...>(Z, mean);
+    }
+
+    /* These functions build the innovation from all populated fields. */
+    template <typename T>
+    static T measurement_delta(const T& z, const T& z_pred) {
+        return z - z_pred;
+    }
+
+    static real_t measurement_delta(const real_t& z, const real_t& z_pred) {
+        return z - z_pred;
+    }
+
+    static FieldVector measurement_delta(const FieldVector& z, const FieldVector& z_pred) {
+        return Detail::calculate_rotation_vector<DynamicMeasurementVector>(z, z_pred);
+    }
+
+    template <typename T>
+    void calculate_field_innovation(DynamicMeasurementVector& z) const {
+        std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(T::key)>(field_offsets);
+        if(offset != std::numeric_limits<std::size_t>::max()) {
+            z.set_field<T::key>(measurement_delta(z.get_field<T::key>(), get_field<T::key>()));
+        } else {
+            return;
+        }
+    }
+
+    template <typename T1, typename T2, typename... Tail>
+    void calculate_field_innovation(DynamicMeasurementVector& z) const {
+        calculate_field_innovation<T1>(z);
+        calculate_field_innovation<T2, Tail...>(z);
+    }
+
+    /*
+    Private functions for calculating the delta vectors between each sigma
+    point and the mean.
+    */
+    template <typename S, typename T>
+    static Matrix<Detail::CovarianceDimension<T>, S::num_sigma()> sigma_point_deltas(
+            const T& mean, const Matrix<Detail::StateVectorDimension<T>, S::num_sigma()>& Z) {
+        return Z.colwise() - mean;
+    }
+
+    template <typename S>
+    static Matrix<1, S::num_sigma()> sigma_point_deltas(real_t mean, const Matrix<1, S::num_sigma()>& Z) {
+        return Z.array() - mean;
+    }
+
+    template <typename S>
+    static Matrix<3, S::num_sigma()> sigma_point_deltas(const FieldVector& mean, const Matrix<3, S::num_sigma()>& Z) {
+        Matrix<3, S::num_sigma()> temp;
+
+        for(std::size_t i = 0; i < S::num_sigma(); i++) {
+            temp.col(i) = Detail::calculate_rotation_vector<DynamicMeasurementVector>(Z.col(i), mean);
+        }
+
+        return temp;
+    }
+
+    template <typename S, typename T>
+    void calculate_field_deltas(const SigmaPointDistribution<S>& Z, SigmaPointDeltas<S>& z_prime) const {
+        std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(T::key)>(field_offsets);
+        if(offset != std::numeric_limits<std::size_t>::max()) {
+            z_prime.template block<Detail::CovarianceDimension<typename T::type>, S::num_sigma()>(offset, 0) =
+                sigma_point_deltas<S>(get_field<T::key>(), 
+                    Z.template block<Detail::StateVectorDimension<typename T::type>, S::num_sigma()>(offset, 0));
+        } else {
+            return;
+        }
+    }
+
+    template <typename S, typename T1, typename T2, typename... Tail>
+    void calculate_field_deltas(const SigmaPointDistribution<S>& Z, SigmaPointDeltas<S>& z_prime) const {
+        calculate_field_deltas<S, T1>(Z, z_prime);
+        calculate_field_deltas<S, T2, Tail...>(Z, z_prime);
     }
 };
 

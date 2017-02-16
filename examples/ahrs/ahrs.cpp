@@ -376,7 +376,7 @@ void ukf_iterate(float dt) {
             The time delta is not used by the parameter estimation filter, so
             there's no need to adjust it.
             */
-            ahrs_errors.a_priori_step(dt);
+            ahrs_errors.a_priori_step();
             ahrs_errors.innovation_step(meas, ahrs.state);
             break;
         case 1:

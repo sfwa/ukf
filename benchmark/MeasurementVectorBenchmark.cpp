@@ -235,15 +235,20 @@ BENCHMARK(MeasurementVectorDynamic_FullMeasurementCalculation);
 template <> MV_Fixed::CovarianceVector MV_Fixed::measurement_covariance = MV_Fixed::CovarianceVector();
 
 void MeasurementVectorFixed_MeasurementCovariance(benchmark::State& state) {
-    MV_Fixed test_measurement;
+    MV_Fixed test_measurement, expected_measurement;
 
     MV_Fixed::measurement_covariance.set_field<Accelerometer>(UKF::Vector<3>(1, 2, 3));
     MV_Fixed::measurement_covariance.set_field<Gyroscope>(UKF::Vector<3>(4, 5, 6));
     MV_Fixed::measurement_covariance.set_field<StaticPressure>(7);
     MV_Fixed::measurement_covariance.set_field<DynamicPressure>(8);
 
+    expected_measurement.set_field<Accelerometer>(UKF::Vector<3>(1, 2, 3));
+    expected_measurement.set_field<Gyroscope>(UKF::Vector<3>(4, 5, 6));
+    expected_measurement.set_field<StaticPressure>(7);
+    expected_measurement.set_field<DynamicPressure>(8);
+
     while(state.KeepRunning()) {
-        benchmark::DoNotOptimize(test_measurement.calculate_measurement_covariance());
+        benchmark::DoNotOptimize(test_measurement.calculate_measurement_covariance(expected_measurement));
     }
 }
 
@@ -252,15 +257,20 @@ BENCHMARK(MeasurementVectorFixed_MeasurementCovariance);
 template <> MV_Dynamic::CovarianceVector MV_Dynamic::measurement_covariance = MV_Dynamic::CovarianceVector();
 
 void MeasurementVectorDynamic_MeasurementCovariance(benchmark::State& state) {
-    MV_Dynamic test_measurement;
+    MV_Dynamic test_measurement, expected_measurement;
 
     MV_Dynamic::measurement_covariance.set_field<Accelerometer>(UKF::Vector<3>(1, 2, 3));
     MV_Dynamic::measurement_covariance.set_field<Gyroscope>(UKF::Vector<3>(4, 5, 6));
     MV_Dynamic::measurement_covariance.set_field<StaticPressure>(7);
     MV_Dynamic::measurement_covariance.set_field<DynamicPressure>(8);
 
+    expected_measurement.set_field<Accelerometer>(UKF::Vector<3>(1, 2, 3));
+    expected_measurement.set_field<Gyroscope>(UKF::Vector<3>(4, 5, 6));
+    expected_measurement.set_field<StaticPressure>(7);
+    expected_measurement.set_field<DynamicPressure>(8);
+
     while(state.KeepRunning()) {
-        benchmark::DoNotOptimize(test_measurement.calculate_measurement_covariance());
+        benchmark::DoNotOptimize(test_measurement.calculate_measurement_covariance(expected_measurement));
     }
 }
 

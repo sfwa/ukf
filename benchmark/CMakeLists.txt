@@ -31,6 +31,8 @@ INCLUDE_DIRECTORIES(${googlebenchmark_dir}/include ../include ${eigen_dir})
 ADD_EXECUTABLE(benchmark
     StateVectorBenchmark.cpp
     MeasurementVectorBenchmark.cpp
+    CoreBenchmark.cpp
+    SquareRootCoreBenchmark.cpp
     BenchmarkMain.cpp)
 
 # Create dependency of benchmark on googlebenchmark
