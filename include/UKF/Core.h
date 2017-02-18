@@ -99,7 +99,7 @@ public:
             Parameters::Lambda<StateVectorType>)).llt().info() == Eigen::Success)
             && "Covariance matrix is not positive definite");
 
-        sigma_points = state.calculate_sigma_point_distribution((covariance *
+        sigma_points = state.calculate_sigma_point_distribution(((covariance + process_noise_covariance) *
             (StateVectorType::covariance_size() + Parameters::Lambda<StateVectorType>)).llt().matrixL());
 
         /* Propagate the sigma points through the process model. */
@@ -111,7 +111,7 @@ public:
         /* Calculate the a priori estimate mean, deltas and covariance. */
         state = StateVectorType::calculate_sigma_point_mean(sigma_points);
         w_prime = state.calculate_sigma_point_deltas(sigma_points);
-        covariance = StateVectorType::calculate_sigma_point_covariance(w_prime) + process_noise_covariance;
+        covariance = StateVectorType::calculate_sigma_point_covariance(w_prime);
     }
 
     /*
@@ -286,6 +286,11 @@ public:
         Eigen::internal::llt_inplace<real_t, Eigen::Upper>::rankUpdate(
             root_covariance, w_prime.col(0), Parameters::Sigma_WC0<StateVectorType>);
         root_covariance.transposeInPlace();
+
+        /* Recalculate the sigma points using the a priori covariance. */
+        sigma_points = state.calculate_sigma_point_distribution(root_covariance *
+            std::sqrt(StateVectorType::covariance_size() + Parameters::Lambda<StateVectorType>));
+        w_prime = state.calculate_sigma_point_deltas(sigma_points);
     }
 
     /*
@@ -454,12 +459,6 @@ public:
     and we only have to add the process noise to the root covariance.
     */
     void a_priori_step() {
-        sigma_points = state.calculate_sigma_point_distribution(root_covariance *
-            std::sqrt(StateVectorType::covariance_size() + Parameters::Lambda<StateVectorType>));
-
-        /* Calculate the sigma point deltas. */
-        w_prime = state.calculate_sigma_point_deltas(sigma_points);
-
         /*
         Add the process noise to the root covariance. Note that there are two
         methods for doing this; this one has been chosen as it still allows
@@ -468,6 +467,12 @@ public:
         typename StateVectorType::StateVectorDelta R_diag = process_noise_root_covariance.diagonal();
         typename StateVectorType::StateVectorDelta S_diag = root_covariance.diagonal();
         root_covariance.diagonal() = (S_diag.cwiseProduct(S_diag) + R_diag.cwiseProduct(R_diag)).cwiseSqrt();
+
+        sigma_points = state.calculate_sigma_point_distribution(root_covariance *
+            std::sqrt(StateVectorType::covariance_size() + Parameters::Lambda<StateVectorType>));
+
+        /* Calculate the sigma point deltas. */
+        w_prime = state.calculate_sigma_point_deltas(sigma_points);
     }
 
     /*
