@@ -170,7 +170,7 @@ public:
         the inverse. This allows the innovation covariance to be positive semi-
         definite.
         */
-        CrossCorrelation kalman_gain = cross_correlation * innovation_covariance.fullPivHouseholderQr().solve(
+        CrossCorrelation kalman_gain = cross_correlation * innovation_covariance.colPivHouseholderQr().solve(
             MeasurementVectorType::CovarianceMatrix::Identity(innovation.size(), innovation.size()));
 
         /*
