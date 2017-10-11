@@ -162,6 +162,7 @@ using MyStateVector = UKF::StateVector<
     UKF::Field<Altitude, real_t>
 >;
 
+namespace UKF {
 /*
 Define measurement model to be used in tests. NOTE: These are just for
 testing, don't expect them to make any physical sense whatsoever.
@@ -229,6 +230,8 @@ template <> template <>
 UKF::FieldVector MyMeasurementVector::expected_measurement
 <MyStateVector, Magnetometer, UKF::Vector<3>>(const MyStateVector& state, const UKF::Vector<3>& input) {
     return state.get_field<Attitude>() * UKF::FieldVector(0.45, 0, 0) + input;
+}
+
 }
 
 TEST(DynamicMeasurementVectorTest, SigmaPointGeneration) {
