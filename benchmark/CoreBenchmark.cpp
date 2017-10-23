@@ -21,7 +21,10 @@ using MyStateVector = UKF::StateVector<
     UKF::Field<AngularVelocity, UKF::Vector<3>>
 >;
 
-template <> constexpr real_t UKF::Parameters::AlphaSquared<MyStateVector> = 1e-6;
+namespace UKF {
+namespace Parameters {
+template <> constexpr real_t AlphaSquared<MyStateVector> = 1e-6;
+}
 
 /*
 State vector process model. One version takes body frame kinematic
@@ -56,6 +59,8 @@ MyStateVector MyStateVector::derivative<>() const {
     return derivative(UKF::Vector<3>(0, 0, 0), UKF::Vector<3>(0, 0, 0));
 }
 
+}
+
 /* Set up measurement vector class. */
 enum MyMeasurementFields {
     GPS_Position,
@@ -79,6 +84,7 @@ using MyCore = UKF::Core<
     UKF::IntegratorRK4
 >;
 
+namespace UKF {
 /*
 Define measurement model to be used in tests. NOTE: These are just for
 testing, don't expect them to make any physical sense whatsoever.
@@ -117,6 +123,8 @@ UKF::Vector<3> MyMeasurementVector::expected_measurement
 template <>
 MyMeasurementVector::CovarianceVector MyMeasurementVector::measurement_covariance =
     MyMeasurementVector::CovarianceVector();
+
+}
 
 MyCore create_initialised_test_filter() {
     MyMeasurementVector::measurement_covariance << 10, 10, 10, 1, 1, 1, 5e-1, 5e-1, 5e-1, 5e-1, 5e-1, 5e-1, 0.05, 0.05, 0.05;

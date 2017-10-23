@@ -73,9 +73,12 @@ using AlternateStateVector = UKF::StateVector<
     UKF::Field<Acceleration, UKF::Vector<3>>
 >;
 
-template <> constexpr real_t UKF::Parameters::AlphaSquared<AlternateStateVector> = 1e-6;
-template <> constexpr real_t UKF::Parameters::Beta<AlternateStateVector> = 2.0;
-template <> constexpr real_t UKF::Parameters::Kappa<AlternateStateVector> = 3.0;
+namespace UKF {
+namespace Parameters {
+template <> constexpr real_t AlphaSquared<AlternateStateVector> = 1e-6;
+template <> constexpr real_t Beta<AlternateStateVector> = 2.0;
+template <> constexpr real_t Kappa<AlternateStateVector> = 3.0;
+}}
 
 TEST(StateVectorTest, CustomParameters) {
     AlternateStateVector test_state;
@@ -284,6 +287,7 @@ using ProcessModelTestStateVector = UKF::StateVector<
     UKF::Field<Velocity, UKF::Vector<3>>
 >;
 
+namespace UKF {
 template <> template <>
 ProcessModelTestStateVector ProcessModelTestStateVector::derivative<>() const {
     ProcessModelTestStateVector temp;
@@ -307,6 +311,8 @@ ProcessModelTestStateVector ProcessModelTestStateVector::derivative<UKF::Vector<
     temp.set_field<Velocity>(acceleration);
 
     return temp;
+}
+
 }
 
 TEST(StateVectorTest, ProcessModel) {

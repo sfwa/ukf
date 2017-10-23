@@ -33,6 +33,7 @@ using MV_Fixed = UKF::FixedMeasurementVector<
     UKF::Field<DynamicPressure, real_t>
 >;
 
+namespace UKF {
 template <> template <>
 UKF::Vector<3> MV_Fixed::expected_measurement
 <MyStateVector, Accelerometer>(const MyStateVector& state) {
@@ -55,6 +56,8 @@ template <> template <>
 real_t MV_Fixed::expected_measurement
 <MyStateVector, DynamicPressure>(const MyStateVector& state) {
     return 0.5 * 1.225 * state.get_field<Velocity>().squaredNorm();
+}
+
 }
 
 using MV_Dynamic = UKF::DynamicMeasurementVector<
@@ -64,6 +67,7 @@ using MV_Dynamic = UKF::DynamicMeasurementVector<
     UKF::Field<DynamicPressure, real_t>
 >;
 
+namespace UKF {
 template <> template <>
 UKF::Vector<3> MV_Dynamic::expected_measurement
 <MyStateVector, Accelerometer>(const MyStateVector& state) {
@@ -86,6 +90,8 @@ template <> template <>
 real_t MV_Dynamic::expected_measurement
 <MyStateVector, DynamicPressure>(const MyStateVector& state) {
     return 0.5 * 1.225 * state.get_field<Velocity>().squaredNorm();
+}
+
 }
 
 /*

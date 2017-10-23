@@ -594,15 +594,15 @@ public:
         std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(Key)>(field_offsets);
 
         /* Check if this field has already been set. If so, replace it. */
-        if(offset < Base::template size()) {
+        if(offset < Base::size()) {
             Base::template segment<Detail::get_field_size<Fields...>(Key)>(offset) << in;
         } else {
             /*
             Otherwise, resize the measurement vector to fit it and store the
             order in which fields have been set.
             */
-            std::size_t previous_size = Base::template size();
-            Base::template conservativeResize(previous_size + Detail::get_field_size<Fields...>(Key));
+            std::size_t previous_size = Base::size();
+            Base::conservativeResize(previous_size + Detail::get_field_size<Fields...>(Key));
 
             /* Assign the value to the field. */
             Base::template segment<Detail::get_field_size<Fields...>(Key)>(previous_size) << in;
@@ -619,7 +619,7 @@ public:
     */
     template <typename S>
     DynamicMeasurementVector calculate_sigma_point_mean(const SigmaPointDistribution<S>& Z) const {
-        DynamicMeasurementVector mean(Base::template size());
+        DynamicMeasurementVector mean(Base::size());
         calculate_field_mean<S, Fields...>(Z, mean);
 
         mean.field_offsets = field_offsets;
@@ -635,7 +635,7 @@ public:
     */
     template <typename S>
     SigmaPointDeltas<S> calculate_sigma_point_deltas(const SigmaPointDistribution<S>& Z) const {
-        SigmaPointDeltas<S> z_prime(Base::template size(), S::num_sigma());
+        SigmaPointDeltas<S> z_prime(Base::size(), S::num_sigma());
 
         /* Calculate the delta vectors. */
         calculate_field_deltas<S, Fields...>(Z, z_prime);
@@ -649,10 +649,10 @@ public:
     */
     template <typename S>
     CovarianceMatrix calculate_sigma_point_covariance(const SigmaPointDeltas<S>& z_prime) const {
-        CovarianceMatrix cov(Base::template size(), Base::template size());
+        CovarianceMatrix cov(Base::size(), Base::size());
 
         /* Calculate the covariance using equation 64 from the Kraft paper. */
-        cov = CovarianceMatrix::Zero(Base::template size(), Base::template size());
+        cov = CovarianceMatrix::Zero(Base::size(), Base::size());
         for(std::size_t i = 1; i < S::num_sigma(); i++) {
             cov.noalias() += Parameters::Sigma_WCI<S> * (z_prime.col(i) * z_prime.col(i).transpose());
         }
@@ -667,10 +667,10 @@ public:
     template <typename S, typename... U>
     SigmaPointDistribution<S> calculate_sigma_point_distribution(
             const typename S::SigmaPointDistribution& X, const U&... input) const {
-        SigmaPointDistribution<S> Z(Base::template size(), S::num_sigma());
+        SigmaPointDistribution<S> Z(Base::size(), S::num_sigma());
 
         for(std::size_t i = 0; i < S::num_sigma(); i++) {
-            DynamicMeasurementVector temp(Base::template size());
+            DynamicMeasurementVector temp(Base::size());
             calculate_field_measurements<S, std::tuple<U...>, Fields...>(temp, X.col(i), std::make_tuple(input...));
             Z.col(i) = temp;
         }
@@ -683,7 +683,7 @@ public:
     used for the standard UKF.
     */
     CovarianceMatrix calculate_measurement_covariance(const DynamicMeasurementVector& z_pred) const {
-        CovarianceMatrix temp = CovarianceMatrix::Zero(Base::template size(), Base::template size());
+        CovarianceMatrix temp = CovarianceMatrix::Zero(Base::size(), Base::size());
 
         calculate_field_covariance<Fields...>(temp, z_pred);
         return temp;
@@ -694,7 +694,7 @@ public:
     This is used for the square-root UKF.
     */
     CovarianceMatrix calculate_measurement_root_covariance(const DynamicMeasurementVector& z_pred) const {
-        CovarianceMatrix temp = CovarianceMatrix::Zero(Base::template size(), Base::template size());
+        CovarianceMatrix temp = CovarianceMatrix::Zero(Base::size(), Base::size());
 
         calculate_field_root_covariance<Fields...>(temp, z_pred);
         return temp;
@@ -702,7 +702,7 @@ public:
 
     /* Return the innovation using the supplied measurement vector. */
     DynamicMeasurementVector calculate_innovation(const DynamicMeasurementVector& z) const {
-        DynamicMeasurementVector temp(Base::template size());
+        DynamicMeasurementVector temp(Base::size());
 
         temp = z;
         calculate_field_innovation<Fields...>(temp);

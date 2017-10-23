@@ -27,7 +27,11 @@ using MyStateVector = UKF::StateVector<
     UKF::Field<AngularVelocity, UKF::Vector<3>>
 >;
 
-template <> constexpr real_t UKF::Parameters::AlphaSquared<MyStateVector> = 1e-6;
+namespace UKF {
+namespace Parameters {
+
+template <> constexpr real_t AlphaSquared<MyStateVector> = 1e-6;
+}
 
 /*
 State vector process model. One version takes body frame kinematic
@@ -62,6 +66,8 @@ MyStateVector MyStateVector::derivative<>() const {
     return derivative(UKF::Vector<3>(0, 0, 0), UKF::Vector<3>(0, 0, 0));
 }
 
+}
+
 /*
 Set up measurement vector class. The order of these is changed to prevent
 linker collisions with the ones in TestCore.cpp.
@@ -88,6 +94,7 @@ using MyCore = UKF::SquareRootCore<
     UKF::IntegratorRK4
 >;
 
+namespace UKF {
 /*
 Define measurement model to be used in tests. NOTE: These are just for
 testing, don't expect them to make any physical sense whatsoever.
@@ -167,6 +174,7 @@ UKF::Vector<3> MyMeasurementVector::expected_measurement
 template <>
 MyMeasurementVector::CovarianceVector MyMeasurementVector::measurement_root_covariance =
     MyMeasurementVector::CovarianceVector();
+}
 
 /*
 Initialise covariances as square roots to be comparable with TestCore.cpp.

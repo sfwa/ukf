@@ -155,6 +155,8 @@ UKF::Vector<6> x8_dynamics_model(const SFWA_StateVector &state, const UKF::Vecto
     return output;
 }
 
+namespace UKF {
+
 /* SFWA state vector process model. */
 template <> template <>
 SFWA_StateVector SFWA_StateVector::derivative<>() const {
@@ -206,6 +208,8 @@ SFWA_StateVector SFWA_StateVector::derivative<>() const {
     return output;
 }
 
+}
+
 enum SFWA_Measurements {
     Accelerometer,
     Gyroscope,
@@ -239,6 +243,7 @@ using SFWA_UKF = UKF::Core<
     UKF::IntegratorRK4
 >;
 
+namespace UKF {
 /* SFWA measurement model. */
 template <> template <>
 UKF::Vector<3> SFWA_MeasurementVector::expected_measurement
@@ -287,7 +292,7 @@ template <>
 SFWA_MeasurementVector::CovarianceVector SFWA_MeasurementVector::measurement_covariance(
     (SFWA_MeasurementVector::CovarianceVector() << 
         1, 1, 1, 0.01, 0.01, 0.01, 10, 10, 10, 1e-20, 1e-20, 1, 1, 1, 1, 1, 1).finished());
-
+}
 static SFWA_UKF ukf;
 static SFWA_MeasurementVector meas;
 
