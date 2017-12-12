@@ -150,17 +150,27 @@ namespace UKF {
     };
 
     template <int Key, typename... Fields>
-    struct FieldTypes {
+    struct FieldTypesBase {
         using type = void;
     };
 
     template <int Key, typename T, typename... Fields>
-    struct FieldTypes<Key, T, Fields...> {
+    struct FieldTypesBase<Key, T, Fields...> {
         using type = typename IfHelper<
             Key == T::key,
             typename T::type,
-            typename FieldTypes<Key, Fields...>::type>::type;
+            typename FieldTypesBase<Key, Fields...>::type>::type;
     };
+
+    /*
+    A `boost::mpl::identity`-like wrapper to avoid inference errors when
+    specializing function templates.
+    In some situations when using FieldTypesBase directly only the primary
+    template gets resolved, resulting in failed substitutions.
+    This is solved in C++17, e.g. when compiling by GCC8
+    */
+    template <int Key, typename... Fields>
+    struct FieldTypes : FieldTypesBase<Key, Fields...> {};
 
     template <typename T>
     inline T convert_from_segment(const Vector<StateVectorDimension<T>>& state) {
