@@ -22,7 +22,7 @@ eigen3
 URL https://bitbucket.org/eigen/eigen/get/3.2.8.tar.gz
 TIMEOUT 30
 # Apply the LLT malloc fix patch
-PATCH_COMMAND patch -p1 -t -N < ${CMAKE_SOURCE_DIR}/patch/eigen-3.2.8-no-malloc-in-llt.patch
+PATCH_COMMAND patch -p1 -t -N < ${PROJECT_SOURCE_DIR}/patch/eigen-3.2.8-no-malloc-in-llt.patch
 # Disable install step
 INSTALL_COMMAND ""
 # Wrap download, configure and build steps in a script to log output
@@ -34,6 +34,11 @@ ExternalProject_Get_Property(eigen3 source_dir)
 SET(eigen_dir ${source_dir})
 
 INCLUDE_DIRECTORIES(${eigen_dir})
+
+GET_DIRECTORY_PROPERTY(hasParent PARENT_DIRECTORY)
+IF(hasParent)
+    SET(eigen_dir ${eigen_dir} PARENT_SCOPE)
+ENDIF()
 
 ENABLE_TESTING()
 
