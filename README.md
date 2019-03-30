@@ -281,35 +281,6 @@ real_t MyMeasurementVector::expected_measurement
 }
 ```
 
-### Measurement noise covariance
-
-The measurement noise covariance is a static member variable of the
-specialised measurement vector class, and represents the diagonal of the
-measurement noise covariance:
-
-```C++
-template <>
-MyMeasurementVector::CovarianceVector MyMeasurementVector::measurement_covariance(
-    (MyMeasurementVector::CovarianceVector() <<
-    	10*10,
-    	10*10,
-        0.5*0.5 * UKF::Vector<3>::Ones(),
-        0.004*0.004 * UKF::Vector<3>::Ones()).finished());
-```
-
-For the SR-UKF, the measurement noise root covariance should be provided
-instead, which could be something like:
-
-```C++
-template <>
-MyMeasurementVector::CovarianceVector MyMeasurementVector::measurement_root_covariance(
-    (MyMeasurementVector::CovarianceVector() <<
-    	10,
-    	10,
-        0.5 * UKF::Vector<3>::Ones(),
-        0.004 * UKF::Vector<3>::Ones()).finished());
-```
-
 ### Initialisation
 
 The filter state, covariance, process noise covariance and measurement noise
