@@ -68,6 +68,13 @@ public:
     typename StateVectorType::CovarianceMatrix process_noise_covariance;
 
     /*
+    Measurement noise covariance is an attribute of the filter instance,
+    rather than the MeasurementVector specialisation.
+    Only diagonal measurement noise covariance is supported at the moment.
+    */
+    typename MeasurementVectorType::CovarianceVector measurement_covariance;
+
+    /*
     Innovation and innovation covariance are public to ease implementation of
     filter health monitoring.
     */
@@ -139,7 +146,7 @@ public:
         */
         innovation = z_pred.template calculate_innovation(z);
         innovation_covariance = z_pred.template calculate_sigma_point_covariance<StateVectorType>(z_prime);
-        innovation_covariance += z.template calculate_measurement_covariance(z_pred);
+        innovation_covariance += z.template calculate_measurement_covariance(measurement_covariance, z_pred);
     }
 
     /*
@@ -220,6 +227,14 @@ public:
     StateVectorType state;
     typename StateVectorType::CovarianceMatrix root_covariance;
     typename StateVectorType::CovarianceMatrix process_noise_root_covariance;
+
+    /*
+    Measurement noise root covariance is an attribute of the filter instance,
+    rather than the MeasurementVector specialisation.
+    Only diagonal measurement noise root covariance is supported at the
+    moment.
+    */
+    typename MeasurementVectorType::CovarianceVector measurement_root_covariance;
 
     /*
     Innovation covariance is also stored in square-root form as described
@@ -333,7 +348,7 @@ public:
         augmented_z_prime.block(0, 0, z.size(), StateVectorType::num_sigma() - 1) =
             std::sqrt(Parameters::Sigma_WCI<StateVectorType>) * z_prime.rightCols(StateVectorType::num_sigma() - 1);
         augmented_z_prime.block(0, StateVectorType::num_sigma() - 1, z.size(), z.size()) =
-            z.template calculate_measurement_root_covariance(z_pred);
+            z.template calculate_measurement_root_covariance(measurement_root_covariance, z_pred);
 
         /*
         Calculate the QR decomposition of the augmented innovation deltas.
@@ -438,6 +453,14 @@ public:
     typename StateVectorType::CovarianceMatrix process_noise_root_covariance;
 
     /*
+    Measurement noise root covariance is an attribute of the filter instance,
+    rather than the MeasurementVector specialisation.
+    Only diagonal measurement noise root covariance is supported at the
+    moment.
+    */
+    typename MeasurementVectorType::CovarianceVector measurement_root_covariance;
+
+    /*
     Innovation covariance is also stored in square-root form as described
     above.
     */
@@ -515,7 +538,7 @@ public:
         augmented_z_prime.block(0, 0, z.size(), StateVectorType::num_sigma() - 1) =
             std::sqrt(Parameters::Sigma_WCI<StateVectorType>) * z_prime.rightCols(StateVectorType::num_sigma() - 1);
         augmented_z_prime.block(0, StateVectorType::num_sigma() - 1, z.size(), z.size()) =
-            z.template calculate_measurement_root_covariance(z_pred);
+            z.template calculate_measurement_root_covariance(measurement_root_covariance, z_pred);
 
         /*
         Calculate the QR decomposition of the augmented innovation deltas.

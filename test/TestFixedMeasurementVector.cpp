@@ -486,17 +486,15 @@ TEST(FixedMeasurementVectorTest, SigmaPointCovariance) {
     EXPECT_VECTOR_EQ(expected_covariance.col(10),  calculated_covariance.col(10));
 }
 
-template <>
-MyMeasurementVector::CovarianceVector MyMeasurementVector::measurement_covariance = MyMeasurementVector::CovarianceVector();
-
 TEST(FixedMeasurementVectorTest, MeasurementCovariance) {
     MyMeasurementVector test_measurement, expected_measurement;
+    MyMeasurementVector::CovarianceVector measurement_covariance;
 
-    MyMeasurementVector::measurement_covariance.set_field<Gyroscope>(UKF::Vector<3>(1, 2, 3));
-    MyMeasurementVector::measurement_covariance.set_field<DynamicPressure>(4);
-    MyMeasurementVector::measurement_covariance.set_field<Accelerometer>(UKF::Vector<3>(5, 6, 7));
-    MyMeasurementVector::measurement_covariance.set_field<StaticPressure>(8);
-    MyMeasurementVector::measurement_covariance.set_field<Magnetometer>(UKF::FieldVector(1, 2, 3));
+    measurement_covariance.set_field<Gyroscope>(UKF::Vector<3>(1, 2, 3));
+    measurement_covariance.set_field<DynamicPressure>(4);
+    measurement_covariance.set_field<Accelerometer>(UKF::Vector<3>(5, 6, 7));
+    measurement_covariance.set_field<StaticPressure>(8);
+    measurement_covariance.set_field<Magnetometer>(UKF::FieldVector(1, 2, 3));
 
     test_measurement.set_field<Gyroscope>(UKF::Vector<3>(0, 0, 0));
     test_measurement.set_field<DynamicPressure>(0);
@@ -516,33 +514,31 @@ TEST(FixedMeasurementVectorTest, MeasurementCovariance) {
                                                          -8,  8,  0,
                                                           0,  0, 16;
 
-    MyMeasurementVector::CovarianceMatrix measurement_covariance =
-        test_measurement.calculate_measurement_covariance(expected_measurement);
+    MyMeasurementVector::CovarianceMatrix out_measurement_covariance =
+        test_measurement.calculate_measurement_covariance(measurement_covariance, expected_measurement);
 
-    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(0),  measurement_covariance.col(0));
-    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(1),  measurement_covariance.col(1));
-    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(2),  measurement_covariance.col(2));
-    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(3),  measurement_covariance.col(3));
-    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(4),  measurement_covariance.col(4));
-    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(5),  measurement_covariance.col(5));
-    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(6),  measurement_covariance.col(6));
-    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(7),  measurement_covariance.col(7));
-    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(8),  measurement_covariance.col(8));
-    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(9),  measurement_covariance.col(9));
-    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(10),  measurement_covariance.col(10));
+    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(0),  out_measurement_covariance.col(0));
+    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(1),  out_measurement_covariance.col(1));
+    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(2),  out_measurement_covariance.col(2));
+    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(3),  out_measurement_covariance.col(3));
+    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(4),  out_measurement_covariance.col(4));
+    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(5),  out_measurement_covariance.col(5));
+    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(6),  out_measurement_covariance.col(6));
+    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(7),  out_measurement_covariance.col(7));
+    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(8),  out_measurement_covariance.col(8));
+    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(9),  out_measurement_covariance.col(9));
+    EXPECT_VECTOR_EQ(expected_measurement_covariance.col(10),  out_measurement_covariance.col(10));
 }
-
-template <>
-MyMeasurementVector::CovarianceVector MyMeasurementVector::measurement_root_covariance = MyMeasurementVector::CovarianceVector();
 
 TEST(FixedMeasurementVectorTest, MeasurementRootCovariance) {
     MyMeasurementVector test_measurement, expected_measurement;
+    MyMeasurementVector::CovarianceVector measurement_root_covariance;
 
-    MyMeasurementVector::measurement_root_covariance.set_field<Gyroscope>(UKF::Vector<3>(1, 2, 3));
-    MyMeasurementVector::measurement_root_covariance.set_field<DynamicPressure>(4);
-    MyMeasurementVector::measurement_root_covariance.set_field<Accelerometer>(UKF::Vector<3>(5, 6, 7));
-    MyMeasurementVector::measurement_root_covariance.set_field<StaticPressure>(8);
-    MyMeasurementVector::measurement_root_covariance.set_field<Magnetometer>(UKF::FieldVector(1, 2, 3));
+    measurement_root_covariance.set_field<Gyroscope>(UKF::Vector<3>(1, 2, 3));
+    measurement_root_covariance.set_field<DynamicPressure>(4);
+    measurement_root_covariance.set_field<Accelerometer>(UKF::Vector<3>(5, 6, 7));
+    measurement_root_covariance.set_field<StaticPressure>(8);
+    measurement_root_covariance.set_field<Magnetometer>(UKF::FieldVector(1, 2, 3));
 
     test_measurement.set_field<Gyroscope>(UKF::Vector<3>(0, 0, 0));
     test_measurement.set_field<DynamicPressure>(0);
@@ -562,20 +558,20 @@ TEST(FixedMeasurementVectorTest, MeasurementRootCovariance) {
                                                                0,  4,  0,
                                                               -2,  0, -6;
 
-    MyMeasurementVector::CovarianceMatrix measurement_root_covariance =
-        test_measurement.calculate_measurement_root_covariance(expected_measurement);
+    MyMeasurementVector::CovarianceMatrix out_measurement_root_covariance =
+        test_measurement.calculate_measurement_root_covariance(measurement_root_covariance, expected_measurement);
 
-    EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(0),  measurement_root_covariance.col(0));
-    EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(1),  measurement_root_covariance.col(1));
-    EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(2),  measurement_root_covariance.col(2));
-    EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(3),  measurement_root_covariance.col(3));
-    EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(4),  measurement_root_covariance.col(4));
-    EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(5),  measurement_root_covariance.col(5));
-    EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(6),  measurement_root_covariance.col(6));
-    EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(7),  measurement_root_covariance.col(7));
-    EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(8),  measurement_root_covariance.col(8));
-    EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(9),  measurement_root_covariance.col(9));
-    EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(10),  measurement_root_covariance.col(10));
+    EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(0),  out_measurement_root_covariance.col(0));
+    EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(1),  out_measurement_root_covariance.col(1));
+    EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(2),  out_measurement_root_covariance.col(2));
+    EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(3),  out_measurement_root_covariance.col(3));
+    EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(4),  out_measurement_root_covariance.col(4));
+    EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(5),  out_measurement_root_covariance.col(5));
+    EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(6),  out_measurement_root_covariance.col(6));
+    EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(7),  out_measurement_root_covariance.col(7));
+    EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(8),  out_measurement_root_covariance.col(8));
+    EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(9),  out_measurement_root_covariance.col(9));
+    EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(10),  out_measurement_root_covariance.col(10));
 }
 
 TEST(FixedMeasurementVectorTest, CalculateRotationVector) {

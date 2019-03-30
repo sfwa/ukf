@@ -285,17 +285,6 @@ public:
     using CovarianceMatrix = Matrix<covariance_size(), covariance_size()>;
     using CovarianceVector = FixedMeasurementVector<Fields...>;
 
-    /*
-    Measurement noise covariance. This is defined by the user and can be
-    adjusted between iterations. This is used for the standard UKF.
-    */
-    static CovarianceVector measurement_covariance;
-
-    /*
-    Measurement noise root covariance. This is used for the square-root UKF.
-    */
-    static CovarianceVector measurement_root_covariance;
-
     /* Functions for accessing individual fields. */
     template <int Key>
     typename Detail::FieldTypes<Key, Fields...>::type get_field() const {
@@ -376,10 +365,11 @@ public:
     Returns a matrix containing the measurement covariance. Used for the
     standard UKF.
     */
-    CovarianceMatrix calculate_measurement_covariance(const FixedMeasurementVector& z_pred) const {
+    CovarianceMatrix calculate_measurement_covariance(const CovarianceVector& measurement_covariance,
+            const FixedMeasurementVector& z_pred) const {
         CovarianceMatrix temp = CovarianceMatrix::Zero();
 
-        calculate_field_covariance<Fields...>(temp, z_pred);
+        calculate_field_covariance<Fields...>(temp, measurement_covariance, z_pred);
         return temp;
     }
 
@@ -387,10 +377,11 @@ public:
     Returns a matrix containing the measurement root covariance. Used for the
     square-root UKF.
     */
-    CovarianceMatrix calculate_measurement_root_covariance(const FixedMeasurementVector& z_pred) const {
+    CovarianceMatrix calculate_measurement_root_covariance(const CovarianceVector& measurement_root_covariance,
+            const FixedMeasurementVector& z_pred) const {
         CovarianceMatrix temp = CovarianceMatrix::Zero();
 
-        calculate_field_root_covariance<Fields...>(temp, z_pred);
+        calculate_field_root_covariance<Fields...>(temp, measurement_root_covariance, z_pred);
         return temp;
     }
 
@@ -445,7 +436,8 @@ private:
     measurement vector.
     */
     template <typename T>
-    void calculate_field_covariance(CovarianceMatrix& P, const FixedMeasurementVector& z_pred) const {
+    void calculate_field_covariance(CovarianceMatrix& P, const CovarianceVector& measurement_covariance,
+            const FixedMeasurementVector& z_pred) const {
         P.template block<Detail::CovarianceDimension<typename T::type>, Detail::CovarianceDimension<typename T::type>>(
             Detail::get_field_covariance_offset<0, Fields...>(T::key),
             Detail::get_field_covariance_offset<0, Fields...>(T::key)) =
@@ -455,9 +447,10 @@ private:
     }
 
     template <typename T1, typename T2, typename... Tail>
-    void calculate_field_covariance(CovarianceMatrix& P, const FixedMeasurementVector& z_pred) const {
-        calculate_field_covariance<T1>(P, z_pred);
-        calculate_field_covariance<T2, Tail...>(P, z_pred);
+    void calculate_field_covariance(CovarianceMatrix& P, const CovarianceVector& measurement_covariance,
+            const FixedMeasurementVector& z_pred) const {
+        calculate_field_covariance<T1>(P, measurement_covariance, z_pred);
+        calculate_field_covariance<T2, Tail...>(P, measurement_covariance, z_pred);
     }
 
     /*
@@ -465,7 +458,8 @@ private:
     the measurement vector.
     */
     template <typename T>
-    void calculate_field_root_covariance(CovarianceMatrix& P, const FixedMeasurementVector& z_pred) const {
+    void calculate_field_root_covariance(CovarianceMatrix& P, const CovarianceVector& measurement_root_covariance,
+            const FixedMeasurementVector& z_pred) const {
         P.template block<Detail::CovarianceDimension<typename T::type>, Detail::CovarianceDimension<typename T::type>>(
             Detail::get_field_covariance_offset<0, Fields...>(T::key),
             Detail::get_field_covariance_offset<0, Fields...>(T::key)) = 
@@ -475,9 +469,10 @@ private:
     }
 
     template <typename T1, typename T2, typename... Tail>
-    void calculate_field_root_covariance(CovarianceMatrix& P, const FixedMeasurementVector& z_pred) const {
-        calculate_field_root_covariance<T1>(P, z_pred);
-        calculate_field_root_covariance<T2, Tail...>(P, z_pred);
+    void calculate_field_root_covariance(CovarianceMatrix& P, const CovarianceVector& measurement_root_covariance,
+            const FixedMeasurementVector& z_pred) const {
+        calculate_field_root_covariance<T1>(P, measurement_root_covariance, z_pred);
+        calculate_field_root_covariance<T2, Tail...>(P, measurement_root_covariance, z_pred);
     }
 
     /*
@@ -560,16 +555,6 @@ public:
     using SigmaPointDeltas = MatrixDynamic<DynamicMeasurementVector::max_covariance_size(), S::num_sigma()>;
     using CovarianceMatrix = MatrixDynamic<max_covariance_size(), max_covariance_size()>;
     using CovarianceVector = FixedMeasurementVector<Fields...>;
-
-    /*
-    Measurement noise covariance. This is used for the standard UKF.
-    */
-    static CovarianceVector measurement_covariance;
-
-    /*
-    Measurement noise root covariance. This is used for the square-root UKF.
-    */
-    static CovarianceVector measurement_root_covariance;
 
     /* Functions for accessing individual fields. */
     template <int Key>
@@ -682,10 +667,11 @@ public:
     Returns a diagonal matrix containing the measurement covariance. This is
     used for the standard UKF.
     */
-    CovarianceMatrix calculate_measurement_covariance(const DynamicMeasurementVector& z_pred) const {
+    CovarianceMatrix calculate_measurement_covariance(const CovarianceVector& measurement_covariance,
+            const DynamicMeasurementVector& z_pred) const {
         CovarianceMatrix temp = CovarianceMatrix::Zero(Base::size(), Base::size());
 
-        calculate_field_covariance<Fields...>(temp, z_pred);
+        calculate_field_covariance<Fields...>(temp, measurement_covariance, z_pred);
         return temp;
     }
 
@@ -693,10 +679,11 @@ public:
     Returns a diagonal matrix containing the measurement root covariance.
     This is used for the square-root UKF.
     */
-    CovarianceMatrix calculate_measurement_root_covariance(const DynamicMeasurementVector& z_pred) const {
+    CovarianceMatrix calculate_measurement_root_covariance(const CovarianceVector& measurement_root_covariance,
+            const DynamicMeasurementVector& z_pred) const {
         CovarianceMatrix temp = CovarianceMatrix::Zero(Base::size(), Base::size());
 
-        calculate_field_root_covariance<Fields...>(temp, z_pred);
+        calculate_field_root_covariance<Fields...>(temp, measurement_root_covariance, z_pred);
         return temp;
     }
 
@@ -769,7 +756,8 @@ private:
     fields.
     */
     template <typename T>
-    void calculate_field_covariance(CovarianceMatrix& P, const DynamicMeasurementVector& z_pred) const {
+    void calculate_field_covariance(CovarianceMatrix& P, const CovarianceVector& measurement_covariance,
+            const DynamicMeasurementVector& z_pred) const {
         /*
         If this field has been set, then fill the measurement covariance for
         it. Otherwise, do nothing.
@@ -787,31 +775,15 @@ private:
     }
 
     template <typename T1, typename T2, typename... Tail>
-    void calculate_field_covariance(CovarianceMatrix& P, const DynamicMeasurementVector& z_pred) const {
-        calculate_field_covariance<T1>(P, z_pred);
-        calculate_field_covariance<T2, Tail...>(P, z_pred);
-    }
-
-    /*
-    These functions build the measurement root covariance from all populated
-    fields.
-    */
-    template <typename T>
-    static Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> field_root_covariance(
-            const T& p, const T& z_pred, const T& z) {
-        Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> temp =
-            Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>>::Zero();
-        temp.diagonal() << p;
-        return temp;
-    }
-
-    static Matrix<3, 3> field_root_covariance(const FieldVector& p, const FieldVector& z_pred, const FieldVector& z) {
-        return Detail::calculate_rotation_vector_jacobian<DynamicMeasurementVector>(z, z_pred) *
-            Eigen::DiagonalMatrix<real_t, 3>(p);
+    void calculate_field_covariance(CovarianceMatrix& P, const CovarianceVector& measurement_covariance,
+            const DynamicMeasurementVector& z_pred) const {
+        calculate_field_covariance<T1>(P, measurement_covariance, z_pred);
+        calculate_field_covariance<T2, Tail...>(P, measurement_covariance, z_pred);
     }
 
     template <typename T>
-    void calculate_field_root_covariance(CovarianceMatrix& P, const DynamicMeasurementVector& z_pred) const {
+    void calculate_field_root_covariance(CovarianceMatrix& P, const CovarianceVector& measurement_root_covariance,
+            const DynamicMeasurementVector& z_pred) const {
         std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(T::key)>(field_offsets);
         if(offset != std::numeric_limits<std::size_t>::max()) {
             P.template block<Detail::CovarianceDimension<typename T::type>,
@@ -825,9 +797,10 @@ private:
     }
 
     template <typename T1, typename T2, typename... Tail>
-    void calculate_field_root_covariance(CovarianceMatrix& P, const DynamicMeasurementVector& z_pred) const {
-        calculate_field_root_covariance<T1>(P, z_pred);
-        calculate_field_root_covariance<T2, Tail...>(P, z_pred);
+    void calculate_field_root_covariance(CovarianceMatrix& P, const CovarianceVector& measurement_root_covariance,
+            const DynamicMeasurementVector& z_pred) const {
+        calculate_field_root_covariance<T1>(P, measurement_root_covariance, z_pred);
+        calculate_field_root_covariance<T2, Tail...>(P, measurement_root_covariance, z_pred);
     }
 
     /*

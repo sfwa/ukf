@@ -119,15 +119,9 @@ UKF::Vector<3> MyMeasurementVector::expected_measurement
     return state.get_field<AngularVelocity>();
 }
 
-/* Set the measurement covariance vector. */
-template <>
-MyMeasurementVector::CovarianceVector MyMeasurementVector::measurement_covariance =
-    MyMeasurementVector::CovarianceVector();
-
 }
 
 MyCore create_initialised_test_filter() {
-    MyMeasurementVector::measurement_covariance << 10, 10, 10, 1, 1, 1, 5e-1, 5e-1, 5e-1, 5e-1, 5e-1, 5e-1, 0.05, 0.05, 0.05;
     MyCore test_filter;
     test_filter.state.set_field<Position>(UKF::Vector<3>(0, 0, 0));
     test_filter.state.set_field<Velocity>(UKF::Vector<3>(0, 0, 0));
@@ -135,6 +129,7 @@ MyCore create_initialised_test_filter() {
     test_filter.state.set_field<AngularVelocity>(UKF::Vector<3>(0, 0, 0));
     test_filter.covariance = MyStateVector::CovarianceMatrix::Zero();
     test_filter.covariance.diagonal() << 10000, 10000, 10000, 100, 100, 100, 1, 1, 5, 10, 10, 10;
+    test_filter.measurement_covariance << 10, 10, 10, 1, 1, 1, 5e-1, 5e-1, 5e-1, 5e-1, 5e-1, 5e-1, 0.05, 0.05, 0.05;
 
     real_t a, b;
     real_t dt = 0.01;

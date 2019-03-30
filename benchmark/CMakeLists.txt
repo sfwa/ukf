@@ -8,7 +8,7 @@ SET_DIRECTORY_PROPERTIES(PROPERTIES EP_PREFIX .)
 # Add benchmark
 ExternalProject_Add(
 googlebenchmark
-URL https://github.com/google/benchmark/archive/v1.0.0.tar.gz
+URL https://github.com/google/benchmark/archive/v1.3.0.zip
 TIMEOUT 30
 CMAKE_ARGS -DCMAKE_BUILD_TYPE:STRING=Release
 # Disable install step

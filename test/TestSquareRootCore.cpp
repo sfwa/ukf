@@ -170,19 +170,12 @@ UKF::Vector<3> MyMeasurementVector::expected_measurement
     return state.get_field<AngularVelocity>();
 }
 
-/* Set the measurement covariance vector. */
-template <>
-MyMeasurementVector::CovarianceVector MyMeasurementVector::measurement_root_covariance =
-    MyMeasurementVector::CovarianceVector();
 }
 
 /*
 Initialise covariances as square roots to be comparable with TestCore.cpp.
 */
 MyCore create_initialised_sr_test_filter() {
-    MyMeasurementVector::measurement_root_covariance << 
-        10, 10, 10, 1, 1, 1, 5e-1, 5e-1, 5e-1, 5e-1, 5e-1, 5e-1, 0.05, 0.05, 0.05;
-    MyMeasurementVector::measurement_root_covariance = MyMeasurementVector::measurement_root_covariance.array().sqrt();
     MyCore test_filter;
     test_filter.state.set_field<Position>(UKF::Vector<3>(0, 0, 0));
     test_filter.state.set_field<Velocity>(UKF::Vector<3>(0, 0, 0));
@@ -192,6 +185,9 @@ MyCore create_initialised_sr_test_filter() {
     test_filter.root_covariance.diagonal() <<
         10000, 10000, 10000, 100, 100, 100, 1, 1, 5, 10, 10, 10;
     test_filter.root_covariance = test_filter.root_covariance.llt().matrixU();
+    test_filter.measurement_root_covariance << 
+        10, 10, 10, 1, 1, 1, 5e-1, 5e-1, 5e-1, 5e-1, 5e-1, 5e-1, 0.05, 0.05, 0.05;
+    test_filter.measurement_root_covariance = test_filter.measurement_root_covariance.array().sqrt();
 
     real_t a, b;
     real_t dt = 0.01;

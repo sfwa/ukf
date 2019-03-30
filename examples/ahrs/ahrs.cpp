@@ -199,19 +199,6 @@ static AHRS_ParameterEstimationFilter ahrs_errors;
 static AHRS_MeasurementVector meas;
 static UKF::Vector<3> acceleration;
 
-namespace UKF {
-/*
-Set the initial measurement root covariance vector.
-*/
-template <>
-AHRS_MeasurementVector::CovarianceVector AHRS_MeasurementVector::measurement_root_covariance(
-    (AHRS_MeasurementVector::CovarianceVector() <<
-        0.5 * UKF::Vector<3>::Ones(),
-        0.004 * UKF::Vector<3>::Ones(),
-        0.1 * UKF::Vector<3>::Ones()).finished());
-
-}
-
 /*
 The following functions provide a ctypes-compatible interface for ease of
 testing.
@@ -226,6 +213,12 @@ void ukf_init() {
     ahrs.root_covariance.diagonal() <<
         1e0, 1e0, 3.2e0,
         1e-3 * UKF::Vector<3>::Ones();
+
+    /* Set measurement noise covariance. */
+    ahrs.measurement_root_covariance <<
+        0.5 * UKF::Vector<3>::Ones(),
+        0.004 * UKF::Vector<3>::Ones(),
+        0.1 * UKF::Vector<3>::Ones();
 
     /* Set process noise covariance. */
     ahrs.process_noise_root_covariance = AHRS_StateVector::CovarianceMatrix::Zero();
@@ -248,6 +241,9 @@ void ukf_init() {
         0.02 * UKF::Vector<3>::Ones(),
         5.0e-2 * UKF::Vector<3>::Ones(), 1.0e-1 * UKF::Vector<3>::Ones(),
         0.4, 0.7;
+
+    /* Set measurement noise covariance. */
+    ahrs_errors.measurement_root_covariance << ahrs.measurement_root_covariance;
 
     /*
     Set bias error process noise – this is derived from bias instability.
@@ -350,10 +346,11 @@ void ukf_sensor_set_magnetometer(real_t x, real_t y, real_t z) {
 }
 
 void ukf_set_params(struct ukf_sensor_params_t *in) {
-    AHRS_MeasurementVector::measurement_root_covariance <<
+    ahrs.measurement_root_covariance <<
         std::sqrt(in->accel_covariance[0]), std::sqrt(in->accel_covariance[1]), std::sqrt(in->accel_covariance[2]),
         std::sqrt(in->gyro_covariance[0]), std::sqrt(in->gyro_covariance[1]), std::sqrt(in->gyro_covariance[2]),
         std::sqrt(in->mag_covariance[0]), std::sqrt(in->mag_covariance[1]), std::sqrt(in->mag_covariance[2]);
+    ahrs_errors.measurement_root_covariance << ahrs.measurement_root_covariance;
 }
 
 void ukf_iterate(float dt) {
