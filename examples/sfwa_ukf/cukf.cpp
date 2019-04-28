@@ -287,11 +287,6 @@ real_t SFWA_MeasurementVector::expected_measurement
     return state.get_field<Altitude>();
 }
 
-/* Set the measurement covariance vector. */
-template <>
-SFWA_MeasurementVector::CovarianceVector SFWA_MeasurementVector::measurement_covariance(
-    (SFWA_MeasurementVector::CovarianceVector() << 
-        1, 1, 1, 0.01, 0.01, 0.01, 10, 10, 10, 1e-20, 1e-20, 1, 1, 1, 1, 1, 1).finished());
 }
 static SFWA_UKF ukf;
 static SFWA_MeasurementVector meas;
@@ -315,6 +310,7 @@ void ukf_init() {
     ukf.covariance.diagonal() <<
         1, 1, 10000, 1e-6, 1e-6, 1e-6, 1e-6, 1e-6, 1e-6, 10, 10, 10,
         1e-6, 1e-6, 1e-6, 1e-6, 1e-6, 1e-6, 100, 100, 100, 0.01, 0.01, 0.01;
+    ukf.measurement_covariance <<1, 1, 1, 0.01, 0.01, 0.01, 10, 10, 10, 1e-20, 1e-20, 1, 1, 1, 1, 1, 1;
 
     local_mag_field = UKF::Vector<3>(21.2584, 4.4306, -55.9677);
 
@@ -461,7 +457,7 @@ void ukf_sensor_set_barometer_amsl(real_t amsl) {
 
 void ukf_set_params(struct ukf_ioboard_params_t *in) {
     local_mag_field << in->mag_field[0], in->mag_field[1], in->mag_field[2];
-    SFWA_MeasurementVector::measurement_covariance <<
+    ukf.measurement_covariance <<
         in->accel_covariance[0], in->accel_covariance[1], in->accel_covariance[2],
         in->gyro_covariance[0], in->gyro_covariance[1], in->gyro_covariance[2],
         in->mag_covariance[0], in->mag_covariance[1], in->mag_covariance[2],

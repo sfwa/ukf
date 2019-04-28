@@ -149,9 +149,8 @@ using MyCore = UKF::SquareRootCore<
 >;
 ```
 
-Specialisations of the measurement noise covariance (or measurement noise
-root covariance for the SR-UKF), process model (for state estimation filters)
-and measurement model must also be provided.
+Specialisations of the process model (for state estimation filters) and
+measurement model must also be provided.
 
 ### Process model
 
@@ -282,39 +281,10 @@ real_t MyMeasurementVector::expected_measurement
 }
 ```
 
-### Measurement noise covariance
-
-The measurement noise covariance is a static member variable of the
-specialised measurement vector class, and represents the diagonal of the
-measurement noise covariance:
-
-```C++
-template <>
-MyMeasurementVector::CovarianceVector MyMeasurementVector::measurement_covariance(
-    (MyMeasurementVector::CovarianceVector() <<
-    	10*10,
-    	10*10,
-        0.5*0.5 * UKF::Vector<3>::Ones(),
-        0.004*0.004 * UKF::Vector<3>::Ones()).finished());
-```
-
-For the SR-UKF, the measurement noise root covariance should be provided
-instead, which could be something like:
-
-```C++
-template <>
-MyMeasurementVector::CovarianceVector MyMeasurementVector::measurement_root_covariance(
-    (MyMeasurementVector::CovarianceVector() <<
-    	10,
-    	10,
-        0.5 * UKF::Vector<3>::Ones(),
-        0.004 * UKF::Vector<3>::Ones()).finished());
-```
-
 ### Initialisation
 
-The filter state, covariance and process noise covariance should be
-initialised to appropriate values, e.g.:
+The filter state, covariance, process noise covariance and measurement noise
+covariance should be initialised to appropriate values, e.g.:
 
 ```C++
 MyCore test_filter;
@@ -325,6 +295,8 @@ test_filter.state.set_field<AngularVelocity>(UKF::Vector<3>(0, 0, 0));
 test_filter.covariance = MyStateVector::CovarianceMatrix::Zero();
 test_filter.covariance.diagonal() << 10000, 10000, 10000, 100, 100, 100, 1, 1, 5, 10, 10, 10;
 test_filter.process_noise_covariance = MyStateVector::CovarianceMatrix::Identity()*1e-5;
+test_filter.measurement_covariance << 10, 10, 10, 1, 1, 1, 5e-1, 5e-1, 5e-1, 5e-1, 5e-1, 5e-1, 0.05, 0.05, 0.05;
+
 ```
 
 Or, for the SR-UKF:
@@ -337,7 +309,11 @@ test_filter.state.set_field<AngularVelocity>(UKF::Vector<3>(0, 0, 0));
 test_filter.root_covariance = MyStateVector::CovarianceMatrix::Zero();
 test_filter.root_covariance.diagonal() << 100, 100, 100, 10, 10, 10, 1, 1, 2.2, 3.2, 3.2, 3.2;
 test_filter.process_noise_root_covariance = MyStateVector::CovarianceMatrix::Identity()*3e-2;
+test_filter.measurement_root_covariance << 10, 10, 10, 1, 1, 1, 5e-1, 5e-1, 5e-1, 5e-1, 5e-1, 5e-1, 0.05, 0.05, 0.05;
+test_filter.measurement_root_covariance = test_filter.measurement_root_covariance.array().sqrt();
 ```
+
+Currently, only a diagonal measurement noise covariance matrix is supported.
 
 ### Iteration
 
