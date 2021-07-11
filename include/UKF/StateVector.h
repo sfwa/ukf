@@ -45,13 +45,13 @@ namespace UKF {
     reason (eg. the Eigen Quaternion classes).
     */
     template <typename T>
-    constexpr std::size_t StateVectorDimension = T::MaxRowsAtCompileTime;
+    inline constexpr std::size_t StateVectorDimension = T::MaxRowsAtCompileTime;
 
     template <>
-    constexpr std::size_t StateVectorDimension<Quaternion> = 4;
+    inline constexpr std::size_t StateVectorDimension<Quaternion> = 4;
 
     template <>
-    constexpr std::size_t StateVectorDimension<real_t> = 1;
+    inline constexpr std::size_t StateVectorDimension<real_t> = 1;
 
     /*
     This variable template defines the dimensionality of a particular
@@ -64,10 +64,10 @@ namespace UKF {
     representation in the state vector.
     */
     template <typename T>
-    constexpr std::size_t CovarianceDimension = StateVectorDimension<T>;
+    inline constexpr std::size_t CovarianceDimension = StateVectorDimension<T>;
 
     template <>
-    constexpr std::size_t CovarianceDimension<Quaternion> = 3;
+    inline constexpr std::size_t CovarianceDimension<Quaternion> = 3;
 
     template <typename T>
     constexpr T adder(T v) {
@@ -241,10 +241,10 @@ namespace UKF {
     Space Models and Change Point Detection" by Ryan Tuner (2011) provide a
     more stable filter.
     */
-    template <typename T> constexpr real_t AlphaSquared = 1.0;
-    template <typename T> constexpr real_t Beta = 0.0;
-    template <typename T> constexpr real_t Kappa = 3.0;
-    template <typename T> constexpr real_t Lambda =
+    template <typename T> inline constexpr real_t AlphaSquared = 1.0;
+    template <typename T> inline constexpr real_t Beta = 0.0;
+    template <typename T> inline constexpr real_t Kappa = 3.0;
+    template <typename T> inline constexpr real_t Lambda =
         AlphaSquared<T> * (T::covariance_size() + Kappa<T>) - T::covariance_size();
 
     /*
@@ -261,17 +261,17 @@ namespace UKF {
     filter iteration; if it is, setting the MRP_A parameter to 1.0 moves the
     singularity to 360 degrees.
     */
-    template <typename T> constexpr real_t MRP_A = 0.0;
-    template <typename T> constexpr real_t MRP_F = 2.0 * (MRP_A<T> + 1.0);
+    template <typename T> inline constexpr real_t MRP_A = 0.0;
+    template <typename T> inline constexpr real_t MRP_F = 2.0 * (MRP_A<T> + 1.0);
 
     /*
     Definitions for sigma point weights. The naming convention follows that used
     in in the paper given above.
     */
-    template <typename T> constexpr real_t Sigma_WM0 = Lambda<T>/(T::covariance_size() + Lambda<T>);
-    template <typename T> constexpr real_t Sigma_WC0 = Sigma_WM0<T> + (1.0 - AlphaSquared<T> + Beta<T>);
-    template <typename T> constexpr real_t Sigma_WMI = 1.0 / (2.0 * (T::covariance_size() + Lambda<T>));
-    template <typename T> constexpr real_t Sigma_WCI = Sigma_WMI<T>;
+    template <typename T> inline constexpr real_t Sigma_WM0 = Lambda<T>/(T::covariance_size() + Lambda<T>);
+    template <typename T> inline constexpr real_t Sigma_WC0 = Sigma_WM0<T> + (1.0 - AlphaSquared<T> + Beta<T>);
+    template <typename T> inline constexpr real_t Sigma_WMI = 1.0 / (2.0 * (T::covariance_size() + Lambda<T>));
+    template <typename T> inline constexpr real_t Sigma_WCI = Sigma_WMI<T>;
 
     }
 
