@@ -25,7 +25,7 @@ ADD_DEFINITIONS(-DEIGEN_NO_MALLOC -DUKF_DOUBLE_PRECISION)
 ExternalProject_Get_Property(googletest source_dir)
 SET(googletest_dir ${source_dir})
 
-INCLUDE_DIRECTORIES(${googletest_dir}/include ../include ${eigen_dir})
+INCLUDE_DIRECTORIES(${googletest_dir}/googletest/include ../include ${eigen_dir})
 
 # Add test executable target
 ADD_EXECUTABLE(unittest
@@ -41,8 +41,8 @@ ADD_DEPENDENCIES(unittest googletest eigen3)
 # Specify test's link libraries
 ExternalProject_Get_Property(googletest binary_dir)
 TARGET_LINK_LIBRARIES(unittest
-    ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}gtest.a
-    ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}gtest_main.a
+    ${binary_dir}/lib/${CMAKE_FIND_LIBRARY_PREFIXES}gtest.a
+    ${binary_dir}/lib/${CMAKE_FIND_LIBRARY_PREFIXES}gtest_main.a
     pthread)
 
 ADD_TEST(unittest unittest)
