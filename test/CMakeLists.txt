@@ -1,4 +1,4 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.4 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8.12 FATAL_ERROR)
 PROJECT(unittest)
 INCLUDE(ExternalProject)
 
@@ -8,7 +8,7 @@ SET_DIRECTORY_PROPERTIES(PROPERTIES EP_PREFIX .)
 # Add gtest
 ExternalProject_Add(
 googletest
-URL https://github.com/google/googletest/archive/release-1.7.0.zip
+URL https://github.com/google/googletest/archive/release-1.11.0.zip
 TIMEOUT 30
 CMAKE_ARGS -DCMAKE_BUILD_TYPE:STRING=Release
 # Disable install step

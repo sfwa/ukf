@@ -1,14 +1,14 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.4 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8.12 FATAL_ERROR)
 PROJECT(ukf)
 INCLUDE(ExternalProject)
 INCLUDE(CheckCXXCompilerFlag)
 
-# Check for C++14 support.
-CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
-IF(COMPILER_SUPPORTS_CXX14)
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+# Check for C++17 support.
+CHECK_CXX_COMPILER_FLAG("-std=c++17" COMPILER_SUPPORTS_CXX17)
+IF(COMPILER_SUPPORTS_CXX17)
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 ELSE()
-    MESSAGE(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++14 support. Please use a different C++ compiler.")
+    MESSAGE(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++17 support. Please use a different C++ compiler.")
 ENDIF()
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-register")
@@ -16,13 +16,13 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-register")
 # Set default ExternalProject root directory
 SET_DIRECTORY_PROPERTIES(PROPERTIES EP_PREFIX .)
 
-# Add eigen3.2.8
+# Add eigen3.4
 ExternalProject_Add(
 eigen3
-URL https://gitlab.com/libeigen/eigen/-/archive/3.2.8/eigen-3.2.8.tar.gz
+URL https://gitlab.com/libeigen/eigen/-/archive/3.4-rc1/eigen-3.4-rc1.tar.gz
 TIMEOUT 30
 # Apply the LLT malloc fix patch
-PATCH_COMMAND patch -p1 -t -N < ${PROJECT_SOURCE_DIR}/patch/eigen-3.2.8-no-malloc-in-llt.patch
+PATCH_COMMAND patch -p1 -t -N < ${PROJECT_SOURCE_DIR}/patch/eigen-3.4-no-malloc-in-llt.patch
 # Disable install step
 INSTALL_COMMAND ""
 # Wrap download, configure and build steps in a script to log output

@@ -1,4 +1,4 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.4 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8.12 FATAL_ERROR)
 PROJECT(benchmark)
 INCLUDE(ExternalProject)
 
@@ -8,9 +8,9 @@ SET_DIRECTORY_PROPERTIES(PROPERTIES EP_PREFIX .)
 # Add benchmark
 ExternalProject_Add(
 googlebenchmark
-URL https://github.com/google/benchmark/archive/v1.3.0.zip
+URL https://github.com/google/benchmark/archive/v1.5.5.zip
 TIMEOUT 30
-CMAKE_ARGS -DCMAKE_BUILD_TYPE:STRING=Release
+CMAKE_ARGS -DCMAKE_BUILD_TYPE:STRING=Release -DBENCHMARK_ENABLE_TESTING=0
 # Disable install step
 INSTALL_COMMAND ""
 # Wrap download, configure and build steps in a script to log output
