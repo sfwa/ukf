@@ -134,6 +134,14 @@ namespace UKF {
             return temp;
         }
 
+        static Matrix<Detail::CovarianceDimension<Quaternion>, Detail::CovarianceDimension<Quaternion>> field_covariance(
+                const Quaternion& p, const Quaternion& z_pred, const Quaternion& z) {
+            Matrix<Detail::CovarianceDimension<Quaternion>, Detail::CovarianceDimension<Quaternion>> temp =
+                Matrix<Detail::CovarianceDimension<Quaternion>, Detail::CovarianceDimension<Quaternion>>::Zero();
+            temp.diagonal() << p.vec();
+            return temp;
+        }
+
         static Matrix<3, 3> field_covariance(const FieldVector& p, const FieldVector& z_pred, const FieldVector& z) {
             Matrix<3, 3> T = Detail::calculate_rotation_vector_jacobian<M>(z, z_pred);
 
@@ -204,12 +212,28 @@ namespace UKF {
         }
 
         /*
+        Calculate the quaternion barycentric mean with renormalisation. Note that
+        this is not an ad-hoc renormalisation of an appoximation; see the paper
+        mentioned above for details.
+        */
+        static Vector<4> sigma_point_mean(const Matrix<4, S::num_sigma()>& sigma, const Quaternion& field) {
+            Vector<4> temp = Parameters::Sigma_WMI<S>*sigma.template block<4, S::num_sigma()-1>(
+                0, 1).rowwise().sum() + Parameters::Sigma_WM0<S>*sigma.col(0);
+            Quaternion temp_q = Quaternion(temp).normalized();
+            return Vector<4>(temp_q.x(), temp_q.y(), temp_q.z(), temp_q.w());
+        }
+
+        /*
         Functions for calculating the difference between two fields in a
         measurement vector, used when calculating the innovation.
         */
         template <typename T>
         static T measurement_delta(const T& z, const T& z_pred) {
             return z - z_pred;
+        }
+
+        static Quaternion measurement_delta(const Quaternion& z, const Quaternion& z_pred) {
+            return z * z_pred.conjugate();
         }
 
         static real_t measurement_delta(const real_t& z, const real_t& z_pred) {
@@ -244,6 +268,25 @@ namespace UKF {
 
             return temp;
         }
+
+
+        static Matrix<3, S::num_sigma()> sigma_point_deltas(const Quaternion& mean, const Matrix<4, S::num_sigma()>& X) {
+            Matrix<3, S::num_sigma()> temp;
+
+            /*
+            The attitude part of this set of vectors is calculated using equation
+            45 from the Kraft paper.
+            */
+            for(std::size_t i = 0; i < S::num_sigma(); i++) {
+                Quaternion delta_q = Quaternion(X.col(i)) * mean.conjugate();
+                temp.col(i) = Parameters::MRP_F<S> * delta_q.vec() /
+                    (std::abs(Parameters::MRP_A<S> + delta_q.w()) > std::numeric_limits<real_t>::epsilon() ?
+                        Parameters::MRP_A<S> + delta_q.w() : std::numeric_limits<real_t>::epsilon());
+            }
+
+            return temp;
+        }
+
     };
 
     }
@@ -301,6 +344,14 @@ public:
             "Specified key not present in state vector");
         Base::template segment<Detail::get_field_size<Fields...>(Key)>(
             Detail::get_field_offset<0, Fields...>(Key)) << in;
+    }
+
+    template <int Key>
+    void set_field(Quaternion in) {
+        static_assert(Detail::get_field_offset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
+            "Specified key not present in state vector");
+        Base::template segment<Detail::get_field_size<Fields...>(Key)>(
+            Detail::get_field_offset<0, Fields...>(Key)) << in.vec(), in.w();
     }
 
     /* Calculate the mean from a measurement sigma point distribution. */
@@ -420,9 +471,8 @@ private:
     static void calculate_field_measurements(FixedMeasurementVector& expected, const S& state, U&& input) {
         constexpr std::size_t len = std::tuple_size<typename std::remove_reference<U>::type>::value;
 
-        expected.template segment<Detail::StateVectorDimension<typename T::type>>(
-            Detail::get_field_offset<0, Fields...>(T::key)) << expected_measurement_helper<S, T::key, U>(
-                state, std::forward<U>(input), std::make_index_sequence<len>());
+        expected.set_field<T::key>(expected_measurement_helper<S, T::key, U>(
+                state, std::forward<U>(input), std::make_index_sequence<len>()));
     }
 
     template <typename S, typename U, typename T1, typename T2, typename... Tail>
@@ -462,7 +512,7 @@ private:
             const FixedMeasurementVector& z_pred) const {
         P.template block<Detail::CovarianceDimension<typename T::type>, Detail::CovarianceDimension<typename T::type>>(
             Detail::get_field_covariance_offset<0, Fields...>(T::key),
-            Detail::get_field_covariance_offset<0, Fields...>(T::key)) = 
+            Detail::get_field_covariance_offset<0, Fields...>(T::key)) =
                 Detail::MeasurementStateHelper<FixedMeasurementVector>::field_root_covariance(
                     measurement_root_covariance.template get_field<T::key>(),
                     z_pred.get_field<T::key>(), get_field<T::key>());
@@ -591,6 +641,33 @@ public:
 
             /* Assign the value to the field. */
             Base::template segment<Detail::get_field_size<Fields...>(Key)>(previous_size) << in;
+
+            /* Store the offset in field_offsets. */
+            std::get<Detail::get_field_order<0, Fields...>(Key)>(field_offsets) = previous_size;
+        }
+    }
+
+
+    template <int Key>
+    void set_field(Quaternion in) {
+        static_assert(Detail::get_field_size<Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
+            "Specified key not present in measurement vector");
+
+        std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(Key)>(field_offsets);
+
+        /* Check if this field has already been set. If so, replace it. */
+        if(offset < Base::size()) {
+            Base::template segment<Detail::get_field_size<Fields...>(Key)>(offset) << in.vec(), in.w();
+        } else {
+            /*
+            Otherwise, resize the measurement vector to fit it and store the
+            order in which fields have been set.
+            */
+            std::size_t previous_size = Base::size();
+            Base::conservativeResize(previous_size + Detail::get_field_size<Fields...>(Key));
+
+            /* Assign the value to the field. */
+            Base::template segment<Detail::get_field_size<Fields...>(Key)>(previous_size) << in.vec(), in.w();
 
             /* Store the offset in field_offsets. */
             std::get<Detail::get_field_order<0, Fields...>(Key)>(field_offsets) = previous_size;
@@ -737,9 +814,9 @@ private:
         */
         std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(T::key)>(field_offsets);
         if(offset != std::numeric_limits<std::size_t>::max()) {
-            expected.template segment<Detail::StateVectorDimension<typename T::type>>(offset) <<
+            expected.set_field<T::key>(
                 expected_measurement_helper<S, T::key, U>(state, std::forward<U>(input),
-                    std::make_index_sequence<len>());
+                    std::make_index_sequence<len>()));
         } else {
             return;
         }
@@ -853,7 +930,7 @@ private:
         std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(T::key)>(field_offsets);
         if(offset != std::numeric_limits<std::size_t>::max()) {
             z_prime.template block<Detail::CovarianceDimension<typename T::type>, S::num_sigma()>(offset, 0) =
-                Detail::MeasurementStateHelper<DynamicMeasurementVector, S>::sigma_point_deltas(get_field<T::key>(), 
+                Detail::MeasurementStateHelper<DynamicMeasurementVector, S>::sigma_point_deltas(get_field<T::key>(),
                     Z.template block<Detail::StateVectorDimension<typename T::type>, S::num_sigma()>(offset, 0));
         } else {
             return;
@@ -870,3 +947,4 @@ private:
 }
 
 #endif
+
