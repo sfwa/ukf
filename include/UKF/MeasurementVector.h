@@ -136,10 +136,8 @@ namespace UKF {
 
         static Matrix<Detail::CovarianceDimension<Quaternion>, Detail::CovarianceDimension<Quaternion>> field_covariance(
                 const Quaternion& p, const Quaternion& z_pred, const Quaternion& z) {
-            Matrix<Detail::CovarianceDimension<Quaternion>, Detail::CovarianceDimension<Quaternion>> temp =
-                Matrix<Detail::CovarianceDimension<Quaternion>, Detail::CovarianceDimension<Quaternion>>::Zero();
-            temp.diagonal() << p.vec();
-            return temp;
+          auto T = (z_pred * z.conjugate()).toRotationMatrix();
+          return T * Eigen::DiagonalMatrix<real_t, 3>(p.vec()) * T.transpose();
         }
 
         static Matrix<3, 3> field_covariance(const FieldVector& p, const FieldVector& z_pred, const FieldVector& z) {
