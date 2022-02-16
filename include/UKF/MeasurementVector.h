@@ -160,6 +160,12 @@ namespace UKF {
             return temp;
         }
 
+        static Matrix<Detail::CovarianceDimension<Quaternion>, Detail::CovarianceDimension<Quaternion>> field_root_covariance(
+                const Quaternion& p, const Quaternion& z_pred, const Quaternion& z) {
+          auto T = (z_pred * z.conjugate()).toRotationMatrix();
+          return T * Eigen::DiagonalMatrix<real_t, 3>(p.vec());
+        }
+
         static Matrix<3, 3> field_root_covariance(
                 const FieldVector& p, const FieldVector& z_pred, const FieldVector& z) {
             /*
@@ -799,6 +805,35 @@ private:
     }
 
     /*
+      helper functions for building the measurement
+    */
+
+    template <int Key, typename T>
+    void set_field_measure(T in) {
+        static_assert(Detail::get_field_size<Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
+            "Specified key not present in measurement vector");
+        std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(Key)>(field_offsets);
+        if(offset != std::numeric_limits<std::size_t>::max()) {
+            Base::template segment<Detail::get_field_size<Fields...>(Key)>(offset) << in;
+        } else {
+            return;
+        }
+    }
+
+    template <int Key>
+    void set_field_measure(Quaternion in) {
+        static_assert(Detail::get_field_size<Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
+            "Specified key not present in measurement vector");
+
+        std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(Key)>(field_offsets);
+        if(offset != std::numeric_limits<std::size_t>::max()) {
+            Base::template segment<Detail::get_field_size<Fields...>(Key)>(offset) << in.vec(), in.w();
+        } else {
+            return;
+        }
+    }
+
+    /*
     These functions build the measurement estimate from the expected
     measurement of each individual field.
     */
@@ -812,7 +847,7 @@ private:
         */
         std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(T::key)>(field_offsets);
         if(offset != std::numeric_limits<std::size_t>::max()) {
-            expected.set_field<T::key>(
+            expected.set_field_measure<T::key>(
                 expected_measurement_helper<S, T::key, U>(state, std::forward<U>(input),
                     std::make_index_sequence<len>()));
         } else {
