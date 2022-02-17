@@ -288,7 +288,7 @@ namespace UKF {
                         Parameters::MRP_A<S> + delta_q.w() : std::numeric_limits<real_t>::epsilon());
             }
 
-            return temp;
+             return temp;
         }
 
     };
@@ -808,29 +808,13 @@ private:
       helper functions for building the measurement
     */
 
-    template <int Key, typename T>
-    void set_field_measure(T in) {
-        static_assert(Detail::get_field_size<Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
-            "Specified key not present in measurement vector");
-        std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(Key)>(field_offsets);
-        if(offset != std::numeric_limits<std::size_t>::max()) {
-            Base::template segment<Detail::get_field_size<Fields...>(Key)>(offset) << in;
-        } else {
-            return;
-        }
+    template <typename T>
+    void set_field_measure(T in, std::size_t offset) {
+            Base::template segment<Detail::StateVectorDimension<T>>(offset) << in;
     }
 
-    template <int Key>
-    void set_field_measure(Quaternion in) {
-        static_assert(Detail::get_field_size<Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
-            "Specified key not present in measurement vector");
-
-        std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(Key)>(field_offsets);
-        if(offset != std::numeric_limits<std::size_t>::max()) {
-            Base::template segment<Detail::get_field_size<Fields...>(Key)>(offset) << in.vec(), in.w();
-        } else {
-            return;
-        }
+    void set_field_measure(Quaternion in, std::size_t offset) {
+            Base::template segment<Detail::StateVectorDimension<Quaternion>>(offset) << in.vec(), in.w();
     }
 
     /*
@@ -847,14 +831,12 @@ private:
         */
         std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(T::key)>(field_offsets);
         if(offset != std::numeric_limits<std::size_t>::max()) {
-            expected.set_field_measure<T::key>(
-                expected_measurement_helper<S, T::key, U>(state, std::forward<U>(input),
-                    std::make_index_sequence<len>()));
+            expected.set_field_measure(expected_measurement_helper<S, T::key, U>(state, std::forward<U>(input),
+                                        std::make_index_sequence<len>()), offset);
         } else {
             return;
         }
     }
-
     template <typename S, typename U, typename T1, typename T2, typename... Tail>
     void calculate_field_measurements(DynamicMeasurementVector& expected, const S& state, U&& input) const {
         calculate_field_measurements<S, U, T1>(expected, state, std::forward<U>(input));
