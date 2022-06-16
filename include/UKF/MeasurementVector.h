@@ -556,6 +556,17 @@ public:
     using CovarianceMatrix = MatrixDynamic<max_covariance_size(), max_covariance_size()>;
     using CovarianceVector = FixedMeasurementVector<Fields...>;
 
+    /* Test if an individual field is set. */
+    template <int Key>
+    bool is_field_set() const {
+        static_assert(Detail::get_field_size<Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
+            "Specified key not present in measurement vector");
+
+        std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(Key)>(field_offsets);
+
+        return (offset != std::numeric_limits<std::size_t>::max());
+    }
+
     /* Functions for accessing individual fields. */
     template <int Key>
     typename Detail::FieldTypes<Key, Fields...>::type get_field() const {
