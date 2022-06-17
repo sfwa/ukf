@@ -21,13 +21,15 @@ jobs:
       matrix:
         config:
           - { os: ubuntu-18.04, CC: gcc-7, CXX: g++-7 }
-          - { os: ubuntu-18.04, CC: clang-5, CXX: clang++-5 }
+          - { os: ubuntu-18.04, CC: clang-5.0, CXX: clang++-5.0 }
+          - { os: ubuntu-18.04, CC: clang-9, CXX: clang++-9 }
           - { os: ubuntu-20.04, CC: gcc-7, CXX: g++-7 }
           - { os: ubuntu-20.04, CC: clang-8, CXX: clang++-8 }
           - { os: ubuntu-20.04, CC: gcc-10, CXX: g++-10 }
-          - { os: ubuntu-20.04, CC: clang-10, CXX: clang++-10 }
+          - { os: ubuntu-20.04, CC: clang-13, CXX: clang++-13 }
+          - { os: ubuntu-latest, CC: clang, CXX: clang++ }
           - { os: macOS-latest, CC: clang, CXX: clang++ }
-          - { os: windows-latest, CC: gcc, CXX: g++ }
+          # - { os: windows-latest, CC: gcc, CXX: g++ }
 
     steps:
     - uses: actions/checkout@v3
