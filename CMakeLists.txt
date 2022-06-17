@@ -21,7 +21,8 @@ ExternalProject_Add(
 eigen3
 URL https://gitlab.com/libeigen/eigen/-/archive/3.2.8/eigen-3.2.8.tar.gz
 TIMEOUT 30
-# Apply the LLT malloc fix patch
+# Apply the LLT malloc fix patch, necessary to avoid dynamic memory allocation on embedded systems.
+# This can be omitted on systems where dynamic memory allocation is acceptable.
 PATCH_COMMAND patch -p1 -t -N < ${PROJECT_SOURCE_DIR}/patch/eigen-3.2.8-no-malloc-in-llt.patch
 # Disable install step
 INSTALL_COMMAND ""
