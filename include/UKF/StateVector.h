@@ -48,10 +48,10 @@ namespace UKF {
     constexpr std::size_t StateVectorDimension = T::MaxRowsAtCompileTime;
 
     template <>
-    constexpr std::size_t StateVectorDimension<Quaternion> = 4;
+    inline constexpr std::size_t StateVectorDimension<Quaternion> = 4;
 
     template <>
-    constexpr std::size_t StateVectorDimension<real_t> = 1;
+    inline constexpr std::size_t StateVectorDimension<real_t> = 1;
 
     /*
     This variable template defines the dimensionality of a particular
@@ -67,7 +67,7 @@ namespace UKF {
     constexpr std::size_t CovarianceDimension = StateVectorDimension<T>;
 
     template <>
-    constexpr std::size_t CovarianceDimension<Quaternion> = 3;
+    inline constexpr std::size_t CovarianceDimension<Quaternion> = 3;
 
     template <typename T>
     constexpr T adder(T v) {
