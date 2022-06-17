@@ -27,7 +27,7 @@ jobs:
           - { os: ubuntu-20.04, CC: clang-8, CXX: clang++-8 }
           - { os: ubuntu-20.04, CC: gcc-10, CXX: g++-10 }
           - { os: ubuntu-20.04, CC: clang-12, CXX: clang++-12 }
-          - { os: ubuntu-latest, CC: clang, CXX: clang++ }
+          - { os: ubuntu-latest, CC: clang-14, CXX: clang++-14 }
           - { os: macOS-latest, CC: clang, CXX: clang++ }
           # - { os: windows-latest, CC: gcc, CXX: g++ }
 
