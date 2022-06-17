@@ -20,8 +20,8 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - { os: ubuntu-16.04, CC: gcc-7, CXX: g++-7 }
-          - { os: ubuntu-16.04, CC: clang-5, CXX: clang++-5 }
+          - { os: ubuntu-18.04, CC: gcc-7, CXX: g++-7 }
+          - { os: ubuntu-18.04, CC: clang-5, CXX: clang++-5 }
           - { os: ubuntu-20.04, CC: gcc-7, CXX: g++-7 }
           - { os: ubuntu-20.04, CC: clang-8, CXX: clang++-8 }
           - { os: ubuntu-20.04, CC: gcc-10, CXX: g++-10 }
@@ -34,8 +34,8 @@ jobs:
     
     - name: Install compiler
       run: |
-         if ["$RUNNER_OS" == "Linux"]; then
-            sudo apt install ${{ matrix.config.CC }}
+         if [ "$RUNNER_OS" == "Linux" ]; then
+            sudo apt-get install ${{ matrix.config.CC }} ${{ matrix.config.CXX }}
          fi
       shell: bash
 
@@ -58,8 +58,7 @@ jobs:
       env:
         CC: ${{ matrix.config.CC }}
         CXX: ${{ matrix.config.CXX }}
-      working-directory: ${{github.workspace}}/build
       # Execute tests defined by the CMake configuration.  
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: make unittest && test/unittest
+      run: cd ${{github.workspace}}/build && make unittest && test/unittest
       
