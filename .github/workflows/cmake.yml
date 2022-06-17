@@ -26,7 +26,7 @@ jobs:
           - { os: ubuntu-20.04, CC: gcc-7, CXX: g++-7 }
           - { os: ubuntu-20.04, CC: clang-8, CXX: clang++-8 }
           - { os: ubuntu-20.04, CC: gcc-10, CXX: g++-10 }
-          - { os: ubuntu-20.04, CC: clang-13, CXX: clang++-13 }
+          - { os: ubuntu-20.04, CC: clang-12, CXX: clang++-12 }
           - { os: ubuntu-latest, CC: clang, CXX: clang++ }
           - { os: macOS-latest, CC: clang, CXX: clang++ }
           # - { os: windows-latest, CC: gcc, CXX: g++ }
@@ -37,7 +37,7 @@ jobs:
     - name: Install compiler
       run: |
          if [ "$RUNNER_OS" == "Linux" ]; then
-            sudo apt-get update && sudo apt-get install ${{ matrix.config.CC }} ${{ matrix.config.CXX }}
+          sudo apt-get update && sudo apt-get install ${{ matrix.config.CC }} ${{ matrix.config.CXX }}
          fi
       shell: bash
 
