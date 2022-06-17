@@ -350,6 +350,30 @@ test_filter.a_posteriori_step();
 /* State and (root_)covariance variables are set to the a priori values.
 ```
 
+## Building test and benchmark suites
+
+Build requires a compiler supporting C++17. 
+
+First, clone the repo:
+
+    git clone git@github.com:sfwa/ukf.git && cd ukf
+
+Then, configure CMake:
+
+    cmake -B ./build -DCMAKE_BUILD_TYPE=Release
+
+Then build:
+
+    cmake --build ./build --config Release
+    
+Build and run the unit test suite:
+
+    cd build && make unittest && test/unittest && cd ..
+    
+If desired, build and run the benchmark suite:
+
+    cd build && make benchmark && benchmark/benchmark && cd ..
+
 ## Examples
 
 Some examples are provided [here](examples/).
