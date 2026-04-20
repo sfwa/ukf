@@ -528,12 +528,12 @@ private:
     The following algorithm implements equation (41d) from that paper.
     */
     template <typename T>
-    static T sigma_point_mean(const Matrix<Detail::StateVectorDimension<T>, num_sigma()>& sigma, const T& field) {
+    static T sigma_point_mean(const Matrix<Detail::StateVectorDimension<T>, num_sigma()>& sigma, [[maybe_unused]] const T& field) {
         return Parameters::Sigma_WMI<StateVector>*sigma.template block<Detail::StateVectorDimension<T>, num_sigma()-1>(
             0, 1).rowwise().sum() + Parameters::Sigma_WM0<StateVector>*sigma.col(0);
     }
 
-    static real_t sigma_point_mean(const Matrix<1, num_sigma()>& sigma, const real_t& field) {
+    static real_t sigma_point_mean(const Matrix<1, num_sigma()>& sigma, [[maybe_unused]] const real_t& field) {
         return Parameters::Sigma_WMI<StateVector>*sigma.template segment<num_sigma()-1>(1).sum()
             + Parameters::Sigma_WM0<StateVector>*sigma(0);
     }
@@ -543,7 +543,7 @@ private:
     this is not an ad-hoc renormalisation of an appoximation; see the paper
     mentioned above for details.
     */
-    static Vector<4> sigma_point_mean(const Matrix<4, num_sigma()>& sigma, const Quaternion& field) {
+    static Vector<4> sigma_point_mean(const Matrix<4, num_sigma()>& sigma, [[maybe_unused]] const Quaternion& field) {
         Vector<4> temp = Parameters::Sigma_WMI<StateVector>*sigma.template block<4, num_sigma()-1>(
             0, 1).rowwise().sum() + Parameters::Sigma_WM0<StateVector>*sigma.col(0);
         Quaternion temp_q = Quaternion(temp).normalized();

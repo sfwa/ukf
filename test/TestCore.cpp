@@ -130,35 +130,44 @@ calculated using the state vector and a dynamics model.
 template <> template <>
 UKF::Vector<3> MyMeasurementVector::expected_measurement
 <MyStateVector, GPS_Position>(const MyStateVector& state,
-        const UKF::Vector<3>& acceleration, const UKF::Vector<3>& angular_acceleration) {
+        [[maybe_unused]] const UKF::Vector<3>& acceleration,
+        [[maybe_unused]]const UKF::Vector<3>& angular_acceleration)
+{
     return state.get_field<Position>();
 }
 
 template <> template <>
 UKF::Vector<3> MyMeasurementVector::expected_measurement
 <MyStateVector, GPS_Velocity>(const MyStateVector& state,
-        const UKF::Vector<3>& acceleration, const UKF::Vector<3>& angular_acceleration) {
+        [[maybe_unused]] const UKF::Vector<3>& acceleration,
+        [[maybe_unused]] const UKF::Vector<3>& angular_acceleration)
+{
     return state.get_field<Velocity>();
 }
 
 template <> template <>
 UKF::Vector<3> MyMeasurementVector::expected_measurement
 <MyStateVector, Accelerometer, UKF::Vector<3>>(const MyStateVector& state,
-        const UKF::Vector<3>& acceleration, const UKF::Vector<3>& angular_acceleration) {
+        const UKF::Vector<3>& acceleration, [[maybe_unused]] const UKF::Vector<3>& angular_acceleration)
+{
     return state.get_field<Attitude>() * UKF::Vector<3>(0, 0, -9.8) + acceleration;
 }
 
 template <> template <>
 UKF::FieldVector MyMeasurementVector::expected_measurement
 <MyStateVector, Magnetometer, UKF::Vector<3>>(const MyStateVector& state,
-        const UKF::Vector<3>& acceleration, const UKF::Vector<3>& angular_acceleration) {
+        [[maybe_unused]] const UKF::Vector<3>& acceleration,
+        [[maybe_unused]] const UKF::Vector<3>& angular_acceleration)
+{
     return state.get_field<Attitude>() * UKF::FieldVector(1, 0, 0);
 }
 
 template <> template <>
 UKF::Vector<3> MyMeasurementVector::expected_measurement
 <MyStateVector, Gyroscope, UKF::Vector<3>>(const MyStateVector& state,
-        const UKF::Vector<3>& acceleration, const UKF::Vector<3>& angular_acceleration) {
+        [[maybe_unused]] const UKF::Vector<3>& acceleration,
+        [[maybe_unused]] const UKF::Vector<3>& angular_acceleration)
+{
     return state.get_field<AngularVelocity>();
 }
 
@@ -195,7 +204,7 @@ MyCore create_initialised_test_filter() {
 }
 
 TEST(CoreTest, Initialisation) {
-    MyCore test_filter = create_initialised_test_filter();
+    [[maybe_unused]] MyCore test_filter = create_initialised_test_filter();
 }
 
 /*

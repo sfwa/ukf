@@ -23,7 +23,7 @@ Q1 a, Q2 b, real_t tol = 0.02) {
 
 template <typename T1, typename T2>
 inline ::testing::AssertionResult CmpHelperVectorEq(
-const char* expected_expression, const char* actual_expression,
+[[maybe_unused]] const char* expected_expression, [[maybe_unused]]const char* actual_expression,
 T1 a, T2 b, real_t tol = 0.0001) {
     real_t d = (a - b).norm(), an = a.norm();
 

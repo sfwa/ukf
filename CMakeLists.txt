@@ -12,15 +12,10 @@ option(UKF_DEFAULT_DOUBLE "Default to double precision for UKF (when not overrid
 # - When UKF_USE_SYSTEM_EIGEN=OFF we fall back to downloading Eigen 3.2.8 via
 #   ExternalProject (this preserves original upstream behavior while offering
 #   a reproducible fallback for environments without system Eigen).
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Check for C++14 support.
-CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
-if(COMPILER_SUPPORTS_CXX14)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-else()
-    message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++14 support. Please use a different C++ compiler.")
-endif()
-
+add_compile_options(-Wall -Wextra -Werror)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-register -Wno-ignored-attributes")
 
 # If requested prefer system Eigen (easier for packaging and editor tooling)

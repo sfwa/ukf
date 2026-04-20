@@ -26,7 +26,7 @@ TEST(DynamicMeasurementVectorTest, Instantiation) {
     MyMeasurementVector test_measurement;
 
     EXPECT_EQ(11, MyMeasurementVector::MaxRowsAtCompileTime);
-    EXPECT_EQ(11, test_measurement.max_size());
+    EXPECT_EQ(11ul, test_measurement.max_size());
 }
 
 TEST(DynamicMeasurementVectorTest, Assignment) {
@@ -210,19 +210,19 @@ UKF::Vector<3> MyMeasurementVector::expected_measurement
 
 template <> template <>
 UKF::Vector<3> MyMeasurementVector::expected_measurement
-<MyStateVector, Gyroscope, UKF::Vector<3>>(const MyStateVector& state, const UKF::Vector<3>& input) {
+<MyStateVector, Gyroscope, UKF::Vector<3>>(const MyStateVector& state, [[maybe_unused]] const UKF::Vector<3>& input) {
     return state.get_field<AngularVelocity>();
 }
 
 template <> template <>
 real_t MyMeasurementVector::expected_measurement
-<MyStateVector, StaticPressure, UKF::Vector<3>>(const MyStateVector& state, const UKF::Vector<3>& input) {
+<MyStateVector, StaticPressure, UKF::Vector<3>>(const MyStateVector& state, [[maybe_unused]] const UKF::Vector<3>& input) {
     return 101.3 - 1.2*(state.get_field<Altitude>() / 100.0);
 }
 
 template <> template <>
 real_t MyMeasurementVector::expected_measurement
-<MyStateVector, DynamicPressure, UKF::Vector<3>>(const MyStateVector& state, const UKF::Vector<3>& input) {
+<MyStateVector, DynamicPressure, UKF::Vector<3>>(const MyStateVector& state, [[maybe_unused]]const UKF::Vector<3>& input) {
     return 0.5 * 1.225 * state.get_field<Velocity>().squaredNorm();
 }
 

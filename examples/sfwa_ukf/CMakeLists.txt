@@ -9,4 +9,9 @@ INCLUDE_DIRECTORIES(../../include ${eigen_dir})
 cmake_policy(SET CMP0042 NEW)
 
 ADD_LIBRARY(sfwa_ukf SHARED cukf.cpp)
+# To avoid [-Werror=unused-parameter] and [-Werror-maybe-uninitialized]
+target_compile_options(sfwa_ukf PRIVATE
+    -Wno-unused-parameter
+    -Wno-maybe-uninitialized
+)
 SET_TARGET_PROPERTIES(sfwa_ukf PROPERTIES OUTPUT_NAME cukf)
