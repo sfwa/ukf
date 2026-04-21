@@ -35,6 +35,12 @@ ADD_EXECUTABLE(benchmark
     SquareRootCoreBenchmark.cpp
     BenchmarkMain.cpp)
 
+# To avoid [-Werror=maybe-uninitialized] in file
+# /usr/include/eigen3/Eigen/Core:341
+target_compile_options(benchmark PRIVATE
+    -Wno-maybe-uninitialized
+)
+
 # Create dependency of benchmark on googlebenchmark
 ADD_DEPENDENCIES(benchmark googlebenchmark eigen3)
 

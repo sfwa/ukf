@@ -1,3 +1,48 @@
+# ukf (fork) — build and integration notes
+
+This is a small fork of the original `sfwa/ukf` library. The fork's CMake build has been adapted to make integration and editor tooling easier for downstream projects.
+
+New CMake options
+
+- `UKF_USE_SYSTEM_EIGEN` (BOOL, default: ON)
+  - If ON the build will use system-installed Eigen via `find_package(Eigen3)`.
+  - If OFF the project falls back to using an Embedded `ExternalProject` to download Eigen 3.2.8 (original behavior).
+
+- `UKF_DEFAULT_DOUBLE` (BOOL, default: ON)
+  - If ON the `ukf` INTERFACE target will propagate `UKF_DOUBLE_PRECISION`.
+  - If OFF the `ukf` INTERFACE target will propagate `UKF_SINGLE_PRECISION`.
+
+INTERFACE target
+
+- An `INTERFACE` target named `ukf` is provided. Consumers should link to it to get:
+  - the `ukf/include` directory in their include path,
+  - a propagated compile definition (`UKF_DOUBLE_PRECISION` or `UKF_SINGLE_PRECISION`), and
+  - Eigen transitively when `UKF_USE_SYSTEM_EIGEN` is ON and `Eigen3::Eigen` is available.
+
+Consumer examples
+
+Top-level CMake example (consumer):
+
+```cmake
+find_package(Eigen3 3.2 REQUIRED)
+add_subdirectory(path/to/ukf)
+
+add_executable(my_model src/my_model.cpp)
+target_link_libraries(my_model PRIVATE ukf Eigen3::Eigen)
+```
+
+Or let the `ukf` target export Eigen transitively:
+
+```cmake
+add_executable(my_model src/my_model.cpp)
+target_link_libraries(my_model PRIVATE ukf)
+```
+
+Notes and best practices
+
+- Prefer `UKF_USE_SYSTEM_EIGEN=ON` in development and CI to avoid the ExternalProject download step and to make editor tooling (clangd) pick up the system Eigen include paths.
+- If you change the default precision and want to force a different precision per-target use `target_compile_definitions(target PRIVATE UKF_SINGLE_PRECISION)` or `UKF_DOUBLE_PRECISION` as appropriate.
+
 # UKF
 
 Unscented Kalman filter library. Several different UKF implementations are
