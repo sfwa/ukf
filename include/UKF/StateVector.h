@@ -428,6 +428,7 @@ public:
     This function calculates the derivative of the state vector. The
     derivative can be a function of the current state and any number of user-
     supplied non-state inputs.
+    It must be implemented if the core does not use "NotUsedIntegrator"
     */
     template <typename... U>
     StateVector derivative(const U&... input) const;
@@ -437,10 +438,17 @@ public:
     state based on the supplied time delta. This is achieved by using a
     numerical integrator and the derivative function.
     */
-    template <typename IntegratorType = IntegratorRK4, typename... U>
+    template <typename IntegratorType , typename... U>
     StateVector process_model(real_t delta, const U&... input) const {
         return IntegratorType::integrate(delta, *this, input...);
     }
+
+    /*
+    Apply the direct process model (without derivative).
+    It must be implemented if the core use "NotUsedIntegrator"
+    */
+    template <typename... U>
+    StateVector process_model(real_t delta, const U&... input) const;
 
     /* Update the state vector using a delta vector. */
     void apply_delta(const StateVectorDelta& delta) {

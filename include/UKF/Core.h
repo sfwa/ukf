@@ -27,6 +27,7 @@ SOFTWARE.
 #include <Eigen/Geometry>
 #include "UKF/Types.h"
 #include "UKF/StateVector.h"
+#include <type_traits>
 
 namespace UKF {
 
@@ -45,7 +46,7 @@ The attitude-related code makes use of the MRP method described in the paper
 "Unscented Filtering for Spacecraft Attitude Estimation" by John L. Crassidis
 and F. Landis Markley.
 */
-template <typename StateVectorType, typename MeasurementVectorType, typename IntegratorType>
+template <typename StateVectorType, typename MeasurementVectorType, typename IntegratorType=NotUsedIntegrator>
 class Core {
 protected:
     typename StateVectorType::SigmaPointDistribution sigma_points;
@@ -111,8 +112,13 @@ public:
 
         /* Propagate the sigma points through the process model. */
         for(std::size_t i = 0; i < StateVectorType::num_sigma(); i++) {
-            sigma_points.col(i) <<
-                StateVectorType(sigma_points.col(i)).template process_model<IntegratorType>(delta, input...);
+            if (std::is_same_v<IntegratorType, NotUsedIntegrator>) {
+                sigma_points.col(i) << StateVectorType(sigma_points.col(i)).process_model(delta, input...);
+            }
+            else {
+                sigma_points.col(i) << StateVectorType(sigma_points.col(i))
+                    .template process_model<IntegratorType>(delta, input...);
+            }
         }
 
         /* Calculate the a priori estimate mean, deltas and covariance. */
