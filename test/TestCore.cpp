@@ -393,3 +393,108 @@ TEST(CoreTest, FullStep) {
     EXPECT_LT((UKF::Vector<3>(0.5, 0, 0) - test_filter.state.get_field<AngularVelocity>()).norm(),
         std::sqrt(test_filter.covariance.diagonal().segment<3>(9).norm())*2);
 }
+
+using ZeroPriorState = UKF::StateVector<UKF::Field<110, UKF::Vector<2>>>;
+using ZeroPriorMeasurement = UKF::FixedMeasurementVector<UKF::Field<111, UKF::Vector<2>>>;
+namespace UKF {
+template <> template <>
+ZeroPriorState ZeroPriorState::process_model<>(real_t) const { return *this; }
+}
+
+TEST(CoreTest, ZeroPriorWithPositiveProcessNoise) {
+    UKF::Core<ZeroPriorState, ZeroPriorMeasurement> filter;
+    filter.state << 2, -3;
+    filter.covariance.setZero();
+    filter.process_noise_covariance << 2, 0.5, 0.5, 1;
+    filter.a_priori_step(real_t(1));
+    EXPECT_LT((filter.state - UKF::Vector<2>(2, -3)).norm(), real_t(1e-5));
+    EXPECT_LT((filter.covariance - filter.process_noise_covariance).norm(), real_t(1e-5));
+}
+
+using AdditiveNoiseState = UKF::StateVector<UKF::Field<150, UKF::Vector<2>>>;
+using AdditiveNoiseMeasurement = UKF::FixedMeasurementVector<UKF::Field<151, UKF::Vector<2>>>;
+namespace UKF {
+template <> template <>
+AdditiveNoiseState AdditiveNoiseState::process_model<>(real_t dt) const {
+    UKF::Matrix<2, 2> transition;
+    transition << 1, dt, 0, 2;
+    return transition * *this;
+}
+template <> template <>
+UKF::Vector<2> AdditiveNoiseMeasurement::expected_measurement<AdditiveNoiseState, 151>(const AdditiveNoiseState& state) {
+    UKF::Matrix<2, 2> observation;
+    observation << 1, 0.5, -0.3, 1;
+    return observation * state;
+}
+}
+struct AdditiveNoiseIntegrator {
+    template <typename S> static S integrate(real_t dt, const S& state) { return state.process_model(dt); }
+};
+
+TEST(AdditiveNoiseTest, MatchesLinearKalmanFilterAndSquareRootFilter) {
+    UKF::Core<AdditiveNoiseState, AdditiveNoiseMeasurement> filter;
+    UKF::SquareRootCore<AdditiveNoiseState, AdditiveNoiseMeasurement, AdditiveNoiseIntegrator> sr;
+    filter.state << 2, -1;
+    filter.covariance << 2, 0.4, 0.4, 1;
+    filter.process_noise_covariance << 0.5, 0.1, 0.1, 0.3;
+    filter.measurement_covariance << 0.7, 0.9;
+    sr.state = filter.state;
+    sr.root_covariance = filter.covariance.llt().matrixL();
+    sr.process_noise_root_covariance = filter.process_noise_covariance.llt().matrixL();
+    sr.measurement_root_covariance = filter.measurement_covariance.array().sqrt();
+    UKF::Vector<2> mean = filter.state;
+    UKF::Matrix<2, 2> covariance = filter.covariance, F, H, R;
+    F << 1, 0.5, 0, 2;
+    H << 1, 0.5, -0.3, 1;
+    R = filter.measurement_covariance.asDiagonal();
+    AdditiveNoiseMeasurement z;
+    z << 1, -2;
+    for (int iteration = 0; iteration < 3; ++iteration) {
+        mean = (F * mean).eval();
+        covariance = (F * covariance * F.transpose() + filter.process_noise_covariance).eval();
+        filter.a_priori_step(real_t(0.5));
+        sr.a_priori_step(real_t(0.5));
+        EXPECT_LT((filter.state - mean).norm(), real_t(1e-4));
+        EXPECT_LT((filter.covariance - covariance).norm(), real_t(1e-4));
+        const UKF::Matrix<2, 2> innovation_covariance = H * covariance * H.transpose() + R;
+        const UKF::Matrix<2, 2> gain = covariance * H.transpose() * innovation_covariance.inverse();
+        mean += gain * (z - H * mean);
+        covariance = (covariance - gain * innovation_covariance * gain.transpose()).eval();
+        filter.innovation_step(z);
+        sr.innovation_step(z);
+        EXPECT_LT((filter.innovation_covariance - innovation_covariance).norm(), real_t(1e-4));
+        filter.a_posteriori_step();
+        sr.a_posteriori_step();
+        EXPECT_LT((filter.state - mean).norm(), real_t(1e-4));
+        EXPECT_LT((filter.covariance - covariance).norm(), real_t(1e-4));
+        EXPECT_LT((sr.state - mean).norm(), real_t(1e-4));
+        EXPECT_LT((sr.root_covariance * sr.root_covariance.transpose() - covariance).norm(), real_t(1e-4));
+    }
+}
+
+TEST(AdditiveNoiseTest, HandlesSemidefinitePriorAndRejectsIndefinitePrior) {
+    UKF::Core<AdditiveNoiseState, AdditiveNoiseMeasurement> filter;
+    filter.state.setZero();
+    filter.covariance << 0, 0, 0, 1;
+    filter.process_noise_covariance.setZero();
+    filter.a_priori_step(real_t(0));
+    UKF::Matrix<2, 2> expected;
+    expected << 0, 0, 0, 4;
+    EXPECT_LT((filter.covariance - expected).norm(), real_t(1e-5));
+    filter.covariance << 1, 2, 2, 1;
+    EXPECT_THROW(filter.a_priori_step(real_t(0)), std::domain_error);
+}
+
+TEST(AdditiveNoiseTest, FactorsCorrelatedSemidefiniteCovariancesWithoutAllocation) {
+    /* Columns are deliberately dependent, with different zero-pivot orders. */
+    for (int i = 0; i < 20; ++i) {
+        UKF::Matrix<3, 3> basis;
+        basis << real_t(i)*real_t(0.1), 0, 0,
+                 real_t(0.3), real_t(i % 3)*real_t(0.2), 0,
+                 real_t(-0.7), real_t(0.6), 0;
+        const UKF::Matrix<3, 3> covariance = basis * basis.transpose();
+        const auto root = UKF::Detail::covariance_root(covariance);
+        EXPECT_LT((root * root.transpose() - covariance).norm(), real_t(1e-5));
+        EXPECT_EQ(real_t(0), root.template triangularView<Eigen::StrictlyUpper>().toDenseMatrix().norm());
+    }
+}

@@ -315,6 +315,18 @@ test_filter.measurement_root_covariance = test_filter.measurement_root_covarianc
 
 Currently, only a diagonal measurement noise covariance matrix is supported.
 
+Both state estimation filters use additive process noise:
+`x_next = process_model(x, dt, inputs) + noise`. The process noise covariance
+is added after propagation, and the measurement update includes that noise.
+Supply the discrete-time covariance for each step; continuous-time noise
+densities must be discretised by the application. The square-root filter
+takes a factor whose product with its transpose is this same covariance.
+
+Square-root correction steps support positive semidefinite posterior
+covariances, including exact observations. If a covariance downdate instead
+produces an indefinite matrix beyond roundoff, `a_posteriori_step()` throws
+`std::domain_error` before changing the predicted state or its covariance.
+
 ### Iteration
 
 The general steps for carrying out a filter iteration are something like:

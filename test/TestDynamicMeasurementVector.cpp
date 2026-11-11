@@ -4,6 +4,7 @@
 #include "UKF/Types.h"
 #include "UKF/StateVector.h"
 #include "UKF/MeasurementVector.h"
+#include "UKF/Core.h"
 #include "comparisons.h"
 
 enum MyFields {
@@ -983,4 +984,61 @@ TEST(DynamicMeasurementVectorTest, CalculateRotationVectorJacobian) {
     EXPECT_VECTOR_EQ(UKF::Vector<3>( 1.850606, -0.474603, -1.085418).transpose(), (test*c*test.transpose()).row(0));
     EXPECT_VECTOR_EQ(UKF::Vector<3>(-0.474603,  1.420474,  0.389206).transpose(), (test*c*test.transpose()).row(1));
     EXPECT_VECTOR_EQ(UKF::Vector<3>(-1.085418,  0.389206,  0.646079).transpose(), (test*c*test.transpose()).row(2));
+}
+
+using EmptyMeasurementState = UKF::StateVector<UKF::Field<160, UKF::Vector<2>>>;
+using EmptyMeasurement = UKF::DynamicMeasurementVector<
+    UKF::Field<161, UKF::Vector<2>>, UKF::Field<162, real_t>>;
+using EmptyMeasurementCore = UKF::Core<EmptyMeasurementState, EmptyMeasurement>;
+namespace UKF {
+template <> template <>
+EmptyMeasurementState EmptyMeasurementState::process_model<>(real_t dt) const {
+    return *this + dt * UKF::Vector<2>(2, -1);
+}
+template <> template <>
+UKF::Vector<2> EmptyMeasurement::expected_measurement<EmptyMeasurementState, 161>(const EmptyMeasurementState& state) { return state; }
+template <> template <>
+real_t EmptyMeasurement::expected_measurement<EmptyMeasurementState, 162>(const EmptyMeasurementState& state) { return state(0); }
+}
+
+static EmptyMeasurementCore empty_measurement_filter() {
+    EmptyMeasurementCore filter;
+    filter.state << 1, 2;
+    filter.covariance.setIdentity();
+    filter.process_noise_covariance = UKF::Matrix<2, 2>::Identity() * real_t(0.1);
+    filter.measurement_covariance.setOnes();
+    return filter;
+}
+
+TEST(EmptyMeasurementTest, StepPerformsPredictionOnly) {
+    auto filter = empty_measurement_filter();
+    EmptyMeasurement z;
+    filter.step(real_t(0.5), z);
+    EXPECT_LT((filter.state - UKF::Vector<2>(2, 1.5)).norm(), real_t(1e-5));
+    EXPECT_LT((filter.covariance - UKF::Matrix<2, 2>::Identity() * real_t(1.1)).norm(), real_t(1e-5));
+    EXPECT_EQ(0, filter.innovation.size());
+    EXPECT_EQ(0, filter.innovation_covariance.rows());
+}
+
+TEST(EmptyMeasurementTest, SplitStepBetweenPopulatedMeasurements) {
+    auto filter = empty_measurement_filter();
+    EmptyMeasurement z;
+    z.set_field<161>(UKF::Vector<2>(2, 1.5));
+    filter.step(real_t(0.5), z);
+    filter.a_priori_step(real_t(0.5));
+    const EmptyMeasurementState predicted_state = filter.state;
+    const UKF::Matrix<2, 2> predicted_covariance = filter.covariance;
+    filter.innovation_step(EmptyMeasurement());
+    filter.a_posteriori_step();
+    EXPECT_EQ(0, filter.innovation.size());
+    EXPECT_EQ(0, filter.innovation_covariance.rows());
+    EXPECT_LT((filter.state - predicted_state).norm(), real_t(1e-5));
+    EXPECT_LT((filter.covariance - predicted_covariance).norm(), real_t(1e-5));
+
+    z.set_field<161>(predicted_state + UKF::Vector<2>(1, -0.5));
+    filter.step(real_t(0.5), z);
+    const real_t prior_variance = real_t(1.1/2.1 + 0.2);
+    const real_t expected_variance = prior_variance / (prior_variance + real_t(1));
+    EXPECT_LT((filter.state - z.get_field<161>()).norm(), real_t(1e-5));
+    EXPECT_LT((filter.covariance - UKF::Matrix<2, 2>::Identity() * expected_variance).norm(), real_t(1e-5));
 }

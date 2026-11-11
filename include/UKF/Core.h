@@ -27,6 +27,7 @@ SOFTWARE.
 #include <Eigen/Geometry>
 #include "UKF/Types.h"
 #include "UKF/StateVector.h"
+#include "UKF/Covariance.h"
 #include <type_traits>
 
 namespace UKF {
@@ -58,7 +59,7 @@ protected:
         real_t,
         StateVectorType::covariance_size(),
         MeasurementVectorType::RowsAtCompileTime,
-        0,
+        StateVectorType::covariance_size() == 1 ? Eigen::RowMajor : Eigen::ColMajor,
         StateVectorType::covariance_size(),
         MeasurementVectorType::MaxRowsAtCompileTime>;
 
@@ -100,15 +101,12 @@ public:
     template <typename... U>
     void a_priori_step(real_t delta, const U&... input) {
         /*
-        Add process noise covariance to the state covariance and calculate
-        the LLT decomposition of the scaled covariance matrix.
+        Generate sigma points from the prior covariance. Process noise is
+        additive in the predicted state: x_next = f(x, input) + noise.
         */
-        assert(((covariance * (StateVectorType::covariance_size() +
-            Parameters::Lambda<StateVectorType>)).llt().info() == Eigen::Success)
-            && "Covariance matrix is not positive definite");
-
-        sigma_points = state.calculate_sigma_point_distribution(((covariance + process_noise_covariance) *
-            (StateVectorType::covariance_size() + Parameters::Lambda<StateVectorType>)).llt().matrixL());
+        const real_t sigma_scale = std::sqrt(StateVectorType::covariance_size() +
+            Parameters::Lambda<StateVectorType>);
+        sigma_points = state.calculate_sigma_point_distribution(Detail::covariance_root(covariance) * sigma_scale);
 
         /* Propagate the sigma points through the process model. */
         for(std::size_t i = 0; i < StateVectorType::num_sigma(); i++) {
@@ -125,6 +123,11 @@ public:
         state = StateVectorType::calculate_sigma_point_mean(sigma_points);
         w_prime = state.calculate_sigma_point_deltas(sigma_points);
         covariance = StateVectorType::calculate_sigma_point_covariance(w_prime);
+        covariance += process_noise_covariance;
+
+        /* Include the additive noise in measurement and cross covariance. */
+        sigma_points = state.calculate_sigma_point_distribution(Detail::covariance_root(covariance) * sigma_scale);
+        w_prime = state.calculate_sigma_point_deltas(sigma_points);
     }
 
     /*
@@ -163,6 +166,12 @@ public:
     desired.
     */
     void a_posteriori_step() {
+        /* No observations means prediction only; Eigen's QR requires a
+        nonempty matrix. This also supports the split-step interface. */
+        if (innovation.size() == 0) {
+            return;
+        }
+
         /*
         Calculate the cross-correlation matrix described in equations 70 and
         71 from from the Kraft paper.
@@ -221,7 +230,7 @@ protected:
         real_t,
         StateVectorType::covariance_size(),
         MeasurementVectorType::RowsAtCompileTime,
-        0,
+        StateVectorType::covariance_size() == 1 ? Eigen::RowMajor : Eigen::ColMajor,
         StateVectorType::covariance_size(),
         MeasurementVectorType::MaxRowsAtCompileTime>;
 
@@ -346,7 +355,7 @@ public:
             real_t,
             MeasurementVectorType::RowsAtCompileTime,
             augmented_innovation_cols,
-            0,
+            MeasurementVectorType::MaxRowsAtCompileTime == 1 ? Eigen::RowMajor : Eigen::ColMajor,
             MeasurementVectorType::MaxRowsAtCompileTime,
             StateVectorType::num_sigma() - 1 + MeasurementVectorType::MaxRowsAtCompileTime>;
 
@@ -406,9 +415,6 @@ public:
         */
         typename StateVectorType::StateVectorDelta update_delta = kalman_gain * innovation;
 
-        /* Apply the update delta to the state vector. */
-        state.apply_delta(update_delta);
-
         /*
         Calculate the Cholesky update matrix. Reuse the cross-correlation
         variable, since we don't need it again.
@@ -419,10 +425,25 @@ public:
         Update the root covariance using a series of rank-one Cholesky
         downdates.
         */
+        typename StateVectorType::CovarianceMatrix updated_root = root_covariance;
         for(std::ptrdiff_t i = 0; i < cross_correlation.cols(); i++) {
-            Eigen::internal::llt_inplace<real_t, Eigen::Lower>::rankUpdate(
-                root_covariance, cross_correlation.col(i), real_t(-1.0));
+            if (Eigen::internal::llt_inplace<real_t, Eigen::Lower>::rankUpdate(
+                    updated_root, cross_correlation.col(i), real_t(-1.0)) >= 0) {
+                /* LLT downdates require strict positivity. An exact
+                observation can instead leave a semidefinite covariance.
+                Rebuild from the original factor, not the partial downdate. */
+                const typename StateVectorType::CovarianceMatrix prior_covariance =
+                    root_covariance * root_covariance.transpose();
+                const typename StateVectorType::CovarianceMatrix posterior_covariance =
+                    prior_covariance - cross_correlation * cross_correlation.transpose();
+                updated_root = Detail::covariance_root(posterior_covariance,
+                    prior_covariance.cwiseAbs().maxCoeff());
+                break;
+            }
         }
+        /* Commit the correction only after every covariance update succeeds. */
+        state.apply_delta(update_delta);
+        root_covariance = updated_root;
     }
 };
 
@@ -445,7 +466,7 @@ protected:
         real_t,
         StateVectorType::covariance_size(),
         MeasurementVectorType::RowsAtCompileTime,
-        0,
+        StateVectorType::covariance_size() == 1 ? Eigen::RowMajor : Eigen::ColMajor,
         StateVectorType::covariance_size(),
         MeasurementVectorType::MaxRowsAtCompileTime>;
 
@@ -489,13 +510,16 @@ public:
     */
     void a_priori_step() {
         /*
-        Add the process noise to the root covariance. Note that there are two
-        methods for doing this; this one has been chosen as it still allows
-        individual fields to have different process noise values.
+        Recover a factor of S*S' + Q*Q' from the augmented matrix [S Q].
+        Updating only S's diagonal would also change the off-diagonal
+        covariance whenever the parameters are correlated.
         */
-        typename StateVectorType::StateVectorDelta R_diag = process_noise_root_covariance.diagonal();
-        typename StateVectorType::StateVectorDelta S_diag = root_covariance.diagonal();
-        root_covariance.diagonal() = (S_diag.cwiseProduct(S_diag) + R_diag.cwiseProduct(R_diag)).cwiseSqrt();
+        Matrix<StateVectorType::covariance_size(), 2 * StateVectorType::covariance_size()> augmented;
+        augmented << root_covariance, process_noise_root_covariance;
+        root_covariance = augmented.transpose().householderQr().matrixQR().topLeftCorner(
+            StateVectorType::covariance_size(), StateVectorType::covariance_size())
+            .template triangularView<Eigen::Upper>();
+        root_covariance.transposeInPlace();
 
         sigma_points = state.calculate_sigma_point_distribution(root_covariance *
             std::sqrt(StateVectorType::covariance_size() + Parameters::Lambda<StateVectorType>));
@@ -536,7 +560,7 @@ public:
             real_t,
             MeasurementVectorType::RowsAtCompileTime,
             augmented_innovation_cols,
-            0,
+            MeasurementVectorType::MaxRowsAtCompileTime == 1 ? Eigen::RowMajor : Eigen::ColMajor,
             MeasurementVectorType::MaxRowsAtCompileTime,
             StateVectorType::num_sigma() - 1 + MeasurementVectorType::MaxRowsAtCompileTime>;
 
@@ -596,9 +620,6 @@ public:
         */
         typename StateVectorType::StateVectorDelta update_delta = kalman_gain * innovation;
 
-        /* Apply the update delta to the state vector. */
-        state.apply_delta(update_delta);
-
         /*
         Calculate the Cholesky update matrix. Reuse the cross-correlation
         variable, since we don't need it again.
@@ -609,10 +630,25 @@ public:
         Update the root covariance using a series of rank-one Cholesky
         downdates.
         */
+        typename StateVectorType::CovarianceMatrix updated_root = root_covariance;
         for(std::ptrdiff_t i = 0; i < cross_correlation.cols(); i++) {
-            Eigen::internal::llt_inplace<real_t, Eigen::Lower>::rankUpdate(
-                root_covariance, cross_correlation.col(i), real_t(-1.0));
+            if (Eigen::internal::llt_inplace<real_t, Eigen::Lower>::rankUpdate(
+                    updated_root, cross_correlation.col(i), real_t(-1.0)) >= 0) {
+                /* LLT downdates require strict positivity. An exact
+                observation can instead leave a semidefinite covariance.
+                Rebuild from the original factor, not the partial downdate. */
+                const typename StateVectorType::CovarianceMatrix prior_covariance =
+                    root_covariance * root_covariance.transpose();
+                const typename StateVectorType::CovarianceMatrix posterior_covariance =
+                    prior_covariance - cross_correlation * cross_correlation.transpose();
+                updated_root = Detail::covariance_root(posterior_covariance,
+                    prior_covariance.cwiseAbs().maxCoeff());
+                break;
+            }
         }
+        /* Commit the correction only after every covariance update succeeds. */
+        state.apply_delta(update_delta);
+        root_covariance = updated_root;
     }
 };
 
