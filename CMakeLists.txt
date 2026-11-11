@@ -20,6 +20,8 @@ TIMEOUT 30
 # Apply the LLT malloc fix patch, necessary to avoid dynamic memory allocation on embedded systems.
 # This can be omitted on systems where dynamic memory allocation is acceptable.
 PATCH_COMMAND patch -p1 -t -N < ${PROJECT_SOURCE_DIR}/patch/eigen-3.2.8-no-malloc-in-llt.patch
+# C++17 removed std::binder1st/binder2nd, including their libc++ declarations.
+COMMAND patch -p1 -t -N < ${PROJECT_SOURCE_DIR}/patch/eigen-3.2.8-cxx17.patch
 # Eigen is header-only; no upstream configure, build or install is needed.
 CONFIGURE_COMMAND ""
 BUILD_COMMAND ""
