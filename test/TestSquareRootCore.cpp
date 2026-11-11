@@ -409,3 +409,77 @@ TEST(SquareRootCoreTest, FullStep) {
     EXPECT_LT((UKF::Vector<3>(0.5, 0, 0) - test_filter.state.get_field<AngularVelocity>()).norm(),
         test_filter.root_covariance.diagonal().segment<3>(9).norm()*2);
 }
+
+using DowndateState = UKF::StateVector<UKF::Field<180, UKF::Vector<2>>>;
+using DowndateMeasurement = UKF::FixedMeasurementVector<UKF::Field<181, UKF::Vector<2>>>;
+struct DowndateIdentityIntegrator {
+    template <typename S> static S integrate(real_t, const S& state) { return state; }
+};
+namespace UKF {
+template <> template <>
+UKF::Vector<2> DowndateMeasurement::expected_measurement<DowndateState, 181>(const DowndateState& state) { return state; }
+}
+using DowndateFilter = UKF::SquareRootCore<DowndateState, DowndateMeasurement, DowndateIdentityIntegrator>;
+using DowndateParameterFilter = UKF::SquareRootParameterEstimationCore<DowndateState, DowndateMeasurement>;
+
+template <typename Filter>
+void check_semidefinite_downdate(Filter filter, bool exact_both) {
+    DowndateMeasurement z;
+    z << 2, -3;
+    filter.innovation_step(z);
+    filter.a_posteriori_step();
+    UKF::Matrix<2, 2> expected;
+    expected << 0, 0, 0, exact_both ? real_t(0) : real_t(0.5);
+    EXPECT_LT((filter.root_covariance * filter.root_covariance.transpose() - expected).norm(), real_t(1e-5));
+    EXPECT_NEAR(real_t(2), filter.state(0), real_t(1e-5));
+    EXPECT_NEAR(exact_both ? real_t(-3) : real_t(-1.5), filter.state(1), real_t(1e-5));
+}
+
+template <typename Filter>
+void check_invalid_downdate(Filter filter) {
+    DowndateMeasurement z;
+    z << 2, -3;
+    filter.innovation_step(z);
+    filter.innovation_root_covariance *= real_t(0.1);
+    const DowndateState original_state = filter.state;
+    const UKF::Matrix<2, 2> original_root = filter.root_covariance;
+    EXPECT_THROW(filter.a_posteriori_step(), std::domain_error);
+    EXPECT_EQ(real_t(0), (filter.state - original_state).norm());
+    EXPECT_EQ(real_t(0), (filter.root_covariance - original_root).norm());
+}
+
+TEST(SquareRootDowndateTest, ExactAndPartiallyExactObservations) {
+    for (bool exact_both : {false, true}) {
+        DowndateFilter filter;
+        filter.state.setZero();
+        filter.root_covariance.setIdentity();
+        filter.process_noise_root_covariance.setZero();
+        filter.measurement_root_covariance << 0, exact_both ? 0 : 1;
+        filter.a_priori_step(real_t(0));
+        check_semidefinite_downdate(filter, exact_both);
+        DowndateParameterFilter parameter;
+        parameter.state.setZero();
+        parameter.root_covariance.setIdentity();
+        parameter.process_noise_root_covariance.setZero();
+        parameter.measurement_root_covariance = filter.measurement_root_covariance;
+        parameter.a_priori_step();
+        check_semidefinite_downdate(parameter, exact_both);
+    }
+}
+
+TEST(SquareRootDowndateTest, FailureDoesNotPartiallyApplyCorrection) {
+    DowndateFilter filter;
+    filter.state.setZero();
+    filter.root_covariance.setIdentity();
+    filter.process_noise_root_covariance.setZero();
+    filter.measurement_root_covariance.setOnes();
+    filter.a_priori_step(real_t(0));
+    check_invalid_downdate(filter);
+    DowndateParameterFilter parameter;
+    parameter.state.setZero();
+    parameter.root_covariance.setIdentity();
+    parameter.process_noise_root_covariance.setZero();
+    parameter.measurement_root_covariance.setOnes();
+    parameter.a_priori_step();
+    check_invalid_downdate(parameter);
+}
