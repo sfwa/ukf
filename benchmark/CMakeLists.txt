@@ -1,4 +1,4 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.4 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.10 FATAL_ERROR)
 PROJECT(benchmark)
 INCLUDE(ExternalProject)
 
@@ -10,7 +10,9 @@ ExternalProject_Add(
 googlebenchmark
 URL https://github.com/google/benchmark/archive/v1.3.0.zip
 TIMEOUT 30
-CMAKE_ARGS -DCMAKE_BUILD_TYPE:STRING=Release
+CMAKE_ARGS
+    -DCMAKE_BUILD_TYPE:STRING=Release
+    -DCMAKE_POLICY_VERSION_MINIMUM:STRING=3.10
 # Disable install step
 INSTALL_COMMAND ""
 # Wrap download, configure and build steps in a script to log output

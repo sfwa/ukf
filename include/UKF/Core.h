@@ -528,7 +528,7 @@ public:
         z_prime = z_pred.template calculate_sigma_point_deltas<StateVectorType>(measurement_sigma_points);
 
         /* Calculate innovation and innovation root covariance. */
-        innovation = z_pred.template calculate_innovation(z);
+        innovation = z_pred.calculate_innovation(z);
 
         /*
         Create an augmented matrix containing all but the centre innovation
@@ -550,7 +550,7 @@ public:
         augmented_z_prime.block(0, 0, z.size(), StateVectorType::num_sigma() - 1) =
             std::sqrt(Parameters::Sigma_WCI<StateVectorType>) * z_prime.rightCols(StateVectorType::num_sigma() - 1);
         augmented_z_prime.block(0, StateVectorType::num_sigma() - 1, z.size(), z.size()) =
-            z.template calculate_measurement_root_covariance(measurement_root_covariance, z_pred);
+            z.calculate_measurement_root_covariance(measurement_root_covariance, z_pred);
 
         /*
         Calculate the QR decomposition of the augmented innovation deltas.
