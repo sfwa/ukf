@@ -826,3 +826,42 @@ TEST(FixedMeasurementVectorTest, CalculateRotationVectorJacobian) {
     EXPECT_VECTOR_EQ(UKF::Vector<3>(-0.474603,  1.420474,  0.389206).transpose(), (test*c*test.transpose()).row(1));
     EXPECT_VECTOR_EQ(UKF::Vector<3>(-1.085418,  0.389206,  0.646079).transpose(), (test*c*test.transpose()).row(2));
 }
+
+using UnitMRPMeasurement = UKF::FixedMeasurementVector<UKF::Field<170, UKF::FieldVector>>;
+using HalfMRPMeasurement = UKF::DynamicMeasurementVector<UKF::Field<171, UKF::FieldVector>>;
+namespace UKF { namespace Parameters {
+template <> constexpr real_t MRP_A<UnitMRPMeasurement> = 1;
+template <> constexpr real_t MRP_A<HalfMRPMeasurement> = real_t(0.5);
+} }
+
+template <typename M>
+void check_normalized_mrp_rotation() {
+    const UKF::Vector<3> sources[] = {UKF::Vector<3>(1, 0, 0), UKF::Vector<3>(-0.2, 0.3, 0.8)};
+    const UKF::Vector<3> targets[] = {UKF::Vector<3>(0, 1, 0), UKF::Vector<3>(0.4, -0.3, 0.1)};
+    for (int i = 0; i < 2; ++i) {
+        const auto rotation = UKF::Detail::calculate_rotation_vector<M>(targets[i], sources[i]);
+        const auto q = UKF::Detail::rotation_vector_to_quaternion<M>(rotation);
+        EXPECT_LT((q * sources[i].normalized() - targets[i].normalized()).norm(), real_t(1e-5));
+        for (real_t scale : {real_t(0.1), real_t(10)}) {
+            const auto scaled = UKF::Detail::calculate_rotation_vector<M>(scale * targets[i], sources[i] / scale);
+            EXPECT_LT((scaled - rotation).norm(), real_t(1e-5));
+            const auto both_scaled = UKF::Detail::calculate_rotation_vector<M>(scale * targets[i], scale * sources[i]);
+            EXPECT_LT((both_scaled - rotation).norm(), real_t(1e-5));
+        }
+        UKF::Matrix<3, 3> numerical_jacobian;
+        const real_t h = sizeof(real_t) == sizeof(float) ? real_t(1e-3) : real_t(1e-5);
+        for (int j = 0; j < 3; ++j) {
+            UKF::Vector<3> plus = targets[i], minus = targets[i];
+            plus(j) += h;
+            minus(j) -= h;
+            numerical_jacobian.col(j) = (UKF::Detail::calculate_rotation_vector<M>(plus, sources[i]) -
+                UKF::Detail::calculate_rotation_vector<M>(minus, sources[i])) / (2*h);
+        }
+        const auto analytic_jacobian = UKF::Detail::calculate_rotation_vector_jacobian<M>(targets[i], sources[i]);
+        const real_t tolerance = sizeof(real_t) == sizeof(float) ? real_t(5e-3) : real_t(1e-6);
+        EXPECT_LT((numerical_jacobian - analytic_jacobian).norm(), tolerance);
+    }
+}
+
+TEST(MRPRotationTest, UnitA) { check_normalized_mrp_rotation<UnitMRPMeasurement>(); }
+TEST(MRPRotationTest, HalfA) { check_normalized_mrp_rotation<HalfMRPMeasurement>(); }
