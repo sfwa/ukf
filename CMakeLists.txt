@@ -68,9 +68,9 @@ function(ukf_project_warnings target)
         endif()
         if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND
                 CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 13 AND
-                UKF_USE_SYSTEM_EIGEN AND Eigen3_VERSION VERSION_EQUAL 3.4.0)
-            # GCC diagnoses unreachable packet/QR paths in Eigen 3.4.0 even
-            # with SYSTEM includes. Limit the workaround to dependency headers.
+                (NOT UKF_USE_SYSTEM_EIGEN OR Eigen3_VERSION VERSION_EQUAL 3.4.0))
+            # GCC diagnoses unreachable packet/QR/LLT paths in these Eigen
+            # versions even with SYSTEM includes. Limit this to dependency headers.
             target_compile_options(${target} PRIVATE
                 "-include${ukf_project_source_dir}/cmake/EigenGccWarnings.h")
         endif()
