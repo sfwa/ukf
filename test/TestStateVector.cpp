@@ -4,6 +4,8 @@
 #include "UKF/Types.h"
 #include "UKF/Integrator.h"
 #include "UKF/StateVector.h"
+#include "UKF/MeasurementVector.h"
+#include "UKF/Core.h"
 #include "comparisons.h"
 
 enum MyFields {
@@ -354,4 +356,57 @@ TEST(StateVectorTest, UpdateDelta) {
     expected_state.set_field<Altitude>(11);
 
     EXPECT_VECTOR_EQ(expected_state, test_state);
+}
+
+/* A direct model deliberately has no derivative specialization. */
+using DirectModelTestState = UKF::StateVector<UKF::Field<101, UKF::Vector<2>>>;
+using DirectModelTestMeasurement = UKF::FixedMeasurementVector<UKF::Field<102, UKF::Vector<2>>>;
+
+namespace UKF {
+template <> template <>
+DirectModelTestState DirectModelTestState::process_model<>(real_t dt) const {
+    return *this + dt * UKF::Vector<2>(1, -2);
+}
+
+template <> template <>
+DirectModelTestState DirectModelTestState::process_model<>(real_t dt, const real_t& speed) const {
+    return *this + dt * speed * UKF::Vector<2>(1, -2);
+}
+
+template <> template <>
+UKF::Vector<2> DirectModelTestMeasurement::expected_measurement<DirectModelTestState, 102>(
+        const DirectModelTestState& state) {
+    return state;
+}
+
+template <> template <>
+UKF::Vector<2> DirectModelTestMeasurement::expected_measurement<DirectModelTestState, 102, real_t>(
+        const DirectModelTestState& state, const real_t&) {
+    return state;
+}
+}
+
+TEST(StateVectorTest, DirectProcessModel) {
+    DirectModelTestState state;
+    state << 2, 3;
+    EXPECT_VECTOR_EQ(UKF::Vector<2>(2.5, 2), state.process_model(real_t(0.5)));
+    EXPECT_VECTOR_EQ(UKF::Vector<2>(3.5, 0), state.process_model(real_t(0.5), real_t(3)));
+}
+
+TEST(StateVectorTest, CoreDispatchesDirectProcessModel) {
+    UKF::Core<DirectModelTestState, DirectModelTestMeasurement> filter;
+    filter.state << 2, 3;
+    filter.covariance.setIdentity();
+    filter.process_noise_covariance.setZero();
+    filter.measurement_covariance.setOnes();
+    DirectModelTestMeasurement z;
+    z << 2.5, 2;
+    filter.step(real_t(0.5), z);
+    EXPECT_VECTOR_EQ(UKF::Vector<2>(2.5, 2), filter.state);
+    EXPECT_VECTOR_EQ(UKF::Vector<2>(0.5, 0.5), filter.covariance.diagonal());
+
+    z << 4, -1;
+    filter.step(real_t(0.5), z, real_t(3));
+    EXPECT_VECTOR_EQ(UKF::Vector<2>(4, -1), filter.state);
+    EXPECT_VECTOR_EQ(UKF::Vector<2>::Constant(real_t(1.0/3.0)), filter.covariance.diagonal());
 }
