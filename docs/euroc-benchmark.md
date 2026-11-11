@@ -158,12 +158,14 @@ reported without claiming statistical significance from a small sample.
 
 ## Recorded outcome
 
-The frozen implementation completed all **121 evaluations** on 2026-11-11.
+The implementation completed all **121 evaluations** again on 2026-11-12 after
+the CMake integration repair and a fix that eagerly evaluates the midpoint
+velocity, avoiding a dangling Eigen expression. Model parameters were unchanged.
 On the four primary Vicon validation sequences, mean inclination RMSE is
 **1.130°** for `mav-srukf`, compared with **1.615°** for adapted `vqf-mav`,
 **1.631°** for the joint-state gravity control, and **5.483°** for default VQF.
 This is a 30.0% reduction versus adapted VQF and 30.7% versus the gravity control.
-The MAV model has lower inclination error on all four reserved sequences.
+The MAV model still has lower inclination error on all four reserved sequences.
 That comparison supports a process-model benefit beyond changing the bias prior
 or allowable bias range; it is an observed effect on a small benchmark, not a
 claim of statistical significance or universal superiority.

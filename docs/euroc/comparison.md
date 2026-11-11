@@ -1,6 +1,6 @@
 # Recorded EuRoC MAV attitude comparison
 
-Recorded 2026-11-11. **121 evaluations**: all eleven sequences, eleven algorithms/variants, six-axis IMU input only.
+Recorded 2026-11-12. **121 evaluations**: all eleven sequences, eleven algorithms/variants, six-axis IMU input only.
 
 Values are arithmetic means of per-sequence RMSEs in degrees. Heading and total error use one fixed initial yaw alignment; absolute heading is unobservable. The primary process-model target is inclination accuracy.
 
@@ -15,7 +15,7 @@ V1_03_difficult and V2_01_easy, V2_02_medium, V2_03_difficult were reserved from
 | robust-rest | 4 | 5.221 | 102.869 | 102.962 |
 | robust-acc | 4 | 13.468 | 102.018 | 102.644 |
 | robust | 4 | 13.517 | 102.018 | 102.648 |
-| mav-srukf | 4 | 1.130 | 2.844 | 3.116 |
+| mav-srukf | 4 | 1.130 | 2.844 | 3.117 |
 | mav-srukf-gravity | 4 | 1.631 | 3.311 | 3.779 |
 | madgwick | 4 | 8.812 | 100.709 | 100.995 |
 | mahony | 4 | 3.295 | 92.538 | 92.587 |
@@ -47,7 +47,7 @@ Includes five Machine Hall recordings with no independent optical orientation ob
 | Algorithm | Sequences | Inclination | Heading | Total |
 |---|---:|---:|---:|---:|
 | ukf | 11 | 4.000 | 83.389 | 83.550 |
-| srukf | 11 | 3.999 | 82.754 | 82.915 |
+| srukf | 11 | 4.002 | 83.000 | 83.160 |
 | robust-rest | 11 | 4.783 | 105.663 | 105.742 |
 | robust-acc | 11 | 13.035 | 105.176 | 105.741 |
 | robust | 11 | 13.063 | 105.176 | 105.743 |
@@ -68,16 +68,16 @@ Inclination RMSE in degrees. The gravity control shares the MAV estimator config
 | MH_02_easy | validation | 2.749 | 2.739 | 5.213 | 2.249 |
 | MH_03_medium | validation | 1.944 | 1.090 | 5.304 | 2.183 |
 | MH_04_difficult | validation | 1.671 | 1.118 | 5.241 | 2.681 |
-| MH_05_difficult | validation | 1.390 | 0.942 | 5.077 | 1.467 |
+| MH_05_difficult | validation | 1.390 | 0.943 | 5.077 | 1.467 |
 | V1_01_easy | validation | 3.961 | 2.964 | 2.795 | 2.847 |
-| V1_02_medium | development | 1.176 | 0.759 | 5.384 | 1.391 |
-| V1_03_difficult | validation | 1.385 | 0.966 | 4.554 | 1.417 |
+| V1_02_medium | development | 1.176 | 0.760 | 5.384 | 1.391 |
+| V1_03_difficult | validation | 1.385 | 0.967 | 4.554 | 1.417 |
 | V2_01_easy | validation | 1.328 | 1.145 | 5.650 | 1.649 |
-| V2_02_medium | validation | 2.035 | 1.285 | 5.724 | 1.555 |
-| V2_03_difficult | validation | 1.775 | 1.123 | 6.005 | 1.838 |
+| V2_02_medium | validation | 2.035 | 1.286 | 5.724 | 1.555 |
+| V2_03_difficult | validation | 1.775 | 1.121 | 6.005 | 1.838 |
 
 Development used MH_01_easy and V1_02_medium. All estimators process complete sensor recordings; no ground-truth position, velocity or bias enters an estimator, and no reference-derived flight mask selects favorable intervals. Configuration changes and model limitations are described in the methodology.
 
 [Methodology](../euroc-benchmark.md) · [Per-sequence metrics](per-sequence.csv) · [Configuration and provenance](provenance.json)
 
-Linux x86_64, GCC 14.2.0, CMake 3.31.10, Release, double precision; Python 3.12.14 and pinned reference packages. The recorded source and executable hashes identify the replayed implementation. Timing is diagnostic, not a cross-language speed ranking.
+Release build with GCC 14.2.0, C++17, warnings treated as errors, patched Eigen 3.2.8, UKF double precision and Python 3.12.14. The recorded source and executable hashes identify the replayed implementation. Timing is diagnostic, not a cross-language speed ranking.
