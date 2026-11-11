@@ -29,6 +29,7 @@ SOFTWARE.
 #include "UKF/StateVector.h"
 #include "UKF/Covariance.h"
 #include <type_traits>
+#include <utility>
 
 namespace UKF {
 
@@ -89,6 +90,20 @@ public:
         a_priori_step(delta, input...);
         innovation_step(z, input...);
         a_posteriori_step();
+    }
+
+    /*
+    Evaluate a user-provided gate after prediction and innovation calculation.
+    The gate receives this filter as const, the measurement, and model inputs.
+    False rejects the complete measurement, retaining the predicted state and
+    covariance along with the innovation diagnostics. Empty innovations are
+    rejected without calling the gate. True means the correction was applied.
+    */
+    template <typename Gate, typename... U>
+    bool step_with_gate(real_t delta, const MeasurementVectorType& z, Gate&& gate, const U&... input) {
+        a_priori_step(delta, input...);
+        innovation_step(z, input...);
+        return a_posteriori_step(std::forward<Gate>(gate), z, input...);
     }
 
     /*
@@ -165,6 +180,21 @@ public:
     out innovation consistency checks and identify failed sensors, if
     desired.
     */
+    /*
+    Split-step gating hook. Call after innovation_step; any context arguments
+    are passed unchanged to gate(const Filter&, context...). The callable is
+    neither stored nor copied, and rejection does not apply a correction.
+    */
+    template <typename Gate, typename... U>
+    bool a_posteriori_step(Gate&& gate, const U&... context) {
+        if (innovation.size() == 0 ||
+                !std::forward<Gate>(gate)(static_cast<const Core&>(*this), context...)) {
+            return false;
+        }
+        a_posteriori_step();
+        return true;
+    }
+
     void a_posteriori_step() {
         /*
         Calculate the cross-correlation matrix described in equations 70 and
@@ -261,6 +291,20 @@ public:
     }
 
     /*
+    Evaluate a user-provided gate after prediction and innovation calculation.
+    The gate receives this filter as const, the measurement, and model inputs.
+    False rejects the complete measurement, retaining the predicted state and
+    covariance along with the innovation diagnostics. Empty innovations are
+    rejected without calling the gate. True means the correction was applied.
+    */
+    template <typename Gate, typename... U>
+    bool step_with_gate(real_t delta, const MeasurementVectorType& z, Gate&& gate, const U&... input) {
+        a_priori_step(delta, input...);
+        innovation_step(z, input...);
+        return a_posteriori_step(std::forward<Gate>(gate), z, input...);
+    }
+
+    /*
     The a priori step differs from the standard UKF in that it doesn't
     compute the LLT decomposition of the state covariance matrix.
 
@@ -336,6 +380,11 @@ public:
 
         /* Calculate innovation and innovation root covariance. */
         innovation = z_pred.calculate_innovation(z);
+        if (innovation.size() == 0) {
+            // Keep diagnostics current without passing an empty matrix to QR.
+            innovation_root_covariance.resize(0, 0);
+            return;
+        }
 
         /*
         Create an augmented matrix containing all but the centre innovation
@@ -379,6 +428,21 @@ public:
     gain using a QR decomposition, and then updates the root covariance using
     a series of rank-one Cholesky updates.
     */
+    /*
+    Split-step gating hook. Call after innovation_step; any context arguments
+    are passed unchanged to gate(const Filter&, context...). The callable is
+    neither stored nor copied, and rejection does not apply a correction.
+    */
+    template <typename Gate, typename... U>
+    bool a_posteriori_step(Gate&& gate, const U&... context) {
+        if (innovation.size() == 0 ||
+                !std::forward<Gate>(gate)(static_cast<const SquareRootCore&>(*this), context...)) {
+            return false;
+        }
+        a_posteriori_step();
+        return true;
+    }
+
     void a_posteriori_step() {
         /*
         Calculate the cross-correlation matrix described in equations 70 and
@@ -485,6 +549,20 @@ public:
     }
 
     /*
+    Evaluate a user-provided gate after prediction and innovation calculation.
+    The gate receives this filter as const, the measurement, and model inputs.
+    False rejects the complete measurement, retaining the predicted state and
+    covariance along with the innovation diagnostics. Empty innovations are
+    rejected without calling the gate. True means the correction was applied.
+    */
+    template <typename Gate, typename... U>
+    bool step_with_gate(const MeasurementVectorType& z, Gate&& gate, const U&... input) {
+        a_priori_step();
+        innovation_step(z, input...);
+        return a_posteriori_step(std::forward<Gate>(gate), z, input...);
+    }
+
+    /*
     For the parameter estimation filter, there is no need for a process
     model, which allows the a priori step to be optimised significantly.
     There's no need to propagate the sigma points through a process model,
@@ -526,6 +604,11 @@ public:
 
         /* Calculate innovation and innovation root covariance. */
         innovation = z_pred.calculate_innovation(z);
+        if (innovation.size() == 0) {
+            // Keep diagnostics current without passing an empty matrix to QR.
+            innovation_root_covariance.resize(0, 0);
+            return;
+        }
 
         /*
         Create an augmented matrix containing all but the centre innovation
@@ -569,6 +652,21 @@ public:
     gain using a QR decomposition, and then updates the root covariance using
     a series of rank-one Cholesky updates.
     */
+    /*
+    Split-step gating hook. Call after innovation_step; any context arguments
+    are passed unchanged to gate(const Filter&, context...). The callable is
+    neither stored nor copied, and rejection does not apply a correction.
+    */
+    template <typename Gate, typename... U>
+    bool a_posteriori_step(Gate&& gate, const U&... context) {
+        if (innovation.size() == 0 ||
+                !std::forward<Gate>(gate)(static_cast<const SquareRootParameterEstimationCore&>(*this), context...)) {
+            return false;
+        }
+        a_posteriori_step();
+        return true;
+    }
+
     void a_posteriori_step() {
         /*
         Calculate the cross-correlation matrix described in equations 70 and

@@ -35,6 +35,7 @@ ADD_EXECUTABLE(unittest
     TestFixedMeasurementVector.cpp
     TestDynamicMeasurementVector.cpp
     TestCore.cpp
+    TestInnovationGating.cpp
     TestSquareRootCore.cpp)
 
 # Create dependency of test on googletest
