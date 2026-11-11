@@ -486,6 +486,29 @@ TEST(FixedMeasurementVectorTest, SigmaPointCovariance) {
     EXPECT_VECTOR_EQ(expected_covariance.col(10),  calculated_covariance.col(10));
 }
 
+TEST(FixedMeasurementVectorTest, TwoComponentCovarianceRetainsBothVariances) {
+    using Measurement = UKF::FixedMeasurementVector<UKF::Field<190, UKF::Vector<2>>>;
+    Measurement measurement;
+    measurement << 2.5, 2;
+    Measurement::CovarianceVector noise;
+    noise.setOnes();
+
+    // Exercise accumulation, as used when building innovation covariance.
+    Measurement::CovarianceMatrix covariance = Measurement::CovarianceMatrix::Identity();
+    covariance += measurement.calculate_measurement_covariance(noise, measurement);
+    EXPECT_EQ(real_t(2), covariance(0, 0));
+    EXPECT_EQ(real_t(2), covariance(1, 1));
+    EXPECT_EQ(real_t(0), covariance(0, 1));
+    EXPECT_EQ(real_t(0), covariance(1, 0));
+
+    Measurement::CovarianceMatrix root = Measurement::CovarianceMatrix::Identity();
+    root += measurement.calculate_measurement_root_covariance(noise, measurement);
+    EXPECT_EQ(real_t(2), root(0, 0));
+    EXPECT_EQ(real_t(2), root(1, 1));
+    EXPECT_EQ(real_t(0), root(0, 1));
+    EXPECT_EQ(real_t(0), root(1, 0));
+}
+
 TEST(FixedMeasurementVectorTest, MeasurementCovariance) {
     MyMeasurementVector test_measurement, expected_measurement;
     MyMeasurementVector::CovarianceVector measurement_covariance;
