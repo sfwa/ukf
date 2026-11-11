@@ -47,7 +47,8 @@ The attitude-related code makes use of the MRP method described in the paper
 "Unscented Filtering for Spacecraft Attitude Estimation" by John L. Crassidis
 and F. Landis Markley.
 */
-template <typename StateVectorType, typename MeasurementVectorType, typename IntegratorType=NotUsedIntegrator>
+template <typename StateVectorType, typename MeasurementVectorType, typename IntegratorType=NotUsedIntegrator,
+    typename MeasurementNoiseType=typename MeasurementVectorType::CovarianceVector>
 class Core {
 protected:
     typename StateVectorType::SigmaPointDistribution sigma_points;
@@ -72,9 +73,10 @@ public:
     /*
     Measurement noise covariance is an attribute of the filter instance,
     rather than the MeasurementVector specialisation.
-    Only diagonal measurement noise covariance is supported at the moment.
+    Defaults to a vector of diagonal variances. Use DenseCovarianceMatrix as
+    MeasurementNoiseType to retain correlations between sensor components.
     */
-    typename MeasurementVectorType::CovarianceVector measurement_covariance;
+    MeasurementNoiseType measurement_covariance;
 
     /*
     Innovation and innovation covariance are public to ease implementation of
@@ -212,7 +214,8 @@ http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.80.1421&rep=rep1&type=p
 The SR-UKF has a number of numerical and stability advantages over the
 standard UKF, and a lower computational cost.
 */
-template <typename StateVectorType, typename MeasurementVectorType, typename IntegratorType>
+template <typename StateVectorType, typename MeasurementVectorType, typename IntegratorType,
+    typename MeasurementNoiseType=typename MeasurementVectorType::CovarianceVector>
 class SquareRootCore {
 protected:
     typename StateVectorType::SigmaPointDistribution sigma_points;
@@ -240,10 +243,10 @@ public:
     /*
     Measurement noise root covariance is an attribute of the filter instance,
     rather than the MeasurementVector specialisation.
-    Only diagonal measurement noise root covariance is supported at the
-    moment.
+    Defaults to a vector of standard deviations. Use DenseCovarianceMatrix
+    as MeasurementNoiseType for a full factor L with noise covariance L*L^T.
     */
-    typename MeasurementVectorType::CovarianceVector measurement_root_covariance;
+    MeasurementNoiseType measurement_root_covariance;
 
     /*
     Innovation covariance is also stored in square-root form as described
@@ -353,11 +356,14 @@ public:
             MeasurementVectorType::MaxRowsAtCompileTime,
             StateVectorType::num_sigma() - 1 + MeasurementVectorType::MaxRowsAtCompileTime>;
 
-        AugmentedInnovationDeltas augmented_z_prime(z.size(), StateVectorType::num_sigma() - 1 + z.size());
+        const auto measurement_noise_root =
+            z.calculate_measurement_root_covariance(measurement_root_covariance, z_pred);
+        AugmentedInnovationDeltas augmented_z_prime(
+            z.size(), StateVectorType::num_sigma() - 1 + measurement_noise_root.cols());
         augmented_z_prime.block(0, 0, z.size(), StateVectorType::num_sigma() - 1) =
             std::sqrt(Parameters::Sigma_WCI<StateVectorType>) * z_prime.rightCols(StateVectorType::num_sigma() - 1);
-        augmented_z_prime.block(0, StateVectorType::num_sigma() - 1, z.size(), z.size()) =
-            z.calculate_measurement_root_covariance(measurement_root_covariance, z_pred);
+        augmented_z_prime.block(0, StateVectorType::num_sigma() - 1, z.size(), measurement_noise_root.cols()) =
+            measurement_noise_root;
 
         /*
         Calculate the QR decomposition of the augmented innovation deltas.
@@ -436,7 +442,8 @@ estimation, described in the paper
 by Rudolph van der Merwe and Eric A. Wan, retrieved from:
 http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.80.1421&rep=rep1&type=pdf
 */
-template <typename StateVectorType, typename MeasurementVectorType>
+template <typename StateVectorType, typename MeasurementVectorType,
+    typename MeasurementNoiseType=typename MeasurementVectorType::CovarianceVector>
 class SquareRootParameterEstimationCore {
 protected:
     typename StateVectorType::SigmaPointDistribution sigma_points;
@@ -464,10 +471,10 @@ public:
     /*
     Measurement noise root covariance is an attribute of the filter instance,
     rather than the MeasurementVector specialisation.
-    Only diagonal measurement noise root covariance is supported at the
-    moment.
+    Defaults to a vector of standard deviations. Use DenseCovarianceMatrix
+    as MeasurementNoiseType for a full factor L with noise covariance L*L^T.
     */
-    typename MeasurementVectorType::CovarianceVector measurement_root_covariance;
+    MeasurementNoiseType measurement_root_covariance;
 
     /*
     Innovation covariance is also stored in square-root form as described
@@ -543,11 +550,14 @@ public:
             MeasurementVectorType::MaxRowsAtCompileTime,
             StateVectorType::num_sigma() - 1 + MeasurementVectorType::MaxRowsAtCompileTime>;
 
-        AugmentedInnovationDeltas augmented_z_prime(z.size(), StateVectorType::num_sigma() - 1 + z.size());
+        const auto measurement_noise_root =
+            z.calculate_measurement_root_covariance(measurement_root_covariance, z_pred);
+        AugmentedInnovationDeltas augmented_z_prime(
+            z.size(), StateVectorType::num_sigma() - 1 + measurement_noise_root.cols());
         augmented_z_prime.block(0, 0, z.size(), StateVectorType::num_sigma() - 1) =
             std::sqrt(Parameters::Sigma_WCI<StateVectorType>) * z_prime.rightCols(StateVectorType::num_sigma() - 1);
-        augmented_z_prime.block(0, StateVectorType::num_sigma() - 1, z.size(), z.size()) =
-            z.calculate_measurement_root_covariance(measurement_root_covariance, z_pred);
+        augmented_z_prime.block(0, StateVectorType::num_sigma() - 1, z.size(), measurement_noise_root.cols()) =
+            measurement_noise_root;
 
         /*
         Calculate the QR decomposition of the augmented innovation deltas.

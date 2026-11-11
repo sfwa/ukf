@@ -34,6 +34,7 @@ ADD_EXECUTABLE(unittest
     TestStateVector.cpp
     TestFixedMeasurementVector.cpp
     TestDynamicMeasurementVector.cpp
+    TestDenseMeasurementCovariance.cpp
     TestCore.cpp
     TestSquareRootCore.cpp)
 

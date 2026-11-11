@@ -121,6 +121,17 @@ namespace UKF {
     template <typename M, typename S = StateVector<UKF::Field<0, real_t>>>
     class MeasurementStateHelper {
     public:
+        /* Map sensor noise into the corresponding innovation coordinates. */
+        template <typename T>
+        static Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> noise_jacobian(
+                const T& z_pred, const T& z) {
+            return Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>>::Identity();
+        }
+
+        static Matrix<3, 3> noise_jacobian(const FieldVector& z_pred, const FieldVector& z) {
+            return Detail::calculate_rotation_vector_jacobian<M>(z, z_pred);
+        }
+
         /*
         Functions for calculating the covariance of a field in the
         measurement vector.
@@ -295,6 +306,8 @@ public:
     using SigmaPointDeltas = Matrix<FixedMeasurementVector::covariance_size(), S::num_sigma()>;
     using CovarianceMatrix = Matrix<covariance_size(), covariance_size()>;
     using CovarianceVector = FixedMeasurementVector<Fields...>;
+    // Dense sensor noise always follows the declared field order.
+    using DenseCovarianceMatrix = CovarianceMatrix;
 
     /* Functions for accessing individual fields. */
     template <int Key>
@@ -396,6 +409,22 @@ public:
         return temp;
     }
 
+    /* Dense noise is expressed in raw sensor coordinates and declared field order. */
+    CovarianceMatrix calculate_measurement_covariance(const DenseCovarianceMatrix& measurement_covariance,
+            const FixedMeasurementVector& z_pred) const {
+        DenseCovarianceMatrix transform = DenseCovarianceMatrix::Zero();
+        (calculate_field_noise_transform<Fields>(transform, z_pred), ...);
+        return transform * measurement_covariance * transform.transpose();
+    }
+
+    /* Keep every factor column: selecting columns would discard noise variance. */
+    DenseCovarianceMatrix calculate_measurement_root_covariance(const DenseCovarianceMatrix& measurement_root_covariance,
+            const FixedMeasurementVector& z_pred) const {
+        DenseCovarianceMatrix transform = DenseCovarianceMatrix::Zero();
+        (calculate_field_noise_transform<Fields>(transform, z_pred), ...);
+        return transform * measurement_root_covariance;
+    }
+
     /* Return the innovation using the supplied measurement vector. */
     FixedMeasurementVector calculate_innovation(const FixedMeasurementVector& z) const {
         FixedMeasurementVector temp;
@@ -446,6 +475,15 @@ private:
     These functions build the measurement covariance from all fields in the
     measurement vector.
     */
+    template <typename T>
+    void calculate_field_noise_transform(DenseCovarianceMatrix& transform, const FixedMeasurementVector& z_pred) const {
+        constexpr std::size_t offset = Detail::get_field_covariance_offset<0, Fields...>(T::key);
+        transform.template block<Detail::CovarianceDimension<typename T::type>,
+            Detail::CovarianceDimension<typename T::type>>(offset, offset) =
+                Detail::MeasurementStateHelper<FixedMeasurementVector>::noise_jacobian(
+                    z_pred.template get_field<T::key>(), get_field<T::key>());
+    }
+
     template <typename T>
     void calculate_field_covariance(CovarianceMatrix& P, const CovarianceVector& measurement_covariance,
             const FixedMeasurementVector& z_pred) const {
@@ -566,6 +604,10 @@ public:
     using SigmaPointDeltas = MatrixDynamic<DynamicMeasurementVector::max_covariance_size(), S::num_sigma()>;
     using CovarianceMatrix = MatrixDynamic<max_covariance_size(), max_covariance_size()>;
     using CovarianceVector = FixedMeasurementVector<Fields...>;
+    // Dense sensor noise includes all declared fields, even when some are absent.
+    using DenseCovarianceMatrix = Matrix<max_covariance_size(), max_covariance_size()>;
+    using DenseNoiseRootMatrix = Eigen::Matrix<real_t, Eigen::Dynamic, max_covariance_size(),
+        Eigen::ColMajor, max_covariance_size(), max_covariance_size()>;
 
     /* Test if an individual field is set. */
     template <int Key>
@@ -709,6 +751,22 @@ public:
         return temp;
     }
 
+    /* Dense noise is expressed in raw sensor coordinates and declared field order. */
+    CovarianceMatrix calculate_measurement_covariance(const DenseCovarianceMatrix& measurement_covariance,
+            const DynamicMeasurementVector& z_pred) const {
+        DenseNoiseRootMatrix transform = DenseNoiseRootMatrix::Zero(Base::size(), max_covariance_size());
+        (calculate_field_noise_transform<Fields>(transform, z_pred), ...);
+        return transform * measurement_covariance * transform.transpose();
+    }
+
+    /* Keep every factor column: selecting columns would discard noise variance. */
+    DenseNoiseRootMatrix calculate_measurement_root_covariance(const DenseCovarianceMatrix& measurement_root_covariance,
+            const DynamicMeasurementVector& z_pred) const {
+        DenseNoiseRootMatrix transform = DenseNoiseRootMatrix::Zero(Base::size(), max_covariance_size());
+        (calculate_field_noise_transform<Fields>(transform, z_pred), ...);
+        return transform * measurement_root_covariance;
+    }
+
     /* Return the innovation using the supplied measurement vector. */
     DynamicMeasurementVector calculate_innovation(const DynamicMeasurementVector& z) const {
         DynamicMeasurementVector temp(Base::size());
@@ -777,6 +835,18 @@ private:
     These functions build the measurement covariance from all populated
     fields.
     */
+    template <typename T>
+    void calculate_field_noise_transform(DenseNoiseRootMatrix& transform, const DynamicMeasurementVector& z_pred) const {
+        const std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(T::key)>(field_offsets);
+        if (offset != std::numeric_limits<std::size_t>::max()) {
+            constexpr std::size_t noise_offset = Detail::get_field_covariance_offset<0, Fields...>(T::key);
+            transform.template block<Detail::CovarianceDimension<typename T::type>,
+                Detail::CovarianceDimension<typename T::type>>(offset, noise_offset) =
+                    Detail::MeasurementStateHelper<DynamicMeasurementVector>::noise_jacobian(
+                        z_pred.template get_field<T::key>(), get_field<T::key>());
+        }
+    }
+
     template <typename T>
     void calculate_field_covariance(CovarianceMatrix& P, const CovarianceVector& measurement_covariance,
             const DynamicMeasurementVector& z_pred) const {
