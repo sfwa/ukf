@@ -1,0 +1,10 @@
+add_executable(attitude_benchmark estimator.cpp robust_estimator.cpp)
+target_compile_definitions(attitude_benchmark PRIVATE UKF_DOUBLE_PRECISION)
+target_include_directories(attitude_benchmark PRIVATE ../../include ${eigen_dir})
+add_dependencies(attitude_benchmark eigen3)
+
+add_executable(robust_geometry_test test_robust_geometry.cpp)
+target_compile_definitions(robust_geometry_test PRIVATE UKF_DOUBLE_PRECISION)
+target_include_directories(robust_geometry_test PRIVATE ../../include ${eigen_dir})
+add_dependencies(robust_geometry_test eigen3)
+add_dependencies(attitude_benchmark robust_geometry_test)

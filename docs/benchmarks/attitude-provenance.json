@@ -1,0 +1,2371 @@
+{
+  "broad": {
+    "scope": "full selected datasets",
+    "revision": "8ec099b0312a7d86a988bb65cc3ebd7675f86211",
+    "dirty": false,
+    "source_sha256": {
+      "examples/attitude_benchmark/CMakeLists.txt": "73c063b9278b5bf6aa997f2675037f87ffa53371650e6bfa2ccbee5eb6018da7",
+      "examples/attitude_benchmark/datasets.lock.json": "186770478d3e702911ba4d0bdfd712977535261cfd0a34342c4a2077f259bea5",
+      "examples/attitude_benchmark/datasets.py": "e73adba68b74eda802f6c3092939112f38ead066d4d50fe931d156409c5695e2",
+      "examples/attitude_benchmark/estimator.cpp": "c7db9fc114facfbf1ab0e2c32f2676783f5751f13780611106345150ff7b4035",
+      "examples/attitude_benchmark/metrics.py": "8e66283acaca20fe56d845ea3a237583780d877a1eba37282a9680cecf9827b4",
+      "examples/attitude_benchmark/references.py": "a0faafb3109f9931999277bcecc80cd0932524cf2a7dc9de4029bd304074f95c",
+      "examples/attitude_benchmark/requirements.txt": "047bf25111774a6343100d73aa2675a807a79712e015666e4e6943e95b3b3a52",
+      "examples/attitude_benchmark/robust_correction.h": "bf3b42c73547393395a8a43a9bfd2b476595d594a8b222e97e37eeb4f01f8d02",
+      "examples/attitude_benchmark/robust_estimator.cpp": "23df5a5aeb23fe3b1b6ae24cc957be646ce39522345b505c77489955c4dced23",
+      "examples/attitude_benchmark/robust_estimator.h": "eda2ad771fbf5ab4d86743bd75c94c7ade58c1a7bcf48a2e2bf3775272df9fba",
+      "examples/attitude_benchmark/robust_geometry.h": "943c67b1811ea052fc99559ee93968a982c9ab27782cfd95ca6dc8fcd32c9e95",
+      "examples/attitude_benchmark/run.py": "7de16e7863e96f17b36f957f9b83f7233f3caf137e5e5b7571ddbd07017e1377",
+      "include/UKF/Config.h": "cb7ecbc40d15a5689d07dd649ceb52c61d8a6d43119ca4a3d910ff58aedf11a5",
+      "include/UKF/Core.h": "f2a19e9015dec20aa4e754cce2add1eec015dfa25bb7ae931ce795eb70bddb30",
+      "include/UKF/Covariance.h": "3fc9aa2e42a47af716a1e8ddde2936f9d3d5e6aa67bf58147eb48c813abb25d6",
+      "include/UKF/Integrator.h": "51fdc85bd7d47a838d7fc8fd32a6234d9faa1f6a54888a37c9c90bf07bf427e0",
+      "include/UKF/MeasurementVector.h": "7d5c3f378996ffbbf4897b7a53e8cb305aab343b06a5952cd8911239efc89da7",
+      "include/UKF/StateVector.h": "960e22d464e352076fb90b5c34216407b29b9701f32686b88095a3d4b8631234",
+      "include/UKF/Types.h": "bf54e8b21656402f2a24b03491a148cd81acf11a2f3222b9ddb65b3db512a272"
+    },
+    "binary_sha256": "a85da439efab3374787131953eb66c1bf76546d12adbd6b907ddd4c32de6ad14",
+    "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+    "machine": "x86_64",
+    "packages": {
+      "numpy": "2.2.6",
+      "scipy": "1.15.3",
+      "h5py": "3.13.0",
+      "ahrs": "0.4.0",
+      "vqf": "2.0.1"
+    },
+    "reference_parameters": {
+      "madgwick": {
+        "implementation": "ahrs 0.4.0",
+        "gain": 0.05
+      },
+      "mahony": {
+        "implementation": "ahrs 0.4.0",
+        "k_P": 1.0,
+        "k_I": 0.3
+      },
+      "vqf": {
+        "implementation": "vqf 2.0.1",
+        "parameters": "online defaults"
+      }
+    },
+    "cpp_parameters": {
+      "robust": {
+        "stage": "robust",
+        "attitude": "quaternion-only SR-UKF",
+        "bias": "separate rest-only SR-UKF",
+        "gravity_gain_constraint": "horizontal left/world Gibbs error",
+        "covariance_reset": "analytic left-Gibbs transport",
+        "unscented_alpha_squared": 1,
+        "unscented_beta": 2,
+        "unscented_kappa": 0,
+        "mrp_a": 0,
+        "mrp_f": 2,
+        "gyro_integration": "exact quaternion increment, midpoint gyro minus previous bias estimate",
+        "initial_attitude_sigma_rad": 0.05,
+        "initial_bias_sigma_deg_s": 0.5,
+        "gravity_observation": "two-dimensional predicted-gravity tangent plane",
+        "raw_acc_direction_sigma": 0.1,
+        "filtered_acc_direction_sigma_base": 0.002,
+        "filtered_acc_sigma_formula": "0.002*sqrt(max(1,6/observation_dt))",
+        "attitude_covariance_scope": "conditional on separate bias estimate; filtered-observation R is an effective model",
+        "acceleration_filter_enabled": true,
+        "magnetic_rejection_enabled": true,
+        "acceleration_rejection_enabled": true,
+        "acc_tau_seconds": 3,
+        "correction_period_seconds": 0.05,
+        "rest_min_seconds": 1.5,
+        "rest_filter_tau_seconds": 0.5,
+        "rest_gyro_threshold_deg_s": 2,
+        "rest_absolute_filtered_gyro_limit_deg_s": 2,
+        "rest_acc_threshold_m_s2": 0.5,
+        "gyro_noise_rad_sqrt_s": 0.02,
+        "bias_random_walk_deg_s_sqrt_s": 0.01,
+        "mag_tau_seconds": 9,
+        "mag_norm_threshold_fraction": 0.1,
+        "rest_bias_target_sigma_deg_s": 0.03,
+        "rest_bias_effective_R": "P_target^2/Q_interval+P_target",
+        "bias_health_bound_deg_s": 2.1,
+        "mag_norm_dip_lowpass_tau_seconds": 0.05,
+        "mag_reference_tau_seconds": 20,
+        "mag_dip_threshold_degrees": 10,
+        "mag_good_dwell_seconds": 0.5,
+        "mag_new_field_rotation_seconds": 20,
+        "mag_new_field_min_rotation_deg_s": 20,
+        "heading_startup": "first usable magnetic sample",
+        "gravity_m_s2": 9.80665,
+        "acc_norm_reject_fraction": 0.3,
+        "acc_max_innovation_degrees": 60,
+        "acc_norm_gating_location": "measurement and rest updates; nonzero LPF input retained"
+      },
+      "robust-acc": {
+        "stage": "robust-acc",
+        "attitude": "quaternion-only SR-UKF",
+        "bias": "separate rest-only SR-UKF",
+        "gravity_gain_constraint": "horizontal left/world Gibbs error",
+        "covariance_reset": "analytic left-Gibbs transport",
+        "unscented_alpha_squared": 1,
+        "unscented_beta": 2,
+        "unscented_kappa": 0,
+        "mrp_a": 0,
+        "mrp_f": 2,
+        "gyro_integration": "exact quaternion increment, midpoint gyro minus previous bias estimate",
+        "initial_attitude_sigma_rad": 0.05,
+        "initial_bias_sigma_deg_s": 0.5,
+        "gravity_observation": "two-dimensional predicted-gravity tangent plane",
+        "raw_acc_direction_sigma": 0.1,
+        "filtered_acc_direction_sigma_base": 0.002,
+        "filtered_acc_sigma_formula": "0.002*sqrt(max(1,6/observation_dt))",
+        "attitude_covariance_scope": "conditional on separate bias estimate; filtered-observation R is an effective model",
+        "acceleration_filter_enabled": true,
+        "magnetic_rejection_enabled": false,
+        "acceleration_rejection_enabled": false,
+        "acc_tau_seconds": 3,
+        "correction_period_seconds": 0.05,
+        "rest_min_seconds": 1.5,
+        "rest_filter_tau_seconds": 0.5,
+        "rest_gyro_threshold_deg_s": 2,
+        "rest_absolute_filtered_gyro_limit_deg_s": 2,
+        "rest_acc_threshold_m_s2": 0.5,
+        "gyro_noise_rad_sqrt_s": 0.02,
+        "bias_random_walk_deg_s_sqrt_s": 0.01,
+        "mag_tau_seconds": 9,
+        "mag_norm_threshold_fraction": 0.1,
+        "rest_bias_target_sigma_deg_s": 0.03,
+        "rest_bias_effective_R": "P_target^2/Q_interval+P_target",
+        "bias_health_bound_deg_s": 2.1,
+        "mag_norm_dip_lowpass_tau_seconds": 0.05,
+        "mag_reference_tau_seconds": 20,
+        "mag_dip_threshold_degrees": 10,
+        "mag_good_dwell_seconds": 0.5,
+        "mag_new_field_rotation_seconds": 20,
+        "mag_new_field_min_rotation_deg_s": 20,
+        "heading_startup": "first usable magnetic sample",
+        "gravity_m_s2": 9.80665,
+        "acc_norm_reject_fraction": 0.3,
+        "acc_max_innovation_degrees": 60,
+        "acc_norm_gating_location": "measurement and rest updates; nonzero LPF input retained"
+      },
+      "robust-rest": {
+        "stage": "robust-rest",
+        "attitude": "quaternion-only SR-UKF",
+        "bias": "separate rest-only SR-UKF",
+        "gravity_gain_constraint": "horizontal left/world Gibbs error",
+        "covariance_reset": "analytic left-Gibbs transport",
+        "unscented_alpha_squared": 1,
+        "unscented_beta": 2,
+        "unscented_kappa": 0,
+        "mrp_a": 0,
+        "mrp_f": 2,
+        "gyro_integration": "exact quaternion increment, midpoint gyro minus previous bias estimate",
+        "initial_attitude_sigma_rad": 0.05,
+        "initial_bias_sigma_deg_s": 0.5,
+        "gravity_observation": "two-dimensional predicted-gravity tangent plane",
+        "raw_acc_direction_sigma": 0.1,
+        "filtered_acc_direction_sigma_base": 0.002,
+        "filtered_acc_sigma_formula": "0.002*sqrt(max(1,6/observation_dt))",
+        "attitude_covariance_scope": "conditional on separate bias estimate; filtered-observation R is an effective model",
+        "acceleration_filter_enabled": false,
+        "magnetic_rejection_enabled": false,
+        "acceleration_rejection_enabled": false,
+        "acc_tau_seconds": 3,
+        "correction_period_seconds": 0.05,
+        "rest_min_seconds": 1.5,
+        "rest_filter_tau_seconds": 0.5,
+        "rest_gyro_threshold_deg_s": 2,
+        "rest_absolute_filtered_gyro_limit_deg_s": 2,
+        "rest_acc_threshold_m_s2": 0.5,
+        "gyro_noise_rad_sqrt_s": 0.02,
+        "bias_random_walk_deg_s_sqrt_s": 0.01,
+        "mag_tau_seconds": 9,
+        "mag_norm_threshold_fraction": 0.1,
+        "rest_bias_target_sigma_deg_s": 0.03,
+        "rest_bias_effective_R": "P_target^2/Q_interval+P_target",
+        "bias_health_bound_deg_s": 2.1,
+        "mag_norm_dip_lowpass_tau_seconds": 0.05,
+        "mag_reference_tau_seconds": 20,
+        "mag_dip_threshold_degrees": 10,
+        "mag_good_dwell_seconds": 0.5,
+        "mag_new_field_rotation_seconds": 20,
+        "mag_new_field_min_rotation_deg_s": 20,
+        "heading_startup": "first usable magnetic sample",
+        "gravity_m_s2": 9.80665,
+        "acc_norm_reject_fraction": 0.3,
+        "acc_max_innovation_degrees": 60,
+        "acc_norm_gating_location": "measurement and rest updates; nonzero LPF input retained"
+      }
+    },
+    "cpp_configuration": "Fixed defaults in source_sha256; robust stage names select cumulative feature additions.",
+    "datasets": [
+      "broad"
+    ],
+    "axes": [
+      6,
+      9
+    ],
+    "algorithms": [
+      "ukf",
+      "srukf",
+      "robust-rest",
+      "robust-acc",
+      "robust",
+      "madgwick",
+      "mahony",
+      "vqf"
+    ],
+    "split": "all",
+    "split_protocol": {
+      "name": "robust-development-v1",
+      "development_broad": [
+        "01",
+        "08",
+        "10",
+        "24",
+        "28"
+      ],
+      "development_sassari": [
+        "slow"
+      ],
+      "grouping": "All Sassari sensors from one physical motion stay in the same split.",
+      "qualification": "Splits govern new-estimator development; baseline results were already observed on all recordings."
+    },
+    "trial_patterns": [],
+    "selected_trials": [
+      "broad/01_undisturbed_slow_rotation_A",
+      "broad/02_undisturbed_slow_rotation_B",
+      "broad/03_undisturbed_slow_rotation_C",
+      "broad/04_undisturbed_slow_rotation_with_breaks_A",
+      "broad/05_undisturbed_slow_rotation_with_breaks_B",
+      "broad/06_undisturbed_fast_rotation_A",
+      "broad/07_undisturbed_fast_rotation_B",
+      "broad/08_undisturbed_fast_rotation_with_breaks_A",
+      "broad/09_undisturbed_fast_rotation_with_breaks_B",
+      "broad/10_undisturbed_slow_translation_A",
+      "broad/11_undisturbed_slow_translation_B",
+      "broad/12_undisturbed_slow_translation_C",
+      "broad/13_undisturbed_slow_translation_with_breaks_A",
+      "broad/14_undisturbed_slow_translation_with_breaks_B",
+      "broad/15_undisturbed_fast_translation_A",
+      "broad/16_undisturbed_fast_translation_B",
+      "broad/17_undisturbed_fast_translation_with_breaks_A",
+      "broad/18_undisturbed_fast_translation_with_breaks_B",
+      "broad/19_undisturbed_slow_combined_240s",
+      "broad/20_undisturbed_slow_combined_360s",
+      "broad/21_undisturbed_fast_combined",
+      "broad/22_undisturbed_fast_combined_240s",
+      "broad/23_undisturbed_fast_combined_360s",
+      "broad/24_disturbed_tapping_A",
+      "broad/25_disturbed_tapping_B",
+      "broad/26_disturbed_phone_vibration_A",
+      "broad/27_disturbed_phone_vibration_B",
+      "broad/28_disturbed_stationary_magnet_A",
+      "broad/29_disturbed_stationary_magnet_B",
+      "broad/30_disturbed_stationary_magnet_C",
+      "broad/31_disturbed_stationary_magnet_D",
+      "broad/32_disturbed_attached_magnet_1cm",
+      "broad/33_disturbed_attached_magnet_2cm",
+      "broad/34_disturbed_attached_magnet_3cm",
+      "broad/35_disturbed_attached_magnet_4cm",
+      "broad/36_disturbed_attached_magnet_5cm",
+      "broad/37_disturbed_office_A",
+      "broad/38_disturbed_office_B",
+      "broad/39_disturbed_mixed"
+    ],
+    "diagnostics_enabled": false,
+    "burn_in_seconds": 5.0,
+    "heading_alignment_seconds": 1.0,
+    "summary": [
+      {
+        "dataset": "broad",
+        "axes": 6,
+        "algorithm": "ukf",
+        "trials": 39,
+        "inclination_rmse_deg": 9.866297996086534,
+        "heading_rmse_deg": 76.36842081776595,
+        "total_rmse_deg": 77.10279045641897
+      },
+      {
+        "dataset": "broad",
+        "axes": 6,
+        "algorithm": "srukf",
+        "trials": 39,
+        "inclination_rmse_deg": 9.843054330664762,
+        "heading_rmse_deg": 76.50379149352133,
+        "total_rmse_deg": 77.23733357543297
+      },
+      {
+        "dataset": "broad",
+        "axes": 6,
+        "algorithm": "robust-rest",
+        "trials": 39,
+        "inclination_rmse_deg": 4.014088043382085,
+        "heading_rmse_deg": 9.517107477738257,
+        "total_rmse_deg": 10.965900448883815
+      },
+      {
+        "dataset": "broad",
+        "axes": 6,
+        "algorithm": "robust-acc",
+        "trials": 39,
+        "inclination_rmse_deg": 0.8918363474939249,
+        "heading_rmse_deg": 6.232292848240736,
+        "total_rmse_deg": 6.373973289968708
+      },
+      {
+        "dataset": "broad",
+        "axes": 6,
+        "algorithm": "robust",
+        "trials": 39,
+        "inclination_rmse_deg": 0.9063896623707576,
+        "heading_rmse_deg": 6.232248512996108,
+        "total_rmse_deg": 6.3763225450640455
+      },
+      {
+        "dataset": "broad",
+        "axes": 6,
+        "algorithm": "madgwick",
+        "trials": 39,
+        "inclination_rmse_deg": 2.158322296473824,
+        "heading_rmse_deg": 22.987179884203652,
+        "total_rmse_deg": 23.257263981949816
+      },
+      {
+        "dataset": "broad",
+        "axes": 6,
+        "algorithm": "mahony",
+        "trials": 39,
+        "inclination_rmse_deg": 10.325635993345337,
+        "heading_rmse_deg": 68.58597836800034,
+        "total_rmse_deg": 69.61815940687183
+      },
+      {
+        "dataset": "broad",
+        "axes": 6,
+        "algorithm": "vqf",
+        "trials": 39,
+        "inclination_rmse_deg": 0.857336113834429,
+        "heading_rmse_deg": 6.311473939147517,
+        "total_rmse_deg": 6.447937236531103
+      },
+      {
+        "dataset": "broad",
+        "axes": 9,
+        "algorithm": "ukf",
+        "trials": 39,
+        "inclination_rmse_deg": 6.97815017890849,
+        "heading_rmse_deg": 12.047787651831928,
+        "total_rmse_deg": 14.076800239158457
+      },
+      {
+        "dataset": "broad",
+        "axes": 9,
+        "algorithm": "srukf",
+        "trials": 39,
+        "inclination_rmse_deg": 6.978150178908417,
+        "heading_rmse_deg": 12.047787651831277,
+        "total_rmse_deg": 14.076800239157857
+      },
+      {
+        "dataset": "broad",
+        "axes": 9,
+        "algorithm": "robust-rest",
+        "trials": 39,
+        "inclination_rmse_deg": 4.0140880433820225,
+        "heading_rmse_deg": 5.7797552766000635,
+        "total_rmse_deg": 7.148105324782146
+      },
+      {
+        "dataset": "broad",
+        "axes": 9,
+        "algorithm": "robust-acc",
+        "trials": 39,
+        "inclination_rmse_deg": 0.8918363474937553,
+        "heading_rmse_deg": 3.4873672249640757,
+        "total_rmse_deg": 3.637132941064131
+      },
+      {
+        "dataset": "broad",
+        "axes": 9,
+        "algorithm": "robust",
+        "trials": 39,
+        "inclination_rmse_deg": 0.9063896623705713,
+        "heading_rmse_deg": 2.8806084902370444,
+        "total_rmse_deg": 3.051060189337467
+      },
+      {
+        "dataset": "broad",
+        "axes": 9,
+        "algorithm": "madgwick",
+        "trials": 39,
+        "inclination_rmse_deg": 2.411019706809806,
+        "heading_rmse_deg": 4.60479144950762,
+        "total_rmse_deg": 5.315961076107194
+      },
+      {
+        "dataset": "broad",
+        "axes": 9,
+        "algorithm": "mahony",
+        "trials": 39,
+        "inclination_rmse_deg": 8.934157598703765,
+        "heading_rmse_deg": 26.453573460500355,
+        "total_rmse_deg": 28.01367488106792
+      },
+      {
+        "dataset": "broad",
+        "axes": 9,
+        "algorithm": "vqf",
+        "trials": 39,
+        "inclination_rmse_deg": 0.8573361138341877,
+        "heading_rmse_deg": 2.3972218626260364,
+        "total_rmse_deg": 2.5928972629433233
+      }
+    ],
+    "summary_by_split": {
+      "development": [
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "ukf",
+          "trials": 5,
+          "inclination_rmse_deg": 6.035395019953017,
+          "heading_rmse_deg": 79.89282713637334,
+          "total_rmse_deg": 80.12199225211121
+        },
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "srukf",
+          "trials": 5,
+          "inclination_rmse_deg": 6.042759830476686,
+          "heading_rmse_deg": 80.25726155800817,
+          "total_rmse_deg": 80.48534127068936
+        },
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "robust-rest",
+          "trials": 5,
+          "inclination_rmse_deg": 2.519250445913915,
+          "heading_rmse_deg": 11.811089093790905,
+          "total_rmse_deg": 12.245551676824773
+        },
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "robust-acc",
+          "trials": 5,
+          "inclination_rmse_deg": 1.0985993673920913,
+          "heading_rmse_deg": 7.3981737777184735,
+          "total_rmse_deg": 7.5198374177867695
+        },
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "robust",
+          "trials": 5,
+          "inclination_rmse_deg": 1.1108632184710756,
+          "heading_rmse_deg": 7.395260055931258,
+          "total_rmse_deg": 7.519603017275218
+        },
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "madgwick",
+          "trials": 5,
+          "inclination_rmse_deg": 1.8287776276388712,
+          "heading_rmse_deg": 19.389864320231226,
+          "total_rmse_deg": 19.605039437541723
+        },
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "mahony",
+          "trials": 5,
+          "inclination_rmse_deg": 5.355941814663855,
+          "heading_rmse_deg": 48.699935262063306,
+          "total_rmse_deg": 49.20702969712336
+        },
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "vqf",
+          "trials": 5,
+          "inclination_rmse_deg": 1.0643710384338745,
+          "heading_rmse_deg": 7.495177752478462,
+          "total_rmse_deg": 7.611020068243991
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "ukf",
+          "trials": 5,
+          "inclination_rmse_deg": 4.510525557980603,
+          "heading_rmse_deg": 5.624074486689359,
+          "total_rmse_deg": 7.269552404895634
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "srukf",
+          "trials": 5,
+          "inclination_rmse_deg": 4.510525557980552,
+          "heading_rmse_deg": 5.624074486689217,
+          "total_rmse_deg": 7.26955240489543
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "robust-rest",
+          "trials": 5,
+          "inclination_rmse_deg": 2.5192504459138334,
+          "heading_rmse_deg": 3.4305646951402027,
+          "total_rmse_deg": 4.273682932465047
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "robust-acc",
+          "trials": 5,
+          "inclination_rmse_deg": 1.0985993673919694,
+          "heading_rmse_deg": 3.2678780304839536,
+          "total_rmse_deg": 3.463366344488832
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "robust",
+          "trials": 5,
+          "inclination_rmse_deg": 1.1108632184709388,
+          "heading_rmse_deg": 2.5460151060987255,
+          "total_rmse_deg": 2.8064252680535615
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "madgwick",
+          "trials": 5,
+          "inclination_rmse_deg": 1.8704546440028729,
+          "heading_rmse_deg": 2.7821462681701257,
+          "total_rmse_deg": 3.4452359577609606
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "mahony",
+          "trials": 5,
+          "inclination_rmse_deg": 4.386941270899693,
+          "heading_rmse_deg": 10.61992349189354,
+          "total_rmse_deg": 11.486564991758453
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "vqf",
+          "trials": 5,
+          "inclination_rmse_deg": 1.0643710384336518,
+          "heading_rmse_deg": 2.3554819137294425,
+          "total_rmse_deg": 2.618426095656184
+        }
+      ],
+      "validation": [
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "ukf",
+          "trials": 34,
+          "inclination_rmse_deg": 10.429666080812051,
+          "heading_rmse_deg": 75.85012577091193,
+          "total_rmse_deg": 76.6587901923466
+        },
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "srukf",
+          "trials": 34,
+          "inclination_rmse_deg": 10.401921168927712,
+          "heading_rmse_deg": 75.95181060168504,
+          "total_rmse_deg": 76.75968538495408
+        },
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "robust-rest",
+          "trials": 34,
+          "inclination_rmse_deg": 4.233917101833285,
+          "heading_rmse_deg": 9.179757240083458,
+          "total_rmse_deg": 10.777716444774851
+        },
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "robust-acc",
+          "trials": 34,
+          "inclination_rmse_deg": 0.8614300210383121,
+          "heading_rmse_deg": 6.0608397703763615,
+          "total_rmse_deg": 6.205463859407227
+        },
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "robust",
+          "trials": 34,
+          "inclination_rmse_deg": 0.8763200217677697,
+          "heading_rmse_deg": 6.061217403740938,
+          "total_rmse_deg": 6.20819306385652
+        },
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "madgwick",
+          "trials": 34,
+          "inclination_rmse_deg": 2.2067847477730815,
+          "heading_rmse_deg": 23.51619687890548,
+          "total_rmse_deg": 23.794355826715712
+        },
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "mahony",
+          "trials": 34,
+          "inclination_rmse_deg": 11.056473372563202,
+          "heading_rmse_deg": 71.51039647181462,
+          "total_rmse_deg": 72.61979612889365
+        },
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "vqf",
+          "trials": 34,
+          "inclination_rmse_deg": 0.8268898013933339,
+          "heading_rmse_deg": 6.13739984895179,
+          "total_rmse_deg": 6.276895643632149
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "ukf",
+          "trials": 34,
+          "inclination_rmse_deg": 7.341036152574354,
+          "heading_rmse_deg": 12.992451352588189,
+          "total_rmse_deg": 15.077866097138285
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "srukf",
+          "trials": 34,
+          "inclination_rmse_deg": 7.341036152574277,
+          "heading_rmse_deg": 12.99245135258746,
+          "total_rmse_deg": 15.077866097137624
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "robust-rest",
+          "trials": 34,
+          "inclination_rmse_deg": 4.233917101833227,
+          "heading_rmse_deg": 6.125224479755925,
+          "total_rmse_deg": 7.570814500122897
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "robust-acc",
+          "trials": 34,
+          "inclination_rmse_deg": 0.8614300210381355,
+          "heading_rmse_deg": 3.51964504768174,
+          "total_rmse_deg": 3.662686852325205
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "robust",
+          "trials": 34,
+          "inclination_rmse_deg": 0.8763200217675762,
+          "heading_rmse_deg": 2.9298133996691504,
+          "total_rmse_deg": 3.0870359130556895
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "madgwick",
+          "trials": 34,
+          "inclination_rmse_deg": 2.4905145689872965,
+          "heading_rmse_deg": 4.872827505586663,
+          "total_rmse_deg": 5.591067711158111
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "mahony",
+          "trials": 34,
+          "inclination_rmse_deg": 9.602865882204366,
+          "heading_rmse_deg": 28.78205139706018,
+          "total_rmse_deg": 30.44413221773108
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "vqf",
+          "trials": 34,
+          "inclination_rmse_deg": 0.8268898013930899,
+          "heading_rmse_deg": 2.4033600904049472,
+          "total_rmse_deg": 2.589143022838491
+        }
+      ]
+    },
+    "summary_by_condition": {
+      "disturbed": [
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "ukf",
+          "trials": 16,
+          "inclination_rmse_deg": 9.340653172485693,
+          "heading_rmse_deg": 80.22681577378307,
+          "total_rmse_deg": 80.66802599812728
+        },
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "srukf",
+          "trials": 16,
+          "inclination_rmse_deg": 9.2931723098882,
+          "heading_rmse_deg": 80.39393890614727,
+          "total_rmse_deg": 80.83370757208499
+        },
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "robust-rest",
+          "trials": 16,
+          "inclination_rmse_deg": 3.9716847804044964,
+          "heading_rmse_deg": 9.250879133323814,
+          "total_rmse_deg": 10.35207756768515
+        },
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "robust-acc",
+          "trials": 16,
+          "inclination_rmse_deg": 0.93987802166417,
+          "heading_rmse_deg": 5.94801527566068,
+          "total_rmse_deg": 6.063086497733286
+        },
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "robust",
+          "trials": 16,
+          "inclination_rmse_deg": 0.9547486527348009,
+          "heading_rmse_deg": 5.947684106204899,
+          "total_rmse_deg": 6.0657704851930845
+        },
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "madgwick",
+          "trials": 16,
+          "inclination_rmse_deg": 2.3152047101477873,
+          "heading_rmse_deg": 15.83992844039362,
+          "total_rmse_deg": 16.28969138005487
+        },
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "mahony",
+          "trials": 16,
+          "inclination_rmse_deg": 10.00799523048763,
+          "heading_rmse_deg": 74.72560216154419,
+          "total_rmse_deg": 75.4432741827856
+        },
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "vqf",
+          "trials": 16,
+          "inclination_rmse_deg": 0.898101831957932,
+          "heading_rmse_deg": 5.9303833129272725,
+          "total_rmse_deg": 6.038428869353566
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "ukf",
+          "trials": 16,
+          "inclination_rmse_deg": 8.45900871277987,
+          "heading_rmse_deg": 15.561901409669485,
+          "total_rmse_deg": 17.924819114029262
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "srukf",
+          "trials": 16,
+          "inclination_rmse_deg": 8.459008712779765,
+          "heading_rmse_deg": 15.561901409668424,
+          "total_rmse_deg": 17.92481911402828
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "robust-rest",
+          "trials": 16,
+          "inclination_rmse_deg": 3.9716847804044644,
+          "heading_rmse_deg": 6.231106474219929,
+          "total_rmse_deg": 7.547554636786268
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "robust-acc",
+          "trials": 16,
+          "inclination_rmse_deg": 0.9398780216640433,
+          "heading_rmse_deg": 4.424769657932011,
+          "total_rmse_deg": 4.57378861707262
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "robust",
+          "trials": 16,
+          "inclination_rmse_deg": 0.9547486527346376,
+          "heading_rmse_deg": 2.956155516152296,
+          "total_rmse_deg": 3.1463731809227844
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "madgwick",
+          "trials": 16,
+          "inclination_rmse_deg": 2.7842006725219663,
+          "heading_rmse_deg": 4.750167138188587,
+          "total_rmse_deg": 5.676659659973054
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "mahony",
+          "trials": 16,
+          "inclination_rmse_deg": 10.150026682894513,
+          "heading_rmse_deg": 35.08651615197673,
+          "total_rmse_deg": 36.61827870715191
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "vqf",
+          "trials": 16,
+          "inclination_rmse_deg": 0.8981018319577508,
+          "heading_rmse_deg": 3.008365698778702,
+          "total_rmse_deg": 3.1851126486780776
+        }
+      ],
+      "undisturbed": [
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "ukf",
+          "trials": 23,
+          "inclination_rmse_deg": 10.231963960330598,
+          "heading_rmse_deg": 73.68431997879752,
+          "total_rmse_deg": 74.62262660131758
+        },
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "srukf",
+          "trials": 23,
+          "inclination_rmse_deg": 10.22558095381367,
+          "heading_rmse_deg": 73.79760198908592,
+          "total_rmse_deg": 74.73550818645764
+        },
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "robust-rest",
+          "trials": 23,
+          "inclination_rmse_deg": 4.043585965453448,
+          "heading_rmse_deg": 9.702309804287436,
+          "total_rmse_deg": 11.392907670587231
+        },
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "robust-acc",
+          "trials": 23,
+          "inclination_rmse_deg": 0.8584160524189713,
+          "heading_rmse_deg": 6.430051159600774,
+          "total_rmse_deg": 6.590242362828131
+        },
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "robust",
+          "trials": 23,
+          "inclination_rmse_deg": 0.8727486255957709,
+          "heading_rmse_deg": 6.430206361198688,
+          "total_rmse_deg": 6.592358760626452
+        },
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "madgwick",
+          "trials": 23,
+          "inclination_rmse_deg": 2.0491867043528065,
+          "heading_rmse_deg": 27.959180888593238,
+          "total_rmse_deg": 28.104271009355
+        },
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "mahony",
+          "trials": 23,
+          "inclination_rmse_deg": 10.546603480550699,
+          "heading_rmse_deg": 64.31493572901333,
+          "total_rmse_deg": 65.56590564971441
+        },
+        {
+          "dataset": "broad",
+          "axes": 6,
+          "algorithm": "vqf",
+          "trials": 23,
+          "inclination_rmse_deg": 0.8289773534006875,
+          "heading_rmse_deg": 6.576580461735512,
+          "total_rmse_deg": 6.732812622393737
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "ukf",
+          "trials": 23,
+          "inclination_rmse_deg": 5.947987720563181,
+          "heading_rmse_deg": 9.603186776814493,
+          "total_rmse_deg": 11.399917543596159
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "srukf",
+          "trials": 23,
+          "inclination_rmse_deg": 5.947987720563128,
+          "heading_rmse_deg": 9.603186776814127,
+          "total_rmse_deg": 11.399917543595823
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "robust-rest",
+          "trials": 23,
+          "inclination_rmse_deg": 4.043585965453366,
+          "heading_rmse_deg": 5.465771834777548,
+          "total_rmse_deg": 6.870227542518409
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "robust-acc",
+          "trials": 23,
+          "inclination_rmse_deg": 0.8584160524187721,
+          "heading_rmse_deg": 2.835261184638556,
+          "total_rmse_deg": 2.9855463838408345
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "robust",
+          "trials": 23,
+          "inclination_rmse_deg": 0.8727486255955685,
+          "heading_rmse_deg": 2.8280540374264347,
+          "total_rmse_deg": 2.984755499538987
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "madgwick",
+          "trials": 23,
+          "inclination_rmse_deg": 2.151415556749173,
+          "heading_rmse_deg": 4.503660535642598,
+          "total_rmse_deg": 5.065040322113553
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "mahony",
+          "trials": 23,
+          "inclination_rmse_deg": 8.088335627092807,
+          "heading_rmse_deg": 20.44804810990809,
+          "total_rmse_deg": 22.027863523792107
+        },
+        {
+          "dataset": "broad",
+          "axes": 9,
+          "algorithm": "vqf",
+          "trials": 23,
+          "inclination_rmse_deg": 0.8289773534004046,
+          "heading_rmse_deg": 1.9720783244328772,
+          "total_rmse_deg": 2.18092134243219
+        }
+      ]
+    },
+    "comparisons": [
+      {
+        "dataset": "broad",
+        "axes": 6,
+        "algorithm": "robust-rest",
+        "reference": "ukf",
+        "inclination_rmse_ratio": 0.40684844963878775,
+        "heading_rmse_ratio": 0.12462098045013191,
+        "total_rmse_ratio": 0.14222443032178067
+      },
+      {
+        "dataset": "broad",
+        "axes": 6,
+        "algorithm": "robust-rest",
+        "reference": "vqf",
+        "inclination_rmse_ratio": 4.6820470741971985,
+        "heading_rmse_ratio": 1.5079056919981073,
+        "total_rmse_ratio": 1.700683497158746
+      },
+      {
+        "dataset": "broad",
+        "axes": 6,
+        "algorithm": "robust-acc",
+        "reference": "ukf",
+        "inclination_rmse_ratio": 0.09039219653082359,
+        "heading_rmse_ratio": 0.08160824567935661,
+        "total_rmse_ratio": 0.08266851630449727
+      },
+      {
+        "dataset": "broad",
+        "axes": 6,
+        "algorithm": "robust-acc",
+        "reference": "vqf",
+        "inclination_rmse_ratio": 1.0402411995748015,
+        "heading_rmse_ratio": 0.9874544216342789,
+        "total_rmse_ratio": 0.9885290529592397
+      },
+      {
+        "dataset": "broad",
+        "axes": 6,
+        "algorithm": "robust",
+        "reference": "ukf",
+        "inclination_rmse_ratio": 0.09186724977598254,
+        "heading_rmse_ratio": 0.08160766513514536,
+        "total_rmse_ratio": 0.08269898543643699
+      },
+      {
+        "dataset": "broad",
+        "axes": 6,
+        "algorithm": "robust",
+        "reference": "vqf",
+        "inclination_rmse_ratio": 1.0572162396343447,
+        "heading_rmse_ratio": 0.9874473970873894,
+        "total_rmse_ratio": 0.9888933950750449
+      },
+      {
+        "dataset": "broad",
+        "axes": 9,
+        "algorithm": "robust-rest",
+        "reference": "ukf",
+        "inclination_rmse_ratio": 0.575236694606349,
+        "heading_rmse_ratio": 0.47973581902576296,
+        "total_rmse_ratio": 0.5077933339494115
+      },
+      {
+        "dataset": "broad",
+        "axes": 9,
+        "algorithm": "robust-rest",
+        "reference": "vqf",
+        "inclination_rmse_ratio": 4.682047074198444,
+        "heading_rmse_ratio": 2.411022261522607,
+        "total_rmse_ratio": 2.756802371979824
+      },
+      {
+        "dataset": "broad",
+        "axes": 9,
+        "algorithm": "robust-acc",
+        "reference": "ukf",
+        "inclination_rmse_ratio": 0.12780412066643926,
+        "heading_rmse_ratio": 0.2894612127757583,
+        "total_rmse_ratio": 0.2583778187706645
+      },
+      {
+        "dataset": "broad",
+        "axes": 9,
+        "algorithm": "robust-acc",
+        "reference": "vqf",
+        "inclination_rmse_ratio": 1.0402411995748964,
+        "heading_rmse_ratio": 1.454753637672835,
+        "total_rmse_ratio": 1.4027292916864145
+      },
+      {
+        "dataset": "broad",
+        "axes": 9,
+        "algorithm": "robust",
+        "reference": "ukf",
+        "inclination_rmse_ratio": 0.12988967550600167,
+        "heading_rmse_ratio": 0.23909854435382855,
+        "total_rmse_ratio": 0.21674387200935846
+      },
+      {
+        "dataset": "broad",
+        "axes": 9,
+        "algorithm": "robust",
+        "reference": "vqf",
+        "inclination_rmse_ratio": 1.057216239634425,
+        "heading_rmse_ratio": 1.2016445099000899,
+        "total_rmse_ratio": 1.1766992209610576
+      }
+    ],
+    "build_description": "Linux x86_64, GCC 14.2.0, CMake 3.31.10, Release, double precision; Python 3.12.14 and pinned reference packages."
+  },
+  "sassari": {
+    "scope": "full selected datasets",
+    "revision": "8ec099b0312a7d86a988bb65cc3ebd7675f86211",
+    "dirty": false,
+    "source_sha256": {
+      "examples/attitude_benchmark/CMakeLists.txt": "73c063b9278b5bf6aa997f2675037f87ffa53371650e6bfa2ccbee5eb6018da7",
+      "examples/attitude_benchmark/datasets.lock.json": "186770478d3e702911ba4d0bdfd712977535261cfd0a34342c4a2077f259bea5",
+      "examples/attitude_benchmark/datasets.py": "e73adba68b74eda802f6c3092939112f38ead066d4d50fe931d156409c5695e2",
+      "examples/attitude_benchmark/estimator.cpp": "c7db9fc114facfbf1ab0e2c32f2676783f5751f13780611106345150ff7b4035",
+      "examples/attitude_benchmark/metrics.py": "8e66283acaca20fe56d845ea3a237583780d877a1eba37282a9680cecf9827b4",
+      "examples/attitude_benchmark/references.py": "a0faafb3109f9931999277bcecc80cd0932524cf2a7dc9de4029bd304074f95c",
+      "examples/attitude_benchmark/requirements.txt": "047bf25111774a6343100d73aa2675a807a79712e015666e4e6943e95b3b3a52",
+      "examples/attitude_benchmark/robust_correction.h": "bf3b42c73547393395a8a43a9bfd2b476595d594a8b222e97e37eeb4f01f8d02",
+      "examples/attitude_benchmark/robust_estimator.cpp": "23df5a5aeb23fe3b1b6ae24cc957be646ce39522345b505c77489955c4dced23",
+      "examples/attitude_benchmark/robust_estimator.h": "eda2ad771fbf5ab4d86743bd75c94c7ade58c1a7bcf48a2e2bf3775272df9fba",
+      "examples/attitude_benchmark/robust_geometry.h": "943c67b1811ea052fc99559ee93968a982c9ab27782cfd95ca6dc8fcd32c9e95",
+      "examples/attitude_benchmark/run.py": "7de16e7863e96f17b36f957f9b83f7233f3caf137e5e5b7571ddbd07017e1377",
+      "include/UKF/Config.h": "cb7ecbc40d15a5689d07dd649ceb52c61d8a6d43119ca4a3d910ff58aedf11a5",
+      "include/UKF/Core.h": "f2a19e9015dec20aa4e754cce2add1eec015dfa25bb7ae931ce795eb70bddb30",
+      "include/UKF/Covariance.h": "3fc9aa2e42a47af716a1e8ddde2936f9d3d5e6aa67bf58147eb48c813abb25d6",
+      "include/UKF/Integrator.h": "51fdc85bd7d47a838d7fc8fd32a6234d9faa1f6a54888a37c9c90bf07bf427e0",
+      "include/UKF/MeasurementVector.h": "7d5c3f378996ffbbf4897b7a53e8cb305aab343b06a5952cd8911239efc89da7",
+      "include/UKF/StateVector.h": "960e22d464e352076fb90b5c34216407b29b9701f32686b88095a3d4b8631234",
+      "include/UKF/Types.h": "bf54e8b21656402f2a24b03491a148cd81acf11a2f3222b9ddb65b3db512a272"
+    },
+    "binary_sha256": "a85da439efab3374787131953eb66c1bf76546d12adbd6b907ddd4c32de6ad14",
+    "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+    "machine": "x86_64",
+    "packages": {
+      "numpy": "2.2.6",
+      "scipy": "1.15.3",
+      "h5py": "3.13.0",
+      "ahrs": "0.4.0",
+      "vqf": "2.0.1"
+    },
+    "reference_parameters": {
+      "madgwick": {
+        "implementation": "ahrs 0.4.0",
+        "gain": 0.05
+      },
+      "mahony": {
+        "implementation": "ahrs 0.4.0",
+        "k_P": 1.0,
+        "k_I": 0.3
+      },
+      "vqf": {
+        "implementation": "vqf 2.0.1",
+        "parameters": "online defaults"
+      }
+    },
+    "cpp_parameters": {
+      "robust": {
+        "stage": "robust",
+        "attitude": "quaternion-only SR-UKF",
+        "bias": "separate rest-only SR-UKF",
+        "gravity_gain_constraint": "horizontal left/world Gibbs error",
+        "covariance_reset": "analytic left-Gibbs transport",
+        "unscented_alpha_squared": 1,
+        "unscented_beta": 2,
+        "unscented_kappa": 0,
+        "mrp_a": 0,
+        "mrp_f": 2,
+        "gyro_integration": "exact quaternion increment, midpoint gyro minus previous bias estimate",
+        "initial_attitude_sigma_rad": 0.05,
+        "initial_bias_sigma_deg_s": 0.5,
+        "gravity_observation": "two-dimensional predicted-gravity tangent plane",
+        "raw_acc_direction_sigma": 0.1,
+        "filtered_acc_direction_sigma_base": 0.002,
+        "filtered_acc_sigma_formula": "0.002*sqrt(max(1,6/observation_dt))",
+        "attitude_covariance_scope": "conditional on separate bias estimate; filtered-observation R is an effective model",
+        "acceleration_filter_enabled": true,
+        "magnetic_rejection_enabled": true,
+        "acceleration_rejection_enabled": true,
+        "acc_tau_seconds": 3,
+        "correction_period_seconds": 0.05,
+        "rest_min_seconds": 1.5,
+        "rest_filter_tau_seconds": 0.5,
+        "rest_gyro_threshold_deg_s": 2,
+        "rest_absolute_filtered_gyro_limit_deg_s": 2,
+        "rest_acc_threshold_m_s2": 0.5,
+        "gyro_noise_rad_sqrt_s": 0.02,
+        "bias_random_walk_deg_s_sqrt_s": 0.01,
+        "mag_tau_seconds": 9,
+        "mag_norm_threshold_fraction": 0.1,
+        "rest_bias_target_sigma_deg_s": 0.03,
+        "rest_bias_effective_R": "P_target^2/Q_interval+P_target",
+        "bias_health_bound_deg_s": 2.1,
+        "mag_norm_dip_lowpass_tau_seconds": 0.05,
+        "mag_reference_tau_seconds": 20,
+        "mag_dip_threshold_degrees": 10,
+        "mag_good_dwell_seconds": 0.5,
+        "mag_new_field_rotation_seconds": 20,
+        "mag_new_field_min_rotation_deg_s": 20,
+        "heading_startup": "first usable magnetic sample",
+        "gravity_m_s2": 9.80665,
+        "acc_norm_reject_fraction": 0.3,
+        "acc_max_innovation_degrees": 60,
+        "acc_norm_gating_location": "measurement and rest updates; nonzero LPF input retained"
+      },
+      "robust-acc": {
+        "stage": "robust-acc",
+        "attitude": "quaternion-only SR-UKF",
+        "bias": "separate rest-only SR-UKF",
+        "gravity_gain_constraint": "horizontal left/world Gibbs error",
+        "covariance_reset": "analytic left-Gibbs transport",
+        "unscented_alpha_squared": 1,
+        "unscented_beta": 2,
+        "unscented_kappa": 0,
+        "mrp_a": 0,
+        "mrp_f": 2,
+        "gyro_integration": "exact quaternion increment, midpoint gyro minus previous bias estimate",
+        "initial_attitude_sigma_rad": 0.05,
+        "initial_bias_sigma_deg_s": 0.5,
+        "gravity_observation": "two-dimensional predicted-gravity tangent plane",
+        "raw_acc_direction_sigma": 0.1,
+        "filtered_acc_direction_sigma_base": 0.002,
+        "filtered_acc_sigma_formula": "0.002*sqrt(max(1,6/observation_dt))",
+        "attitude_covariance_scope": "conditional on separate bias estimate; filtered-observation R is an effective model",
+        "acceleration_filter_enabled": true,
+        "magnetic_rejection_enabled": false,
+        "acceleration_rejection_enabled": false,
+        "acc_tau_seconds": 3,
+        "correction_period_seconds": 0.05,
+        "rest_min_seconds": 1.5,
+        "rest_filter_tau_seconds": 0.5,
+        "rest_gyro_threshold_deg_s": 2,
+        "rest_absolute_filtered_gyro_limit_deg_s": 2,
+        "rest_acc_threshold_m_s2": 0.5,
+        "gyro_noise_rad_sqrt_s": 0.02,
+        "bias_random_walk_deg_s_sqrt_s": 0.01,
+        "mag_tau_seconds": 9,
+        "mag_norm_threshold_fraction": 0.1,
+        "rest_bias_target_sigma_deg_s": 0.03,
+        "rest_bias_effective_R": "P_target^2/Q_interval+P_target",
+        "bias_health_bound_deg_s": 2.1,
+        "mag_norm_dip_lowpass_tau_seconds": 0.05,
+        "mag_reference_tau_seconds": 20,
+        "mag_dip_threshold_degrees": 10,
+        "mag_good_dwell_seconds": 0.5,
+        "mag_new_field_rotation_seconds": 20,
+        "mag_new_field_min_rotation_deg_s": 20,
+        "heading_startup": "first usable magnetic sample",
+        "gravity_m_s2": 9.80665,
+        "acc_norm_reject_fraction": 0.3,
+        "acc_max_innovation_degrees": 60,
+        "acc_norm_gating_location": "measurement and rest updates; nonzero LPF input retained"
+      },
+      "robust-rest": {
+        "stage": "robust-rest",
+        "attitude": "quaternion-only SR-UKF",
+        "bias": "separate rest-only SR-UKF",
+        "gravity_gain_constraint": "horizontal left/world Gibbs error",
+        "covariance_reset": "analytic left-Gibbs transport",
+        "unscented_alpha_squared": 1,
+        "unscented_beta": 2,
+        "unscented_kappa": 0,
+        "mrp_a": 0,
+        "mrp_f": 2,
+        "gyro_integration": "exact quaternion increment, midpoint gyro minus previous bias estimate",
+        "initial_attitude_sigma_rad": 0.05,
+        "initial_bias_sigma_deg_s": 0.5,
+        "gravity_observation": "two-dimensional predicted-gravity tangent plane",
+        "raw_acc_direction_sigma": 0.1,
+        "filtered_acc_direction_sigma_base": 0.002,
+        "filtered_acc_sigma_formula": "0.002*sqrt(max(1,6/observation_dt))",
+        "attitude_covariance_scope": "conditional on separate bias estimate; filtered-observation R is an effective model",
+        "acceleration_filter_enabled": false,
+        "magnetic_rejection_enabled": false,
+        "acceleration_rejection_enabled": false,
+        "acc_tau_seconds": 3,
+        "correction_period_seconds": 0.05,
+        "rest_min_seconds": 1.5,
+        "rest_filter_tau_seconds": 0.5,
+        "rest_gyro_threshold_deg_s": 2,
+        "rest_absolute_filtered_gyro_limit_deg_s": 2,
+        "rest_acc_threshold_m_s2": 0.5,
+        "gyro_noise_rad_sqrt_s": 0.02,
+        "bias_random_walk_deg_s_sqrt_s": 0.01,
+        "mag_tau_seconds": 9,
+        "mag_norm_threshold_fraction": 0.1,
+        "rest_bias_target_sigma_deg_s": 0.03,
+        "rest_bias_effective_R": "P_target^2/Q_interval+P_target",
+        "bias_health_bound_deg_s": 2.1,
+        "mag_norm_dip_lowpass_tau_seconds": 0.05,
+        "mag_reference_tau_seconds": 20,
+        "mag_dip_threshold_degrees": 10,
+        "mag_good_dwell_seconds": 0.5,
+        "mag_new_field_rotation_seconds": 20,
+        "mag_new_field_min_rotation_deg_s": 20,
+        "heading_startup": "first usable magnetic sample",
+        "gravity_m_s2": 9.80665,
+        "acc_norm_reject_fraction": 0.3,
+        "acc_max_innovation_degrees": 60,
+        "acc_norm_gating_location": "measurement and rest updates; nonzero LPF input retained"
+      }
+    },
+    "cpp_configuration": "Fixed defaults in source_sha256; robust stage names select cumulative feature additions.",
+    "datasets": [
+      "sassari"
+    ],
+    "axes": [
+      6,
+      9
+    ],
+    "algorithms": [
+      "ukf",
+      "srukf",
+      "robust-rest",
+      "robust-acc",
+      "robust",
+      "madgwick",
+      "mahony",
+      "vqf"
+    ],
+    "split": "all",
+    "split_protocol": {
+      "name": "robust-development-v1",
+      "development_broad": [
+        "01",
+        "08",
+        "10",
+        "24",
+        "28"
+      ],
+      "development_sassari": [
+        "slow"
+      ],
+      "grouping": "All Sassari sensors from one physical motion stay in the same split.",
+      "qualification": "Splits govern new-estimator development; baseline results were already observed on all recordings."
+    },
+    "trial_patterns": [],
+    "selected_trials": [
+      "sassari/slow_XS1",
+      "sassari/slow_XS2",
+      "sassari/slow_AP1",
+      "sassari/slow_AP2",
+      "sassari/slow_SH1",
+      "sassari/slow_SH2",
+      "sassari/medium_XS1",
+      "sassari/medium_XS2",
+      "sassari/medium_AP1",
+      "sassari/medium_AP2",
+      "sassari/medium_SH1",
+      "sassari/medium_SH2",
+      "sassari/fast_XS1",
+      "sassari/fast_XS2",
+      "sassari/fast_AP1",
+      "sassari/fast_AP2",
+      "sassari/fast_SH1",
+      "sassari/fast_SH2"
+    ],
+    "diagnostics_enabled": false,
+    "burn_in_seconds": 5.0,
+    "heading_alignment_seconds": 1.0,
+    "summary": [
+      {
+        "dataset": "sassari",
+        "axes": 6,
+        "algorithm": "ukf",
+        "trials": 18,
+        "inclination_rmse_deg": 4.9878159808477,
+        "heading_rmse_deg": 88.48353482752913,
+        "total_rmse_deg": 88.5988289859453
+      },
+      {
+        "dataset": "sassari",
+        "axes": 6,
+        "algorithm": "srukf",
+        "trials": 18,
+        "inclination_rmse_deg": 4.987815980847444,
+        "heading_rmse_deg": 88.48353482754236,
+        "total_rmse_deg": 88.59882898595842
+      },
+      {
+        "dataset": "sassari",
+        "axes": 6,
+        "algorithm": "robust-rest",
+        "trials": 18,
+        "inclination_rmse_deg": 3.4856690025588777,
+        "heading_rmse_deg": 3.547006760611129,
+        "total_rmse_deg": 5.300571798234329
+      },
+      {
+        "dataset": "sassari",
+        "axes": 6,
+        "algorithm": "robust-acc",
+        "trials": 18,
+        "inclination_rmse_deg": 2.162553968132929,
+        "heading_rmse_deg": 3.694374862204527,
+        "total_rmse_deg": 4.414808580395967
+      },
+      {
+        "dataset": "sassari",
+        "axes": 6,
+        "algorithm": "robust",
+        "trials": 18,
+        "inclination_rmse_deg": 2.1958347872735735,
+        "heading_rmse_deg": 3.6948353958687483,
+        "total_rmse_deg": 4.4400505872535865
+      },
+      {
+        "dataset": "sassari",
+        "axes": 6,
+        "algorithm": "madgwick",
+        "trials": 18,
+        "inclination_rmse_deg": 3.3765363076595025,
+        "heading_rmse_deg": 31.781619110492784,
+        "total_rmse_deg": 32.44098696698567
+      },
+      {
+        "dataset": "sassari",
+        "axes": 6,
+        "algorithm": "mahony",
+        "trials": 18,
+        "inclination_rmse_deg": 8.098778718920942,
+        "heading_rmse_deg": 69.22330961896678,
+        "total_rmse_deg": 69.94968103948568
+      },
+      {
+        "dataset": "sassari",
+        "axes": 6,
+        "algorithm": "vqf",
+        "trials": 18,
+        "inclination_rmse_deg": 2.0951468673255493,
+        "heading_rmse_deg": 3.6374452450695287,
+        "total_rmse_deg": 4.3227435161854295
+      },
+      {
+        "dataset": "sassari",
+        "axes": 9,
+        "algorithm": "ukf",
+        "trials": 18,
+        "inclination_rmse_deg": 3.999777287656808,
+        "heading_rmse_deg": 5.081625379671218,
+        "total_rmse_deg": 6.535888752693618
+      },
+      {
+        "dataset": "sassari",
+        "axes": 9,
+        "algorithm": "srukf",
+        "trials": 18,
+        "inclination_rmse_deg": 3.9997772876567876,
+        "heading_rmse_deg": 5.081625379671199,
+        "total_rmse_deg": 6.5358887526935785
+      },
+      {
+        "dataset": "sassari",
+        "axes": 9,
+        "algorithm": "robust-rest",
+        "trials": 18,
+        "inclination_rmse_deg": 3.485669002558902,
+        "heading_rmse_deg": 4.305747994805165,
+        "total_rmse_deg": 5.693451076495487
+      },
+      {
+        "dataset": "sassari",
+        "axes": 9,
+        "algorithm": "robust-acc",
+        "trials": 18,
+        "inclination_rmse_deg": 2.1625539681329613,
+        "heading_rmse_deg": 3.620562482108317,
+        "total_rmse_deg": 4.329115458277275
+      },
+      {
+        "dataset": "sassari",
+        "axes": 9,
+        "algorithm": "robust",
+        "trials": 18,
+        "inclination_rmse_deg": 2.1958347872736024,
+        "heading_rmse_deg": 3.692334933308558,
+        "total_rmse_deg": 4.414907157028332
+      },
+      {
+        "dataset": "sassari",
+        "axes": 9,
+        "algorithm": "madgwick",
+        "trials": 18,
+        "inclination_rmse_deg": 3.2958051541688125,
+        "heading_rmse_deg": 3.8477374964860402,
+        "total_rmse_deg": 5.143231147002515
+      },
+      {
+        "dataset": "sassari",
+        "axes": 9,
+        "algorithm": "mahony",
+        "trials": 18,
+        "inclination_rmse_deg": 7.548321922463305,
+        "heading_rmse_deg": 11.583268126131587,
+        "total_rmse_deg": 13.941827316067679
+      },
+      {
+        "dataset": "sassari",
+        "axes": 9,
+        "algorithm": "vqf",
+        "trials": 18,
+        "inclination_rmse_deg": 2.095146867325661,
+        "heading_rmse_deg": 3.5725781014515894,
+        "total_rmse_deg": 4.235021296030032
+      }
+    ],
+    "summary_by_split": {
+      "development": [
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "ukf",
+          "trials": 6,
+          "inclination_rmse_deg": 2.6174992360288107,
+          "heading_rmse_deg": 70.90836326289457,
+          "total_rmse_deg": 70.94904514926073
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "srukf",
+          "trials": 6,
+          "inclination_rmse_deg": 2.617499236028768,
+          "heading_rmse_deg": 70.90836326287429,
+          "total_rmse_deg": 70.94904514924048
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "robust-rest",
+          "trials": 6,
+          "inclination_rmse_deg": 1.8315091109799153,
+          "heading_rmse_deg": 4.06475897996732,
+          "total_rmse_deg": 4.534285500986035
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "robust-acc",
+          "trials": 6,
+          "inclination_rmse_deg": 1.6736192301051755,
+          "heading_rmse_deg": 4.070083188168063,
+          "total_rmse_deg": 4.44896665033513
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "robust",
+          "trials": 6,
+          "inclination_rmse_deg": 1.673636977632179,
+          "heading_rmse_deg": 4.07008378267155,
+          "total_rmse_deg": 4.448977956343877
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "madgwick",
+          "trials": 6,
+          "inclination_rmse_deg": 2.0492935942970756,
+          "heading_rmse_deg": 40.361739237851516,
+          "total_rmse_deg": 40.652714361237784
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "mahony",
+          "trials": 6,
+          "inclination_rmse_deg": 3.107068063759438,
+          "heading_rmse_deg": 74.12179258304957,
+          "total_rmse_deg": 74.19241030801145
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "vqf",
+          "trials": 6,
+          "inclination_rmse_deg": 1.6328303259887766,
+          "heading_rmse_deg": 3.9116808275905868,
+          "total_rmse_deg": 4.281733182975088
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "ukf",
+          "trials": 6,
+          "inclination_rmse_deg": 2.2616993645589827,
+          "heading_rmse_deg": 3.332345228204113,
+          "total_rmse_deg": 4.159457061231628
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "srukf",
+          "trials": 6,
+          "inclination_rmse_deg": 2.261699364558972,
+          "heading_rmse_deg": 3.332345228204101,
+          "total_rmse_deg": 4.15945706123161
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "robust-rest",
+          "trials": 6,
+          "inclination_rmse_deg": 1.8315091109799593,
+          "heading_rmse_deg": 2.75567713529763,
+          "total_rmse_deg": 3.444077874143043
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "robust-acc",
+          "trials": 6,
+          "inclination_rmse_deg": 1.6736192301052215,
+          "heading_rmse_deg": 2.7402471863986637,
+          "total_rmse_deg": 3.34073356726531
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "robust",
+          "trials": 6,
+          "inclination_rmse_deg": 1.6736369776322215,
+          "heading_rmse_deg": 2.740243520964732,
+          "total_rmse_deg": 3.3407427977638258
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "madgwick",
+          "trials": 6,
+          "inclination_rmse_deg": 2.005759052107883,
+          "heading_rmse_deg": 2.9213151422709482,
+          "total_rmse_deg": 3.5955350463040356
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "mahony",
+          "trials": 6,
+          "inclination_rmse_deg": 2.714443433288519,
+          "heading_rmse_deg": 3.347943186510662,
+          "total_rmse_deg": 4.421508892088884
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "vqf",
+          "trials": 6,
+          "inclination_rmse_deg": 1.6328303259889179,
+          "heading_rmse_deg": 3.0287195657941,
+          "total_rmse_deg": 3.5447042800850266
+        }
+      ],
+      "validation": [
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "ukf",
+          "trials": 12,
+          "inclination_rmse_deg": 6.172974353257146,
+          "heading_rmse_deg": 97.27112060984642,
+          "total_rmse_deg": 97.42372090428756
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "srukf",
+          "trials": 12,
+          "inclination_rmse_deg": 6.172974353256781,
+          "heading_rmse_deg": 97.2711206098764,
+          "total_rmse_deg": 97.4237209043174
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "robust-rest",
+          "trials": 12,
+          "inclination_rmse_deg": 4.312748948348359,
+          "heading_rmse_deg": 3.288130650933033,
+          "total_rmse_deg": 5.683714946858477
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "robust-acc",
+          "trials": 12,
+          "inclination_rmse_deg": 2.4070213371468054,
+          "heading_rmse_deg": 3.5065206992227584,
+          "total_rmse_deg": 4.397729545426384
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "robust",
+          "trials": 12,
+          "inclination_rmse_deg": 2.456933692094271,
+          "heading_rmse_deg": 3.507211202467347,
+          "total_rmse_deg": 4.435586902708442
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "madgwick",
+          "trials": 12,
+          "inclination_rmse_deg": 4.0401576643407155,
+          "heading_rmse_deg": 27.491559046813432,
+          "total_rmse_deg": 28.33512326985961
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "mahony",
+          "trials": 12,
+          "inclination_rmse_deg": 10.594634046501694,
+          "heading_rmse_deg": 66.7740681369254,
+          "total_rmse_deg": 67.82831640522278
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "vqf",
+          "trials": 12,
+          "inclination_rmse_deg": 2.3263051379939355,
+          "heading_rmse_deg": 3.5003274538089992,
+          "total_rmse_deg": 4.343248682790601
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "ukf",
+          "trials": 12,
+          "inclination_rmse_deg": 4.868816249205721,
+          "heading_rmse_deg": 5.956265455404769,
+          "total_rmse_deg": 7.724104598424613
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "srukf",
+          "trials": 12,
+          "inclination_rmse_deg": 4.868816249205696,
+          "heading_rmse_deg": 5.95626545540475,
+          "total_rmse_deg": 7.724104598424564
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "robust-rest",
+          "trials": 12,
+          "inclination_rmse_deg": 4.312748948348373,
+          "heading_rmse_deg": 5.080783424558932,
+          "total_rmse_deg": 6.818137677671708
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "robust-acc",
+          "trials": 12,
+          "inclination_rmse_deg": 2.4070213371468316,
+          "heading_rmse_deg": 4.060720129963143,
+          "total_rmse_deg": 4.823306403783257
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "robust",
+          "trials": 12,
+          "inclination_rmse_deg": 2.4569336920942937,
+          "heading_rmse_deg": 4.168380639480472,
+          "total_rmse_deg": 4.951989336660584
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "madgwick",
+          "trials": 12,
+          "inclination_rmse_deg": 3.9408282051992773,
+          "heading_rmse_deg": 4.310948673593587,
+          "total_rmse_deg": 5.917079197351755
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "mahony",
+          "trials": 12,
+          "inclination_rmse_deg": 9.965261167050699,
+          "heading_rmse_deg": 15.700930595942049,
+          "total_rmse_deg": 18.701986528057073
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "vqf",
+          "trials": 12,
+          "inclination_rmse_deg": 2.326305137994032,
+          "heading_rmse_deg": 3.8445073692803344,
+          "total_rmse_deg": 4.580179804002535
+        }
+      ]
+    },
+    "summary_by_condition": {
+      "fast": [
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "ukf",
+          "trials": 6,
+          "inclination_rmse_deg": 6.914030806699444,
+          "heading_rmse_deg": 97.29771194458651,
+          "total_rmse_deg": 97.49041420000968
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "srukf",
+          "trials": 6,
+          "inclination_rmse_deg": 6.914030806699099,
+          "heading_rmse_deg": 97.29771194462201,
+          "total_rmse_deg": 97.49041420004494
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "robust-rest",
+          "trials": 6,
+          "inclination_rmse_deg": 5.079975697103342,
+          "heading_rmse_deg": 3.410457921622226,
+          "total_rmse_deg": 6.441693192962453
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "robust-acc",
+          "trials": 6,
+          "inclination_rmse_deg": 2.9294960408169537,
+          "heading_rmse_deg": 3.801325284377152,
+          "total_rmse_deg": 5.036338886029124
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "robust",
+          "trials": 6,
+          "inclination_rmse_deg": 3.0265337240500503,
+          "heading_rmse_deg": 3.8028964612195195,
+          "total_rmse_deg": 5.11099114755588
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "madgwick",
+          "trials": 6,
+          "inclination_rmse_deg": 5.2631795974281355,
+          "heading_rmse_deg": 26.75331742652824,
+          "total_rmse_deg": 28.19928391155845
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "mahony",
+          "trials": 6,
+          "inclination_rmse_deg": 9.600764740148739,
+          "heading_rmse_deg": 52.516859033553715,
+          "total_rmse_deg": 53.490823044379376
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "vqf",
+          "trials": 6,
+          "inclination_rmse_deg": 2.8196704063301063,
+          "heading_rmse_deg": 3.796491422235294,
+          "total_rmse_deg": 4.959296862206684
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "ukf",
+          "trials": 6,
+          "inclination_rmse_deg": 5.65472491503727,
+          "heading_rmse_deg": 7.242773268275243,
+          "total_rmse_deg": 9.229352298489859
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "srukf",
+          "trials": 6,
+          "inclination_rmse_deg": 5.654724915037236,
+          "heading_rmse_deg": 7.242773268275196,
+          "total_rmse_deg": 9.229352298489781
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "robust-rest",
+          "trials": 6,
+          "inclination_rmse_deg": 5.0799756971033565,
+          "heading_rmse_deg": 5.477318819139671,
+          "total_rmse_deg": 7.74248723974999
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "robust-acc",
+          "trials": 6,
+          "inclination_rmse_deg": 2.929496040816982,
+          "heading_rmse_deg": 4.6721775485002235,
+          "total_rmse_deg": 5.669514529256446
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "robust",
+          "trials": 6,
+          "inclination_rmse_deg": 3.0265337240500743,
+          "heading_rmse_deg": 4.895503056083124,
+          "total_rmse_deg": 5.932092410656721
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "madgwick",
+          "trials": 6,
+          "inclination_rmse_deg": 5.0817908774547424,
+          "heading_rmse_deg": 4.800673505732147,
+          "total_rmse_deg": 7.054141762577096
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "mahony",
+          "trials": 6,
+          "inclination_rmse_deg": 8.467812750139244,
+          "heading_rmse_deg": 11.252771765513664,
+          "total_rmse_deg": 14.191122561541667
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "vqf",
+          "trials": 6,
+          "inclination_rmse_deg": 2.8196704063301876,
+          "heading_rmse_deg": 4.193647642630877,
+          "total_rmse_deg": 5.183501257897298
+        }
+      ],
+      "medium": [
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "ukf",
+          "trials": 6,
+          "inclination_rmse_deg": 5.431917899814849,
+          "heading_rmse_deg": 97.24452927510634,
+          "total_rmse_deg": 97.35702760856545
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "srukf",
+          "trials": 6,
+          "inclination_rmse_deg": 5.431917899814462,
+          "heading_rmse_deg": 97.24452927513079,
+          "total_rmse_deg": 97.35702760858983
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "robust-rest",
+          "trials": 6,
+          "inclination_rmse_deg": 3.5455221995933766,
+          "heading_rmse_deg": 3.165803380243839,
+          "total_rmse_deg": 4.925736700754501
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "robust-acc",
+          "trials": 6,
+          "inclination_rmse_deg": 1.8845466334766572,
+          "heading_rmse_deg": 3.211716114068365,
+          "total_rmse_deg": 3.759120204823646
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "robust",
+          "trials": 6,
+          "inclination_rmse_deg": 1.8873336601384916,
+          "heading_rmse_deg": 3.2115259437151757,
+          "total_rmse_deg": 3.7601826578610047
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "madgwick",
+          "trials": 6,
+          "inclination_rmse_deg": 2.817135731253296,
+          "heading_rmse_deg": 28.229800667098612,
+          "total_rmse_deg": 28.470962628160773
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "mahony",
+          "trials": 6,
+          "inclination_rmse_deg": 11.588503352854646,
+          "heading_rmse_deg": 81.03127724029707,
+          "total_rmse_deg": 82.16580976606622
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "vqf",
+          "trials": 6,
+          "inclination_rmse_deg": 1.8329398696577648,
+          "heading_rmse_deg": 3.2041634853827046,
+          "total_rmse_deg": 3.7272005033745157
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "ukf",
+          "trials": 6,
+          "inclination_rmse_deg": 4.082907583374172,
+          "heading_rmse_deg": 4.669757642534298,
+          "total_rmse_deg": 6.2188568983593635
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "srukf",
+          "trials": 6,
+          "inclination_rmse_deg": 4.082907583374154,
+          "heading_rmse_deg": 4.669757642534302,
+          "total_rmse_deg": 6.218856898359346
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "robust-rest",
+          "trials": 6,
+          "inclination_rmse_deg": 3.5455221995933903,
+          "heading_rmse_deg": 4.684248029978194,
+          "total_rmse_deg": 5.893788115593427
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "robust-acc",
+          "trials": 6,
+          "inclination_rmse_deg": 1.884546633476681,
+          "heading_rmse_deg": 3.4492627114260643,
+          "total_rmse_deg": 3.9770982783100695
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "robust",
+          "trials": 6,
+          "inclination_rmse_deg": 1.8873336601385124,
+          "heading_rmse_deg": 3.4412582228778206,
+          "total_rmse_deg": 3.9718862626644458
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "madgwick",
+          "trials": 6,
+          "inclination_rmse_deg": 2.7998655329438127,
+          "heading_rmse_deg": 3.821223841455027,
+          "total_rmse_deg": 4.780016632126414
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "mahony",
+          "trials": 6,
+          "inclination_rmse_deg": 11.462709583962152,
+          "heading_rmse_deg": 20.149089426370438,
+          "total_rmse_deg": 23.21285049457248
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "vqf",
+          "trials": 6,
+          "inclination_rmse_deg": 1.832939869657876,
+          "heading_rmse_deg": 3.495367095929792,
+          "total_rmse_deg": 3.9768583501077726
+        }
+      ],
+      "slow": [
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "ukf",
+          "trials": 6,
+          "inclination_rmse_deg": 2.6174992360288107,
+          "heading_rmse_deg": 70.90836326289457,
+          "total_rmse_deg": 70.94904514926073
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "srukf",
+          "trials": 6,
+          "inclination_rmse_deg": 2.617499236028768,
+          "heading_rmse_deg": 70.90836326287429,
+          "total_rmse_deg": 70.94904514924048
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "robust-rest",
+          "trials": 6,
+          "inclination_rmse_deg": 1.8315091109799153,
+          "heading_rmse_deg": 4.06475897996732,
+          "total_rmse_deg": 4.534285500986035
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "robust-acc",
+          "trials": 6,
+          "inclination_rmse_deg": 1.6736192301051755,
+          "heading_rmse_deg": 4.070083188168063,
+          "total_rmse_deg": 4.44896665033513
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "robust",
+          "trials": 6,
+          "inclination_rmse_deg": 1.673636977632179,
+          "heading_rmse_deg": 4.07008378267155,
+          "total_rmse_deg": 4.448977956343877
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "madgwick",
+          "trials": 6,
+          "inclination_rmse_deg": 2.0492935942970756,
+          "heading_rmse_deg": 40.361739237851516,
+          "total_rmse_deg": 40.652714361237784
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "mahony",
+          "trials": 6,
+          "inclination_rmse_deg": 3.107068063759438,
+          "heading_rmse_deg": 74.12179258304957,
+          "total_rmse_deg": 74.19241030801145
+        },
+        {
+          "dataset": "sassari",
+          "axes": 6,
+          "algorithm": "vqf",
+          "trials": 6,
+          "inclination_rmse_deg": 1.6328303259887766,
+          "heading_rmse_deg": 3.9116808275905868,
+          "total_rmse_deg": 4.281733182975088
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "ukf",
+          "trials": 6,
+          "inclination_rmse_deg": 2.2616993645589827,
+          "heading_rmse_deg": 3.332345228204113,
+          "total_rmse_deg": 4.159457061231628
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "srukf",
+          "trials": 6,
+          "inclination_rmse_deg": 2.261699364558972,
+          "heading_rmse_deg": 3.332345228204101,
+          "total_rmse_deg": 4.15945706123161
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "robust-rest",
+          "trials": 6,
+          "inclination_rmse_deg": 1.8315091109799593,
+          "heading_rmse_deg": 2.75567713529763,
+          "total_rmse_deg": 3.444077874143043
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "robust-acc",
+          "trials": 6,
+          "inclination_rmse_deg": 1.6736192301052215,
+          "heading_rmse_deg": 2.7402471863986637,
+          "total_rmse_deg": 3.34073356726531
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "robust",
+          "trials": 6,
+          "inclination_rmse_deg": 1.6736369776322215,
+          "heading_rmse_deg": 2.740243520964732,
+          "total_rmse_deg": 3.3407427977638258
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "madgwick",
+          "trials": 6,
+          "inclination_rmse_deg": 2.005759052107883,
+          "heading_rmse_deg": 2.9213151422709482,
+          "total_rmse_deg": 3.5955350463040356
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "mahony",
+          "trials": 6,
+          "inclination_rmse_deg": 2.714443433288519,
+          "heading_rmse_deg": 3.347943186510662,
+          "total_rmse_deg": 4.421508892088884
+        },
+        {
+          "dataset": "sassari",
+          "axes": 9,
+          "algorithm": "vqf",
+          "trials": 6,
+          "inclination_rmse_deg": 1.6328303259889179,
+          "heading_rmse_deg": 3.0287195657941,
+          "total_rmse_deg": 3.5447042800850266
+        }
+      ]
+    },
+    "comparisons": [
+      {
+        "dataset": "sassari",
+        "axes": 6,
+        "algorithm": "robust-rest",
+        "reference": "ukf",
+        "inclination_rmse_ratio": 0.6988367285287204,
+        "heading_rmse_ratio": 0.04008663043949256,
+        "total_rmse_ratio": 0.059826657517958556
+      },
+      {
+        "dataset": "sassari",
+        "axes": 6,
+        "algorithm": "robust-rest",
+        "reference": "vqf",
+        "inclination_rmse_ratio": 1.6636871891507667,
+        "heading_rmse_ratio": 0.9751368121400625,
+        "total_rmse_ratio": 1.2262054823256727
+      },
+      {
+        "dataset": "sassari",
+        "axes": 6,
+        "algorithm": "robust-acc",
+        "reference": "ukf",
+        "inclination_rmse_ratio": 0.4335673121135062,
+        "heading_rmse_ratio": 0.041752116587629,
+        "total_rmse_ratio": 0.049829197867799144
+      },
+      {
+        "dataset": "sassari",
+        "axes": 6,
+        "algorithm": "robust-acc",
+        "reference": "vqf",
+        "inclination_rmse_ratio": 1.032172971670203,
+        "heading_rmse_ratio": 1.015650989444354,
+        "total_rmse_ratio": 1.0212978317741552
+      },
+      {
+        "dataset": "sassari",
+        "axes": 6,
+        "algorithm": "robust",
+        "reference": "ukf",
+        "inclination_rmse_ratio": 0.44023973532808286,
+        "heading_rmse_ratio": 0.04175732132617294,
+        "total_rmse_ratio": 0.05011410013057763
+      },
+      {
+        "dataset": "sassari",
+        "axes": 6,
+        "algorithm": "robust",
+        "reference": "vqf",
+        "inclination_rmse_ratio": 1.0480576906174373,
+        "heading_rmse_ratio": 1.0157775985431012,
+        "total_rmse_ratio": 1.0271371805032914
+      },
+      {
+        "dataset": "sassari",
+        "axes": 9,
+        "algorithm": "robust-rest",
+        "reference": "ukf",
+        "inclination_rmse_ratio": 0.8714657721857593,
+        "heading_rmse_ratio": 0.8473170832368102,
+        "total_rmse_ratio": 0.8711058728086614
+      },
+      {
+        "dataset": "sassari",
+        "axes": 9,
+        "algorithm": "robust-rest",
+        "reference": "vqf",
+        "inclination_rmse_ratio": 1.66368718915069,
+        "heading_rmse_ratio": 1.205221515816737,
+        "total_rmse_ratio": 1.3443736591909483
+      },
+      {
+        "dataset": "sassari",
+        "axes": 9,
+        "algorithm": "robust-acc",
+        "reference": "ukf",
+        "inclination_rmse_ratio": 0.5406685954256847,
+        "heading_rmse_ratio": 0.7124811869430974,
+        "total_rmse_ratio": 0.6623606401643737
+      },
+      {
+        "dataset": "sassari",
+        "axes": 9,
+        "algorithm": "robust-acc",
+        "reference": "vqf",
+        "inclination_rmse_ratio": 1.0321729716701635,
+        "heading_rmse_ratio": 1.013431303471639,
+        "total_rmse_ratio": 1.0222181084037163
+      },
+      {
+        "dataset": "sassari",
+        "axes": 9,
+        "algorithm": "robust",
+        "reference": "ukf",
+        "inclination_rmse_ratio": 0.5489892634897153,
+        "heading_rmse_ratio": 0.72660510317812,
+        "total_rmse_ratio": 0.6754868884830435
+      },
+      {
+        "dataset": "sassari",
+        "axes": 9,
+        "algorithm": "robust",
+        "reference": "vqf",
+        "inclination_rmse_ratio": 1.0480576906173953,
+        "heading_rmse_ratio": 1.0335211235293387,
+        "total_rmse_ratio": 1.0424757866428978
+      }
+    ],
+    "build_description": "Linux x86_64, GCC 14.2.0, CMake 3.31.10, Release, double precision; Python 3.12.14 and pinned reference packages."
+  }
+}

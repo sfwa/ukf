@@ -1,0 +1,6 @@
+numpy==2.2.6
+scipy==1.15.3
+h5py==3.13.0
+ahrs==0.4.0
+vqf==2.0.1
+docutils==0.23

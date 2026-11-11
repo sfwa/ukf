@@ -1,4 +1,7 @@
 *.py[cod]
+.benchmark-cache/
+benchmark-results/
+.venv/
 .DS_Store
 
 # C extensions
