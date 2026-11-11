@@ -9,16 +9,64 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from pathlib import Path
 
 import numpy as np
-from scipy.signal import butter, lfilter, sosfilt
 
 from datasets import fetch, manifest, read_csv
 
 ROOT = Path(__file__).resolve().parents[2]
 DEVELOPMENT = ("MH_01_easy", "V1_02_medium")
 SAMPLE_PERIOD_NS = 5_000_000
+# Rotor detector constants, identical to mav_estimator.cpp.
+VIBRATION_LOWPASS_HZ = 20
+VIBRATION_ENERGY_TAU_SECONDS = .5
+ROTOR_ON_RMS_M_S2 = .8
+ROTOR_OFF_RMS_M_S2 = .5
+
+
+def rotor_detector(time: np.ndarray, force: np.ndarray) -> np.ndarray:
+    """Return the runtime rotor state for each sample.
+
+    This is a sample-by-sample port of the detector in mav_estimator.cpp, so
+    calibration selects exactly the samples where the estimator treats the
+    rotors as running: vibration is the specific force minus its exact
+    zero-order-hold second-order Butterworth low-pass (20 Hz cutoff, variable
+    sample interval), its squared norm feeds a 0.5 s exponential moving
+    average, and the RMS switches the state on above 0.8 m/s^2 and off below
+    0.5 m/s^2.
+    """
+    tau = math.sqrt(2.0) / (2 * math.pi * VIBRATION_LOWPASS_HZ)
+    value = [0.0, 0.0, 0.0]
+    rate = [0.0, 0.0, 0.0]
+    energy = 0.0
+    rotors = False
+    state = np.zeros(len(time), dtype=bool)
+    for index in range(len(time)):
+        sample = [float(component) for component in force[index]]
+        dt = float(time[index] - time[index - 1]) if index else 0.0
+        if index == 0:
+            # LowPass::update initializes to the first sample.
+            value = sample
+        else:
+            h = dt / tau
+            decay, cosine, sine = math.exp(-h), math.cos(h), math.sin(h)
+            error = [value[axis] - sample[axis] for axis in range(3)]
+            value = [sample[axis] + decay * ((cosine + sine) * error[axis] + tau * sine * rate[axis])
+                     for axis in range(3)]
+            rate = [decay * ((-2 * sine / tau) * error[axis] + (cosine - sine) * rate[axis])
+                    for axis in range(3)]
+        vibration = [sample[axis] - value[axis] for axis in range(3)]
+        gain = -math.expm1(-dt / VIBRATION_ENERGY_TAU_SECONDS)
+        energy += gain * (sum(component * component for component in vibration) - energy)
+        rms = math.sqrt(max(0.0, energy))
+        if rms > ROTOR_ON_RMS_M_S2:
+            rotors = True
+        elif rms < ROTOR_OFF_RMS_M_S2:
+            rotors = False
+        state[index] = rotors
+    return state
 
 
 def calibrate(cache: Path) -> dict:
@@ -38,10 +86,9 @@ def calibrate(cache: Path) -> dict:
         force = imu[:, 3:6]
         if not np.isfinite(force).all():
             raise ValueError(f"{sequence}: non-finite accelerometer measurements")
-        high = sosfilt(butter(2, 20, btype="highpass", fs=200, output="sos"), force, axis=0)
-        gain = -np.expm1(-0.005 / 0.5)
-        energy = lfilter([gain], [1, -(1 - gain)], np.sum(high * high, axis=1))
-        selected = (np.sqrt(np.maximum(energy, 0)) > 0.8) & (relative_ns >= 5_000_000_000)
+        # The estimator receives these same relative times in seconds.
+        time = relative_ns.astype(float) * 1e-9
+        selected = rotor_detector(time, force) & (relative_ns >= 5_000_000_000)
         if np.count_nonzero(selected) < 200:
             raise ValueError(f"{sequence}: insufficient rotor-vibration samples for calibration")
         median = np.median(force[selected], axis=0)
@@ -74,11 +121,13 @@ def calibrate(cache: Path) -> dict:
             "The result is empirical calibration, not a published exact Firefly-to-IMU transform.",
         ],
         "selection": {
-            "highpass": "causal second-order Butterworth",
-            "highpass_cutoff_hz": 20,
+            "detector": "runtime rotor detector of mav_estimator.cpp",
+            "vibration": "specific force minus exact zero-order-hold second-order Butterworth low-pass",
+            "lowpass_cutoff_hz": VIBRATION_LOWPASS_HZ,
             "nominal_sample_rate_hz": 200,
-            "energy_ewma_time_constant_seconds": .5,
-            "rms_threshold_m_s2": .8,
+            "energy_ewma_time_constant_seconds": VIBRATION_ENERGY_TAU_SECONDS,
+            "rms_on_threshold_m_s2": ROTOR_ON_RMS_M_S2,
+            "rms_off_threshold_m_s2": ROTOR_OFF_RMS_M_S2,
             "initial_filter_transient_excluded_seconds": 5,
         },
         "per_sequence": records,

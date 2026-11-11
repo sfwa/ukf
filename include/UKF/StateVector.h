@@ -244,8 +244,18 @@ namespace UKF {
     template <typename T> constexpr real_t AlphaSquared = 1.0;
     template <typename T> constexpr real_t Beta = 0.0;
     template <typename T> constexpr real_t Kappa = 3.0;
-    template <typename T> constexpr real_t Lambda =
-        AlphaSquared<T> * (T::covariance_size() + Kappa<T>) - T::covariance_size();
+
+    /*
+    ScaledDimension is n + lambda = alpha^2 * (n + kappa), the squared sigma
+    point spread. It is formed directly rather than as n + lambda: for small
+    alpha, lambda is close to -n, and adding n back would cancel most of its
+    precision (about 2% of alpha^2 = 1e-6 in single precision). The weights
+    and the sigma point scaling are derived from it, so customise alpha and
+    kappa (or this value) rather than Lambda.
+    */
+    template <typename T> constexpr real_t ScaledDimension =
+        AlphaSquared<T> * (T::covariance_size() + Kappa<T>);
+    template <typename T> constexpr real_t Lambda = ScaledDimension<T> - T::covariance_size();
 
     /*
     Definitions for parameters used to calculated MRP vectors.
@@ -268,9 +278,9 @@ namespace UKF {
     Definitions for sigma point weights. The naming convention follows that used
     in in the paper given above.
     */
-    template <typename T> constexpr real_t Sigma_WM0 = Lambda<T>/(T::covariance_size() + Lambda<T>);
+    template <typename T> constexpr real_t Sigma_WM0 = real_t(1.0) - T::covariance_size() / ScaledDimension<T>;
     template <typename T> constexpr real_t Sigma_WC0 = Sigma_WM0<T> + (1.0 - AlphaSquared<T> + Beta<T>);
-    template <typename T> constexpr real_t Sigma_WMI = 1.0 / (2.0 * (T::covariance_size() + Lambda<T>));
+    template <typename T> constexpr real_t Sigma_WMI = 1.0 / (2.0 * ScaledDimension<T>);
     template <typename T> constexpr real_t Sigma_WCI = Sigma_WMI<T>;
 
     }
@@ -398,17 +408,19 @@ public:
     paper. Note that we operate on the transformed sigma points; there
     appears to be a typographical error in equation 63, but the explanatory
     text makes it clear that this is what is intended.
-    The function isn't static; it uses the current state vector as the mean.
+    The deltas are taken about the mean used to compute them.
     */
     static CovarianceMatrix calculate_sigma_point_covariance(const SigmaPointDeltas& w_prime) {
         CovarianceMatrix cov;
 
-        /* Calculate the covariance using equation 64 from the Kraft paper. */
-        cov = CovarianceMatrix::Zero();
-        for(std::size_t i = 1; i < num_sigma(); i++) {
-            cov.noalias() += Parameters::Sigma_WCI<StateVector> * (w_prime.col(i) * w_prime.col(i).transpose());
-        }
-        cov.noalias() += Parameters::Sigma_WC0<StateVector> * (w_prime.col(0) * w_prime.col(0).transpose());
+        /*
+        Calculate the covariance using equation 64 from the Kraft paper, as
+        one weighted product over the outer sigma points plus the central
+        point's rank-one term.
+        */
+        cov.noalias() = (Parameters::Sigma_WCI<StateVector> * w_prime.template rightCols<num_sigma() - 1>()) *
+            w_prime.template rightCols<num_sigma() - 1>().transpose();
+        cov.noalias() += (Parameters::Sigma_WC0<StateVector> * w_prime.col(0)) * w_prime.col(0).transpose();
 
         return cov;
     }
@@ -534,16 +546,22 @@ private:
     computing the quaternion mean found in "Unscented Filtering in a Unit
     Quaternion Space for Spacecraft Attitude Estimation" by Yee-Jin Cheon.
     The following algorithm implements equation (41d) from that paper.
+
+    Because the weights sum to one, the mean is accumulated as offsets from
+    the central sigma point: X0 + WMI * sum(Xi - X0). For small alpha, WM0
+    and WMI are large and of opposite sign, so the equivalent W0*X0 +
+    WMI*sum(Xi) cancels catastrophically (in single precision with alpha^2 =
+    1e-6, a component of 100 can be off by more than 10).
     */
     template <typename T>
     static T sigma_point_mean(const Matrix<Detail::StateVectorDimension<T>, num_sigma()>& sigma, [[maybe_unused]] const T& field) {
-        return Parameters::Sigma_WMI<StateVector>*sigma.template block<Detail::StateVectorDimension<T>, num_sigma()-1>(
-            0, 1).rowwise().sum() + Parameters::Sigma_WM0<StateVector>*sigma.col(0);
+        return sigma.col(0) + Parameters::Sigma_WMI<StateVector> *
+            (sigma.template rightCols<num_sigma()-1>().colwise() - sigma.col(0)).rowwise().sum();
     }
 
     static real_t sigma_point_mean(const Matrix<1, num_sigma()>& sigma, [[maybe_unused]] const real_t& field) {
-        return Parameters::Sigma_WMI<StateVector>*sigma.template segment<num_sigma()-1>(1).sum()
-            + Parameters::Sigma_WM0<StateVector>*sigma(0);
+        return sigma(0) + Parameters::Sigma_WMI<StateVector> *
+            (sigma.template segment<num_sigma()-1>(1).array() - sigma(0)).sum();
     }
 
     /*
@@ -552,8 +570,8 @@ private:
     mentioned above for details.
     */
     static Vector<4> sigma_point_mean(const Matrix<4, num_sigma()>& sigma, [[maybe_unused]] const Quaternion& field) {
-        Vector<4> temp = Parameters::Sigma_WMI<StateVector>*sigma.template block<4, num_sigma()-1>(
-            0, 1).rowwise().sum() + Parameters::Sigma_WM0<StateVector>*sigma.col(0);
+        Vector<4> temp = sigma.col(0) + Parameters::Sigma_WMI<StateVector> *
+            (sigma.template rightCols<num_sigma()-1>().colwise() - sigma.col(0)).rowwise().sum();
         Quaternion temp_q = Quaternion(temp).normalized();
         return Vector<4>(temp_q.x(), temp_q.y(), temp_q.z(), temp_q.w());
     }

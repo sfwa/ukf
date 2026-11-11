@@ -19,6 +19,8 @@ struct MavParameters {
     bool planar = false;
     bool gravity_baseline = false;
 };
-MavResult estimate_mav(const std::vector<MavSample> &samples, const MavParameters &parameters,
-                       const std::string &diagnostics);
-std::string mav_parameters(const MavParameters &parameters);
+// Both functions report failure by returning false with a message in error;
+// no exceptions are used.
+bool estimate_mav(const std::vector<MavSample> &samples, const MavParameters &parameters,
+                  const std::string &diagnostics, MavResult &result, std::string &error);
+bool mav_parameters(const MavParameters &parameters, std::string &description, std::string &error);

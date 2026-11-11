@@ -18,7 +18,7 @@
 #include <fstream>
 #include <iomanip>
 #include <sstream>
-#include <stdexcept>
+#include <utility>
 namespace Mav {
 using V3 = UKF::Vector<3>;
 using V2 = UKF::Vector<2>;
@@ -91,30 +91,40 @@ Mav::V3 Mav::Measurement::expected_measurement<Mav::State, Mav::RestGyro, Mav::I
 }
 } // namespace UKF
 namespace Mav {
-struct Integrator {
-    static State integrate(real_t dt, const State &s, const Input &in) {
-        return s.process_model(dt, in);
-    }
-};
-class Filter : public UKF::SquareRootCore<State, Measurement, Integrator> {
+constexpr int MaxMeasurement = static_cast<int>(Measurement::max_covariance_size());
+// The process model is applied directly (no integrator).
+class Filter : public UKF::SquareRootCore<State, Measurement> {
   public:
-    void correct(bool freeze_bias) {
+    // Replaces the core's correction. Return false, leaving state and
+    // root_covariance unchanged, if there is no valid innovation or any part
+    // of the correction or covariance transport fails. Measurement-sized
+    // storage is bounded, so this path does not allocate.
+    bool correct(bool freeze_bias) {
+        if (!innovation_valid)
+            return false;
         const int m = innovation.size();
         if (!m)
-            return;
-        UKF::Matrix<9, Eigen::Dynamic> C(9, m);
-        C.setZero();
+            return true;
+        mav_detail::CrossMatrix<9, MaxMeasurement> C = mav_detail::CrossMatrix<9, MaxMeasurement>::Zero(9, m);
         for (std::size_t i = 1; i < State::num_sigma(); ++i)
             C.noalias() += UKF::Parameters::Sigma_WCI<State> * w_prime.col(i) * z_prime.col(i).transpose();
         C.noalias() += UKF::Parameters::Sigma_WC0<State> * w_prime.col(0) * z_prime.col(0).transpose();
         const UKF::Matrix<9, 9> P = root_covariance * root_covariance.transpose();
-        const Eigen::Matrix<real_t, Eigen::Dynamic, Eigen::Dynamic> S =
+        const mav_detail::SquareMatrix<MaxMeasurement> S =
             innovation_root_covariance * innovation_root_covariance.transpose();
-        const auto update = mav_detail::constrained_update<9>(P, C, S, innovation, freeze_bias);
-        const Q old_q = state.get_field<Attitude>();
-        state.apply_delta(update.delta);
-        root_covariance = mav_detail::recenter_root<9>(old_q, state.get_field<Attitude>(), update.posterior,
-                                                       P.cwiseAbs().maxCoeff());
+        mav_detail::Correction<9> update;
+        if (!mav_detail::constrained_update<9, MaxMeasurement>(P, C, S, innovation, freeze_bias, update))
+            return false;
+        State corrected = state;
+        corrected.apply_delta(update.delta);
+        UKF::Matrix<9, 9> recentered;
+        if (!mav_detail::recenter_root<9>(state.get_field<Attitude>(), corrected.get_field<Attitude>(),
+                                          update.posterior, recentered, P.cwiseAbs().maxCoeff()))
+            return false;
+        // Commit only after every part of the correction has succeeded.
+        state = corrected;
+        root_covariance = recentered;
+        return true;
     }
 };
 class LowPass {
@@ -158,26 +168,34 @@ Eigen::Matrix<real_t, 3, 2> tangent(const V3 &up) {
     return b;
 }
 } // namespace Mav
-void validate_mav_parameters(const MavParameters &p) {
+namespace {
+bool fail(std::string &error, std::string message) {
+    error = std::move(message);
+    return false;
+}
+bool validate_mav_parameters(const MavParameters &p, std::string &error) {
     for (double value : {p.drag_rate, p.thrust_tilt_deg, p.gyro_noise, p.velocity_noise, p.drag_noise})
         if (!std::isfinite(value))
-            throw std::runtime_error("MAV parameters must be finite");
+            return fail(error, "MAV parameters must be finite");
     if (!(p.drag_rate > 0 && p.gyro_noise > 0 && p.velocity_noise > 0 && p.drag_noise > 0))
-        throw std::runtime_error("MAV noise and drag parameters must be positive");
+        return fail(error, "MAV noise and drag parameters must be positive");
+    return true;
 }
-MavResult estimate_mav(const std::vector<MavSample> &samples, const MavParameters &p,
-                       const std::string &diagnostics) {
+} // namespace
+bool estimate_mav(const std::vector<MavSample> &samples, const MavParameters &p, const std::string &diagnostics,
+                  MavResult &result, std::string &error) {
     using namespace Mav;
     if (samples.size() < 2)
-        throw std::runtime_error("At least two samples required");
-    validate_mav_parameters(p);
+        return fail(error, "At least two samples required");
+    if (!validate_mav_parameters(p, error))
+        return false;
     Filter filter;
     RestDetector rest_detector;
     LowPass acceleration_filter, vibration_lowpass;
     Q gyro_frame = Q::Identity();
     const double initial_acc_norm = vec(samples.front().acc).norm();
     if (!std::isfinite(initial_acc_norm) || initial_acc_norm <= 1e-6)
-        throw std::runtime_error("A nonzero finite initial acceleration is required to initialize tilt");
+        return fail(error, "A nonzero finite initial acceleration is required to initialize tilt");
     filter.state.set_field<Attitude>(
         Q::FromTwoVectors(vec(samples.front().acc) / initial_acc_norm, V3::UnitZ()));
     filter.state.set_field<Velocity>(V3::Zero());
@@ -200,12 +218,12 @@ MavResult estimate_mav(const std::vector<MavSample> &samples, const MavParameter
     if (!diagnostics.empty()) {
         diagnostic.open(diagnostics);
         if (!diagnostic)
-            throw std::runtime_error("Cannot open diagnostics");
+            return fail(error, "Cannot open diagnostics");
         diagnostic << "time,bx,by,bz,rest,vx,vy,vz,model_active,innovation_norm,covariance_trace,rotor_"
                       "vibration_rms\n"
                    << std::setprecision(17);
     }
-    MavResult result;
+    result.quaternions.clear();
     result.quaternions.reserve(samples.size());
     double clock = 0, innovation_norm = 0, vibration_energy = 0;
     bool rotors = false;
@@ -216,7 +234,7 @@ MavResult estimate_mav(const std::vector<MavSample> &samples, const MavParameter
         const double dt = i ? sample.time - samples[i - 1].time : 0;
         const V3 w = vec(sample.gyro), a = vec(sample.acc);
         if (!std::isfinite(dt) || (i && dt <= 0) || !std::isfinite(a.norm()) || !std::isfinite(w.norm()))
-            throw std::runtime_error("Invalid MAV input magnitude or interval");
+            return fail(error, "Invalid MAV input magnitude or interval");
         const V3 vibration = a - vibration_lowpass.update(a, dt, std::sqrt(2.) / (2 * Pi * 20));
         const double energy_gain = -std::expm1(-dt / .5);
         vibration_energy += energy_gain * (vibration.squaredNorm() - vibration_energy);
@@ -250,7 +268,8 @@ MavResult estimate_mav(const std::vector<MavSample> &samples, const MavParameter
             filter.process_noise_root_covariance.diagonal() << p.gyro_noise, p.gyro_noise, p.gyro_noise,
                 p.velocity_noise, p.velocity_noise, p.velocity_noise, .01 * Rad, .01 * Rad, .01 * Rad;
             filter.process_noise_root_covariance *= std::sqrt(dt);
-            filter.a_priori_step(dt, in);
+            if (!filter.a_priori_step(dt, in))
+                return fail(error, "MAV prediction failed at sample " + std::to_string(i));
         }
         clock += dt;
         acc_sum += a * dt;
@@ -281,16 +300,18 @@ MavResult estimate_mav(const std::vector<MavSample> &samples, const MavParameter
             } else if (active && !p.gravity_baseline)
                 z.set_field<Drag>(in.lateral.transpose() * observation_acc);
             if (z.size()) {
-                filter.innovation_step(z, in);
+                if (!filter.innovation_step(z, in))
+                    return fail(error, "MAV innovation failed at sample " + std::to_string(i));
                 innovation_norm = filter.innovation.norm();
-                filter.correct(false);
+                if (!filter.correct(false))
+                    return fail(error, "MAV correction failed at sample " + std::to_string(i));
             }
         }
         const Q q = filter.state.get_field<Attitude>();
         const V3 current_bias = filter.state.get_field<Bias>(), v = filter.state.get_field<Velocity>();
         if (!q.coeffs().allFinite() || !v.allFinite() || !current_bias.allFinite() ||
             !filter.root_covariance.allFinite())
-            throw std::runtime_error("Non-finite MAV filter state");
+            return fail(error, "Non-finite MAV filter state");
         result.quaternions.push_back({q.w(), q.x(), q.y(), q.z()});
         if (diagnostic)
             diagnostic << sample.time << ',' << current_bias.x() << ',' << current_bias.y() << ','
@@ -302,12 +323,13 @@ MavResult estimate_mav(const std::vector<MavSample> &samples, const MavParameter
     if (diagnostic.is_open()) {
         diagnostic.close();
         if (!diagnostic)
-            throw std::runtime_error("Failed writing diagnostics");
+            return fail(error, "Failed writing diagnostics");
     }
-    return result;
+    return true;
 }
-std::string mav_parameters(const MavParameters &p) {
-    validate_mav_parameters(p);
+bool mav_parameters(const MavParameters &p, std::string &description, std::string &error) {
+    if (!validate_mav_parameters(p, error))
+        return false;
     std::ostringstream s;
     s << std::setprecision(17);
     s << "{\"stage\":\"" << (p.gravity_baseline ? "mav-srukf-gravity" : "mav-srukf") << "\","
@@ -347,5 +369,6 @@ std::string mav_parameters(const MavParameters &p) {
       << "\"gain_constraint\":\"zero world-yaw attitude gain row\",\"covariance_reset\":\"full nine-state "
          "block-diagonal Gibbs transport\","
       << "\"unscented_alpha_squared\":1,\"unscented_beta\":2,\"unscented_kappa\":0,\"mrp_a\":0,\"mrp_f\":2}";
-    return s.str();
+    description = s.str();
+    return true;
 }

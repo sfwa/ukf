@@ -54,6 +54,8 @@ target_link_libraries(ukf_double INTERFACE ukf)
 target_compile_definitions(ukf_double INTERFACE UKF_DOUBLE_PRECISION)
 
 # Warning policy is private to project executables/libraries, never consumers.
+# Project targets are also built without C++ exceptions: the library reports
+# failures through return values, and this keeps throw/try out of the tree.
 function(ukf_project_warnings target)
     set_target_properties(${target} PROPERTIES CXX_EXTENSIONS OFF)
     if(MSVC)
@@ -62,7 +64,7 @@ function(ukf_project_warnings target)
             target_compile_options(${target} PRIVATE /WX)
         endif()
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-        target_compile_options(${target} PRIVATE -Wall -Wextra)
+        target_compile_options(${target} PRIVATE -Wall -Wextra -fno-exceptions)
         if(UKF_WARNINGS_AS_ERRORS)
             target_compile_options(${target} PRIVATE -Werror)
         endif()

@@ -6,40 +6,54 @@
 #include <Eigen/QR>
 #include <algorithm>
 #include <limits>
-#include <stdexcept>
 
 namespace UKF {
 namespace Detail {
 
 /*
-Return a lower triangular factor of a positive semidefinite covariance.
+Compute a lower triangular factor of a positive semidefinite covariance.
 Keep LLT for the usual positive definite case. For a singular covariance,
 clip only roundoff-sized negative eigenvalues and triangularize its spectral
 factor. Fixed-size state matrices keep all Eigen storage on the stack.
 The optional reference scale accounts for cancellation in covariance updates.
+
+Return false, leaving root unchanged, if the covariance is not finite or is
+indefinite beyond roundoff. The library reports failures through return
+values and never throws, so it can be built with exceptions disabled.
 */
 template <typename MatrixType>
-MatrixType covariance_root(const MatrixType& covariance,
+bool covariance_root(const MatrixType& covariance, MatrixType& root,
         typename MatrixType::Scalar reference_scale = 0) {
     using Scalar = typename MatrixType::Scalar;
     if (!covariance.allFinite()) {
-        throw std::domain_error("Covariance matrix is not finite");
+        return false;
     }
     const Eigen::LLT<MatrixType> llt(covariance);
     if (llt.info() == Eigen::Success) {
-        return llt.matrixL();
+        root = llt.matrixL();
+        return true;
     }
 
     const Scalar tolerance = Scalar(16) * std::numeric_limits<Scalar>::epsilon() *
         Scalar(covariance.rows()) * std::max(reference_scale, covariance.cwiseAbs().maxCoeff());
     const Eigen::SelfAdjointEigenSolver<MatrixType> eig(covariance);
     if (eig.info() != Eigen::Success || eig.eigenvalues().minCoeff() < -tolerance) {
-        throw std::domain_error("Covariance matrix is not positive semidefinite");
+        return false;
     }
     const MatrixType factor = eig.eigenvectors() * eig.eigenvalues().cwiseMax(Scalar(0)).cwiseSqrt().asDiagonal();
-    MatrixType root = factor.transpose().householderQr().matrixQR().template triangularView<Eigen::Upper>();
-    root.transposeInPlace();
-    return root;
+    MatrixType triangular = factor.transpose().householderQr().matrixQR().template triangularView<Eigen::Upper>();
+    triangular.transposeInPlace();
+    /* QR may supply negative diagonals; return canonical nonnegative pivots. */
+    for (typename MatrixType::Index k = 0; k < triangular.cols(); ++k) {
+        if (triangular(k, k) < Scalar(0)) {
+            triangular.col(k) = -triangular.col(k);
+        }
+    }
+    if (!triangular.allFinite()) {
+        return false;
+    }
+    root = triangular;
+    return true;
 }
 
 }

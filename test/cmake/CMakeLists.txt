@@ -24,8 +24,17 @@ add_executable(consumer_manual main.cpp)
 target_link_libraries(consumer_manual PRIVATE ukf::ukf)
 target_compile_definitions(consumer_manual PRIVATE UKF_SINGLE_PRECISION)
 
+# Consumers may build the filters with exceptions disabled.
+add_executable(consumer_no_exceptions no_exceptions.cpp)
+target_link_libraries(consumer_no_exceptions PRIVATE ukf::double)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(consumer_no_exceptions PRIVATE -fno-exceptions)
+elseif(MSVC)
+    target_compile_definitions(consumer_no_exceptions PRIVATE _HAS_EXCEPTIONS=0)
+endif()
+
 # A sibling that does not use UKF must retain the parent's language and flags.
 add_executable(consumer_sibling sibling.cpp)
-foreach(target consumer_double consumer_single consumer_manual consumer_sibling)
+foreach(target consumer_double consumer_single consumer_manual consumer_no_exceptions consumer_sibling)
     add_test(NAME ${target} COMMAND ${target})
 endforeach()

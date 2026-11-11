@@ -1,10 +1,12 @@
 // MIT license; see the repository LICENSE.
 // Independent error-sample and nonlinear-coordinate checks of joint covariance.
+// The build defines EIGEN_RUNTIME_NO_MALLOC for this target, so that it is set
+// before any Eigen header (including force-included ones) and the correction
+// path can be shown not to allocate.
 #include <Eigen/Core>
 #include <Eigen/Eigenvalues>
 #include <cmath>
 #include <iostream>
-#include <stdexcept>
 #include "mav_correction.h"
 #include "UKF/StateVector.h"
 
@@ -14,14 +16,28 @@ using Matrix = UKF::Matrix<N, N>;
 using Vector = UKF::Vector<N>;
 using V3 = UKF::Vector<3>;
 using Q = UKF::Quaternion;
-using Cross = UKF::Matrix<N, Eigen::Dynamic>;
-using DynamicMatrix = UKF::Matrix<Eigen::Dynamic, Eigen::Dynamic>;
-using DynamicVector = UKF::Vector<Eigen::Dynamic>;
+constexpr int MaxM = 7;
+using Cross = mav_detail::CrossMatrix<N, MaxM>;
+using DynamicMatrix = mav_detail::SquareMatrix<MaxM>;
+using DynamicVector = mav_detail::MeasurementVector<MaxM>;
 using State = UKF::StateVector<UKF::Field<901, Q>, UKF::Field<902, V3>, UKF::Field<903, V3>>;
 
-void check(bool condition, const char* message) {
-    if (!condition) throw std::runtime_error(message);
+// Checks report the first failure through this flag; no exceptions are used.
+const char* failure = nullptr;
+
+bool check(bool condition, const char* message) {
+    if (!condition && !failure) failure = message;
+    return condition;
 }
+
+// While alive, any Eigen heap allocation fails an assertion (in builds with
+// assertions enabled and EIGEN_RUNTIME_NO_MALLOC available).
+struct NoHeapAllocation {
+#if defined(EIGEN_RUNTIME_NO_MALLOC) && !defined(EIGEN_NO_MALLOC)
+    NoHeapAllocation() { Eigen::internal::set_is_malloc_allowed(false); }
+    ~NoHeapAllocation() { Eigen::internal::set_is_malloc_allowed(true); }
+#endif
+};
 
 void close(const Matrix& actual, const Matrix& expected, const char* message) {
     check(actual.allFinite() && (actual - expected).norm() <= 3e-8 * expected.norm() + 1e-13, message);
@@ -69,14 +85,22 @@ void check_transport(double degrees) {
     const Matrix posterior = old_root * old_root.transpose();
     check(posterior.topRightCorner<3, 6>().norm() > 1e-4,
           "fixture must contain attitude/velocity/bias correlations");
-    const Matrix root = mav_detail::recenter_root<N>(predicted, corrected, posterior);
+    Matrix root;
+    bool transported = false;
+    {
+        [[maybe_unused]] NoHeapAllocation guard;
+        transported = mav_detail::recenter_root<N>(predicted, corrected, posterior, root);
+    }
+    if (!check(transported, "joint covariance transport rejected a valid correction")) return;
     close(root * root.transpose(), numerical * posterior * numerical.transpose(),
           "joint covariance transport disagrees with nonlinear finite differences");
     check(root.triangularView<Eigen::StrictlyUpper>().toDenseMatrix().norm() < 1e-13,
           "joint covariance root is not lower triangular");
     Q opposite = predicted;
     opposite.coeffs() *= -1;
-    const Matrix opposite_root = mav_detail::recenter_root<N>(opposite, corrected, posterior);
+    Matrix opposite_root;
+    if (!check(mav_detail::recenter_root<N>(opposite, corrected, posterior, opposite_root),
+               "joint covariance transport rejected a sign-flipped prediction")) return;
     close(opposite_root * opposite_root.transpose(), root * root.transpose(),
           "quaternion sign changed joint covariance transport");
 }
@@ -93,7 +117,13 @@ void check_constrained_update(bool freeze_bias) {
     const Cross cross = prior * H.transpose();
     const DynamicMatrix S = H * prior * H.transpose() + noise_root * noise_root.transpose();
     const DynamicVector innovation = V3(.3, -.2, .1);
-    const auto result = mav_detail::constrained_update<N>(prior, cross, S, innovation, freeze_bias);
+    mav_detail::Correction<N> result;
+    bool updated = false;
+    {
+        [[maybe_unused]] NoHeapAllocation guard;
+        updated = mav_detail::constrained_update<N, MaxM>(prior, cross, S, innovation, freeze_bias, result);
+    }
+    if (!check(updated, "constrained update rejected valid moments")) return;
     check(result.delta[2] == 0, "IMU model directly corrected world yaw");
     check(std::abs(result.posterior(2, 2) - prior(2, 2)) < 1e-14,
           "constrained update changed world-yaw variance before recentering");
@@ -113,7 +143,10 @@ void check_constrained_update(bool freeze_bias) {
     for (int column = 0; column < 3; ++column) {
         DynamicVector unit = DynamicVector::Zero(3);
         unit[column] = 1;
-        gain.col(column) = mav_detail::constrained_update<N>(prior, cross, S, unit, freeze_bias).delta;
+        mav_detail::Correction<N> unit_result;
+        if (!check(mav_detail::constrained_update<N, MaxM>(prior, cross, S, unit, freeze_bias, unit_result),
+                   "constrained update rejected a unit innovation")) return;
+        gain.col(column) = unit_result.delta;
     }
     Matrix sample_covariance = Matrix::Zero();
     for (int component = 0; component < N + 3; ++component) {
@@ -134,9 +167,11 @@ void check_constrained_update(bool freeze_bias) {
     const Q yaw(Eigen::AngleAxis<real_t>(.73, V3::UnitZ()));
     Matrix transform = Matrix::Identity();
     transform.topLeftCorner<3, 3>() = yaw.toRotationMatrix();
-    const auto transformed = mav_detail::constrained_update<N>(
-        (transform * prior * transform.transpose()).eval(), (transform * cross).eval(),
-        S, innovation, freeze_bias);
+    mav_detail::Correction<N> transformed;
+    if (!check(mav_detail::constrained_update<N, MaxM>(
+            (transform * prior * transform.transpose()).eval(), Cross(transform * cross),
+            S, innovation, freeze_bias, transformed),
+            "constrained update rejected yaw-rotated moments")) return;
     close(transformed.posterior, transform * result.posterior * transform.transpose(),
           "world-yaw frame changed the physical joint posterior");
     check((transformed.delta - transform * result.delta).norm() < 1e-13,
@@ -160,23 +195,37 @@ void check_constrained_update(bool freeze_bias) {
           (rotated.get_field<903>() - state.get_field<903>()).norm() < 1e-13,
           "world-yaw gauge changed body-frame velocity or bias correction");
 }
+
+// The bias constraint needs a bias block; a smaller state must be rejected.
+void check_bias_constraint_requires_bias() {
+    constexpr int Small = 6;
+    const UKF::Matrix<Small, Small> prior = UKF::Matrix<Small, Small>::Identity();
+    mav_detail::CrossMatrix<Small, MaxM> cross = mav_detail::CrossMatrix<Small, MaxM>::Zero(Small, 1);
+    cross(3, 0) = .5;
+    DynamicMatrix S = DynamicMatrix::Identity(1, 1);
+    DynamicVector innovation = DynamicVector::Constant(1, .1);
+    mav_detail::Correction<Small> result;
+    check(mav_detail::constrained_update<Small, MaxM>(prior, cross, S, innovation, false, result),
+          "constrained update rejected a state without a bias block");
+    check(!mav_detail::constrained_update<Small, MaxM>(prior, cross, S, innovation, true, result),
+          "bias constraint was accepted without a bias state");
+}
 }
 
 int main() {
-    try {
-        check_constrained_update(false);
-        check_constrained_update(true);
-        for (double degrees : {0., 5., 30., 90., 150.}) check_transport(degrees);
-        bool rejected = false;
-        try {
-            const Q singular(Eigen::AngleAxis<real_t>(std::acos(-1.), V3::UnitZ()));
-            mav_detail::recenter_root<N>(Q::Identity(), singular, Matrix::Identity());
-        } catch (const std::domain_error&) { rejected = true; }
-        check(rejected, "Gibbs-chart singularity was accepted");
-        std::cout << "Joint MAV covariance: independent error samples, bias constraints, cross-block transport and yaw gauge passed\n";
-    } catch (const std::exception& error) {
-        std::cerr << error.what() << '\n';
+    check_constrained_update(false);
+    check_constrained_update(true);
+    check_bias_constraint_requires_bias();
+    for (double degrees : {0., 5., 30., 90., 150.}) check_transport(degrees);
+    const Q singular(Eigen::AngleAxis<real_t>(std::acos(-1.), V3::UnitZ()));
+    Matrix unchanged = Matrix::Constant(7);
+    check(!mav_detail::recenter_root<N>(Q::Identity(), singular, Matrix::Identity(), unchanged),
+          "Gibbs-chart singularity was accepted");
+    check(unchanged == Matrix::Constant(7), "rejected transport modified its output");
+    if (failure) {
+        std::cerr << failure << '\n';
         return 1;
     }
+    std::cout << "Joint MAV covariance: independent error samples, bias constraints, cross-block transport and yaw gauge passed\n";
     return 0;
 }

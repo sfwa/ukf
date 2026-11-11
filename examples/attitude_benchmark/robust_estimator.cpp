@@ -14,7 +14,8 @@
 #include <cmath>
 #include <fstream>
 #include <iomanip>
-#include <stdexcept>
+#include <string>
+#include <utility>
 #include "UKF/Types.h"
 #include "UKF/StateVector.h"
 #include "UKF/MeasurementVector.h"
@@ -69,18 +70,18 @@ Robust::V3 Robust::BiasMeasurement::expected_measurement<Robust::BiasState, Robu
 }
 
 namespace Robust {
-struct AttitudeIntegrator {
-    static AttitudeState integrate(real_t dt, const AttitudeState& state, const AttitudeInput& input) {
-        return state.process_model(dt, input);
-    }
-};
 struct BiasIntegrator {
     static BiasState integrate(real_t, const BiasState& state) { return state; }
 };
-class AttitudeFilter : public UKF::SquareRootCore<AttitudeState, GravityMeasurement, AttitudeIntegrator> {
+// The attitude process model is applied directly (no integrator).
+class AttitudeFilter : public UKF::SquareRootCore<AttitudeState, GravityMeasurement> {
 public:
-    void a_posteriori_step() {
-        if (innovation.size() == 0) return;
+    // Replaces the core's correction. Return false, leaving state and
+    // root_covariance unchanged, if there is no valid innovation or any part
+    // of the correction or covariance transport fails.
+    bool a_posteriori_step() {
+        if (!innovation_valid) return false;
+        if (innovation.size() == 0) return true;
         // Keep the UKF's nonlinear prediction, measurement moments and cross
         // covariance. Gravity can correct only the two horizontal components
         // of a LEFT/world attitude error, so constrain the gain's world-Z row.
@@ -92,12 +93,24 @@ public:
             * (w_prime.col(0) * z_prime.col(0).transpose());
         const UKF::Matrix<3, 3> prior = root_covariance * root_covariance.transpose();
         const UKF::Matrix<2, 2> observation = innovation_root_covariance * innovation_root_covariance.transpose();
-        const auto update = robust_detail::constrained_gravity_update(prior, cross_covariance, observation, innovation);
-        const auto posterior_root = UKF::Detail::covariance_root(update.posteriorP, prior.cwiseAbs().maxCoeff());
-        auto corrected_state = state;
+        robust_detail::GravityUpdate update;
+        if (!robust_detail::constrained_gravity_update(prior, cross_covariance, observation, innovation, update))
+            return false;
+        UKF::Matrix<3, 3> posterior_root;
+        if (!UKF::Detail::covariance_root(update.posteriorP, posterior_root, prior.cwiseAbs().maxCoeff()))
+            return false;
+        AttitudeState corrected_state = state;
         corrected_state.apply_delta(update.delta);
+        // Transport the covariance into the corrected local Gibbs chart. The
+        // update's covariance is still in the pre-correction tangent coordinates.
+        UKF::Matrix<3, 3> recentered_root;
+        if (!robust_detail::recenter_attitude_root(state.get_field<Attitude>(),
+                corrected_state.get_field<Attitude>(), posterior_root, recentered_root))
+            return false;
+        // Commit only after every part of the correction has succeeded.
         state = corrected_state;
-        root_covariance = posterior_root;
+        root_covariance = recentered_root;
+        return true;
     }
 };
 using BiasFilter = UKF::SquareRootCore<BiasState, BiasMeasurement, BiasIntegrator>;
@@ -141,18 +154,19 @@ struct HeadingFilter {
     double good_time = 0, candidate_norm = 0, candidate_dip = 0, candidate_time = 0;
     bool initialized = false, rejected = false;
 
-    void update(const V3& magnetic_world, double dt, bool protect, double angular_speed) {
+    // Return false with a message in error for an unusable magnetic field.
+    bool update(const V3& magnetic_world, double dt, bool protect, double angular_speed, std::string& error) {
         const double observed_norm = magnetic_world.norm();
-        if (observed_norm < 1e-12) throw std::runtime_error("Zero magnetic field");
+        if (observed_norm < 1e-12) { error = "Zero magnetic field"; return false; }
         const double observed_dip = std::asin(std::clamp(magnetic_world.z() / observed_norm, -1.0, 1.0));
         const double horizontal = magnetic_world.head<2>().norm();
         if (!initialized) {
-            if (horizontal < 1e-9 * observed_norm) throw std::runtime_error("Initial magnetic field is vertical");
+            if (horizontal < 1e-9 * observed_norm) { error = "Initial magnetic field is vertical"; return false; }
             norm = ref_norm = candidate_norm = observed_norm;
             dip = ref_dip = candidate_dip = observed_dip;
             delta = -std::atan2(magnetic_world.y(), magnetic_world.x());
             initialized = true;
-            return;
+            return true;
         }
         const double smooth = -std::expm1(-dt / .05);
         norm += smooth * (observed_norm - norm);
@@ -187,6 +201,7 @@ struct HeadingFilter {
             const double residual = wrap(-std::atan2(magnetic_world.y(), magnetic_world.x()) - delta);
             delta = wrap(delta + (-std::expm1(-dt / 9)) * residual);
         }
+        return true;
     }
 };
 
@@ -198,22 +213,21 @@ Eigen::Matrix<real_t, 3, 2> tangent_basis(const V3& up) {
     return basis;
 }
 
-void recenter(AttitudeFilter& filter, const Q& predicted) {
-    // Transport the covariance into the corrected local Gibbs chart. The core
-    // update's covariance is still in the pre-correction tangent coordinates.
-    filter.root_covariance = robust_detail::recenter_attitude_root(
-        predicted, filter.state.get_field<Attitude>(), filter.root_covariance);
+bool known_stage(const std::string& stage) {
+    return stage == "robust-rest" || stage == "robust-acc" || stage == "robust";
 }
 }
 
-RobustResult estimate_robust(const std::vector<RobustSample>& samples, int axes,
-                             const std::string& stage, const std::string& diagnostics) {
+bool estimate_robust(const std::vector<RobustSample>& samples, int axes,
+                     const std::string& stage, const std::string& diagnostics,
+                     RobustResult& result, std::string& error) {
     using namespace Robust;
     const bool filtered_acceleration = stage != "robust-rest";
     const bool protected_magnetometer = stage == "robust";
     const bool protected_acceleration = stage == "robust";
-    if (stage != "robust-rest" && stage != "robust-acc" && stage != "robust") throw std::runtime_error("Unknown robust stage");
-    if (samples.size() < 2) throw std::runtime_error("At least two samples required");
+    auto fail = [&error](std::string message) { error = std::move(message); return false; };
+    if (!known_stage(stage)) return fail("Unknown robust stage");
+    if (samples.size() < 2) return fail("At least two samples required");
     AttitudeFilter attitude;
     BiasFilter bias;
     constexpr double Gravity = 9.80665;
@@ -228,6 +242,19 @@ RobustResult estimate_robust(const std::vector<RobustSample>& samples, int axes,
     // posterior uncertainty at each update below. It must not be interpreted
     // as independent raw-sample noise for the correlated gyro averages.
     bias.measurement_root_covariance.setConstant(1);
+    // The bias process model is the identity, and nothing reads the bias
+    // covariance between rest updates, so one prediction with the accumulated
+    // random-walk covariance immediately before each update equals predicting
+    // on every sample: P + q*dt1 + ... + q*dtn = P + q*(dt1 + ... + dtn).
+    constexpr double BiasRandomWalkVariance = (.01 * Rad) * (.01 * Rad);
+    double pending_bias_dt = 0;
+    auto predict_bias = [&]() {
+        const double interval = pending_bias_dt;
+        pending_bias_dt = 0;
+        bias.process_noise_root_covariance.setIdentity();
+        bias.process_noise_root_covariance *= std::sqrt(BiasRandomWalkVariance * interval);
+        return bias.a_priori_step(interval);
+    };
     Q gyro_frame = Q::Identity();
     LowPass acceleration_filter;
     V3 last_accepted_acceleration = V3::Zero();
@@ -239,10 +266,10 @@ RobustResult estimate_robust(const std::vector<RobustSample>& samples, int axes,
     std::ofstream diagnostic;
     if (!diagnostics.empty()) {
         diagnostic.open(diagnostics);
-        if (!diagnostic) throw std::runtime_error("Cannot open diagnostics: " + diagnostics);
+        if (!diagnostic) return fail("Cannot open diagnostics: " + diagnostics);
         diagnostic << "time,bx,by,bz,rest,mag_rejected,acc_innovation_rad,attitude_covariance_trace,bias_covariance_trace,mag_norm,mag_dip_rad,heading_correction_rad,acc_rejected,acc_norm_m_s2\n" << std::setprecision(17);
     }
-    RobustResult result;
+    result.quaternions.clear();
     result.quaternions.reserve(samples.size());
     const auto begin = std::chrono::steady_clock::now();
     for (std::size_t i = 0; i < samples.size(); ++i) {
@@ -262,10 +289,9 @@ RobustResult estimate_robust(const std::vector<RobustSample>& samples, int axes,
             gyro_frame = (gyro_frame * increment(input.omega * dt)).normalized();
             attitude.process_noise_root_covariance.setIdentity();
             attitude.process_noise_root_covariance *= .02 * std::sqrt(dt);
-            attitude.a_priori_step(dt, input);
-            bias.process_noise_root_covariance.setIdentity();
-            bias.process_noise_root_covariance *= (.01 * Rad) * std::sqrt(dt);
-            bias.a_priori_step(dt);
+            if (!attitude.a_priori_step(dt, input))
+                return fail("Attitude prediction failed at sample " + std::to_string(i));
+            pending_bias_dt += dt;
         }
         bool just_initialized = false;
         if (!gravity_initialized && norm_accepted) {
@@ -306,12 +332,12 @@ RobustResult estimate_robust(const std::vector<RobustSample>& samples, int axes,
                     target_variance * target_variance / process_variance + target_variance));
                 BiasMeasurement measurement;
                 measurement.set_field<RestGyro>(rest_detector.gyro_average);
-                bias.innovation_step(measurement);
-                bias.a_posteriori_step();
+                if (!predict_bias() || !bias.innovation_step(measurement) || !bias.a_posteriori_step())
+                    return fail("Rest bias update failed at sample " + std::to_string(i));
                 // Rest measurements and accepted low-rate observations bound
                 // this linear estimate naturally; reject impossible states.
                 if (bias.state.get_field<Bias>().cwiseAbs().maxCoeff() > 2.1 * Rad)
-                    throw std::runtime_error("Rest bias estimate exceeded physical bound");
+                    return fail("Rest bias estimate exceeded physical bound");
             }
             if (norm_accepted && !just_initialized && measured_up.norm() > 1e-6) {
                 measured_up.normalize();
@@ -328,40 +354,41 @@ RobustResult estimate_robust(const std::vector<RobustSample>& samples, int axes,
                 if (!direction_rejected) {
                     GravityMeasurement measurement;
                     measurement.set_field<Robust::Gravity>(input.tangent.transpose() * measured_up);
-                    attitude.innovation_step(measurement, input);
-                    attitude.a_posteriori_step();
-                    recenter(attitude, predicted);
+                    // The filter's correction also transports the covariance
+                    // into the corrected Gibbs chart before committing.
+                    if (!attitude.innovation_step(measurement, input) || !attitude.a_posteriori_step())
+                        return fail("Gravity correction failed at sample " + std::to_string(i));
                 }
             }
         }
         const Q six_axis = attitude.state.get_field<Attitude>();
         Q output = six_axis;
         if (axes == 9 && gravity_initialized) {
-            heading.update(six_axis * vector(sample.mag), dt, protected_magnetometer, input.omega.norm());
+            if (!heading.update(six_axis * vector(sample.mag), dt, protected_magnetometer, input.omega.norm(), error))
+                return false;
             output = Q(Eigen::AngleAxis<real_t>(heading.delta, V3(0, 0, 1))) * six_axis;
         }
         const V3 b = bias.state.get_field<Bias>();
         if (!output.coeffs().allFinite() || !b.allFinite() || !attitude.root_covariance.allFinite() || !bias.root_covariance.allFinite())
-            throw std::runtime_error("Non-finite robust filter state");
+            return fail("Non-finite robust filter state");
         output.normalize();
         result.quaternions.push_back({output.w(), output.x(), output.y(), output.z()});
         if (diagnostic.is_open()) diagnostic << sample.time << ',' << b.x() << ',' << b.y() << ',' << b.z() << ',' << rest << ','
             << (axes == 9 && heading.rejected) << ',' << acc_innovation << ',' << attitude.root_covariance.squaredNorm() << ','
-            << bias.root_covariance.squaredNorm() << ',' << heading.norm << ',' << heading.dip << ',' << heading.delta << ','
+            << bias.root_covariance.squaredNorm() + 3 * BiasRandomWalkVariance * pending_bias_dt << ',' << heading.norm << ',' << heading.dip << ',' << heading.delta << ','
             << (!norm_accepted || direction_rejected) << ',' << acceleration_norm << '\n';
     }
     result.elapsed_seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - begin).count();
     if (diagnostic.is_open()) {
         diagnostic.close();
-        if (!diagnostic) throw std::runtime_error("Failed writing diagnostics");
+        if (!diagnostic) return fail("Failed writing diagnostics");
     }
-    return result;
+    return true;
 }
 
-std::string robust_parameters(const std::string& stage) {
-    if (stage != "robust-rest" && stage != "robust-acc" && stage != "robust")
-        throw std::runtime_error("Unknown robust stage");
-    return "{\"stage\":\"" + stage + "\",\"attitude\":\"quaternion-only SR-UKF\",\"bias\":\"separate rest-only SR-UKF\","
+bool robust_parameters(const std::string& stage, std::string& description) {
+    if (!Robust::known_stage(stage)) return false;
+    description = "{\"stage\":\"" + stage + "\",\"attitude\":\"quaternion-only SR-UKF\",\"bias\":\"separate rest-only SR-UKF\","
         "\"gravity_gain_constraint\":\"horizontal left/world Gibbs error\",\"covariance_reset\":\"analytic left-Gibbs transport\","
         "\"unscented_alpha_squared\":1,\"unscented_beta\":2,\"unscented_kappa\":0,\"mrp_a\":0,\"mrp_f\":2,"
         "\"gyro_integration\":\"exact quaternion increment, midpoint gyro minus previous bias estimate\","
@@ -383,4 +410,5 @@ std::string robust_parameters(const std::string& stage) {
         "\"mag_new_field_min_rotation_deg_s\":20,\"heading_startup\":\"first usable magnetic sample\","
         "\"gravity_m_s2\":9.80665,\"acc_norm_reject_fraction\":0.3,\"acc_max_innovation_degrees\":60,"
         "\"acc_norm_gating_location\":\"measurement and rest updates; nonzero LPF input retained\"}";
+    return true;
 }

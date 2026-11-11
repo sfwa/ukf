@@ -14,6 +14,9 @@ struct RobustResult {
     double elapsed_seconds;
 };
 
-RobustResult estimate_robust(const std::vector<RobustSample>& samples, int axes,
-                             const std::string& stage, const std::string& diagnostics);
-std::string robust_parameters(const std::string& stage);
+// Both functions report failure by returning false with a message in error;
+// no exceptions are used.
+bool estimate_robust(const std::vector<RobustSample>& samples, int axes,
+                     const std::string& stage, const std::string& diagnostics,
+                     RobustResult& result, std::string& error);
+bool robust_parameters(const std::string& stage, std::string& description);
