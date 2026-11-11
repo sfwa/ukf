@@ -10,6 +10,60 @@ import datetime
 import json
 from pathlib import Path
 
+ALGORITHMS = {"ukf", "srukf", "robust-rest", "robust-acc", "robust", "madgwick", "mahony", "vqf"}
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def expected_trials():
+    manifest = json.loads((ROOT / "examples/attitude_benchmark/datasets.lock.json").read_text())
+    names = {"broad": set(), "sassari": set()}
+    for entry in manifest["files"]:
+        if entry["dataset"] == "broad":
+            names["broad"].add(entry["name"])
+        else:
+            names["sassari"].update(f"{entry['name']}_{sensor}"
+                                   for sensor in ("XS1", "XS2", "AP1", "AP2", "SH1", "SH2"))
+    return names
+
+
+def validate_reports(reports):
+    by_dataset = {}
+    expected = expected_trials()
+    for report in reports:
+        if len(report["datasets"]) != 1:
+            raise ValueError("Supply one full report per dataset")
+        dataset = report["datasets"][0]
+        if dataset not in expected or dataset in by_dataset:
+            raise ValueError("Need exactly one BROAD and one Sassari report")
+        if (report["scope"] != "full selected datasets" or report.get("split") != "all"
+                or report.get("trial_patterns") or set(report["axes"]) != {6, 9}
+                or set(report["algorithms"]) != ALGORITHMS):
+            raise ValueError("Only full, eight-algorithm, six/nine-axis runs can update the recorded comparison")
+        rows = report["per_trial"]
+        wanted = {(trial, axes, algorithm) for trial in expected[dataset]
+                  for axes in (6, 9) for algorithm in ALGORITHMS}
+        actual = {(r["trial"], r["axes"], r["algorithm"]) for r in rows}
+        if actual != wanted or len(rows) != len(wanted) or any(r["dataset"] != dataset for r in rows):
+            raise ValueError(f"Incomplete or duplicate {dataset} results")
+        by_dataset[dataset] = report
+    if set(by_dataset) != {"broad", "sassari"}:
+        raise ValueError("Need both BROAD and Sassari")
+    for key in ("source_sha256", "binary_sha256", "packages", "reference_parameters",
+                "burn_in_seconds", "heading_alignment_seconds", "split_protocol", "cpp_configuration", "cpp_parameters"):
+        if reports[0][key] != reports[1][key]:
+            raise ValueError(f"Reports have different {key}; rerun with identical sources and settings")
+    return by_dataset
+
+
+def table(summary):
+    lines = ["| Dataset | Axes | Algorithm | Trials | Inclination | Heading | Total |",
+             "|---|---:|---|---:|---:|---:|---:|"]
+    for row in summary:
+        lines.append(f"| {row['dataset']} | {row['axes']} | {row['algorithm']} | {row['trials']} | "
+                     f"{row['inclination_rmse_deg']:.3f} | {row['heading_rmse_deg']:.3f} | "
+                     f"{row['total_rmse_deg']:.3f} |")
+    return lines
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -17,28 +71,7 @@ def main():
     parser.add_argument("--build-description", default="Compiler/build details were not supplied.")
     args = parser.parse_args()
     reports = [json.loads(path.read_text()) for path in args.reports]
-    by_dataset = {}
-    for report in reports:
-        if len(report["datasets"]) != 1:
-            raise ValueError("Supply one full report per dataset")
-        dataset = report["datasets"][0]
-        expected = {"broad": 39, "sassari": 18}[dataset]
-        algorithms = {"ukf", "srukf", "madgwick", "mahony", "vqf"}
-        if "smoke" in report["scope"] or set(report["axes"]) != {6, 9} or set(report["algorithms"]) != algorithms:
-            raise ValueError("Only full, five-algorithm, six/nine-axis runs can update the recorded comparison")
-        rows = report["per_trial"]
-        trials = {r["trial"] for r in rows}
-        wanted = {(trial, axes, algorithm) for trial in trials for axes in (6, 9) for algorithm in algorithms}
-        actual = {(r["trial"], r["axes"], r["algorithm"]) for r in rows}
-        if len(trials) != expected or actual != wanted or len(rows) != len(wanted):
-            raise ValueError(f"Incomplete or duplicate {dataset} results")
-        by_dataset[dataset] = report
-    if set(by_dataset) != {"broad", "sassari"}:
-        raise ValueError("Need both BROAD and Sassari")
-    for key in ("source_sha256", "binary_sha256", "packages", "reference_parameters",
-                "burn_in_seconds", "heading_alignment_seconds"):
-        if reports[0][key] != reports[1][key]:
-            raise ValueError(f"Reports have different {key}; rerun with identical sources and settings")
+    by_dataset = validate_reports(reports)
     destination = Path(__file__).resolve().parent
     metadata = {name: {k: v for k, v in report.items() if k != "per_trial"}
                 for name, report in by_dataset.items()}
@@ -51,21 +84,22 @@ def main():
         writer.writeheader()
         writer.writerows(rows)
     lines = ["# Recorded attitude comparison", "",
-             f"Recorded {datetime.date.today().isoformat()}. Full suite: **570 evaluations**, "
-             "39 BROAD and 18 Sassari recordings, both axis configurations, all five algorithms.", "",
+             f"Recorded {datetime.date.today().isoformat()}. Full suite: **{len(rows)} evaluations**, "
+             f"39 BROAD and 18 Sassari recordings, both axis configurations, all {len(ALGORITHMS)} algorithms/variants.", "",
              "Values are mean per-recording RMSE in degrees over author-marked movement intervals. "
              "Heading/total use fixed initial yaw alignment; six-axis heading is drift, not absolute heading accuracy.", "",
-             "| Dataset | Axes | Algorithm | Inclination | Heading | Total |",
-             "|---|---:|---|---:|---:|---:|"]
-    for dataset in ("broad", "sassari"):
-        for row in by_dataset[dataset]["summary"]:
-            lines.append(f"| {dataset} | {row['axes']} | {row['algorithm']} | "
-                         f"{row['inclination_rmse_deg']:.3f} | {row['heading_rmse_deg']:.3f} | "
-                         f"{row['total_rmse_deg']:.3f} |")
-    lines += ["", "These results describe the supplied fixed-noise UKF model and selected reference settings. "
-              "They are not an optimized ranking of filter families.", "",
-              "The fixed-noise UKFs do not reject disturbed measurements. Large six-axis heading errors "
-              "are retained: heading is unobservable and gyro bias/model errors can accumulate during motion.", "",
+             "## Validation split", "",
+             "New-estimator development uses BROAD 01, 08, 10, 24, 28 and Sassari slow (all six sensors). "
+             "The table below evaluates the remaining 34 BROAD and 12 Sassari recordings. "
+             "These labels govern the new implementation's iteration; baseline results on all recordings were already known.", ""]
+    lines += table([row for dataset in ("broad", "sassari")
+                    for row in by_dataset[dataset]["summary_by_split"]["validation"]])
+    lines += ["", "## Full dataset comparison", ""]
+    lines += table([row for dataset in ("broad", "sassari") for row in by_dataset[dataset]["summary"]])
+    lines += ["", "The baseline `ukf`/`srukf` use the original fixed-noise joint attitude/bias model. "
+              "`robust-rest`, `robust-acc`, and `robust` are cumulative estimator variants; "
+              "the first stage also changes the bias/heading architecture, so its difference is not a rest-only ablation. "
+              "These measurements are not an optimized ranking of filter families.", "",
               "[Methodology and reproduction](../attitude-benchmark.md) · "
               "[Per-trial metrics](attitude-per-trial.csv) · "
               "[Source hashes, dependencies and provenance](attitude-provenance.json)", "",

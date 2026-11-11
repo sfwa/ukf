@@ -60,10 +60,12 @@ jobs:
       - name: Build estimators
         run: |
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-          cmake --build build --target attitude_benchmark --parallel 2
+          cmake --build build --target attitude_benchmark robust_geometry_test --parallel 2
+      - name: Validate tangent measurement and covariance geometry
+        run: build/examples/attitude_benchmark/robust_geometry_test
       - name: Validate geometry and synthetic estimation
         run: python -m unittest discover -s examples/attitude_benchmark -p 'test_*.py' -v
-      - name: Compare on recorded measurements
+      - name: Compare baselines and robust-estimator stages
         env:
           EVENT_NAME: ${{ github.event_name }}
           REQUESTED_SCOPE: ${{ inputs.scope }}
@@ -75,7 +77,8 @@ jobs:
             scope=(--smoke)
           fi
           python examples/attitude_benchmark/run.py \
-            --datasets "$DATASET" --output "benchmark-results/$DATASET" "${scope[@]}"
+            --datasets "$DATASET" --output "benchmark-results/$DATASET" \
+            --algorithms ukf srukf robust-rest robust-acc robust madgwick mahony vqf "${scope[@]}"
       - name: Upload comparison and per-trial metrics
         if: always()
         uses: actions/upload-artifact@v4

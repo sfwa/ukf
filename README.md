@@ -391,8 +391,9 @@ If desired, build and run the benchmark suite:
 Some examples are provided [here](examples/).
 
 The [recorded-data attitude benchmark](examples/attitude_benchmark/) compares
-UKF and SR-UKF with Madgwick, Mahony and VQF on BROAD and Sassari in six- and
-nine-axis modes. See [methodology and measured results](docs/attitude-benchmark.md)
+baseline UKF/SR-UKF and robust SR-UKF variants with Madgwick, Mahony and VQF on
+BROAD and Sassari in six- and nine-axis modes. See
+[methodology and measured results](docs/attitude-benchmark.md)
 for local reproduction and CI artifacts.
 
 ## References

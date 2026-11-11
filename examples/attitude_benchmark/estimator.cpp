@@ -17,6 +17,7 @@
 #include "UKF/StateVector.h"
 #include "UKF/MeasurementVector.h"
 #include "UKF/Core.h"
+#include "robust_estimator.h"
 
 enum Fields { Attitude, GyroBias, AccDirection, MagDirection };
 using Vec3 = UKF::Vector<3>;
@@ -83,7 +84,7 @@ struct Sample {
 using Samples = std::vector<Sample, Eigen::aligned_allocator<Sample>>;
 using Quaternions = std::vector<Quaternion, Eigen::aligned_allocator<Quaternion>>;
 
-Samples read_samples(const std::string& path, int axes) {
+Samples read_samples(const std::string& path, int axes, bool allow_zero_acceleration = false) {
     std::ifstream file(path);
     if (!file) throw std::runtime_error("Cannot open input: " + path);
     std::string line;
@@ -116,7 +117,7 @@ Samples read_samples(const std::string& path, int axes) {
         Sample sample{values[0], Vec3(values[1], values[2], values[3]),
             Vec3(values[4], values[5], values[6]), Vec3(values[7], values[8], values[9])};
         if ((!samples.empty() && sample.time <= samples.back().time) ||
-            sample.acc.norm() < 1e-12 || (axes == 9 && sample.mag.norm() < 1e-12)) {
+            (!allow_zero_acceleration && sample.acc.norm() < 1e-12) || (axes == 9 && sample.mag.norm() < 1e-12)) {
             throw std::runtime_error("Non-increasing time or zero sensor vector at line " + std::to_string(line_number));
         }
         samples.push_back(sample);
@@ -193,12 +194,16 @@ Quaternions estimate(const Samples& samples, int axes, double& elapsed_seconds) 
 
 int main(int argc, char** argv) {
     try {
-        std::string input_path, output_path, filter_name;
+        std::string input_path, output_path, filter_name, diagnostics_path;
+        if (argc == 3 && std::string(argv[1]) == "--describe-filter") {
+            std::cout << robust_parameters(argv[2]) << "\n";
+            return 0;
+        }
         int axes = 0;
         for (int i = 1; i < argc; ++i) {
             const std::string option = argv[i];
             if (option == "--help") {
-                std::cout << "Usage: attitude_benchmark --input sensors.csv --output attitude.csv --filter ukf|srukf --axes 6|9\n"
+                std::cout << "Usage: attitude_benchmark --input sensors.csv --output attitude.csv --filter ukf|srukf|robust-rest|robust-acc|robust --axes 6|9 [--diagnostics PATH]\n"
                     "Input: time (s), gyro (rad/s), accelerometer (specific force, +Z at rest), magnetic field.\n"
                     "Output: time,qw,qx,qy,qz; body-to-world, Z up, magnetic north +X.\n";
                 return 0;
@@ -208,19 +213,36 @@ int main(int argc, char** argv) {
             if (option == "--input") input_path = value;
             else if (option == "--output") output_path = value;
             else if (option == "--filter") filter_name = value;
+            else if (option == "--diagnostics") diagnostics_path = value;
             else if (option == "--axes" && (value == "6" || value == "9")) axes = std::stoi(value);
             else throw std::runtime_error("Unknown option or invalid value: " + option + " " + value);
         }
         if (input_path.empty() || output_path.empty() || axes == 0 ||
-            (filter_name != "ukf" && filter_name != "srukf")) {
-            throw std::runtime_error("Required: --input PATH --output PATH --filter ukf|srukf --axes 6|9");
+            (filter_name != "ukf" && filter_name != "srukf" && filter_name != "robust-rest" && filter_name != "robust-acc" && filter_name != "robust")) {
+            throw std::runtime_error("Required: --input PATH --output PATH --filter ukf|srukf|robust-rest|robust-acc|robust --axes 6|9");
         }
         if (input_path == output_path) throw std::runtime_error("Input and output paths must differ");
-        const Samples samples = read_samples(input_path, axes);
+        const Samples samples = read_samples(input_path, axes, filter_name == "robust");
         double elapsed = 0;
-        const Quaternions quats = filter_name == "ukf"
-            ? estimate<CovarianceFilter>(samples, axes, elapsed)
-            : estimate<SquareRootFilter>(samples, axes, elapsed);
+        Quaternions quats;
+        if (filter_name == "ukf" || filter_name == "srukf") {
+            if (!diagnostics_path.empty()) throw std::runtime_error("Diagnostics are available for robust stages only");
+            quats = filter_name == "ukf" ? estimate<CovarianceFilter>(samples, axes, elapsed)
+                                       : estimate<SquareRootFilter>(samples, axes, elapsed);
+        } else {
+            if (!diagnostics_path.empty() && (diagnostics_path == input_path || diagnostics_path == output_path))
+                throw std::runtime_error("Diagnostics path must differ from input and output");
+            std::vector<RobustSample> input;
+            input.reserve(samples.size());
+            for (const auto& sample : samples) input.push_back({sample.time,
+                {sample.gyro.x(), sample.gyro.y(), sample.gyro.z()},
+                {sample.acc.x(), sample.acc.y(), sample.acc.z()},
+                {sample.mag.x(), sample.mag.y(), sample.mag.z()}});
+            const auto result = estimate_robust(input, axes, filter_name, diagnostics_path);
+            elapsed = result.elapsed_seconds;
+            quats.reserve(result.quaternions.size());
+            for (const auto& q : result.quaternions) quats.emplace_back(q[0], q[1], q[2], q[3]);
+        }
         std::ofstream output(output_path);
         if (!output) throw std::runtime_error("Cannot open output: " + output_path);
         output << "time,qw,qx,qy,qz\n" << std::setprecision(17);
