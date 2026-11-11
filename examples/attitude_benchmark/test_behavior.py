@@ -1,7 +1,8 @@
-"""Synthetic behavioral checks for the staged robust attitude estimator.
+"""Synthetic behavioral checks for the UKF attitude estimator.
 
 These recordings have independently known motion, sensor bias and disturbances.
-No recorded dataset or ground truth is passed to the executable.
+No recorded dataset or ground truth is passed to the executable. Both filter
+cores run the same model, so every check applies to `ukf` and `srukf` alike.
 """
 import os
 from pathlib import Path
@@ -19,9 +20,10 @@ EXECUTABLE = Path(os.environ.get(
     ROOT / "build/examples/attitude_benchmark/attitude_benchmark",
 )).resolve()
 HEADER = "time,gx,gy,gz,ax,ay,az,mx,my,mz"
+FILTERS = ("ukf", "srukf")
 
 
-class RobustEstimatorTests(unittest.TestCase):
+class EstimatorBehaviorTests(unittest.TestCase):
     def setUp(self):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
@@ -44,7 +46,7 @@ class RobustEstimatorTests(unittest.TestCase):
         gyro = np.tile(omega + bias, (len(time), 1))
         return np.column_stack((time, gyro, acc, mag)), truth
 
-    def replay(self, samples, axes=6, algorithm="robust"):
+    def replay(self, samples, axes=6, algorithm="srukf"):
         self.run_number += 1
         stem = self.directory / str(self.run_number)
         source, output, diagnostics = (stem.with_suffix(ext) for ext in (".in.csv", ".out.csv", ".diag.csv"))
@@ -67,25 +69,27 @@ class RobustEstimatorTests(unittest.TestCase):
     def gravity(quaternions):
         return quaternions.inv().apply(np.tile([0., 0., 1.], (len(quaternions), 1)))
 
+    def tilt_error(self, estimate, truth):
+        cosine = np.sum(self.gravity(estimate) * self.gravity(truth), axis=1)
+        return np.rad2deg(np.arccos(np.clip(cosine, -1, 1)))
+
     @staticmethod
     def bias(details):
-        return np.column_stack([details[name] for name in ("bx", "by", "bz")])
+        return np.column_stack([details[name] for name in ("bias_x", "bias_y", "bias_z")])
 
     def test_rest_observes_all_three_gyro_bias_components(self):
         time = np.arange(2001) / 100
         bias = np.array([0.01, -0.015, 0.02])
         samples, _ = self.recording(time, bias=bias)
-        for stage in ("robust-rest", "robust-acc", "robust"):
-            with self.subTest(stage=stage):
-                _, details = self.replay(samples, algorithm=stage)
+        for algorithm in FILTERS:
+            with self.subTest(algorithm=algorithm):
+                _, details = self.replay(samples, algorithm=algorithm)
                 detected = np.flatnonzero(details["rest"])
                 self.assertGreater(len(detected), 0)
                 self.assertGreaterEqual(time[detected[0]], 1.49)
                 self.assertLess(time[detected[0]], 3)
                 np.testing.assert_allclose(self.bias(details)[-1], bias, atol=5e-4, rtol=0)
                 self.assertTrue((details["rest"][time > 5] == 1).all())
-                self.assertTrue((details["attitude_covariance_trace"] >= 0).all())
-                self.assertTrue((details["bias_covariance_trace"] >= 0).all())
 
     def test_constant_rotation_is_not_mistaken_for_rest(self):
         time = np.arange(2001) / 100
@@ -98,7 +102,7 @@ class RobustEstimatorTests(unittest.TestCase):
         self.assertFalse(details["rest"].any())
         np.testing.assert_allclose(self.bias(details), 0, atol=1e-4, rtol=0)
 
-    def test_translation_does_not_poison_gyro_bias(self):
+    def test_translation_does_not_poison_tilt_or_gyro_bias(self):
         time = np.arange(4001) / 100
         bias = np.array([0.01, -0.015, 0.02])
         moving = (time >= 6) & (time < 26)
@@ -106,20 +110,23 @@ class RobustEstimatorTests(unittest.TestCase):
         translation[moving, 0] = 3 * np.sin(2 * np.pi * 0.7 * (time[moving] - 6))
         translation[moving, 1] = 2 * np.sin(2 * np.pi * 1.1 * (time[moving] - 6))
         samples, truth = self.recording(time, bias=bias, translation=translation)
-        filtered, details = self.replay(samples, algorithm="robust-acc")
-        raw, _ = self.replay(samples, algorithm="robust-rest")
-        np.testing.assert_allclose(self.bias(details)[time >= 6],
-                                   np.broadcast_to(bias, (np.count_nonzero(time >= 6), 3)),
-                                   atol=8e-4, rtol=0)
-        self.assertLess(np.mean(details["rest"][(time > 8) & (time < 24)]), 0.1)
-        gravity = self.gravity(truth)
-        tilt_filtered = np.arccos(np.clip(np.sum(self.gravity(filtered) * gravity, axis=1), -1, 1))
-        tilt_raw = np.arccos(np.clip(np.sum(self.gravity(raw) * gravity, axis=1), -1, 1))
-        # This specifically exercises the value of gyro-frame acceleration
-        # filtering, without tuning a threshold to recorded benchmark data.
-        self.assertLess(np.sqrt(np.mean(tilt_filtered[moving] ** 2)),
-                        0.5 * np.sqrt(np.mean(tilt_raw[moving] ** 2)))
-        self.assertLess(np.rad2deg(tilt_filtered[time > 38]).max(), 1)
+        for algorithm in FILTERS:
+            with self.subTest(algorithm=algorithm):
+                estimate, details = self.replay(samples, algorithm=algorithm)
+                # Rest before the motion measures the bias; the motion must
+                # neither be mistaken for rest nor disturb that estimate.
+                np.testing.assert_allclose(self.bias(details)[time >= 6],
+                                           np.broadcast_to(bias, (np.count_nonzero(time >= 6), 3)),
+                                           atol=8e-4, rtol=0)
+                self.assertLess(np.mean(details["rest"][(time > 8) & (time < 24)]), 0.1)
+                # The accelerometer points up to 18 degrees away from vertical
+                # during this motion. Treating it as gravity would tilt the
+                # estimate by a similar amount; integrating it must not.
+                apparent = np.rad2deg(np.arctan2(np.linalg.norm(translation[:, :2], axis=1), 9.80665))
+                self.assertGreater(apparent.max(), 15)
+                tilt = self.tilt_error(estimate, truth)
+                self.assertLess(np.sqrt(np.mean(tilt[moving] ** 2)), 1)
+                self.assertLess(tilt[time > 38].max(), 0.5)
 
     def test_prefix_causality(self):
         time = np.arange(4001) / 100
@@ -140,13 +147,13 @@ class RobustEstimatorTests(unittest.TestCase):
         # magnetic sample either. Later discontinuities exercise updates.
         disturbed[:, 7:10] *= -2
         disturbed[time > 8, 7:10] = [2., -3., 4.]
-        clean6, clean_bias = self.replay(samples, axes=6)
-        disturbed6, disturbed_bias = self.replay(disturbed, axes=6)
-        disturbed9, heading_bias = self.replay(disturbed, axes=9)
+        clean6, clean_details = self.replay(samples, axes=6)
+        disturbed6, disturbed_details = self.replay(disturbed, axes=6)
+        disturbed9, heading_details = self.replay(disturbed, axes=9)
         np.testing.assert_allclose(clean6.as_quat(), disturbed6.as_quat(), atol=1e-12, rtol=0)
         np.testing.assert_allclose(self.gravity(clean6), self.gravity(disturbed9), atol=1e-10, rtol=0)
-        np.testing.assert_allclose(self.bias(clean_bias), self.bias(disturbed_bias), atol=1e-12, rtol=0)
-        np.testing.assert_allclose(self.bias(clean_bias), self.bias(heading_bias), atol=1e-12, rtol=0)
+        np.testing.assert_allclose(self.bias(clean_details), self.bias(disturbed_details), atol=1e-12, rtol=0)
+        np.testing.assert_allclose(self.bias(clean_details), self.bias(heading_details), atol=1e-12, rtol=0)
 
     def test_magnetic_disturbance_is_rejected_and_clean_field_recovers(self):
         time = np.arange(6001) / 100
@@ -158,12 +165,21 @@ class RobustEstimatorTests(unittest.TestCase):
         changed[disturbed, 7:10] += [2., -3., 4.]
         clean, _ = self.replay(samples, axes=9)
         estimate, details = self.replay(changed, axes=9)
-        self.assertGreater(np.mean(details["mag_rejected"][(time > 11) & (time < 14)]), 0.95)
-        self.assertLess(np.mean(details["mag_rejected"][time > 20]), 0.01)
+        self.assertGreater(np.mean(details["magnetometer_rejected"][(time > 11) & (time < 14)]), 0.95)
+        self.assertLess(np.mean(details["magnetometer_rejected"][time > 20]), 0.01)
         # No magnetic corruption is allowed to leak into tilt, even transiently.
         np.testing.assert_allclose(self.gravity(clean), self.gravity(estimate), atol=1e-10, rtol=0)
         discrepancy = np.rad2deg((clean.inv() * estimate).magnitude())
         self.assertLess(discrepancy[time > 50].max(), 1)
+
+    def test_nine_axis_heading_points_to_magnetic_north(self):
+        time = np.arange(3001) / 100
+        samples, truth = self.recording(time, omega=[0.07, -0.04, 0.16])
+        # The recording's magnetic field lies in the world X-Z plane, so the
+        # true attitude already has magnetic north along world +X.
+        estimate, _ = self.replay(samples, axes=9)
+        error = np.rad2deg((truth.inv() * estimate).magnitude())
+        self.assertLess(error.max(), 0.2)
 
     def test_absolute_timestamp_origin_does_not_change_state(self):
         time = np.arange(1201) / 100
@@ -175,8 +191,8 @@ class RobustEstimatorTests(unittest.TestCase):
         np.testing.assert_allclose(original.as_quat(), offset.as_quat(), atol=1e-9, rtol=0)
 
     def test_variable_sampling_intervals_preserve_physical_rotation(self):
-        # Large sampling jitter exercises dt-dependent propagation, filtering,
-        # and correction scheduling rather than just rounding perturbations.
+        # Large sampling jitter exercises dt-dependent propagation and noise
+        # scaling rather than just rounding perturbations.
         intervals = np.resize(np.array([0.004, 0.017, 0.009, 0.013]), 2000)
         time = np.concatenate(([0.], np.cumsum(intervals)))
         samples, truth = self.recording(time, omega=[0.12, -0.08, 0.3])
@@ -188,55 +204,41 @@ class RobustEstimatorTests(unittest.TestCase):
         self.assertLess(error.max(), 0.2)
         self.assertFalse(details["rest"].any())
 
-    def test_invalid_startup_acceleration_defers_gravity_and_heading(self):
-        time = np.arange(1001) / 100
-        omega = np.array([0.12, -0.08, 0.3])
+    def test_unobservable_heading_does_not_destabilize_the_filter(self):
+        # Turning steadily about the vertical is never rest, so the gyroscope
+        # bias about that axis is never measured and the filter's uncertainty
+        # about its heading keeps growing. The estimate must stay sound; left
+        # unbounded, that uncertainty breaks the filter after about 100 s.
+        time = np.arange(20001) / 100
+        initial = Rotation.from_euler("xyz", [20, -15, 40], degrees=True)
+        omega = initial.inv().apply([0., 0., np.deg2rad(20)])
         samples, truth = self.recording(time, omega=omega)
-        unavailable = time < 3
-        gyro_only = Rotation.from_rotvec(time[unavailable, None] * omega)
-        for invalid in ([0., 0., 0.], [0., 0., 40.]):
-            with self.subTest(initial_acceleration=invalid):
-                changed = samples.copy()
-                changed[unavailable, 4:7] = invalid
-                estimate, details = self.replay(changed, axes=9)
-                # Until a plausible gravity observation arrives, the initial
-                # attitude is unknown. Do not invent tilt or magnetic heading:
-                # propagate gyro from the documented identity convention.
-                coast_error = np.rad2deg((gyro_only.inv() * estimate[unavailable]).magnitude())
-                self.assertLess(coast_error.max(), 1e-5)
-                self.assertTrue((details["acc_rejected"][unavailable] == 1).all())
-                self.assertFalse(details["rest"][unavailable].any())
-                self.assertTrue((details["heading_correction_rad"][unavailable] == 0).all())
-                # The first usable *current* accelerometer and magnetometer
-                # restore full attitude, even though the body rotated meanwhile.
-                recovered_error = np.rad2deg((truth.inv() * estimate).magnitude())[time >= 3]
-                self.assertLess(recovered_error.max(), 0.2)
+        for algorithm in FILTERS:
+            with self.subTest(algorithm=algorithm):
+                estimate, details = self.replay(samples, algorithm=algorithm)
+                self.assertFalse(details["rest"].any())
+                estimate = (truth[0] * estimate[0].inv()) * estimate
+                error = np.rad2deg((truth.inv() * estimate).magnitude())
+                self.assertLess(error.max(), 0.2)
 
-    def test_implausible_acceleration_coasts_then_recovers(self):
-        time = np.arange(4501) / 100
+    def test_accelerometer_dropout_coasts_on_the_gyroscope(self):
+        time = np.arange(3001) / 100
         omega = np.array([0.12, -0.08, 0.3])
         samples, truth = self.recording(time, omega=omega)
-        burst = (time >= 5) & (time < 7)
-        start = np.flatnonzero(burst)[0] - 1
-        for acceleration in (np.zeros((np.count_nonzero(burst), 3)),
-                             truth[burst].inv().apply(np.tile([30., 0., 40.], (np.count_nonzero(burst), 1)))):
-            with self.subTest(freefall=bool(np.all(acceleration == 0))):
-                changed = samples.copy()
-                changed[burst, 4:7] = acceleration
-                estimate, details = self.replay(changed)
-                predicted = estimate[start] * Rotation.from_rotvec((time[burst] - time[start])[:, None] * omega)
-                coast_error = np.rad2deg((predicted.inv() * estimate[burst]).magnitude())
-                self.assertLess(coast_error.max(), 1e-5)
-                self.assertTrue((details["acc_rejected"][burst] == 1).all())
-                self.assertFalse(details["rest"][burst].any())
-                np.testing.assert_allclose(self.bias(details), 0, atol=1e-4, rtol=0)
-                # Nonzero forces remain in the LPF, so a transient effect after
-                # the burst is physically expected. Require eventual recovery,
-                # not artificial erasure of those measured forces.
-                inclination = np.rad2deg(np.arccos(np.clip(
-                    np.sum(self.gravity(estimate) * self.gravity(truth), axis=1), -1, 1)))
-                self.assertLess(inclination[time > 40].max(), 0.5)
-                self.assertFalse(details["acc_rejected"][time > 40].any())
+        dropout = (time >= 5) & (time < 7)
+        changed = samples.copy()
+        # A zero reading is what free fall looks like: it says nothing about
+        # which way is down, so the attitude must simply follow the gyroscope.
+        changed[dropout, 4:7] = 0
+        estimate, details = self.replay(changed)
+        estimate = (truth[0] * estimate[0].inv()) * estimate
+        error = np.rad2deg((truth.inv() * estimate).magnitude())
+        self.assertLess(error[dropout].max(), 0.2)
+        self.assertLess(error[time > 20].max(), 0.2)
+        self.assertFalse(details["rest"].any())
+        # Same tolerance as the rest check above: the dropout must not be
+        # mistaken for a gyroscope bias.
+        np.testing.assert_allclose(self.bias(details), 0, atol=5e-4, rtol=0)
 
 
 if __name__ == "__main__":

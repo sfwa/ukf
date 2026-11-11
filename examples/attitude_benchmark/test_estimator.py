@@ -117,7 +117,8 @@ class EstimatorTests(unittest.TestCase):
             "single_sample": HEADER + "\n" + row + "\n",
             "duplicate_time": HEADER + "\n" + row + "\n" + row + "\n",
             "nan": HEADER + "\n" + row + "\n1,nan,0,0,0,0,9.81,1,0,0\n",
-            "zero_acc": HEADER + "\n" + row + "\n1,0,0,0,0,0,0,1,0,0\n",
+            # The first accelerometer reading sets the initial tilt.
+            "zero_initial_acc": HEADER + "\n0,0,0,0,0,0,0,1,0,0\n1,0,0,0,0,0,9.81,1,0,0\n",
             "extra_column": HEADER + "\n" + row + "\n1,0,0,0,0,0,9.81,1,0,0,2\n",
         }
         for name, contents in cases.items():

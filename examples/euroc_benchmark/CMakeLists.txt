@@ -1,11 +1,6 @@
-add_executable(euroc_benchmark estimator.cpp mav_estimator.cpp)
+add_executable(euroc_benchmark estimator.cpp)
 target_link_libraries(euroc_benchmark PRIVATE ukf::double)
+# The CSV and sensor-check helpers are shared with the attitude benchmark.
+target_include_directories(euroc_benchmark PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../attitude_benchmark)
+target_compile_definitions(euroc_benchmark PRIVATE EIGEN_NO_MALLOC)
 ukf_project_warnings(euroc_benchmark)
-
-add_executable(mav_geometry_test test_mav_geometry.cpp)
-target_link_libraries(mav_geometry_test PRIVATE ukf::double)
-# Must precede every Eigen include, including the GCC warning header that
-# ukf_project_warnings force-includes, to enable Eigen's allocation check.
-target_compile_definitions(mav_geometry_test PRIVATE EIGEN_RUNTIME_NO_MALLOC)
-ukf_project_warnings(mav_geometry_test)
-add_dependencies(euroc_benchmark mav_geometry_test)

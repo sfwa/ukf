@@ -202,6 +202,22 @@ ProcessModelTestStateVector ProcessModelTestStateVector::derivative<UKF::Vector<
 }
 ```
 
+If the Core class specialisation has no integrator, the process model is
+instead a function which returns the next state directly. Leave its template
+argument list empty; the input types are deduced from the parameters:
+
+```C++
+template <> template <>
+ProcessModelTestStateVector ProcessModelTestStateVector::process_model<>(
+        real_t delta, const UKF::Vector<3>& acceleration) const {
+    ProcessModelTestStateVector next = *this;
+    next.set_field<Position>(get_field<Position>() + delta * get_field<Velocity>());
+    next.set_field<Velocity>(get_field<Velocity>() + delta * acceleration);
+
+    return next;
+}
+```
+
 ### Measurement model
 
 The measurement model is specified per field, in order to allow the expected
@@ -431,7 +447,7 @@ is not provided.
 | `UKF_WARNINGS_AS_ERRORS` | `ON` | Treat warnings in UKF's own targets as errors |
 | `UKF_BUILD_TESTS` | `ON` standalone, `OFF` as a subdirectory | Configure the unit tests and `check` target |
 | `UKF_BUILD_BENCHMARKS` | `ON` standalone, `OFF` as a subdirectory | Configure the benchmark target |
-| `UKF_BUILD_EXAMPLES` | `ON` standalone, `OFF` as a subdirectory | Configure the AHRS and SFWA example libraries |
+| `UKF_BUILD_EXAMPLES` | `ON` standalone, `OFF` as a subdirectory | Configure the example libraries and benchmark executables |
 
 Warnings are enabled privately on UKF's own targets, with flags selected for the
 compiler. They are not imposed on downstream consumers or third-party
@@ -447,15 +463,19 @@ project settings.
 
 Some examples are provided [here](examples/).
 
-The [recorded-data attitude benchmark](examples/attitude_benchmark/) compares
-baseline UKF/SR-UKF and robust SR-UKF variants with Madgwick, Mahony and VQF on
-BROAD and Sassari in six- and nine-axis modes. See
+The [recorded-data attitude benchmark](examples/attitude_benchmark/) is the
+best place to start: [`attitude_estimator.h`](examples/attitude_benchmark/attitude_estimator.h)
+is a complete attitude estimator for a gyroscope, accelerometer and optional
+magnetometer, written once for both `UKF::Core` and `UKF::SquareRootCore`. It
+is compared with Madgwick, Mahony and VQF on the BROAD and Sassari recordings
+in six- and nine-axis modes. See
 [methodology and measured results](docs/attitude-benchmark.md)
 for local reproduction and CI artifacts.
 
-The [EuRoC MAV benchmark](examples/euroc_benchmark/) adds a Firefly hexrotor
-process model and compares six-axis attitude estimates with the same references.
-See its [model, evaluation protocol and results](docs/euroc-benchmark.md).
+The [EuRoC MAV benchmark](examples/euroc_benchmark/) extends that estimator
+with a rotor-drag model of a Firefly hexrotor, and compares six-axis attitude
+estimates with the same references. See its
+[model, evaluation protocol and results](docs/euroc-benchmark.md).
 
 ## References
 

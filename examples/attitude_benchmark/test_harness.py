@@ -69,7 +69,7 @@ class SnapshotTests(unittest.TestCase):
         self.assertEqual(set(run.ALGORITHMS), snapshot.ALGORITHMS)
         reports = self.reports()
         validated = snapshot.validate_reports(reports)
-        self.assertEqual(sum(len(r["per_trial"]) for r in validated.values()), 912)
+        self.assertEqual(sum(len(r["per_trial"]) for r in validated.values()), 570)
 
     def test_repeated_row_cannot_hide_a_missing_recording(self):
         reports = self.reports()

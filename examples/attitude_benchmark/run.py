@@ -20,17 +20,16 @@ from datasets import load_trials
 from metrics import compute_errors
 from references import run_reference, PARAMETERS
 
-ALGORITHMS = ("ukf", "srukf", "robust-rest", "robust-acc", "robust", "madgwick", "mahony", "vqf")
-CPP_ALGORITHMS = frozenset(("ukf", "srukf", "robust-rest", "robust-acc", "robust"))
-ROBUST_ALGORITHMS = frozenset(("robust-rest", "robust-acc", "robust"))
+ALGORITHMS = ("ukf", "srukf", "madgwick", "mahony", "vqf")
+CPP_ALGORITHMS = frozenset(("ukf", "srukf"))
 DEVELOPMENT_BROAD = frozenset(("01", "08", "10", "24", "28"))
 DEVELOPMENT_SASSARI = frozenset(("slow",))
 SPLIT_PROTOCOL = {
-    "name": "robust-development-v1",
+    "name": "attitude-development-v1",
     "development_broad": sorted(DEVELOPMENT_BROAD),
     "development_sassari": sorted(DEVELOPMENT_SASSARI),
     "grouping": "All Sassari sensors from one physical motion stay in the same split.",
-    "qualification": "Splits govern new-estimator development; baseline results were already observed on all recordings.",
+    "qualification": "The estimator is tuned on the development recordings only; reference results were already known on all recordings.",
 }
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -44,10 +43,8 @@ def source_hashes():
 
 def describe_cpp_algorithms(executable, algorithms):
     """Capture the executable's fixed parameters once, before any replay."""
-    if not ROBUST_ALGORITHMS.intersection(algorithms):
-        return {}
     descriptions = {}
-    for algorithm in sorted(ROBUST_ALGORITHMS):
+    for algorithm in sorted(CPP_ALGORITHMS.intersection(algorithms)):
         result = subprocess.run([str(executable), "--describe-filter", algorithm],
                                 check=True, capture_output=True, text=True, timeout=30)
         description = json.loads(result.stdout)
@@ -137,20 +134,19 @@ def grouped_summary(rows, field):
 
 
 def relative_comparisons(summary):
-    """Accuracy ratios only; no speed comparison or implied acceptance threshold."""
+    """Accuracy ratios against VQF only; no speed comparison or implied acceptance threshold."""
     output = []
     for row in summary:
-        for reference in ("ukf", "vqf"):
-            match = next((r for r in summary if r["dataset"] == row["dataset"] and
-                          r["axes"] == row["axes"] and r["algorithm"] == reference), None)
-            if row["algorithm"] not in ROBUST_ALGORITHMS or match is None:
-                continue
-            result = {key: row[key] for key in ("dataset", "axes", "algorithm")}
-            result["reference"] = reference
-            for metric in ("inclination", "heading", "total"):
-                denominator = match[f"{metric}_rmse_deg"]
-                result[f"{metric}_rmse_ratio"] = row[f"{metric}_rmse_deg"] / denominator if denominator else None
-            output.append(result)
+        match = next((r for r in summary if r["dataset"] == row["dataset"] and
+                      r["axes"] == row["axes"] and r["algorithm"] == "vqf"), None)
+        if row["algorithm"] not in CPP_ALGORITHMS or match is None:
+            continue
+        result = {key: row[key] for key in ("dataset", "axes", "algorithm")}
+        result["reference"] = "vqf"
+        for metric in ("inclination", "heading", "total"):
+            denominator = match[f"{metric}_rmse_deg"]
+            result[f"{metric}_rmse_ratio"] = row[f"{metric}_rmse_deg"] / denominator if denominator else None
+        output.append(result)
     return output
 
 
@@ -168,7 +164,7 @@ def markdown(report):
                      f"{r['inclination_rmse_deg']:.3f} | {r['heading_rmse_deg']:.3f} | "
                      f"{r['total_rmse_deg']:.3f} |")
     lines += ["", f"Selection split: **{report['split']}**. Explicit selectors are custom subsets. "
-              "Development/validation labels govern the new-estimator iterations; baseline results were already observed on all recordings.",
+              "The UKF estimator is tuned on the development recordings only; reference results were already known on all recordings.",
               "", f"Scoring starts after both {report['burn_in_seconds']:g} s and the optical heading-alignment window. "
               "Only author-marked movement intervals with valid optical references are scored; "
               "filters still process the entire recording, including rest. "
@@ -195,7 +191,7 @@ def main():
     parser.add_argument("--trials", nargs="+", default=[],
                         help="Quoted name globs, e.g. '01_*' or 'sassari/slow_*'; marks the report as custom")
     parser.add_argument("--diagnostics", action="store_true",
-                        help="Write robust-estimator state traces below OUTPUT/diagnostics")
+                        help="Write UKF estimator state traces below OUTPUT/diagnostics")
     parser.add_argument("--burn-in", type=float, default=5.0)
     args = parser.parse_args()
     if args.smoke and (args.split != "all" or args.trials):
@@ -224,7 +220,7 @@ def main():
                     start = clock.perf_counter()
                     if algorithm in CPP_ALGORITHMS:
                         diagnostics = (args.output / "diagnostics" / trial.dataset /
-                                       f"{trial.name}-{axes}-{algorithm}.csv") if args.diagnostics and algorithm in ROBUST_ALGORITHMS else None
+                                       f"{trial.name}-{axes}-{algorithm}.csv") if args.diagnostics else None
                         quat, elapsed = cpp_estimate(executable, trial, algorithm, axes, Path(temporary), diagnostics)
                         timing_scope = "cpp_update_loop_with_diagnostics_io" if diagnostics is not None else "cpp_update_loop"
                     else:
@@ -262,7 +258,7 @@ def main():
                   packages={p: importlib.metadata.version(p) for p in ("numpy", "scipy", "h5py", "ahrs", "vqf")},
                   reference_parameters=PARAMETERS,
                   cpp_parameters=cpp_parameters,
-                  cpp_configuration="Fixed defaults in source_sha256; robust stage names select cumulative feature additions.",
+                  cpp_configuration="Fixed tuning in attitude_estimator.h; ukf and srukf run the same model on UKF::Core and UKF::SquareRootCore.",
                   datasets=args.datasets, axes=args.axes, algorithms=args.algorithms,
                   split=args.split, split_protocol=SPLIT_PROTOCOL,
                   trial_patterns=args.trials, selected_trials=selected,

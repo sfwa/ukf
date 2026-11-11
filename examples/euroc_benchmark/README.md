@@ -1,72 +1,98 @@
 # EuRoC MAV attitude benchmark
 
-This example compares a vehicle-model SR-UKF for EuRoC's AscTec Firefly hexrotor
-with the original UKF/SR-UKF, the three robust SR-UKF variants, Madgwick, Mahony
-and online VQF from the [previous attitude benchmark](../attitude_benchmark).
-The additional `vqf-mav` control changes VQF's gyro-bias clipping limit to 10°/s
-and its initial bias standard deviation to 5°/s, widening its permitted bias
-range and matching the MAV estimator's initial prior. It tests whether an
-apparent advantage comes from
-accommodating sensor bias rather than from vehicle dynamics; other VQF settings
-remain at their online defaults.
-The `mav-srukf-gravity` control uses the same gyro propagation, initial bias
-prior, rest observations and attitude correction conventions as the MAV variant,
-substituting filtered gravity observations for the drag/velocity model. Its measurement units and
-noise differ accordingly; it is an estimator-model comparison, not a single
-process-coefficient toggle.
+This example adds a model of how a multirotor flies to the attitude estimator
+of the [attitude benchmark](../attitude_benchmark), and scores it on the EuRoC
+recordings of an AscTec Firefly hexrotor. The results are compared with the
+unmodified `ukf` and `srukf` estimators of that benchmark, Madgwick, Mahony and
+online VQF. Two controls separate the effect of the vehicle model from the
+effect of merely allowing for this IMU's large gyroscope bias:
 
-EuRoC publishes gyro and accelerometer samples at nominally 200 Hz, but no
+- `mav-srukf-gravity` is the same estimator with its rotor model switched off.
+- `vqf-mav` is VQF with its gyro-bias clipping limit raised to 10°/s and its
+  initial bias standard deviation raised to 5°/s; other VQF settings remain at
+  their online defaults.
+
+EuRoC publishes gyroscope and accelerometer samples at nominally 200 Hz, but no
 magnetometer or rotor-command stream. This benchmark therefore runs **six-axis
 estimation only**. It does not synthesize magnetic readings, use camera images,
 or feed reference position, velocity, orientation or bias into any estimator.
 A physically appropriate process model does not guarantee an accuracy advantage;
 the reports retain all results without a must-win test.
 
-## Vehicle process model
+## Where to look
 
-The native estimator maintains a joint quaternion, body-frame velocity and
-three-axis gyro-bias state, with a nine-dimensional error covariance. Let `q`
-rotate the IMU frame to the world, `v` be velocity expressed in the IMU frame,
-`b_g` be gyro bias, `s` the nominal rotor-thrust axis in that frame, and `P` an
-orthonormal basis perpendicular to `s`. The multirotor approximation is
+| File | Contents |
+|---|---|
+| [`mav_estimator.h`](mav_estimator.h) | The estimator: state and measurement vectors, process and measurement models, tuning, and the update step. Start here. |
+| [`rotor_vibration.h`](rotor_vibration.h) | Detecting from accelerometer vibration whether the rotors are turning. Not part of the UKF. |
+| [`estimator.cpp`](estimator.cpp) | The command-line program. |
+| [`calibrate_mount.py`](calibrate_mount.py) | Estimates the direction of rotor thrust in the IMU frame from the development recordings. |
+| `run.py`, `datasets.py` | The benchmark harness. Metrics, reference algorithms, CSV reading and the rest detector are shared with the attitude benchmark. |
+
+## Vehicle model
+
+The filter has the same three state vector fields as the hand-held estimator,
+except that the velocity is expressed in the IMU frame:
+
+| State field | Type | Process model |
+|---|---|---|
+| `Attitude` | Quaternion, IMU to world | Turned by the gyroscope reading, less the bias |
+| `Velocity` | Vector, IMU frame | Changed by the specific force plus gravity |
+| `GyroBias` | Vector, IMU frame | Constant; process noise lets it wander |
+
+A multirotor's rotors can only push along one axis, the thrust axis. The only
+other force on the airframe is rotor drag, which opposes the velocity across
+the rotor plane and is proportional to it. So in powered flight
 
 ```text
-omega = measured_gyro - b_g
-q_dot = 0.5 * q * [0, omega]
-v_dot = q^-1 * [0, 0, -g] - omega × v + u * s - d * P * P^T * v
-b_g_dot = gyro-bias random walk
-u = s^T * measured_acceleration
-P^T * measured_acceleration = -d * P^T * v + observation noise
+lateral accelerometer reading = -drag rate * lateral velocity
 ```
 
-The process includes gravity, rotating-frame transport, axial collective force
-and lateral rotor drag. It represents the Firefly's aggregate multirotor
-translation rather than six individually commanded motors. EuRoC does not
-publish motor commands, so axial specific force supplies `u`; its uncertainty
-is absorbed into process noise. Lateral accelerometer components constrain
-velocity and, through the process model, attitude. Velocity is an internal
-state, not a reference input or an independently validated navigation output.
+which turns the accelerometer into a velocity sensor, and through the velocity
+pins down the tilt. In the process model the specific force along the thrust
+axis is whatever the accelerometer measures, and the lateral specific force is
+the rotor drag which follows from the velocity state. The lateral accelerometer
+reading is used as a measurement instead:
 
-A causal accelerometer-vibration detector and plausible collective force enable
-the rotor-drag model. Outside that condition, gravity observations are used.
-This is an approximate operating-condition detector, not an externally supplied
-flight mask. Model coefficients and the IMU-frame thrust direction are fixed
-across sequences and reported by `--describe-filter`. The model assumes modest
-drag around a nominal rotor operating point; wind, aggressive maneuvers and
-unmodeled forces can invalidate that approximation.
+| Measurement field | Set when | Measurement model |
+|---|---|---|
+| `RotorDrag` | Powered flight | Minus the drag rate times the lateral `Velocity` |
+| `ZeroVelocity` | Otherwise | The `Velocity` state |
+| `RestGyroscope` | At rest, rotors off | The `GyroBias` state |
 
-Both MAV stages use the same gyro-bias random walk, 5°/s initial bias standard
-deviation, and direct gyro observations during detected rest. Motion updates may
-also correct gyro bias through the joint covariance in both stages. The
-observations driving that correction differ: rotor drag in the MAV model and
-filtered gravity in the control. The rest detector permits filtered gyro rates
-up to 10°/s; this is a rest-classification threshold, not a hard clip on the
-native bias state. No zero-velocity observation is inferred from quiet IMU data.
+The model follows [Leishman et al., *Quadrotors and Accelerometers*, IEEE
+Control Systems Magazine, 2014](https://doi.org/10.1109/MCS.2013.2287362). It
+represents the Firefly's aggregate translation rather than six individually
+commanded motors. EuRoC does not publish motor commands, so the measured axial
+specific force stands in for the thrust. Velocity is an internal state, not a
+reference input or an independently validated navigation output.
 
-Corrections suppress direct world-yaw gain and transport the entire covariance,
-including attitude/velocity/bias cross terms, into the corrected quaternion
-chart. The compiled geometry test checks the constrained covariance against
-error samples and the chart transport against finite differences.
+The rotor model applies while the rotors are turning, detected from the
+vibration they cause in the accelerometer signal, and the thrust is between
+0.5 g and 2 g. Otherwise (while the vehicle is carried, or standing on the
+ground) the filter behaves exactly like the hand-held estimator: the complete
+accelerometer reading is integrated, and the velocity is given a
+pseudo-measurement of zero. Vibration is an approximate operating-condition
+detector, not an externally supplied flight mask. The drag rate and thrust
+direction are fixed across sequences. Wind, aggressive maneuvers and unmodeled
+forces can invalidate the approximation.
+
+Velocity is expressed in the IMU frame because rotor drag acts in that frame:
+the rotor model then never involves the heading, which a six-axis IMU cannot
+observe. For the same reason the filter's uncertainty about its heading would
+grow without limit, and the unscented transform cannot represent attitude
+errors approaching half a turn, so that one uncertainty is capped.
+
+The IMU is not mounted square to the airframe. The thrust direction,
+`[cos(20°), 0, -sin(20°)]` in the IMU frame, is an empirical calibration from
+the sensor measurements in the two development recordings
+(`calibrate_mount.py`), not a published mechanical calibration or a fit to
+reference orientation.
+
+The tuning is in `MAV_Tuning`, and can be printed with
+`euroc_benchmark --describe-filter mav-srukf`. The gyroscope bias starts with
+a 5°/s standard deviation, and the rest detector accepts average rates up to
+10°/s as a possible bias; this IMU's bias exceeds 4°/s.
 
 ## Build and replay
 
@@ -78,8 +104,6 @@ python3.12 -m venv .venv
 python -m pip install -r examples/attitude_benchmark/requirements.txt
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --target attitude_benchmark euroc_benchmark --parallel 2
-build/examples/attitude_benchmark/robust_geometry_test
-build/examples/euroc_benchmark/mav_geometry_test
 python -m unittest discover -s examples/attitude_benchmark -p 'test_*.py' -v
 python -m unittest discover -s examples/euroc_benchmark -p 'test_*.py' -v
 python examples/euroc_benchmark/run.py --smoke
@@ -88,7 +112,7 @@ python examples/euroc_benchmark/run.py
 
 `--smoke` replays the complete MH_01_easy recording. It checks integration and
 does not provide an independent optical-attitude ranking. A full run evaluates
-all 11 recordings with eleven algorithms/variants: **121 sequence evaluations**.
+all 11 recordings with eight algorithms/variants: **88 sequence evaluations**.
 Inputs are verified against the pinned sizes and SHA-256 hashes in
 `datasets.lock.json`, including cached files. Only sensor/reference/calibration
 files are needed; camera images are not estimator inputs. The default cache is
@@ -105,7 +129,7 @@ python examples/euroc_benchmark/run.py --split development \
 python examples/euroc_benchmark/run.py --split validation \
   --output benchmark-results/euroc-validation
 python examples/euroc_benchmark/run.py --sequences 'V1_02_*' \
-  --algorithms robust mav-srukf vqf vqf-mav --diagnostics \
+  --algorithms srukf mav-srukf vqf vqf-mav --diagnostics \
   --output benchmark-results/euroc-diagnostic
 ```
 
@@ -115,7 +139,7 @@ suite. `--smoke` cannot be combined with a split or sequence selectors. Use
 `--cache`, `--output`, `--executable` or `--mav-executable` to change paths.
 
 The native MAV executable accepts the same sensor-only CSV format as the
-previous benchmark:
+attitude benchmark:
 
 ```sh
 build/examples/euroc_benchmark/euroc_benchmark \
@@ -126,9 +150,12 @@ build/examples/euroc_benchmark/euroc_benchmark --describe-filter mav-srukf
 
 Input columns are `time,gx,gy,gz,ax,ay,az,mx,my,mz`: seconds, rad/s, m/s² and
 three unused zero magnetic columns. Output is `time,qw,qx,qy,qz`, scalar-first
-body-to-world orientation with world +Z up. World yaw is unobservable from the
-IMU alone. Diagnostics are optional and are written only for supported native
-estimators; their I/O is included in the diagnostic run's elapsed time.
+IMU-to-world orientation with world +Z up. World yaw is unobservable from the
+IMU alone. The first accelerometer reading must not be zero, because it sets
+the initial tilt. The optional diagnostics trace holds the gyroscope bias and
+velocity estimates, whether the vehicle was judged to be at rest, whether the
+rotor model applied, and the rotor vibration level; writing it is included in
+that run's elapsed time.
 
 ## Reference and scoring limits
 
