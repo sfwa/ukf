@@ -1,0 +1,86 @@
+name: EuRoC MAV benchmark
+
+on:
+  pull_request:
+    paths:
+      - 'include/**'
+      - 'examples/**'
+      - 'CMakeLists.txt'
+      - 'patch/**'
+      - '.github/workflows/euroc-benchmark.yml'
+  push:
+    branches: [master]
+    paths:
+      - 'include/**'
+      - 'examples/**'
+      - 'CMakeLists.txt'
+      - 'patch/**'
+      - '.github/workflows/euroc-benchmark.yml'
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: Recordings to evaluate
+        type: choice
+        options: [full, smoke]
+        default: full
+
+permissions:
+  contents: read
+
+concurrency:
+  group: euroc-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compare:
+    name: EuRoC / 6 axes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: examples/attitude_benchmark/requirements.txt
+      - name: Install reference algorithms and dataset readers
+        run: python -m pip install -r examples/attitude_benchmark/requirements.txt
+      - name: Cache verified EuRoC sensor and reference files
+        uses: actions/cache@v4
+        with:
+          path: .benchmark-cache/euroc
+          key: euroc-data-v1-${{ github.event_name == 'pull_request' && 'smoke' || inputs.scope == 'smoke' && 'smoke' || 'full' }}-${{ hashFiles('examples/euroc_benchmark/datasets.lock.json') }}
+      - name: Build baseline and MAV estimators
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --target attitude_benchmark euroc_benchmark --parallel 2
+      - name: Validate attitude and joint MAV covariance geometry
+        run: |
+          build/examples/attitude_benchmark/robust_geometry_test
+          build/examples/euroc_benchmark/mav_geometry_test
+      - name: Validate existing estimator and EuRoC physics/data harness
+        run: |
+          python -m unittest discover -s examples/attitude_benchmark -p 'test_*.py' -v
+          python -m unittest discover -s examples/euroc_benchmark -p 'test_*.py' -v
+      - name: Compare on measured EuRoC IMU data
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REQUESTED_SCOPE: ${{ inputs.scope }}
+        shell: bash
+        run: |
+          scope=()
+          if [[ "$EVENT_NAME" == "pull_request" || "$REQUESTED_SCOPE" == "smoke" ]]; then
+            scope=(--smoke)
+          fi
+          python examples/euroc_benchmark/run.py --output benchmark-results/euroc "${scope[@]}"
+      - name: Upload comparison, provenance and per-sequence metrics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: euroc-attitude-comparison
+          path: benchmark-results/euroc/
+          if-no-files-found: warn
+          retention-days: 30

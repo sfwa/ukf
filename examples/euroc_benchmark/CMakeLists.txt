@@ -1,0 +1,10 @@
+add_executable(euroc_benchmark estimator.cpp mav_estimator.cpp)
+target_compile_definitions(euroc_benchmark PRIVATE UKF_DOUBLE_PRECISION)
+target_include_directories(euroc_benchmark PRIVATE ../../include ${eigen_dir})
+add_dependencies(euroc_benchmark eigen3)
+
+add_executable(mav_geometry_test test_mav_geometry.cpp)
+target_compile_definitions(mav_geometry_test PRIVATE UKF_DOUBLE_PRECISION)
+target_include_directories(mav_geometry_test PRIVATE ../../include ${eigen_dir})
+add_dependencies(mav_geometry_test eigen3)
+add_dependencies(euroc_benchmark mav_geometry_test)
