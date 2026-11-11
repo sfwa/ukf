@@ -504,13 +504,16 @@ public:
     */
     void a_priori_step() {
         /*
-        Add the process noise to the root covariance. Note that there are two
-        methods for doing this; this one has been chosen as it still allows
-        individual fields to have different process noise values.
+        Recover a factor of S*S' + Q*Q' from the augmented matrix [S Q].
+        Updating only S's diagonal would also change the off-diagonal
+        covariance whenever the parameters are correlated.
         */
-        typename StateVectorType::StateVectorDelta R_diag = process_noise_root_covariance.diagonal();
-        typename StateVectorType::StateVectorDelta S_diag = root_covariance.diagonal();
-        root_covariance.diagonal() = (S_diag.cwiseProduct(S_diag) + R_diag.cwiseProduct(R_diag)).cwiseSqrt();
+        Matrix<StateVectorType::covariance_size(), 2 * StateVectorType::covariance_size()> augmented;
+        augmented << root_covariance, process_noise_root_covariance;
+        root_covariance = augmented.transpose().householderQr().matrixQR().topLeftCorner(
+            StateVectorType::covariance_size(), StateVectorType::covariance_size())
+            .template triangularView<Eigen::Upper>();
+        root_covariance.transposeInPlace();
 
         sigma_points = state.calculate_sigma_point_distribution(root_covariance *
             std::sqrt(StateVectorType::covariance_size() + Parameters::Lambda<StateVectorType>));
