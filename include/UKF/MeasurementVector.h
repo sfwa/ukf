@@ -59,9 +59,13 @@ namespace UKF {
             axis = antiparallel_axis(v1);
         }
 
+        /* The cross/dot quaternion is not unit length. Multiplying the
+        normalized MRP expression by its norm gives f*axis/(a*norm + w). */
+        const real_t quaternion_norm = std::sqrt(axis.squaredNorm() + q_w*q_w);
+        const real_t denominator = Parameters::MRP_A<T> * quaternion_norm + q_w;
         return Parameters::MRP_F<T> * axis /
-            (std::abs(Parameters::MRP_A<T> + q_w) > std::numeric_limits<real_t>::epsilon() ?
-            Parameters::MRP_A<T> + q_w : std::numeric_limits<real_t>::epsilon());
+            (std::abs(denominator) > std::numeric_limits<real_t>::epsilon() ?
+            denominator : std::numeric_limits<real_t>::epsilon());
     }
 
     /*
@@ -70,54 +74,42 @@ namespace UKF {
     rotation vector corresponding to the transformation between the field
     vector v1 and v2.
 
-    This is done by using an expression for the exact Jacobian of the rotation
-    vector, as a function of the field vector.
-
-    The expression for the exact Jacobian was derived using the following
-    MATLAB commands (with the Symbolic Toolbox):
-
-    v1_ = sym('v1_', [3 1], 'real');
-    v2_ = sym('v2_', [3 1], 'real');
-    f = sym('f', 1, 'real');
-    a = sym('a', 1, 'real');
-    Ra = cross(v1_, v2_) * (f/(a + sqrt(dot(v1_, v1_) * dot(v2_, v2_)) + dot(v1_, v2_)));
-    J_Ra = jacobian(Ra, v2_);
-    pretty(J_Ra);
+    Differentiate r = f*c/(a*n + w), where c = v1 cross v2,
+    w = |v1|*|v2| + v1 dot v2, and n = sqrt(c dot c + w*w).
+    At an exactly antiparallel pair the rotation axis is not unique; use
+    the same deterministic axis convention as calculate_rotation_vector.
     */
     template <typename T>
     inline Matrix<3, 3> calculate_rotation_vector_jacobian(const Vector<3>& v2, const Vector<3>& v1) {
-        Matrix<3, 3> j;
-        real_t c8 = std::sqrt(v1.squaredNorm() * v2.squaredNorm());
-        real_t q_w = c8 + v1.dot(v2);
-        real_t c9_8 = real_t(0.0);
-
-        /* Check whether the vectors are antiparallel or too small. */
-        Vector<3> c123 = Vector<3>::Zero();
-        if(c8 > std::numeric_limits<real_t>::epsilon()) {
-            c9_8 = v1.squaredNorm() / c8;
-
-            if(q_w > std::numeric_limits<real_t>::epsilon()) {
-                c123 = v1.cross(v2);
+        const real_t norm = std::sqrt(v1.squaredNorm() * v2.squaredNorm());
+        const real_t w = norm + v1.dot(v2);
+        Vector<3> c = Vector<3>::Zero();
+        Vector<3> dw = v1;
+        if (norm > std::numeric_limits<real_t>::epsilon()) {
+            dw += v2 * (v1.squaredNorm() / norm);
+            if (w > std::numeric_limits<real_t>::epsilon()) {
+                c = v1.cross(v2);
             } else {
-                c123 = antiparallel_axis(v1);
+                c = antiparallel_axis(v1);
             }
-            c123(1) = -c123(1);
         }
+        Matrix<3, 3> dc;
+        dc << 0, -v1(2), v1(1),
+              v1(2), 0, -v1(0),
+              -v1(1), v1(0), 0;
 
-        real_t c4 = Parameters::MRP_A<T> + q_w;
-        if(std::abs(c4) < std::numeric_limits<real_t>::epsilon()) {
-            c4 = std::numeric_limits<real_t>::epsilon();
+        const real_t quaternion_norm = std::sqrt(c.squaredNorm() + w*w);
+        real_t denominator = Parameters::MRP_A<T> * quaternion_norm + w;
+        Vector<3> denominator_gradient = dw;
+        if (quaternion_norm > std::numeric_limits<real_t>::epsilon()) {
+            denominator_gradient += Parameters::MRP_A<T> *
+                (dc.transpose() * c + w * dw) / quaternion_norm;
         }
-        real_t c4_2 = c4*c4;
-
-        Vector<3> c765 = v1 + v2*c9_8;
-
-        j <<            -c123(0)*c765(0)/c4_2, -v1(2)/c4 - c123(0)*c765(1)/c4_2,  v1(1)/c4 - c123(0)*c765(2)/c4_2,
-              v1(2)/c4 + c123(1)*c765(0)/c4_2,             c123(1)*c765(1)/c4_2, -v1(0)/c4 + c123(1)*c765(2)/c4_2,
-             -v1(1)/c4 - c123(2)*c765(0)/c4_2,  v1(0)/c4 - c123(2)*c765(1)/c4_2,            -c123(2)*c765(2)/c4_2;
-        j *= Parameters::MRP_F<T>;
-
-        return j;
+        if (std::abs(denominator) < std::numeric_limits<real_t>::epsilon()) {
+            denominator = std::numeric_limits<real_t>::epsilon();
+        }
+        return Parameters::MRP_F<T> * (dc / denominator -
+            c * denominator_gradient.transpose() / (denominator * denominator));
     }
 
     /*
