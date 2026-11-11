@@ -23,6 +23,8 @@ SOFTWARE.
 #ifndef AHRS_H
 #define AHRS_H
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

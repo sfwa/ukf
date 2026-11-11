@@ -23,6 +23,7 @@ SOFTWARE.
 #ifndef INTEGRATOR_H_
 #define INTEGRATOR_H_
 
+#include <stdexcept>
 #include "UKF/Config.h"
 
 namespace UKF {
@@ -31,7 +32,7 @@ namespace UKF {
 class NotUsedIntegrator {
    public:
     template <typename S, typename... U>
-    static S integrate(real_t delta, const S& state, const U&... input) {
+    static S integrate(real_t, const S&, const U&...) {
         throw std::runtime_error("NotUsedIntegrator is not supposed to be used");
     }
 };

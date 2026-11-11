@@ -362,29 +362,65 @@ test_filter.a_posteriori_step();
 /* State and (root_)covariance variables are set to the a priori values.
 ```
 
-## Building test and benchmark suites
+## Building and CMake integration
 
-Build requires a compiler supporting C++17. 
+The public headers require C++17. The commands below use CMake 3.20 or newer;
+the project files retain a CMake 3.10 minimum.
 
-First, clone the repo:
+```sh
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+cmake --build build --target unittest benchmark ahrs sfwa_ukf --parallel 2
+ctest --test-dir build --output-on-failure
+./build/benchmark/benchmark
+```
 
-    git clone git@github.com:sfwa/ukf.git && cd ukf
+These commands assume a single-configuration generator. For multi-configuration
+generators, add `--config Debug` when building and `-C Debug` when running CTest;
+executables are placed in the configuration subdirectory.
 
-Then, configure CMake:
+The default build downloads Eigen 3.2.8 and applies the allocation and C++17
+compatibility patches. To use an installed Eigen 3.3 or newer CMake package,
+configure with `-DUKF_USE_SYSTEM_EIGEN=ON`. That package supplies
+`Eigen3::Eigen` and is used as installed; the bundled patches are not applied
+to it. Tests, benchmarks and examples enable `EIGEN_NO_MALLOC`; Debug retains
+Eigen's allocation assertions.
+Square-root rank updates use UKF-owned bounded workspace, so these checks also
+apply when using an unpatched installed Eigen package.
 
-    cmake -B ./build -DCMAKE_BUILD_TYPE=Release
+To include UKF in another CMake project:
 
-Then build:
+```cmake
+add_subdirectory(path/to/ukf)
+add_executable(my_model src/my_model.cpp)
+target_link_libraries(my_model PRIVATE ukf::double)
+```
 
-    cmake --build ./build --config Release
-    
-Build and run the unit test suite:
+`ukf::double` selects `UKF_DOUBLE_PRECISION`; use `ukf::single` for
+`UKF_SINGLE_PRECISION`. Both targets propagate the UKF/Eigen include paths,
+C++17 requirement and any Eigen download dependency. If your application already
+defines its precision, link `ukf::ukf` (also available as `ukf`) instead: this
+target does not define either precision macro. Choose exactly one precision
+consistently across interacting translation units; adding the opposite macro
+does not override a precision target. An installed `find_package(ukf)` package
+is not provided.
 
-    cd build && make unittest && test/unittest && cd ..
-    
-If desired, build and run the benchmark suite:
+| CMake option | Default | Purpose |
+| --- | --- | --- |
+| `UKF_USE_SYSTEM_EIGEN` | `OFF` | Use an installed Eigen package instead of patched Eigen 3.2.8 |
+| `UKF_WARNINGS_AS_ERRORS` | `ON` | Treat warnings in UKF's own targets as errors |
+| `UKF_BUILD_TESTS` | `ON` standalone, `OFF` as a subdirectory | Configure the unit tests and `check` target |
+| `UKF_BUILD_BENCHMARKS` | `ON` standalone, `OFF` as a subdirectory | Configure the benchmark target |
+| `UKF_BUILD_EXAMPLES` | `ON` standalone, `OFF` as a subdirectory | Configure the AHRS and SFWA example libraries |
 
-    cd build && make benchmark && benchmark/benchmark && cd ..
+Warnings are enabled privately on UKF's own targets, with flags selected for the
+compiler. They are not imposed on downstream consumers or third-party
+dependencies. Set `UKF_WARNINGS_AS_ERRORS=OFF` to keep warnings without making
+them fatal.
+
+CI builds the project and its [downstream consumer fixture](test/cmake/) in
+Debug and Release. The fixture checks both precision targets, manual precision,
+C++17 propagation, parallel dependency ordering and isolation from parent
+project settings.
 
 ## Examples
 

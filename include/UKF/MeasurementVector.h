@@ -127,7 +127,7 @@ namespace UKF {
         */
         template <typename T>
         static Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> field_covariance(
-                const T& p, const T& z_pred, const T& z) {
+                const T& p, [[maybe_unused]] const T& z_pred, [[maybe_unused]] const T& z) {
             Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> temp =
                 Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>>::Zero();
             if constexpr (std::is_arithmetic_v<T>) {
@@ -153,7 +153,7 @@ namespace UKF {
 
         template <typename T>
         static Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> field_root_covariance(
-                const T& p, const T& z_pred, const T& z) {
+                const T& p, [[maybe_unused]] const T& z_pred, [[maybe_unused]] const T& z) {
             Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> temp =
                 Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>>::Zero();
             if constexpr (std::is_arithmetic_v<T>) {
@@ -188,12 +188,12 @@ namespace UKF {
         */
         template <typename T>
         static T sigma_point_mean(
-                const Matrix<Detail::StateVectorDimension<T>, S::num_sigma()>& sigma, const T& field) {
+                const Matrix<Detail::StateVectorDimension<T>, S::num_sigma()>& sigma, [[maybe_unused]] const T& field) {
             return Parameters::Sigma_WMI<S>*sigma.template block<Detail::StateVectorDimension<T>, S::num_sigma()-1>(
                 0, 1).rowwise().sum() + Parameters::Sigma_WM0<S>*sigma.col(0);
         }
 
-        static real_t sigma_point_mean(const Matrix<1, S::num_sigma()>& sigma, const real_t& field) {
+        static real_t sigma_point_mean(const Matrix<1, S::num_sigma()>& sigma, [[maybe_unused]] const real_t& field) {
             return Parameters::Sigma_WMI<S>*sigma.template segment<S::num_sigma()-1>(1).sum()
                 + Parameters::Sigma_WM0<S>*sigma(0);
         }
@@ -204,7 +204,7 @@ namespace UKF {
         set of sigma points. Then, calculate the mean of these rotations and
         apply it to the central sigma point.
         */
-        static FieldVector sigma_point_mean(const Matrix<3, S::num_sigma()>& sigma, const FieldVector& field) {
+        static FieldVector sigma_point_mean(const Matrix<3, S::num_sigma()>& sigma, [[maybe_unused]] const FieldVector& field) {
             Vector<3> temp = Vector<3>::Zero();
 
             for(std::size_t i = 0; i < S::num_sigma()-1; i++) {
@@ -601,7 +601,7 @@ public:
         std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(Key)>(field_offsets);
 
         /* Check if this field has already been set. If so, replace it. */
-        if(offset < Base::size()) {
+        if(offset < static_cast<std::size_t>(Base::size())) {
             Base::template segment<Detail::get_field_size<Fields...>(Key)>(offset) << in;
         } else {
             /*
