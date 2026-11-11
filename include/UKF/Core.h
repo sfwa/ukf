@@ -59,7 +59,7 @@ protected:
         real_t,
         StateVectorType::covariance_size(),
         MeasurementVectorType::RowsAtCompileTime,
-        0,
+        StateVectorType::covariance_size() == 1 ? Eigen::RowMajor : Eigen::ColMajor,
         StateVectorType::covariance_size(),
         MeasurementVectorType::MaxRowsAtCompileTime>;
 
@@ -224,7 +224,7 @@ protected:
         real_t,
         StateVectorType::covariance_size(),
         MeasurementVectorType::RowsAtCompileTime,
-        0,
+        StateVectorType::covariance_size() == 1 ? Eigen::RowMajor : Eigen::ColMajor,
         StateVectorType::covariance_size(),
         MeasurementVectorType::MaxRowsAtCompileTime>;
 
@@ -349,7 +349,7 @@ public:
             real_t,
             MeasurementVectorType::RowsAtCompileTime,
             augmented_innovation_cols,
-            0,
+            MeasurementVectorType::MaxRowsAtCompileTime == 1 ? Eigen::RowMajor : Eigen::ColMajor,
             MeasurementVectorType::MaxRowsAtCompileTime,
             StateVectorType::num_sigma() - 1 + MeasurementVectorType::MaxRowsAtCompileTime>;
 
@@ -460,7 +460,7 @@ protected:
         real_t,
         StateVectorType::covariance_size(),
         MeasurementVectorType::RowsAtCompileTime,
-        0,
+        StateVectorType::covariance_size() == 1 ? Eigen::RowMajor : Eigen::ColMajor,
         StateVectorType::covariance_size(),
         MeasurementVectorType::MaxRowsAtCompileTime>;
 
@@ -554,7 +554,7 @@ public:
             real_t,
             MeasurementVectorType::RowsAtCompileTime,
             augmented_innovation_cols,
-            0,
+            MeasurementVectorType::MaxRowsAtCompileTime == 1 ? Eigen::RowMajor : Eigen::ColMajor,
             MeasurementVectorType::MaxRowsAtCompileTime,
             StateVectorType::num_sigma() - 1 + MeasurementVectorType::MaxRowsAtCompileTime>;
 
