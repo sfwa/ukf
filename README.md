@@ -342,7 +342,9 @@ finite. With a small `AlphaSquared`, the central sigma point weight is negative,
 and a strongly nonlinear model can make the predicted covariance indefinite;
 both cores report this the same way. A step that depends on a failed (or
 missing) earlier step also returns `false` until the next successful
-`a_priori_step()`.
+`a_priori_step()`. `step()` is all-or-nothing: if its correction fails after a
+successful prediction, the prediction is rolled back too. To keep the
+prediction when a measurement cannot be applied, call the split steps below.
 
 ### Iteration
 

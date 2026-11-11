@@ -629,6 +629,33 @@ void check_bounded_rank_updates() {
     EXPECT_LT((actual_semidefinite - expected_semidefinite).norm(),
         Scalar(128) * std::numeric_limits<Scalar>::epsilon() * expected_semidefinite.norm());
 
+    // A negative pivot (as QR may supply) with a zero entry is still returned
+    // as a canonical positive pivot, without changing the product.
+    Matrix negative_pivot;
+    negative_pivot << -1, 0, 0, Scalar(0.5), 2, 0, 0, Scalar(0.5), 1;
+    if constexpr (UpLo == Eigen::Upper) {
+        negative_pivot.transposeInPlace();
+    }
+    Matrix expected_negative_pivot;
+    if constexpr (UpLo == Eigen::Lower) {
+        expected_negative_pivot = negative_pivot * negative_pivot.transpose();
+    } else {
+        expected_negative_pivot = negative_pivot.transpose() * negative_pivot;
+    }
+    expected_negative_pivot -= downdate * downdate.transpose();
+    ASSERT_EQ(-1, UKF::Detail::rank_update<UpLo>(negative_pivot, downdate, Scalar(-1)));
+    Matrix actual_negative_pivot;
+    if constexpr (UpLo == Eigen::Lower) {
+        actual_negative_pivot = negative_pivot * negative_pivot.transpose();
+    } else {
+        actual_negative_pivot = negative_pivot.transpose() * negative_pivot;
+    }
+    EXPECT_LT((actual_negative_pivot - expected_negative_pivot).norm(),
+        Scalar(128) * std::numeric_limits<Scalar>::epsilon() * expected_negative_pivot.norm());
+    for (int row = 0; row < 3; ++row) {
+        EXPECT_GT(negative_pivot(row, row), Scalar(0));
+    }
+
     Matrix invalid = Matrix::Identity();
     update << Scalar(0.1), Scalar(2), Scalar(0);
     EXPECT_EQ(1, UKF::Detail::rank_update<UpLo>(invalid, update, Scalar(-1)));
@@ -756,4 +783,34 @@ TEST(SquareRootDowndateTest, SemidefinitePosteriorKeepsCorrecting) {
         EXPECT_LT(std::abs(covariance(0, 0)), real_t(1e-12));
         EXPECT_NEAR(real_t(1) / real_t(i + 2), covariance(1, 1), real_t(1e-9));
     }
+}
+
+/* step() rolls back a successful prediction when its correction fails. */
+TEST(SquareRootDirectModelTest, StepIsAllOrNothing) {
+    UKF::SquareRootCore<DirectRootState, DirectRootMeasurement> filter;
+    filter.state << 1, 2;
+    filter.root_covariance.setIdentity();
+    filter.process_noise_root_covariance = UKF::Matrix<2, 2>::Identity() * real_t(0.1);
+    filter.measurement_root_covariance << 1, 1, 1;
+    DirectRootMeasurement z;
+    z.set_field<192>(real_t(2.5));
+    ASSERT_TRUE(filter.step(real_t(0.5), z));
+
+    const UKF::Vector<2> state = filter.state;
+    const UKF::Matrix<2, 2> root = filter.root_covariance;
+    filter.measurement_root_covariance(2) = std::numeric_limits<real_t>::quiet_NaN();
+    EXPECT_FALSE(filter.step(real_t(0.5), z));
+    EXPECT_EQ(real_t(0), (UKF::Vector<2>(filter.state) - state).norm());
+    EXPECT_EQ(real_t(0), (filter.root_covariance - root).norm());
+    EXPECT_EQ(1, filter.innovation.size());
+
+    UKF::SquareRootParameterEstimationCore<DirectRootState, DirectRootMeasurement> parameter;
+    parameter.state << 1, 2;
+    parameter.root_covariance.setIdentity();
+    parameter.process_noise_root_covariance = UKF::Matrix<2, 2>::Identity() * real_t(0.1);
+    parameter.measurement_root_covariance << 1, 1, std::numeric_limits<real_t>::quiet_NaN();
+    const UKF::Matrix<2, 2> parameter_root = parameter.root_covariance;
+    EXPECT_FALSE(parameter.step(z));
+    EXPECT_EQ(UKF::Vector<2>(1, 2), UKF::Vector<2>(parameter.state));
+    EXPECT_EQ(real_t(0), (parameter.root_covariance - parameter_root).norm());
 }

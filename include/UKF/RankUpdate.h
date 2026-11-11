@@ -58,7 +58,13 @@ typename MatrixType::Index rank_update_lower(MatrixType& factor,
         } else {
             if (entry == Scalar(0)) {
                 // The hyperbolic rotation is the identity, so a zero pivot
-                // of a semidefinite factor can be passed through unchanged.
+                // of a semidefinite factor can be passed through. Still
+                // return a canonical nonnegative pivot, as below.
+                if (diagonal < Scalar(0)) {
+                    for (Index j = k; j < factor.rows(); ++j) {
+                        factor(j, k) = -factor(j, k);
+                    }
+                }
                 continue;
             }
             if (!(std::abs(diagonal) > std::abs(entry))) {

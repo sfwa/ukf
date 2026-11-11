@@ -539,6 +539,7 @@ TEST(AdditiveNoiseTest, FactorsCorrelatedSemidefiniteCovariancesWithoutAllocatio
         ASSERT_TRUE(UKF::Detail::covariance_root(covariance, root));
         EXPECT_LT((root * root.transpose() - covariance).norm(), real_t(1e-5));
         EXPECT_EQ(real_t(0), root.template triangularView<Eigen::StrictlyUpper>().toDenseMatrix().norm());
+        EXPECT_GE(root.diagonal().minCoeff(), real_t(0));
     }
 }
 
@@ -629,4 +630,81 @@ TEST(CoreTest, ScaledDimensionAvoidsCancellation) {
     EXPECT_NEAR(real_t(1), UKF::Parameters::Sigma_WM0<MyStateVector> +
         real_t(2 * MyStateVector::covariance_size()) * UKF::Parameters::Sigma_WMI<MyStateVector>,
         real_t(1e-6));
+}
+
+/*
+An identity process with a quadratic measurement and negative kappa: the
+prediction is valid, but the unscented innovation covariance is indefinite.
+*/
+using IndefiniteInnovationState = UKF::StateVector<UKF::Field<172, real_t>>;
+using IndefiniteInnovationMeasurement = UKF::FixedMeasurementVector<UKF::Field<173, real_t>>;
+namespace UKF {
+namespace Parameters {
+template <> constexpr real_t Kappa<IndefiniteInnovationState> = -0.5;
+}
+template <> template <>
+IndefiniteInnovationState IndefiniteInnovationState::process_model<>(real_t) const {
+    return *this;
+}
+template <> template <>
+real_t IndefiniteInnovationMeasurement::expected_measurement<IndefiniteInnovationState, 173>(
+        const IndefiniteInnovationState& state) {
+    return state(0) * state(0);
+}
+}
+
+TEST(AdditiveNoiseTest, IndefiniteInnovationCovarianceFailsWithoutChangingFilter) {
+    UKF::Core<IndefiniteInnovationState, IndefiniteInnovationMeasurement> filter;
+    filter.state << 0;
+    filter.covariance << 1;
+    filter.process_noise_covariance << 0;
+    filter.measurement_covariance << real_t(1e-4);
+    IndefiniteInnovationMeasurement z;
+    z << real_t(0.5);
+
+    ASSERT_TRUE(filter.a_priori_step(real_t(0)));
+    const real_t predicted_state = filter.state(0);
+    const real_t predicted_covariance = filter.covariance(0, 0);
+    EXPECT_NEAR(real_t(1), predicted_covariance, real_t(1e-12));
+    EXPECT_FALSE(filter.innovation_step(z));
+    EXPECT_FALSE(filter.a_posteriori_step());
+    EXPECT_EQ(real_t(0), filter.innovation(0));
+    EXPECT_EQ(real_t(0), filter.innovation_covariance(0, 0));
+    EXPECT_EQ(predicted_state, filter.state(0));
+    EXPECT_EQ(predicted_covariance, filter.covariance(0, 0));
+
+    /* As one step, the prediction is rolled back as well. */
+    filter.state << 0;
+    filter.covariance << 1;
+    EXPECT_FALSE(filter.step(real_t(0), z));
+    EXPECT_EQ(real_t(0), filter.state(0));
+    EXPECT_EQ(real_t(1), filter.covariance(0, 0));
+}
+
+/* step() rolls back a successful prediction when its correction fails. */
+TEST(AdditiveNoiseTest, StepIsAllOrNothing) {
+    UKF::Core<AdditiveNoiseState, AdditiveNoiseMeasurement> filter;
+    filter.state << 2, -1;
+    filter.covariance << 2, 0.4, 0.4, 1;
+    filter.process_noise_covariance << 0.5, 0.1, 0.1, 0.3;
+    filter.measurement_covariance << 0.7, 0.9;
+    AdditiveNoiseMeasurement z;
+    z << 1, -2;
+    ASSERT_TRUE(filter.step(real_t(0.5), z));
+
+    const AdditiveNoiseState state = filter.state;
+    const UKF::Matrix<2, 2> covariance = filter.covariance;
+    const AdditiveNoiseMeasurement innovation = filter.innovation;
+    const UKF::Matrix<2, 2> innovation_covariance = filter.innovation_covariance;
+    filter.measurement_covariance(1) = std::numeric_limits<real_t>::quiet_NaN();
+    EXPECT_FALSE(filter.step(real_t(0.5), z));
+    EXPECT_EQ(real_t(0), (filter.state - state).norm());
+    EXPECT_EQ(real_t(0), (filter.covariance - covariance).norm());
+    EXPECT_EQ(real_t(0), (filter.innovation - innovation).norm());
+    EXPECT_EQ(real_t(0), (filter.innovation_covariance - innovation_covariance).norm());
+
+    /* The rolled-back prediction cannot be corrected without predicting again. */
+    filter.measurement_covariance << 0.7, 0.9;
+    EXPECT_FALSE(filter.innovation_step(z));
+    EXPECT_TRUE(filter.step(real_t(0.5), z));
 }

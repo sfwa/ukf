@@ -139,7 +139,9 @@ and F. Landis Markley.
 Every step returns true on success. On failure it returns false and leaves
 the public state, covariance, innovation and innovation covariance exactly as
 they were; later steps that depend on it also return false until the next
-successful a_priori_step. The cores never throw.
+successful a_priori_step. step() restores them even when only its correction
+fails. A step fails when a covariance is not finite or is indefinite beyond
+roundoff. The cores never throw.
 */
 template <typename StateVectorType, typename MeasurementVectorType, typename IntegratorType=NotUsedIntegrator>
 class Core {
@@ -181,10 +183,37 @@ public:
     MeasurementVectorType innovation;
     typename MeasurementVectorType::CovarianceMatrix innovation_covariance;
 
-    /* Top-level function used to carry out a filter step. */
+    Core() {
+        /* Give fixed-size innovation values a defined state before any step. */
+        if constexpr (MeasurementVectorType::RowsAtCompileTime != Eigen::Dynamic) {
+            innovation.setZero();
+            innovation_covariance.setZero();
+        }
+    }
+
+    /*
+    Top-level function used to carry out a filter step. It is all-or-nothing:
+    if the correction fails after a successful prediction, every public value
+    is restored. Use the split steps to keep a prediction whose measurement
+    cannot be applied.
+    */
     template <typename... U>
     bool step(real_t delta, const MeasurementVectorType& z, const U&... input) {
-        return a_priori_step(delta, input...) && innovation_step(z, input...) && a_posteriori_step();
+        const StateVectorType previous_state = state;
+        const typename StateVectorType::CovarianceMatrix previous_covariance = covariance;
+        const MeasurementVectorType previous_innovation = innovation;
+        const typename MeasurementVectorType::CovarianceMatrix previous_innovation_covariance =
+            innovation_covariance;
+        if (a_priori_step(delta, input...) && innovation_step(z, input...) && a_posteriori_step()) {
+            return true;
+        }
+        state = previous_state;
+        covariance = previous_covariance;
+        innovation = previous_innovation;
+        innovation_covariance = previous_innovation_covariance;
+        prior_valid = false;
+        innovation_valid = false;
+        return false;
     }
 
     /*
@@ -272,7 +301,10 @@ public:
         typename MeasurementVectorType::CovarianceMatrix predicted_innovation_covariance =
             z_pred.template calculate_sigma_point_covariance<StateVectorType>(z_prime);
         predicted_innovation_covariance += z.calculate_measurement_covariance(measurement_covariance, z_pred);
-        if (!predicted_innovation.allFinite() || !predicted_innovation_covariance.allFinite()) {
+        /* The innovation covariance must be positive semidefinite. */
+        typename MeasurementVectorType::CovarianceMatrix innovation_root;
+        if (!predicted_innovation.allFinite() || (predicted_innovation_covariance.size() != 0 &&
+                !Detail::covariance_root(predicted_innovation_covariance, innovation_root))) {
             return false;
         }
 
@@ -333,7 +365,10 @@ public:
         /* Update the covariance using equation 75 from the Kraft paper. */
         typename StateVectorType::CovarianceMatrix updated_covariance = covariance;
         updated_covariance.noalias() -= (kalman_gain * innovation_covariance * kalman_gain.transpose());
-        if (!updated_state.allFinite() || !updated_covariance.allFinite()) {
+        /* Reject an indefinite posterior, allowing for roundoff in the update. */
+        typename StateVectorType::CovarianceMatrix posterior_root;
+        if (!updated_state.allFinite() || !Detail::covariance_root(
+                updated_covariance, posterior_root, covariance.cwiseAbs().maxCoeff())) {
             return false;
         }
 
@@ -397,10 +432,35 @@ public:
     MeasurementVectorType innovation;
     typename MeasurementVectorType::CovarianceMatrix innovation_root_covariance;
 
-    /* Top-level function used to carry out a filter step. */
+    SquareRootCore() {
+        /* Give fixed-size innovation values a defined state before any step. */
+        if constexpr (MeasurementVectorType::RowsAtCompileTime != Eigen::Dynamic) {
+            innovation.setZero();
+            innovation_root_covariance.setZero();
+        }
+    }
+
+    /*
+    Top-level function used to carry out a filter step. Like Core::step, it
+    restores every public value if any stage fails.
+    */
     template <typename... U>
     bool step(real_t delta, const MeasurementVectorType& z, const U&... input) {
-        return a_priori_step(delta, input...) && innovation_step(z, input...) && a_posteriori_step();
+        const StateVectorType previous_state = state;
+        const typename StateVectorType::CovarianceMatrix previous_root = root_covariance;
+        const MeasurementVectorType previous_innovation = innovation;
+        const typename MeasurementVectorType::CovarianceMatrix previous_innovation_root =
+            innovation_root_covariance;
+        if (a_priori_step(delta, input...) && innovation_step(z, input...) && a_posteriori_step()) {
+            return true;
+        }
+        state = previous_state;
+        root_covariance = previous_root;
+        innovation = previous_innovation;
+        innovation_root_covariance = previous_innovation_root;
+        prior_valid = false;
+        innovation_valid = false;
+        return false;
     }
 
     /*
@@ -664,10 +724,35 @@ public:
     MeasurementVectorType innovation;
     typename MeasurementVectorType::CovarianceMatrix innovation_root_covariance;
 
-    /* Top-level function used to carry out a filter step. */
+    SquareRootParameterEstimationCore() {
+        /* Give fixed-size innovation values a defined state before any step. */
+        if constexpr (MeasurementVectorType::RowsAtCompileTime != Eigen::Dynamic) {
+            innovation.setZero();
+            innovation_root_covariance.setZero();
+        }
+    }
+
+    /*
+    Top-level function used to carry out a filter step. Like Core::step, it
+    restores every public value if any stage fails.
+    */
     template <typename... U>
     bool step(const MeasurementVectorType& z, const U&... input) {
-        return a_priori_step() && innovation_step(z, input...) && a_posteriori_step();
+        const StateVectorType previous_state = state;
+        const typename StateVectorType::CovarianceMatrix previous_root = root_covariance;
+        const MeasurementVectorType previous_innovation = innovation;
+        const typename MeasurementVectorType::CovarianceMatrix previous_innovation_root =
+            innovation_root_covariance;
+        if (a_priori_step() && innovation_step(z, input...) && a_posteriori_step()) {
+            return true;
+        }
+        state = previous_state;
+        root_covariance = previous_root;
+        innovation = previous_innovation;
+        innovation_root_covariance = previous_innovation_root;
+        prior_valid = false;
+        innovation_valid = false;
+        return false;
     }
 
     /*

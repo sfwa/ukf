@@ -43,6 +43,12 @@ bool covariance_root(const MatrixType& covariance, MatrixType& root,
     const MatrixType factor = eig.eigenvectors() * eig.eigenvalues().cwiseMax(Scalar(0)).cwiseSqrt().asDiagonal();
     MatrixType triangular = factor.transpose().householderQr().matrixQR().template triangularView<Eigen::Upper>();
     triangular.transposeInPlace();
+    /* QR may supply negative diagonals; return canonical nonnegative pivots. */
+    for (typename MatrixType::Index k = 0; k < triangular.cols(); ++k) {
+        if (triangular(k, k) < Scalar(0)) {
+            triangular.col(k) = -triangular.col(k);
+        }
+    }
     if (!triangular.allFinite()) {
         return false;
     }

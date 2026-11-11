@@ -1,10 +1,8 @@
 // MIT license; see the repository LICENSE.
 // Independent error-sample and nonlinear-coordinate checks of joint covariance.
-// Unless the build forbids Eigen heap allocation outright, enable Eigen's
-// runtime check so the correction path can be shown not to allocate.
-#if !defined(EIGEN_NO_MALLOC) && !defined(EIGEN_RUNTIME_NO_MALLOC)
-#define EIGEN_RUNTIME_NO_MALLOC
-#endif
+// The build defines EIGEN_RUNTIME_NO_MALLOC for this target, so that it is set
+// before any Eigen header (including force-included ones) and the correction
+// path can be shown not to allocate.
 #include <Eigen/Core>
 #include <Eigen/Eigenvalues>
 #include <cmath>
