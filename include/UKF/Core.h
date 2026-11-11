@@ -409,9 +409,6 @@ public:
         */
         typename StateVectorType::StateVectorDelta update_delta = kalman_gain * innovation;
 
-        /* Apply the update delta to the state vector. */
-        state.apply_delta(update_delta);
-
         /*
         Calculate the Cholesky update matrix. Reuse the cross-correlation
         variable, since we don't need it again.
@@ -422,10 +419,25 @@ public:
         Update the root covariance using a series of rank-one Cholesky
         downdates.
         */
+        typename StateVectorType::CovarianceMatrix updated_root = root_covariance;
         for(std::ptrdiff_t i = 0; i < cross_correlation.cols(); i++) {
-            Eigen::internal::llt_inplace<real_t, Eigen::Lower>::rankUpdate(
-                root_covariance, cross_correlation.col(i), real_t(-1.0));
+            if (Eigen::internal::llt_inplace<real_t, Eigen::Lower>::rankUpdate(
+                    updated_root, cross_correlation.col(i), real_t(-1.0)) >= 0) {
+                /* LLT downdates require strict positivity. An exact
+                observation can instead leave a semidefinite covariance.
+                Rebuild from the original factor, not the partial downdate. */
+                const typename StateVectorType::CovarianceMatrix prior_covariance =
+                    root_covariance * root_covariance.transpose();
+                const typename StateVectorType::CovarianceMatrix posterior_covariance =
+                    prior_covariance - cross_correlation * cross_correlation.transpose();
+                updated_root = Detail::covariance_root(posterior_covariance,
+                    prior_covariance.cwiseAbs().maxCoeff());
+                break;
+            }
         }
+        /* Commit the correction only after every covariance update succeeds. */
+        state.apply_delta(update_delta);
+        root_covariance = updated_root;
     }
 };
 
@@ -599,9 +611,6 @@ public:
         */
         typename StateVectorType::StateVectorDelta update_delta = kalman_gain * innovation;
 
-        /* Apply the update delta to the state vector. */
-        state.apply_delta(update_delta);
-
         /*
         Calculate the Cholesky update matrix. Reuse the cross-correlation
         variable, since we don't need it again.
@@ -612,10 +621,25 @@ public:
         Update the root covariance using a series of rank-one Cholesky
         downdates.
         */
+        typename StateVectorType::CovarianceMatrix updated_root = root_covariance;
         for(std::ptrdiff_t i = 0; i < cross_correlation.cols(); i++) {
-            Eigen::internal::llt_inplace<real_t, Eigen::Lower>::rankUpdate(
-                root_covariance, cross_correlation.col(i), real_t(-1.0));
+            if (Eigen::internal::llt_inplace<real_t, Eigen::Lower>::rankUpdate(
+                    updated_root, cross_correlation.col(i), real_t(-1.0)) >= 0) {
+                /* LLT downdates require strict positivity. An exact
+                observation can instead leave a semidefinite covariance.
+                Rebuild from the original factor, not the partial downdate. */
+                const typename StateVectorType::CovarianceMatrix prior_covariance =
+                    root_covariance * root_covariance.transpose();
+                const typename StateVectorType::CovarianceMatrix posterior_covariance =
+                    prior_covariance - cross_correlation * cross_correlation.transpose();
+                updated_root = Detail::covariance_root(posterior_covariance,
+                    prior_covariance.cwiseAbs().maxCoeff());
+                break;
+            }
         }
+        /* Commit the correction only after every covariance update succeeds. */
+        state.apply_delta(update_delta);
+        root_covariance = updated_root;
     }
 };
 
