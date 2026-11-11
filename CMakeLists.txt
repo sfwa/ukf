@@ -1,4 +1,4 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.8 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.10 FATAL_ERROR)
 PROJECT(ukf)
 INCLUDE(ExternalProject)
 
@@ -20,7 +20,9 @@ TIMEOUT 30
 # Apply the LLT malloc fix patch, necessary to avoid dynamic memory allocation on embedded systems.
 # This can be omitted on systems where dynamic memory allocation is acceptable.
 PATCH_COMMAND patch -p1 -t -N < ${PROJECT_SOURCE_DIR}/patch/eigen-3.2.8-no-malloc-in-llt.patch
-# Disable install step
+# Eigen is header-only; no upstream configure, build or install is needed.
+CONFIGURE_COMMAND ""
+BUILD_COMMAND ""
 INSTALL_COMMAND ""
 # Wrap download, configure and build steps in a script to log output
 LOG_DOWNLOAD ON
