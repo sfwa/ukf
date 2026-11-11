@@ -694,6 +694,22 @@ TEST(FixedMeasurementVectorTest, MeasurementRootCovariance) {
     EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(10),  out_measurement_root_covariance.col(10));
 }
 
+TEST(FixedMeasurementVectorTest, AntiparallelRotationRoundTrip) {
+    const UKF::Vector<3> directions[] = {
+        UKF::Vector<3>(1, 0, 0), UKF::Vector<3>(0, 1, 0), UKF::Vector<3>(0, 0, 1),
+        UKF::Vector<3>(1, 2, -3), UKF::Vector<3>(-4, 1, 2)
+    };
+    for (const auto& direction : directions) {
+        for (real_t scale : {real_t(0.1), real_t(1), real_t(10)}) {
+            const UKF::Vector<3> source = scale * direction;
+            const UKF::Vector<3> rotation = UKF::Detail::calculate_rotation_vector<MyMeasurementVector>(-source, source);
+            const UKF::Quaternion q = UKF::Detail::rotation_vector_to_quaternion<MyMeasurementVector>(rotation);
+            EXPECT_LT((q * source + source).norm() / source.norm(), real_t(1e-5));
+            EXPECT_NEAR(real_t(0), q.vec().dot(source.normalized()), real_t(1e-5));
+        }
+    }
+}
+
 TEST(FixedMeasurementVectorTest, CalculateRotationVector) {
     UKF::Vector<3> test;
 

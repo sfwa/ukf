@@ -37,6 +37,14 @@ namespace UKF {
 
     namespace Detail {
 
+    /* A deterministic unit axis perpendicular to a nonzero field vector. */
+    inline Vector<3> antiparallel_axis(const Vector<3>& v) {
+        if (std::abs(v(0)) > std::abs(v(1))) {
+            return Vector<3>(-v(2), 0, v(0)).normalized();
+        }
+        return Vector<3>(0, -v(2), v(1)).normalized();
+    }
+
     /* Calculate the smallest rotation vector which transforms v1 into v2. */
     template <typename T>
     inline Vector<3> calculate_rotation_vector(const Vector<3>& v2, const Vector<3>& v1) {
@@ -48,7 +56,7 @@ namespace UKF {
         if(q_w > std::numeric_limits<real_t>::epsilon()) {
             axis = v1.cross(v2);
         } else if(norm > std::numeric_limits<real_t>::epsilon()) {
-            axis = Vector<3>(-v1(2), v1(1), v1(0));
+            axis = antiparallel_axis(v1);
         }
 
         return Parameters::MRP_F<T> * axis /
@@ -91,7 +99,7 @@ namespace UKF {
             if(q_w > std::numeric_limits<real_t>::epsilon()) {
                 c123 = v1.cross(v2);
             } else {
-                c123 = Vector<3>(-v1(2), v1(1), v1(0));
+                c123 = antiparallel_axis(v1);
             }
             c123(1) = -c123(1);
         }
