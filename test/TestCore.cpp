@@ -393,3 +393,20 @@ TEST(CoreTest, FullStep) {
     EXPECT_LT((UKF::Vector<3>(0.5, 0, 0) - test_filter.state.get_field<AngularVelocity>()).norm(),
         std::sqrt(test_filter.covariance.diagonal().segment<3>(9).norm())*2);
 }
+
+using ZeroPriorState = UKF::StateVector<UKF::Field<110, UKF::Vector<2>>>;
+using ZeroPriorMeasurement = UKF::FixedMeasurementVector<UKF::Field<111, UKF::Vector<2>>>;
+namespace UKF {
+template <> template <>
+ZeroPriorState ZeroPriorState::process_model<>(real_t) const { return *this; }
+}
+
+TEST(CoreTest, ZeroPriorWithPositiveProcessNoise) {
+    UKF::Core<ZeroPriorState, ZeroPriorMeasurement> filter;
+    filter.state << 2, -3;
+    filter.covariance.setZero();
+    filter.process_noise_covariance << 2, 0.5, 0.5, 1;
+    filter.a_priori_step(real_t(1));
+    EXPECT_LT((filter.state - UKF::Vector<2>(2, -3)).norm(), real_t(1e-5));
+    EXPECT_LT((filter.covariance - filter.process_noise_covariance).norm(), real_t(1e-5));
+}

@@ -103,12 +103,14 @@ public:
         Add process noise covariance to the state covariance and calculate
         the LLT decomposition of the scaled covariance matrix.
         */
-        assert(((covariance * (StateVectorType::covariance_size() +
-            Parameters::Lambda<StateVectorType>)).llt().info() == Eigen::Success)
+        const typename StateVectorType::CovarianceMatrix augmented_covariance =
+            (covariance + process_noise_covariance) *
+            (StateVectorType::covariance_size() + Parameters::Lambda<StateVectorType>);
+        const Eigen::LLT<typename StateVectorType::CovarianceMatrix> covariance_llt(augmented_covariance);
+        assert((covariance_llt.info() == Eigen::Success)
             && "Covariance matrix is not positive definite");
 
-        sigma_points = state.calculate_sigma_point_distribution(((covariance + process_noise_covariance) *
-            (StateVectorType::covariance_size() + Parameters::Lambda<StateVectorType>)).llt().matrixL());
+        sigma_points = state.calculate_sigma_point_distribution(covariance_llt.matrixL());
 
         /* Propagate the sigma points through the process model. */
         for(std::size_t i = 0; i < StateVectorType::num_sigma(); i++) {
