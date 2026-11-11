@@ -1,15 +1,11 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.4 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.10 FATAL_ERROR)
 PROJECT(ukf)
 INCLUDE(ExternalProject)
-INCLUDE(CheckCXXCompilerFlag)
 
-# Check for C++14 support.
-CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
-IF(COMPILER_SUPPORTS_CXX14)
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-ELSE()
-    MESSAGE(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++14 support. Please use a different C++ compiler.")
-ENDIF()
+# Public headers use C++17 features, including inline variables and is_same_v.
+SET(CMAKE_CXX_STANDARD 17)
+SET(CMAKE_CXX_STANDARD_REQUIRED ON)
+SET(CMAKE_CXX_EXTENSIONS OFF)
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-register -Wno-ignored-attributes")
 
@@ -24,7 +20,11 @@ TIMEOUT 30
 # Apply the LLT malloc fix patch, necessary to avoid dynamic memory allocation on embedded systems.
 # This can be omitted on systems where dynamic memory allocation is acceptable.
 PATCH_COMMAND patch -p1 -t -N < ${PROJECT_SOURCE_DIR}/patch/eigen-3.2.8-no-malloc-in-llt.patch
-# Disable install step
+# C++17 removed std::binder1st/binder2nd, including their libc++ declarations.
+COMMAND patch -p1 -t -N < ${PROJECT_SOURCE_DIR}/patch/eigen-3.2.8-cxx17.patch
+# Eigen is header-only; no upstream configure, build or install is needed.
+CONFIGURE_COMMAND ""
+BUILD_COMMAND ""
 INSTALL_COMMAND ""
 # Wrap download, configure and build steps in a script to log output
 LOG_DOWNLOAD ON

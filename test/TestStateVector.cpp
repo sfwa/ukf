@@ -323,13 +323,11 @@ TEST(StateVectorTest, ProcessModel) {
     test_state.set_field<Velocity>(UKF::Vector<3>(1, 2, 3));
 
     expected_state << 0.1, 0.2, 0.3, 1, 2, 3;
-    EXPECT_VECTOR_EQ(expected_state, test_state.process_model(0.1));
     EXPECT_VECTOR_EQ(expected_state, test_state.process_model<UKF::IntegratorRK4>(0.1));
     EXPECT_VECTOR_EQ(expected_state, test_state.process_model<UKF::IntegratorHeun>(0.1));
     EXPECT_VECTOR_EQ(expected_state, test_state.process_model<UKF::IntegratorEuler>(0.1));
 
     expected_state << 0.1 + (0.5 * 3 * 0.1 * 0.1), 0.2 + (0.5 * 2 * 0.1 * 0.1), 0.3 + (0.5 * 1 * 0.1 * 0.1), 1.3, 2.2, 3.1;
-    EXPECT_VECTOR_EQ(expected_state, test_state.process_model(0.1, UKF::Vector<3>(3, 2, 1)));
     EXPECT_VECTOR_EQ(expected_state, test_state.process_model<UKF::IntegratorRK4>(0.1, UKF::Vector<3>(3, 2, 1)));
     EXPECT_VECTOR_EQ(expected_state, test_state.process_model<UKF::IntegratorHeun>(0.1, UKF::Vector<3>(3, 2, 1)));
     expected_state << 0.1, 0.2, 0.3, 1.3, 2.2, 3.1;
