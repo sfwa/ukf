@@ -313,7 +313,11 @@ test_filter.measurement_root_covariance << 10, 10, 10, 1, 1, 1, 5e-1, 5e-1, 5e-1
 test_filter.measurement_root_covariance = test_filter.measurement_root_covariance.array().sqrt();
 ```
 
-Currently, only a diagonal measurement noise covariance matrix is supported.
+Diagonal measurement noise remains the default. To include correlations,
+select `MyMeasurementVector::DenseCovarianceMatrix` as the final core template
+argument. See [dense measurement covariance](docs/dense-measurement-covariance.md)
+for fixed and dynamic measurement examples, square-root factors, and field
+ordering.
 
 Both state estimation filters use additive process noise:
 `x_next = process_model(x, dt, inputs) + noise`. The process noise covariance
@@ -359,8 +363,18 @@ reflect the a priori state and (root_)covariance.
 test_filter.innovation_step(meas);
 /* Innovation and innovation_(root_)covariance variables are now set. */
 test_filter.a_posteriori_step();
-/* State and (root_)covariance variables are set to the a priori values.
+/* State and (root_)covariance variables are set to the a posteriori values. */
 ```
+
+### Innovation gating
+
+Use `step_with_gate(dt, measurement, gate, inputs...)` to accept or reject a
+measurement after its innovation has been calculated. The gate receives the
+const filter, measurement and model inputs; rejection retains the prediction
+and innovation diagnostics. The square-root parameter estimator omits `dt`.
+A corresponding `a_posteriori_step(gate, context...)` overload supports split
+updates. See [innovation gating](docs/innovation-gating.md) for callback contracts
+and covariance/square-root Mahalanobis examples.
 
 ## Building test and benchmark suites
 

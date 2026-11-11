@@ -29,6 +29,7 @@ SOFTWARE.
 #include "UKF/StateVector.h"
 #include "UKF/Covariance.h"
 #include <type_traits>
+#include <utility>
 
 namespace UKF {
 
@@ -47,7 +48,8 @@ The attitude-related code makes use of the MRP method described in the paper
 "Unscented Filtering for Spacecraft Attitude Estimation" by John L. Crassidis
 and F. Landis Markley.
 */
-template <typename StateVectorType, typename MeasurementVectorType, typename IntegratorType=NotUsedIntegrator>
+template <typename StateVectorType, typename MeasurementVectorType, typename IntegratorType=NotUsedIntegrator,
+    typename MeasurementNoiseType=typename MeasurementVectorType::CovarianceVector>
 class Core {
 protected:
     typename StateVectorType::SigmaPointDistribution sigma_points;
@@ -72,9 +74,10 @@ public:
     /*
     Measurement noise covariance is an attribute of the filter instance,
     rather than the MeasurementVector specialisation.
-    Only diagonal measurement noise covariance is supported at the moment.
+    Defaults to a vector of diagonal variances. Use DenseCovarianceMatrix as
+    MeasurementNoiseType to retain correlations between sensor components.
     */
-    typename MeasurementVectorType::CovarianceVector measurement_covariance;
+    MeasurementNoiseType measurement_covariance;
 
     /*
     Innovation and innovation covariance are public to ease implementation of
@@ -89,6 +92,20 @@ public:
         a_priori_step(delta, input...);
         innovation_step(z, input...);
         a_posteriori_step();
+    }
+
+    /*
+    Evaluate a user-provided gate after prediction and innovation calculation.
+    The gate receives this filter as const, the measurement, and model inputs.
+    False rejects the complete measurement, retaining the predicted state and
+    covariance along with the innovation diagnostics. Empty innovations are
+    rejected without calling the gate. True means the correction was applied.
+    */
+    template <typename Gate, typename... U>
+    bool step_with_gate(real_t delta, const MeasurementVectorType& z, Gate&& gate, const U&... input) {
+        a_priori_step(delta, input...);
+        innovation_step(z, input...);
+        return a_posteriori_step(std::forward<Gate>(gate), z, input...);
     }
 
     /*
@@ -165,6 +182,21 @@ public:
     out innovation consistency checks and identify failed sensors, if
     desired.
     */
+    /*
+    Split-step gating hook. Call after innovation_step; any context arguments
+    are passed unchanged to gate(const Filter&, context...). The callable is
+    neither stored nor copied, and rejection does not apply a correction.
+    */
+    template <typename Gate, typename... U>
+    bool a_posteriori_step(Gate&& gate, const U&... context) {
+        if (innovation.size() == 0 ||
+                !std::forward<Gate>(gate)(static_cast<const Core&>(*this), context...)) {
+            return false;
+        }
+        a_posteriori_step();
+        return true;
+    }
+
     void a_posteriori_step() {
         /* No observations means prediction only; Eigen's QR requires a
         nonempty matrix. This also supports the split-step interface. */
@@ -218,7 +250,8 @@ http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.80.1421&rep=rep1&type=p
 The SR-UKF has a number of numerical and stability advantages over the
 standard UKF, and a lower computational cost.
 */
-template <typename StateVectorType, typename MeasurementVectorType, typename IntegratorType>
+template <typename StateVectorType, typename MeasurementVectorType, typename IntegratorType,
+    typename MeasurementNoiseType=typename MeasurementVectorType::CovarianceVector>
 class SquareRootCore {
 protected:
     typename StateVectorType::SigmaPointDistribution sigma_points;
@@ -246,10 +279,10 @@ public:
     /*
     Measurement noise root covariance is an attribute of the filter instance,
     rather than the MeasurementVector specialisation.
-    Only diagonal measurement noise root covariance is supported at the
-    moment.
+    Defaults to a vector of standard deviations. Use DenseCovarianceMatrix
+    as MeasurementNoiseType for a full factor L with noise covariance L*L^T.
     */
-    typename MeasurementVectorType::CovarianceVector measurement_root_covariance;
+    MeasurementNoiseType measurement_root_covariance;
 
     /*
     Innovation covariance is also stored in square-root form as described
@@ -264,6 +297,20 @@ public:
         a_priori_step(delta, input...);
         innovation_step(z, input...);
         a_posteriori_step();
+    }
+
+    /*
+    Evaluate a user-provided gate after prediction and innovation calculation.
+    The gate receives this filter as const, the measurement, and model inputs.
+    False rejects the complete measurement, retaining the predicted state and
+    covariance along with the innovation diagnostics. Empty innovations are
+    rejected without calling the gate. True means the correction was applied.
+    */
+    template <typename Gate, typename... U>
+    bool step_with_gate(real_t delta, const MeasurementVectorType& z, Gate&& gate, const U&... input) {
+        a_priori_step(delta, input...);
+        innovation_step(z, input...);
+        return a_posteriori_step(std::forward<Gate>(gate), z, input...);
     }
 
     /*
@@ -342,6 +389,11 @@ public:
 
         /* Calculate innovation and innovation root covariance. */
         innovation = z_pred.calculate_innovation(z);
+        if (innovation.size() == 0) {
+            // Keep diagnostics current without passing an empty matrix to QR.
+            innovation_root_covariance.resize(0, 0);
+            return;
+        }
 
         /*
         Create an augmented matrix containing all but the centre innovation
@@ -359,11 +411,14 @@ public:
             MeasurementVectorType::MaxRowsAtCompileTime,
             StateVectorType::num_sigma() - 1 + MeasurementVectorType::MaxRowsAtCompileTime>;
 
-        AugmentedInnovationDeltas augmented_z_prime(z.size(), StateVectorType::num_sigma() - 1 + z.size());
+        const auto measurement_noise_root =
+            z.calculate_measurement_root_covariance(measurement_root_covariance, z_pred);
+        AugmentedInnovationDeltas augmented_z_prime(
+            z.size(), StateVectorType::num_sigma() - 1 + measurement_noise_root.cols());
         augmented_z_prime.block(0, 0, z.size(), StateVectorType::num_sigma() - 1) =
             std::sqrt(Parameters::Sigma_WCI<StateVectorType>) * z_prime.rightCols(StateVectorType::num_sigma() - 1);
-        augmented_z_prime.block(0, StateVectorType::num_sigma() - 1, z.size(), z.size()) =
-            z.calculate_measurement_root_covariance(measurement_root_covariance, z_pred);
+        augmented_z_prime.block(0, StateVectorType::num_sigma() - 1, z.size(), measurement_noise_root.cols()) =
+            measurement_noise_root;
 
         /*
         Calculate the QR decomposition of the augmented innovation deltas.
@@ -385,6 +440,21 @@ public:
     gain using a QR decomposition, and then updates the root covariance using
     a series of rank-one Cholesky updates.
     */
+    /*
+    Split-step gating hook. Call after innovation_step; any context arguments
+    are passed unchanged to gate(const Filter&, context...). The callable is
+    neither stored nor copied, and rejection does not apply a correction.
+    */
+    template <typename Gate, typename... U>
+    bool a_posteriori_step(Gate&& gate, const U&... context) {
+        if (innovation.size() == 0 ||
+                !std::forward<Gate>(gate)(static_cast<const SquareRootCore&>(*this), context...)) {
+            return false;
+        }
+        a_posteriori_step();
+        return true;
+    }
+
     void a_posteriori_step() {
         /*
         Calculate the cross-correlation matrix described in equations 70 and
@@ -454,7 +524,8 @@ estimation, described in the paper
 by Rudolph van der Merwe and Eric A. Wan, retrieved from:
 http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.80.1421&rep=rep1&type=pdf
 */
-template <typename StateVectorType, typename MeasurementVectorType>
+template <typename StateVectorType, typename MeasurementVectorType,
+    typename MeasurementNoiseType=typename MeasurementVectorType::CovarianceVector>
 class SquareRootParameterEstimationCore {
 protected:
     typename StateVectorType::SigmaPointDistribution sigma_points;
@@ -482,10 +553,10 @@ public:
     /*
     Measurement noise root covariance is an attribute of the filter instance,
     rather than the MeasurementVector specialisation.
-    Only diagonal measurement noise root covariance is supported at the
-    moment.
+    Defaults to a vector of standard deviations. Use DenseCovarianceMatrix
+    as MeasurementNoiseType for a full factor L with noise covariance L*L^T.
     */
-    typename MeasurementVectorType::CovarianceVector measurement_root_covariance;
+    MeasurementNoiseType measurement_root_covariance;
 
     /*
     Innovation covariance is also stored in square-root form as described
@@ -500,6 +571,20 @@ public:
         a_priori_step();
         innovation_step(z, input...);
         a_posteriori_step();
+    }
+
+    /*
+    Evaluate a user-provided gate after prediction and innovation calculation.
+    The gate receives this filter as const, the measurement, and model inputs.
+    False rejects the complete measurement, retaining the predicted state and
+    covariance along with the innovation diagnostics. Empty innovations are
+    rejected without calling the gate. True means the correction was applied.
+    */
+    template <typename Gate, typename... U>
+    bool step_with_gate(const MeasurementVectorType& z, Gate&& gate, const U&... input) {
+        a_priori_step();
+        innovation_step(z, input...);
+        return a_posteriori_step(std::forward<Gate>(gate), z, input...);
     }
 
     /*
@@ -547,6 +632,11 @@ public:
 
         /* Calculate innovation and innovation root covariance. */
         innovation = z_pred.calculate_innovation(z);
+        if (innovation.size() == 0) {
+            // Keep diagnostics current without passing an empty matrix to QR.
+            innovation_root_covariance.resize(0, 0);
+            return;
+        }
 
         /*
         Create an augmented matrix containing all but the centre innovation
@@ -564,11 +654,14 @@ public:
             MeasurementVectorType::MaxRowsAtCompileTime,
             StateVectorType::num_sigma() - 1 + MeasurementVectorType::MaxRowsAtCompileTime>;
 
-        AugmentedInnovationDeltas augmented_z_prime(z.size(), StateVectorType::num_sigma() - 1 + z.size());
+        const auto measurement_noise_root =
+            z.calculate_measurement_root_covariance(measurement_root_covariance, z_pred);
+        AugmentedInnovationDeltas augmented_z_prime(
+            z.size(), StateVectorType::num_sigma() - 1 + measurement_noise_root.cols());
         augmented_z_prime.block(0, 0, z.size(), StateVectorType::num_sigma() - 1) =
             std::sqrt(Parameters::Sigma_WCI<StateVectorType>) * z_prime.rightCols(StateVectorType::num_sigma() - 1);
-        augmented_z_prime.block(0, StateVectorType::num_sigma() - 1, z.size(), z.size()) =
-            z.calculate_measurement_root_covariance(measurement_root_covariance, z_pred);
+        augmented_z_prime.block(0, StateVectorType::num_sigma() - 1, z.size(), measurement_noise_root.cols()) =
+            measurement_noise_root;
 
         /*
         Calculate the QR decomposition of the augmented innovation deltas.
@@ -590,6 +683,21 @@ public:
     gain using a QR decomposition, and then updates the root covariance using
     a series of rank-one Cholesky updates.
     */
+    /*
+    Split-step gating hook. Call after innovation_step; any context arguments
+    are passed unchanged to gate(const Filter&, context...). The callable is
+    neither stored nor copied, and rejection does not apply a correction.
+    */
+    template <typename Gate, typename... U>
+    bool a_posteriori_step(Gate&& gate, const U&... context) {
+        if (innovation.size() == 0 ||
+                !std::forward<Gate>(gate)(static_cast<const SquareRootParameterEstimationCore&>(*this), context...)) {
+            return false;
+        }
+        a_posteriori_step();
+        return true;
+    }
+
     void a_posteriori_step() {
         /*
         Calculate the cross-correlation matrix described in equations 70 and
