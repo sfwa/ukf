@@ -96,6 +96,18 @@ def main():
                     for row in by_dataset[dataset]["summary_by_split"]["validation"]])
     lines += ["", "## Full dataset comparison", ""]
     lines += table([row for dataset in ("broad", "sassari") for row in by_dataset[dataset]["summary"]])
+    lines += ["", "## Nine-axis conditions", "",
+              "Mean per-recording total RMSE in degrees. The final stage adds both magnetic rejection "
+              "and acceleration guards; protection can trade accuracy on clean data for disturbance tolerance.", "",
+              "| Dataset | Condition | Recordings | robust-acc | robust | VQF |",
+              "|---|---|---:|---:|---:|---:|"]
+    for dataset in ("broad", "sassari"):
+        for condition, summary in by_dataset[dataset]["summary_by_condition"].items():
+            selected = {row["algorithm"]: row for row in summary if row["axes"] == 9}
+            lines.append(f"| {dataset} | {condition} | {selected['robust']['trials']} | "
+                         f"{selected['robust-acc']['total_rmse_deg']:.3f} | "
+                         f"{selected['robust']['total_rmse_deg']:.3f} | "
+                         f"{selected['vqf']['total_rmse_deg']:.3f} |")
     lines += ["", "The baseline `ukf`/`srukf` use the original fixed-noise joint attitude/bias model. "
               "`robust-rest`, `robust-acc`, and `robust` are cumulative estimator variants; "
               "the first stage also changes the bias/heading architecture, so its difference is not a rest-only ablation. "

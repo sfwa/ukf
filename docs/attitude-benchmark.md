@@ -201,6 +201,21 @@ drift. The synthetic equivalence test covers benign motion. The robust variants
 test the effect of a disturbance-aware estimator model while retaining these
 baselines for comparison.
 
+The 2026-11-11 frozen run completed all 912 evaluations and reproduced every
+original baseline/reference error metric exactly. The final robust model's
+full-dataset total RMSE is 6.376° versus VQF's 6.448° on BROAD six-axis, and
+4.440° versus 4.323° on Sassari six-axis. Nine-axis totals are 3.051° versus
+2.593° on BROAD and 4.415° versus 4.235° on Sassari. These results demonstrate
+near parity in several conditions, not universal parity with VQF.
+
+The remaining gap is concentrated in undisturbed nine-axis BROAD recordings
+(2.985° versus 2.181°) and fast nine-axis Sassari recordings (5.932° versus
+5.184°). On disturbed nine-axis BROAD, protection improves `robust-acc` from
+4.574° to 3.146°, compared with VQF's 3.185°. The validation tables retain the
+34 BROAD and 12 Sassari recordings reserved from new-estimator iteration;
+parameters were not revised after seeing these results. Rest-free bias learning
+and heading initialization/recovery remain candidates for future experiments.
+
 To refresh the checked-in snapshot after running the two datasets separately:
 
 ```sh
