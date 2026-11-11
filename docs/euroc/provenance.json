@@ -1,0 +1,1930 @@
+{
+  "scope": "full EuRoC dataset",
+  "revision": "0d5b3c8a5573460e2414991205de7e782a72a9eb",
+  "dirty": false,
+  "source_sha256": {
+    "CMakeLists.txt": "d0f3ae016ee344426f35e7dece8cc703ed2a86ae65d5cc65543ce356f39d3536",
+    "examples/CMakeLists.txt": "21daad0389ad45c19a102145dc29127d881aa69964dddf7f5bc67db1cebfc577",
+    "examples/attitude_benchmark/CMakeLists.txt": "737f9168850c5355ecb2bd09d412e61ea078e01a035993d37d4e0b410e76ba90",
+    "examples/attitude_benchmark/datasets.lock.json": "186770478d3e702911ba4d0bdfd712977535261cfd0a34342c4a2077f259bea5",
+    "examples/attitude_benchmark/datasets.py": "e73adba68b74eda802f6c3092939112f38ead066d4d50fe931d156409c5695e2",
+    "examples/attitude_benchmark/estimator.cpp": "c7db9fc114facfbf1ab0e2c32f2676783f5751f13780611106345150ff7b4035",
+    "examples/attitude_benchmark/metrics.py": "8e66283acaca20fe56d845ea3a237583780d877a1eba37282a9680cecf9827b4",
+    "examples/attitude_benchmark/references.py": "a0faafb3109f9931999277bcecc80cd0932524cf2a7dc9de4029bd304074f95c",
+    "examples/attitude_benchmark/requirements.txt": "047bf25111774a6343100d73aa2675a807a79712e015666e4e6943e95b3b3a52",
+    "examples/attitude_benchmark/robust_correction.h": "bf3b42c73547393395a8a43a9bfd2b476595d594a8b222e97e37eeb4f01f8d02",
+    "examples/attitude_benchmark/robust_estimator.cpp": "23df5a5aeb23fe3b1b6ae24cc957be646ce39522345b505c77489955c4dced23",
+    "examples/attitude_benchmark/robust_estimator.h": "eda2ad771fbf5ab4d86743bd75c94c7ade58c1a7bcf48a2e2bf3775272df9fba",
+    "examples/attitude_benchmark/robust_geometry.h": "943c67b1811ea052fc99559ee93968a982c9ab27782cfd95ca6dc8fcd32c9e95",
+    "examples/attitude_benchmark/run.py": "7de16e7863e96f17b36f957f9b83f7233f3caf137e5e5b7571ddbd07017e1377",
+    "examples/euroc_benchmark/CMakeLists.txt": "0f134a36f1a2a4a01848faeab132aa04042b553e296f86b2d93f78de2ac3b16f",
+    "examples/euroc_benchmark/calibrate_mount.py": "acdead8d2e283859aa84b23c271b24deaefd34e35a1cfaf9214bbfee1f79acbc",
+    "examples/euroc_benchmark/datasets.lock.json": "b4b30ebcb5421870b5f371101e97f263d34823b8320047ea06304c6a313fe2f1",
+    "examples/euroc_benchmark/datasets.py": "0e3a2273ca73bb34e21d1a3f667de08e62ba10f6e27cc00912a05537ae41104f",
+    "examples/euroc_benchmark/estimator.cpp": "c2c077b33e7457c0c44530e0bb4e02ff6ae3ad5f2a41bad3d888077a4e0723e4",
+    "examples/euroc_benchmark/mav_correction.h": "092551b53abf70de1d39dff83f2822c2f6a851748c781881e3f035bedf73302a",
+    "examples/euroc_benchmark/mav_estimator.cpp": "027f208684d367283878e27c040a56b1ce871e176f13d8275d7dc2ef484fabc4",
+    "examples/euroc_benchmark/mav_estimator.h": "964e09c825ff3679984eaf102f2cc184cf839d241a824b488ca65dbfd5e27354",
+    "examples/euroc_benchmark/run.py": "9f6c4635b414b691938e18e285bfe81a828a680a1b2ebcd2a0d323b26d3bd531",
+    "include/UKF/Config.h": "cb7ecbc40d15a5689d07dd649ceb52c61d8a6d43119ca4a3d910ff58aedf11a5",
+    "include/UKF/Core.h": "bcad9897d63c39147c23f6e64d8e98a2a960dacbd4710d431ee210f8be79b228",
+    "include/UKF/Covariance.h": "3fc9aa2e42a47af716a1e8ddde2936f9d3d5e6aa67bf58147eb48c813abb25d6",
+    "include/UKF/Integrator.h": "3030e2d663e26a5b1526cc40430017225c6cafa486cd3a7538077784fc412e30",
+    "include/UKF/MeasurementVector.h": "1b12459bdaad64dd4dbd4c127937f1d703e1172c56fbe5a3ae74d9ceee4944af",
+    "include/UKF/RankUpdate.h": "a1f2e36d5d660564b371e5105086627fa9b3f1ee4d398c196c5ca6d1448f083e",
+    "include/UKF/StateVector.h": "9324d11604048c98d128354da024c3320fdb35a8f4b98e98d0ba131587662908",
+    "include/UKF/Types.h": "8d6299373fe92651f3b6742f460e4520bb5c6fe6b082756078dbbd328f21dfa7"
+  },
+  "binary_sha256": {
+    "attitude_benchmark": "f807cab685a5000994dff6c75182e0d1754f3de48b78abf5436e12991f67c191",
+    "euroc_benchmark": "0f6b6a06d8d8b3c23052314f9e3a73301c5e31a940b93401fdb627ee75e80faf"
+  },
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "machine": "x86_64",
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "packages": {
+    "numpy": "2.2.6",
+    "scipy": "1.15.3",
+    "h5py": "3.13.0",
+    "ahrs": "0.4.0",
+    "vqf": "2.0.1"
+  },
+  "reference_parameters": {
+    "madgwick": {
+      "implementation": "ahrs 0.4.0",
+      "gain": 0.05
+    },
+    "mahony": {
+      "implementation": "ahrs 0.4.0",
+      "k_P": 1.0,
+      "k_I": 0.3
+    },
+    "vqf": {
+      "implementation": "vqf 2.0.1",
+      "parameters": "online defaults"
+    },
+    "vqf-mav": {
+      "implementation": "vqf 2.0.1",
+      "parameters": {
+        "biasClip": 10.0,
+        "biasSigmaInit": 5.0
+      },
+      "other_parameters": "online defaults",
+      "adapter": "same midpoint gyro and initial accelerometer update as vqf"
+    }
+  },
+  "cpp_parameters": {
+    "robust": {
+      "stage": "robust",
+      "attitude": "quaternion-only SR-UKF",
+      "bias": "separate rest-only SR-UKF",
+      "gravity_gain_constraint": "horizontal left/world Gibbs error",
+      "covariance_reset": "analytic left-Gibbs transport",
+      "unscented_alpha_squared": 1,
+      "unscented_beta": 2,
+      "unscented_kappa": 0,
+      "mrp_a": 0,
+      "mrp_f": 2,
+      "gyro_integration": "exact quaternion increment, midpoint gyro minus previous bias estimate",
+      "initial_attitude_sigma_rad": 0.05,
+      "initial_bias_sigma_deg_s": 0.5,
+      "gravity_observation": "two-dimensional predicted-gravity tangent plane",
+      "raw_acc_direction_sigma": 0.1,
+      "filtered_acc_direction_sigma_base": 0.002,
+      "filtered_acc_sigma_formula": "0.002*sqrt(max(1,6/observation_dt))",
+      "attitude_covariance_scope": "conditional on separate bias estimate; filtered-observation R is an effective model",
+      "acceleration_filter_enabled": true,
+      "magnetic_rejection_enabled": true,
+      "acceleration_rejection_enabled": true,
+      "acc_tau_seconds": 3,
+      "correction_period_seconds": 0.05,
+      "rest_min_seconds": 1.5,
+      "rest_filter_tau_seconds": 0.5,
+      "rest_gyro_threshold_deg_s": 2,
+      "rest_absolute_filtered_gyro_limit_deg_s": 2,
+      "rest_acc_threshold_m_s2": 0.5,
+      "gyro_noise_rad_sqrt_s": 0.02,
+      "bias_random_walk_deg_s_sqrt_s": 0.01,
+      "mag_tau_seconds": 9,
+      "mag_norm_threshold_fraction": 0.1,
+      "rest_bias_target_sigma_deg_s": 0.03,
+      "rest_bias_effective_R": "P_target^2/Q_interval+P_target",
+      "bias_health_bound_deg_s": 2.1,
+      "mag_norm_dip_lowpass_tau_seconds": 0.05,
+      "mag_reference_tau_seconds": 20,
+      "mag_dip_threshold_degrees": 10,
+      "mag_good_dwell_seconds": 0.5,
+      "mag_new_field_rotation_seconds": 20,
+      "mag_new_field_min_rotation_deg_s": 20,
+      "heading_startup": "first usable magnetic sample",
+      "gravity_m_s2": 9.80665,
+      "acc_norm_reject_fraction": 0.3,
+      "acc_max_innovation_degrees": 60,
+      "acc_norm_gating_location": "measurement and rest updates; nonzero LPF input retained"
+    },
+    "robust-acc": {
+      "stage": "robust-acc",
+      "attitude": "quaternion-only SR-UKF",
+      "bias": "separate rest-only SR-UKF",
+      "gravity_gain_constraint": "horizontal left/world Gibbs error",
+      "covariance_reset": "analytic left-Gibbs transport",
+      "unscented_alpha_squared": 1,
+      "unscented_beta": 2,
+      "unscented_kappa": 0,
+      "mrp_a": 0,
+      "mrp_f": 2,
+      "gyro_integration": "exact quaternion increment, midpoint gyro minus previous bias estimate",
+      "initial_attitude_sigma_rad": 0.05,
+      "initial_bias_sigma_deg_s": 0.5,
+      "gravity_observation": "two-dimensional predicted-gravity tangent plane",
+      "raw_acc_direction_sigma": 0.1,
+      "filtered_acc_direction_sigma_base": 0.002,
+      "filtered_acc_sigma_formula": "0.002*sqrt(max(1,6/observation_dt))",
+      "attitude_covariance_scope": "conditional on separate bias estimate; filtered-observation R is an effective model",
+      "acceleration_filter_enabled": true,
+      "magnetic_rejection_enabled": false,
+      "acceleration_rejection_enabled": false,
+      "acc_tau_seconds": 3,
+      "correction_period_seconds": 0.05,
+      "rest_min_seconds": 1.5,
+      "rest_filter_tau_seconds": 0.5,
+      "rest_gyro_threshold_deg_s": 2,
+      "rest_absolute_filtered_gyro_limit_deg_s": 2,
+      "rest_acc_threshold_m_s2": 0.5,
+      "gyro_noise_rad_sqrt_s": 0.02,
+      "bias_random_walk_deg_s_sqrt_s": 0.01,
+      "mag_tau_seconds": 9,
+      "mag_norm_threshold_fraction": 0.1,
+      "rest_bias_target_sigma_deg_s": 0.03,
+      "rest_bias_effective_R": "P_target^2/Q_interval+P_target",
+      "bias_health_bound_deg_s": 2.1,
+      "mag_norm_dip_lowpass_tau_seconds": 0.05,
+      "mag_reference_tau_seconds": 20,
+      "mag_dip_threshold_degrees": 10,
+      "mag_good_dwell_seconds": 0.5,
+      "mag_new_field_rotation_seconds": 20,
+      "mag_new_field_min_rotation_deg_s": 20,
+      "heading_startup": "first usable magnetic sample",
+      "gravity_m_s2": 9.80665,
+      "acc_norm_reject_fraction": 0.3,
+      "acc_max_innovation_degrees": 60,
+      "acc_norm_gating_location": "measurement and rest updates; nonzero LPF input retained"
+    },
+    "robust-rest": {
+      "stage": "robust-rest",
+      "attitude": "quaternion-only SR-UKF",
+      "bias": "separate rest-only SR-UKF",
+      "gravity_gain_constraint": "horizontal left/world Gibbs error",
+      "covariance_reset": "analytic left-Gibbs transport",
+      "unscented_alpha_squared": 1,
+      "unscented_beta": 2,
+      "unscented_kappa": 0,
+      "mrp_a": 0,
+      "mrp_f": 2,
+      "gyro_integration": "exact quaternion increment, midpoint gyro minus previous bias estimate",
+      "initial_attitude_sigma_rad": 0.05,
+      "initial_bias_sigma_deg_s": 0.5,
+      "gravity_observation": "two-dimensional predicted-gravity tangent plane",
+      "raw_acc_direction_sigma": 0.1,
+      "filtered_acc_direction_sigma_base": 0.002,
+      "filtered_acc_sigma_formula": "0.002*sqrt(max(1,6/observation_dt))",
+      "attitude_covariance_scope": "conditional on separate bias estimate; filtered-observation R is an effective model",
+      "acceleration_filter_enabled": false,
+      "magnetic_rejection_enabled": false,
+      "acceleration_rejection_enabled": false,
+      "acc_tau_seconds": 3,
+      "correction_period_seconds": 0.05,
+      "rest_min_seconds": 1.5,
+      "rest_filter_tau_seconds": 0.5,
+      "rest_gyro_threshold_deg_s": 2,
+      "rest_absolute_filtered_gyro_limit_deg_s": 2,
+      "rest_acc_threshold_m_s2": 0.5,
+      "gyro_noise_rad_sqrt_s": 0.02,
+      "bias_random_walk_deg_s_sqrt_s": 0.01,
+      "mag_tau_seconds": 9,
+      "mag_norm_threshold_fraction": 0.1,
+      "rest_bias_target_sigma_deg_s": 0.03,
+      "rest_bias_effective_R": "P_target^2/Q_interval+P_target",
+      "bias_health_bound_deg_s": 2.1,
+      "mag_norm_dip_lowpass_tau_seconds": 0.05,
+      "mag_reference_tau_seconds": 20,
+      "mag_dip_threshold_degrees": 10,
+      "mag_good_dwell_seconds": 0.5,
+      "mag_new_field_rotation_seconds": 20,
+      "mag_new_field_min_rotation_deg_s": 20,
+      "heading_startup": "first usable magnetic sample",
+      "gravity_m_s2": 9.80665,
+      "acc_norm_reject_fraction": 0.3,
+      "acc_max_innovation_degrees": 60,
+      "acc_norm_gating_location": "measurement and rest updates; nonzero LPF input retained"
+    },
+    "mav-srukf": {
+      "stage": "mav-srukf",
+      "state": "quaternion, body-frame velocity, gyro bias; nine-dimensional error covariance",
+      "model": "multirotor rotor drag and measured axial collective",
+      "drag_rate_s_inv": 0.25,
+      "thrust_axis_imu": [
+        0.9396926207859084,
+        0,
+        -0.3420201433256687
+      ],
+      "thrust_tilt_deg": 20,
+      "thrust_mount_source": "sensor-only development calibration rounded to 20 degrees; not published factory calibration",
+      "gyro_noise_rad_sqrt_s": 0.002,
+      "velocity_noise_m_s_sqrt_s": 0.2,
+      "drag_observation_sigma_m_s2": 0.3,
+      "planar": false,
+      "initial_attitude_sigma_rad": 0.05,
+      "initial_velocity_sigma_m_s": 1,
+      "initial_bias_sigma_deg_s": 5,
+      "gyro_bias_random_walk_deg_s_sqrt_s": 0.01,
+      "rest_bias_limit_deg_s": 10,
+      "rest_gyro_deviation_deg_s": 2,
+      "rest_acc_deviation_m_s2": 0.5,
+      "rest_prefilter_hz": 2,
+      "rest_reference_tau_s": 0.5,
+      "rest_dwell_s": 1.5,
+      "rest_bias_target_sigma_deg_s": 0.03,
+      "rest_bias_observation_variance": "P_target^2/Q_interval+P_target",
+      "correction_period_s": 0.05,
+      "vibration_lowpass_hz": 20,
+      "vibration_energy_tau_s": 0.5,
+      "rotor_on_rms_m_s2": 0.8,
+      "rotor_off_rms_m_s2": 0.5,
+      "model_collective_min_g": 0.5,
+      "model_collective_max_g": 2,
+      "off_rotor_gravity_sigma": 0.1,
+      "control_filtered_gravity_sigma": 0.02,
+      "gravity_filter_tau_s": 3,
+      "gravity_norm_min_g": 0.7,
+      "gravity_norm_max_g": 1.3,
+      "gravity_m_s2": 9.80665,
+      "gyro_integration": "midpoint raw gyro minus each sigma-point gyro bias; exact quaternion exponential",
+      "velocity_integration": "explicit midpoint body-frame Newtonian dynamics",
+      "gravity_observation": "gyro-deskewed interval mean off rotor; gyro-frame low-pass for control in powered flight",
+      "motion_bias_updates": "enabled in both model and gravity control",
+      "zero_velocity_updates": false,
+      "gain_constraint": "zero world-yaw attitude gain row",
+      "covariance_reset": "full nine-state block-diagonal Gibbs transport",
+      "unscented_alpha_squared": 1,
+      "unscented_beta": 2,
+      "unscented_kappa": 0,
+      "mrp_a": 0,
+      "mrp_f": 2
+    },
+    "mav-srukf-gravity": {
+      "stage": "mav-srukf-gravity",
+      "state": "quaternion, body-frame velocity, gyro bias; nine-dimensional error covariance",
+      "model": "gyro-frame filtered gravity control",
+      "drag_rate_s_inv": 0.25,
+      "thrust_axis_imu": [
+        0.9396926207859084,
+        0,
+        -0.3420201433256687
+      ],
+      "thrust_tilt_deg": 20,
+      "thrust_mount_source": "sensor-only development calibration rounded to 20 degrees; not published factory calibration",
+      "gyro_noise_rad_sqrt_s": 0.002,
+      "velocity_noise_m_s_sqrt_s": 0.2,
+      "drag_observation_sigma_m_s2": 0.3,
+      "planar": false,
+      "initial_attitude_sigma_rad": 0.05,
+      "initial_velocity_sigma_m_s": 1,
+      "initial_bias_sigma_deg_s": 5,
+      "gyro_bias_random_walk_deg_s_sqrt_s": 0.01,
+      "rest_bias_limit_deg_s": 10,
+      "rest_gyro_deviation_deg_s": 2,
+      "rest_acc_deviation_m_s2": 0.5,
+      "rest_prefilter_hz": 2,
+      "rest_reference_tau_s": 0.5,
+      "rest_dwell_s": 1.5,
+      "rest_bias_target_sigma_deg_s": 0.03,
+      "rest_bias_observation_variance": "P_target^2/Q_interval+P_target",
+      "correction_period_s": 0.05,
+      "vibration_lowpass_hz": 20,
+      "vibration_energy_tau_s": 0.5,
+      "rotor_on_rms_m_s2": 0.8,
+      "rotor_off_rms_m_s2": 0.5,
+      "model_collective_min_g": 0.5,
+      "model_collective_max_g": 2,
+      "off_rotor_gravity_sigma": 0.1,
+      "control_filtered_gravity_sigma": 0.02,
+      "gravity_filter_tau_s": 3,
+      "gravity_norm_min_g": 0.7,
+      "gravity_norm_max_g": 1.3,
+      "gravity_m_s2": 9.80665,
+      "gyro_integration": "midpoint raw gyro minus each sigma-point gyro bias; exact quaternion exponential",
+      "velocity_integration": "explicit midpoint body-frame Newtonian dynamics",
+      "gravity_observation": "gyro-deskewed interval mean off rotor; gyro-frame low-pass for control in powered flight",
+      "motion_bias_updates": "enabled in both model and gravity control",
+      "zero_velocity_updates": false,
+      "gain_constraint": "zero world-yaw attitude gain row",
+      "covariance_reset": "full nine-state block-diagonal Gibbs transport",
+      "unscented_alpha_squared": 1,
+      "unscented_beta": 2,
+      "unscented_kappa": 0,
+      "mrp_a": 0,
+      "mrp_f": 2
+    }
+  },
+  "algorithms": [
+    "ukf",
+    "srukf",
+    "robust-rest",
+    "robust-acc",
+    "robust",
+    "mav-srukf",
+    "mav-srukf-gravity",
+    "madgwick",
+    "mahony",
+    "vqf",
+    "vqf-mav"
+  ],
+  "axes": [
+    6
+  ],
+  "selected_sequences": [
+    "MH_01_easy",
+    "MH_02_easy",
+    "MH_03_medium",
+    "MH_04_difficult",
+    "MH_05_difficult",
+    "V1_01_easy",
+    "V1_02_medium",
+    "V1_03_difficult",
+    "V2_01_easy",
+    "V2_02_medium",
+    "V2_03_difficult"
+  ],
+  "split": "all",
+  "split_protocol": {
+    "name": "euroc-mav-development-v1",
+    "development": [
+      "MH_01_easy",
+      "V1_02_medium"
+    ],
+    "validation": "The other nine complete EuRoC sequences.",
+    "grouping": "Whole recordings; no sample-level random split.",
+    "qualification": "Freeze the MAV estimator before its first validation evaluation."
+  },
+  "sequence_patterns": [],
+  "sequence_metadata": {
+    "MH_01_easy": {
+      "frame": "Published IMU/body frame S; scalar-first q_RS rotates S into z-up world R; both T_BS are identity.",
+      "ground_truth_source": "state_groundtruth_estimate0/data.csv (canonical original)",
+      "ground_truth_warning": "Machine Hall attitude is part of a Leica-position/IMU batch solution; the source calibration states that orientation is observed only by the IMU.",
+      "ground_truth_independent_attitude": false,
+      "external_attitude_observation": false,
+      "ground_truth_quality_flag": "fused_reference",
+      "reference_interpolation": "Shortest-arc SLERP; integer-nanosecond brackets; no extrapolation.",
+      "max_reference_gap_seconds": 0.02,
+      "imu_timestamp_origin_ns": 1403636579758555392,
+      "nominal_sample_rate_hz": 200,
+      "sensor_bias_columns_used": false,
+      "magnetometer_available": false,
+      "rotor_commands_available": false,
+      "vqf_clock": {
+        "policy": "Nominal 200 Hz VQF clock; unchanged IMU samples, no interpolation or resampling.",
+        "nominal_interval_seconds": 0.005,
+        "max_timestamp_deviation_seconds": 1.9200001588615123e-07,
+        "max_interval_deviation_seconds": 1.9200001133857364e-07,
+        "allowed_quantization_seconds": 1e-06
+      }
+    },
+    "MH_02_easy": {
+      "frame": "Published IMU/body frame S; scalar-first q_RS rotates S into z-up world R; both T_BS are identity.",
+      "ground_truth_source": "state_groundtruth_estimate0/data.csv (canonical original)",
+      "ground_truth_warning": "Machine Hall attitude is part of a Leica-position/IMU batch solution; the source calibration states that orientation is observed only by the IMU.",
+      "ground_truth_independent_attitude": false,
+      "external_attitude_observation": false,
+      "ground_truth_quality_flag": "fused_reference",
+      "reference_interpolation": "Shortest-arc SLERP; integer-nanosecond brackets; no extrapolation.",
+      "max_reference_gap_seconds": 0.02,
+      "imu_timestamp_origin_ns": 1403636858631666432,
+      "nominal_sample_rate_hz": 200,
+      "sensor_bias_columns_used": false,
+      "magnetometer_available": false,
+      "rotor_commands_available": false,
+      "vqf_clock": {
+        "policy": "Nominal 200 Hz VQF clock; unchanged IMU samples, no interpolation or resampling.",
+        "nominal_interval_seconds": 0.005,
+        "max_timestamp_deviation_seconds": 1.9200001588615123e-07,
+        "max_interval_deviation_seconds": 1.9200001133857364e-07,
+        "allowed_quantization_seconds": 1e-06
+      }
+    },
+    "MH_03_medium": {
+      "frame": "Published IMU/body frame S; scalar-first q_RS rotates S into z-up world R; both T_BS are identity.",
+      "ground_truth_source": "state_groundtruth_estimate0/data.csv (canonical original)",
+      "ground_truth_warning": "Machine Hall attitude is part of a Leica-position/IMU batch solution; the source calibration states that orientation is observed only by the IMU.",
+      "ground_truth_independent_attitude": false,
+      "external_attitude_observation": false,
+      "ground_truth_quality_flag": "fused_reference",
+      "reference_interpolation": "Shortest-arc SLERP; integer-nanosecond brackets; no extrapolation.",
+      "max_reference_gap_seconds": 0.02,
+      "imu_timestamp_origin_ns": 1403637130498319104,
+      "nominal_sample_rate_hz": 200,
+      "sensor_bias_columns_used": false,
+      "magnetometer_available": false,
+      "rotor_commands_available": false,
+      "vqf_clock": {
+        "policy": "Nominal 200 Hz VQF clock; unchanged IMU samples, no interpolation or resampling.",
+        "nominal_interval_seconds": 0.005,
+        "max_timestamp_deviation_seconds": 1.9200001588615123e-07,
+        "max_interval_deviation_seconds": 1.9200001133857364e-07,
+        "allowed_quantization_seconds": 1e-06
+      }
+    },
+    "MH_04_difficult": {
+      "frame": "Published IMU/body frame S; scalar-first q_RS rotates S into z-up world R; both T_BS are identity.",
+      "ground_truth_source": "state_groundtruth_estimate0/data.csv (canonical original)",
+      "ground_truth_warning": "Machine Hall attitude is part of a Leica-position/IMU batch solution; the source calibration states that orientation is observed only by the IMU.",
+      "ground_truth_independent_attitude": false,
+      "external_attitude_observation": false,
+      "ground_truth_quality_flag": "fused_reference",
+      "reference_interpolation": "Shortest-arc SLERP; integer-nanosecond brackets; no extrapolation.",
+      "max_reference_gap_seconds": 0.02,
+      "imu_timestamp_origin_ns": 1403638127270096896,
+      "nominal_sample_rate_hz": 200,
+      "sensor_bias_columns_used": false,
+      "magnetometer_available": false,
+      "rotor_commands_available": false,
+      "vqf_clock": {
+        "policy": "Nominal 200 Hz VQF clock; unchanged IMU samples, no interpolation or resampling.",
+        "nominal_interval_seconds": 0.005,
+        "max_timestamp_deviation_seconds": 1.9200001588615123e-07,
+        "max_interval_deviation_seconds": 1.9200001133857364e-07,
+        "allowed_quantization_seconds": 1e-06
+      }
+    },
+    "MH_05_difficult": {
+      "frame": "Published IMU/body frame S; scalar-first q_RS rotates S into z-up world R; both T_BS are identity.",
+      "ground_truth_source": "state_groundtruth_estimate0/data.csv (canonical original)",
+      "ground_truth_warning": "Machine Hall attitude is part of a Leica-position/IMU batch solution; the source calibration states that orientation is observed only by the IMU.",
+      "ground_truth_independent_attitude": false,
+      "external_attitude_observation": false,
+      "ground_truth_quality_flag": "fused_reference",
+      "reference_interpolation": "Shortest-arc SLERP; integer-nanosecond brackets; no extrapolation.",
+      "max_reference_gap_seconds": 0.02,
+      "imu_timestamp_origin_ns": 1403638518097829376,
+      "nominal_sample_rate_hz": 200,
+      "sensor_bias_columns_used": false,
+      "magnetometer_available": false,
+      "rotor_commands_available": false,
+      "vqf_clock": {
+        "policy": "Nominal 200 Hz VQF clock; unchanged IMU samples, no interpolation or resampling.",
+        "nominal_interval_seconds": 0.005,
+        "max_timestamp_deviation_seconds": 1.9200001588615123e-07,
+        "max_interval_deviation_seconds": 1.9200001133857364e-07,
+        "allowed_quantization_seconds": 1e-06
+      }
+    },
+    "V1_01_easy": {
+      "frame": "Published IMU/body frame S; scalar-first q_RS rotates S into z-up world R; both T_BS are identity.",
+      "ground_truth_source": "state_groundtruth_estimate0/data.csv (canonical original)",
+      "ground_truth_warning": "Reference is an offline Vicon-pose/IMU batch solution and shares IMU data with the estimators. OpenVINS reports inaccurate orientation in the canonical V1_01_easy reference; this benchmark retains and flags the original reference instead of substituting a revised trajectory.",
+      "ground_truth_independent_attitude": false,
+      "external_attitude_observation": true,
+      "ground_truth_quality_flag": "known_orientation_issue",
+      "reference_interpolation": "Shortest-arc SLERP; integer-nanosecond brackets; no extrapolation.",
+      "max_reference_gap_seconds": 0.02,
+      "imu_timestamp_origin_ns": 1403715273262142976,
+      "nominal_sample_rate_hz": 200,
+      "sensor_bias_columns_used": false,
+      "magnetometer_available": false,
+      "rotor_commands_available": false,
+      "vqf_clock": {
+        "policy": "Nominal 200 Hz VQF clock; unchanged IMU samples, no interpolation or resampling.",
+        "nominal_interval_seconds": 0.005,
+        "max_timestamp_deviation_seconds": 1.280000105907675e-07,
+        "max_interval_deviation_seconds": 1.9200001133857364e-07,
+        "allowed_quantization_seconds": 1e-06
+      }
+    },
+    "V1_02_medium": {
+      "frame": "Published IMU/body frame S; scalar-first q_RS rotates S into z-up world R; both T_BS are identity.",
+      "ground_truth_source": "state_groundtruth_estimate0/data.csv (canonical original)",
+      "ground_truth_warning": "Reference is an offline Vicon-pose/IMU batch solution and shares IMU data with the estimators.",
+      "ground_truth_independent_attitude": false,
+      "external_attitude_observation": true,
+      "ground_truth_quality_flag": "fused_reference",
+      "reference_interpolation": "Shortest-arc SLERP; integer-nanosecond brackets; no extrapolation.",
+      "max_reference_gap_seconds": 0.02,
+      "imu_timestamp_origin_ns": 1403715523912143104,
+      "nominal_sample_rate_hz": 200,
+      "sensor_bias_columns_used": false,
+      "magnetometer_available": false,
+      "rotor_commands_available": false,
+      "vqf_clock": {
+        "policy": "Nominal 200 Hz VQF clock; unchanged IMU samples, no interpolation or resampling.",
+        "nominal_interval_seconds": 0.005,
+        "max_timestamp_deviation_seconds": 1.9200000167529652e-07,
+        "max_interval_deviation_seconds": 1.9200001133857364e-07,
+        "allowed_quantization_seconds": 1e-06
+      }
+    },
+    "V1_03_difficult": {
+      "frame": "Published IMU/body frame S; scalar-first q_RS rotates S into z-up world R; both T_BS are identity.",
+      "ground_truth_source": "state_groundtruth_estimate0/data.csv (canonical original)",
+      "ground_truth_warning": "Reference is an offline Vicon-pose/IMU batch solution and shares IMU data with the estimators.",
+      "ground_truth_independent_attitude": false,
+      "external_attitude_observation": true,
+      "ground_truth_quality_flag": "fused_reference",
+      "reference_interpolation": "Shortest-arc SLERP; integer-nanosecond brackets; no extrapolation.",
+      "max_reference_gap_seconds": 0.02,
+      "imu_timestamp_origin_ns": 1403715886544058112,
+      "nominal_sample_rate_hz": 200,
+      "sensor_bias_columns_used": false,
+      "magnetometer_available": false,
+      "rotor_commands_available": false,
+      "vqf_clock": {
+        "policy": "Nominal 200 Hz VQF clock; unchanged IMU samples, no interpolation or resampling.",
+        "nominal_interval_seconds": 0.005,
+        "max_timestamp_deviation_seconds": 1.9200000167529652e-07,
+        "max_interval_deviation_seconds": 1.9200001133857364e-07,
+        "allowed_quantization_seconds": 1e-06
+      }
+    },
+    "V2_01_easy": {
+      "frame": "Published IMU/body frame S; scalar-first q_RS rotates S into z-up world R; both T_BS are identity.",
+      "ground_truth_source": "state_groundtruth_estimate0/data.csv (canonical original)",
+      "ground_truth_warning": "Reference is an offline Vicon-pose/IMU batch solution and shares IMU data with the estimators.",
+      "ground_truth_independent_attitude": false,
+      "external_attitude_observation": true,
+      "ground_truth_quality_flag": "fused_reference",
+      "reference_interpolation": "Shortest-arc SLERP; integer-nanosecond brackets; no extrapolation.",
+      "max_reference_gap_seconds": 0.02,
+      "imu_timestamp_origin_ns": 1413393212225760512,
+      "nominal_sample_rate_hz": 200,
+      "sensor_bias_columns_used": false,
+      "magnetometer_available": false,
+      "rotor_commands_available": false,
+      "vqf_clock": {
+        "policy": "Nominal 200 Hz VQF clock; unchanged IMU samples, no interpolation or resampling.",
+        "nominal_interval_seconds": 0.005,
+        "max_timestamp_deviation_seconds": 1.280000105907675e-07,
+        "max_interval_deviation_seconds": 1.9200001133857364e-07,
+        "allowed_quantization_seconds": 1e-06
+      }
+    },
+    "V2_02_medium": {
+      "frame": "Published IMU/body frame S; scalar-first q_RS rotates S into z-up world R; both T_BS are identity.",
+      "ground_truth_source": "state_groundtruth_estimate0/data.csv (canonical original)",
+      "ground_truth_warning": "Reference is an offline Vicon-pose/IMU batch solution and shares IMU data with the estimators.",
+      "ground_truth_independent_attitude": false,
+      "external_attitude_observation": true,
+      "ground_truth_quality_flag": "fused_reference",
+      "reference_interpolation": "Shortest-arc SLERP; integer-nanosecond brackets; no extrapolation.",
+      "max_reference_gap_seconds": 0.02,
+      "imu_timestamp_origin_ns": 1413393885975760384,
+      "nominal_sample_rate_hz": 200,
+      "sensor_bias_columns_used": false,
+      "magnetometer_available": false,
+      "rotor_commands_available": false,
+      "vqf_clock": {
+        "policy": "Nominal 200 Hz VQF clock; unchanged IMU samples, no interpolation or resampling.",
+        "nominal_interval_seconds": 0.005,
+        "max_timestamp_deviation_seconds": 1.9200001588615123e-07,
+        "max_interval_deviation_seconds": 1.9200001133857364e-07,
+        "allowed_quantization_seconds": 1e-06
+      }
+    },
+    "V2_03_difficult": {
+      "frame": "Published IMU/body frame S; scalar-first q_RS rotates S into z-up world R; both T_BS are identity.",
+      "ground_truth_source": "state_groundtruth_estimate0/data.csv (canonical original)",
+      "ground_truth_warning": "Reference is an offline Vicon-pose/IMU batch solution and shares IMU data with the estimators.",
+      "ground_truth_independent_attitude": false,
+      "external_attitude_observation": true,
+      "ground_truth_quality_flag": "fused_reference",
+      "reference_interpolation": "Shortest-arc SLERP; integer-nanosecond brackets; no extrapolation.",
+      "max_reference_gap_seconds": 0.02,
+      "imu_timestamp_origin_ns": 1413394881575760384,
+      "nominal_sample_rate_hz": 200,
+      "sensor_bias_columns_used": false,
+      "magnetometer_available": false,
+      "rotor_commands_available": false,
+      "vqf_clock": {
+        "policy": "Nominal 200 Hz VQF clock; unchanged IMU samples, no interpolation or resampling.",
+        "nominal_interval_seconds": 0.005,
+        "max_timestamp_deviation_seconds": 1.9200001588615123e-07,
+        "max_interval_deviation_seconds": 1.9200001133857364e-07,
+        "allowed_quantization_seconds": 1e-06
+      }
+    }
+  },
+  "burn_in_seconds": 5.0,
+  "heading_alignment_seconds": 1.0,
+  "diagnostics_enabled": false,
+  "summary": [
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "ukf",
+      "sequences": 11,
+      "inclination_rmse_deg": 4.000229294510126,
+      "heading_rmse_deg": 83.38913755250915,
+      "total_rmse_deg": 83.54964878902501
+    },
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "srukf",
+      "sequences": 11,
+      "inclination_rmse_deg": 4.002113246911325,
+      "heading_rmse_deg": 82.99959497729505,
+      "total_rmse_deg": 83.16044176316392
+    },
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "robust-rest",
+      "sequences": 11,
+      "inclination_rmse_deg": 4.783191279846381,
+      "heading_rmse_deg": 105.66271095303286,
+      "total_rmse_deg": 105.74245669600072
+    },
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "robust-acc",
+      "sequences": 11,
+      "inclination_rmse_deg": 13.034795712556473,
+      "heading_rmse_deg": 105.1761035593904,
+      "total_rmse_deg": 105.74101968192814
+    },
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "robust",
+      "sequences": 11,
+      "inclination_rmse_deg": 13.062551925679621,
+      "heading_rmse_deg": 105.17594788490932,
+      "total_rmse_deg": 105.74347164909578
+    },
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "mav-srukf",
+      "sequences": 11,
+      "inclination_rmse_deg": 1.3933955586144047,
+      "heading_rmse_deg": 8.523150918468616,
+      "total_rmse_deg": 8.858495163385141
+    },
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "mav-srukf-gravity",
+      "sequences": 11,
+      "inclination_rmse_deg": 1.8810021504936594,
+      "heading_rmse_deg": 10.531563548507867,
+      "total_rmse_deg": 10.945960894407978
+    },
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "madgwick",
+      "sequences": 11,
+      "inclination_rmse_deg": 6.98453270766353,
+      "heading_rmse_deg": 104.75666186060343,
+      "total_rmse_deg": 104.9389177011008
+    },
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "mahony",
+      "sequences": 11,
+      "inclination_rmse_deg": 3.184255271377653,
+      "heading_rmse_deg": 100.24343079907659,
+      "total_rmse_deg": 100.28850526495381
+    },
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "vqf",
+      "sequences": 11,
+      "inclination_rmse_deg": 5.106167677989087,
+      "heading_rmse_deg": 109.7250260268801,
+      "total_rmse_deg": 109.81210797316622
+    },
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "vqf-mav",
+      "sequences": 11,
+      "inclination_rmse_deg": 1.9459196240581078,
+      "heading_rmse_deg": 60.93551520223536,
+      "total_rmse_deg": 61.12734910992799
+    }
+  ],
+  "summary_by_split": {
+    "development": [
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "ukf",
+        "sequences": 2,
+        "inclination_rmse_deg": 4.108347454280736,
+        "heading_rmse_deg": 74.94387916285649,
+        "total_rmse_deg": 75.29124250531899
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "srukf",
+        "sequences": 2,
+        "inclination_rmse_deg": 4.108026053301356,
+        "heading_rmse_deg": 74.93282417118175,
+        "total_rmse_deg": 75.28018708555794
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "robust-rest",
+        "sequences": 2,
+        "inclination_rmse_deg": 5.099403538596798,
+        "heading_rmse_deg": 95.35917858695473,
+        "total_rmse_deg": 95.4739260286552
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "robust-acc",
+        "sequences": 2,
+        "inclination_rmse_deg": 12.772559968451237,
+        "heading_rmse_deg": 94.26656804561424,
+        "total_rmse_deg": 94.92919675860128
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "robust",
+        "sequences": 2,
+        "inclination_rmse_deg": 12.791878879893039,
+        "heading_rmse_deg": 94.26517467140346,
+        "total_rmse_deg": 94.93009781756425
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "mav-srukf",
+        "sequences": 2,
+        "inclination_rmse_deg": 0.9771261409738448,
+        "heading_rmse_deg": 14.311099894767214,
+        "total_rmse_deg": 14.428195317020037
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "mav-srukf-gravity",
+        "sequences": 2,
+        "inclination_rmse_deg": 1.2261843882286427,
+        "heading_rmse_deg": 14.502512901897806,
+        "total_rmse_deg": 14.755684582347609
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "madgwick",
+        "sequences": 2,
+        "inclination_rmse_deg": 6.774539890131178,
+        "heading_rmse_deg": 95.14020469835012,
+        "total_rmse_deg": 95.34476024765955
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "mahony",
+        "sequences": 2,
+        "inclination_rmse_deg": 3.254413127830159,
+        "heading_rmse_deg": 85.43608993811769,
+        "total_rmse_deg": 85.51062554247251
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "vqf",
+        "sequences": 2,
+        "inclination_rmse_deg": 5.301750883982628,
+        "heading_rmse_deg": 97.91284873336696,
+        "total_rmse_deg": 98.02240505425817
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "vqf-mav",
+        "sequences": 2,
+        "inclination_rmse_deg": 1.7588141184824924,
+        "heading_rmse_deg": 70.42545523678729,
+        "total_rmse_deg": 70.45531159535248
+      }
+    ],
+    "validation": [
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "ukf",
+        "sequences": 9,
+        "inclination_rmse_deg": 3.976203036783324,
+        "heading_rmse_deg": 85.26586163909863,
+        "total_rmse_deg": 85.38485018540413
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "srukf",
+        "sequences": 9,
+        "inclination_rmse_deg": 3.9785770677135393,
+        "heading_rmse_deg": 84.79221071198691,
+        "total_rmse_deg": 84.91160946929858
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "robust-rest",
+        "sequences": 9,
+        "inclination_rmse_deg": 4.7129218890129545,
+        "heading_rmse_deg": 107.95238481216134,
+        "total_rmse_deg": 108.02435239985522
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "robust-acc",
+        "sequences": 9,
+        "inclination_rmse_deg": 13.09307032235764,
+        "heading_rmse_deg": 107.600444784674,
+        "total_rmse_deg": 108.14364699822299
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "robust",
+        "sequences": 9,
+        "inclination_rmse_deg": 13.122701491409972,
+        "heading_rmse_deg": 107.60056415457727,
+        "total_rmse_deg": 108.14644361165836
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "mav-srukf",
+        "sequences": 9,
+        "inclination_rmse_deg": 1.4858998736456404,
+        "heading_rmse_deg": 7.236940034846707,
+        "total_rmse_deg": 7.620784018132944
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "mav-srukf-gravity",
+        "sequences": 9,
+        "inclination_rmse_deg": 2.026517208774775,
+        "heading_rmse_deg": 9.649130358865657,
+        "total_rmse_deg": 10.099355630421394
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "madgwick",
+        "sequences": 9,
+        "inclination_rmse_deg": 7.031197778226275,
+        "heading_rmse_deg": 106.89365234110419,
+        "total_rmse_deg": 107.07095269075444
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "mahony",
+        "sequences": 9,
+        "inclination_rmse_deg": 3.16866463661043,
+        "heading_rmse_deg": 103.53395099040081,
+        "total_rmse_deg": 103.57247853661632
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "vqf",
+        "sequences": 9,
+        "inclination_rmse_deg": 5.062704743323856,
+        "heading_rmse_deg": 112.34995431432748,
+        "total_rmse_deg": 112.43204195514582
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "vqf-mav",
+        "sequences": 9,
+        "inclination_rmse_deg": 1.9874986252971334,
+        "heading_rmse_deg": 58.82663963900159,
+        "total_rmse_deg": 59.05446855761144
+      }
+    ]
+  },
+  "primary_attitude_protocol": {
+    "selection": "Vicon recordings except V1_01_easy, whose canonical orientation is known to be inaccurate.",
+    "reason": "Machine Hall orientation was reconstructed using IMU data and is not an independent attitude reference.",
+    "coverage": "Five Vicon recordings overall; four in the validation split.",
+    "primary_metric": "inclination_rmse_deg",
+    "metric_reason": "The vehicle model targets inclination; six-axis yaw is unobservable and heading/total can be dominated by bias drift.",
+    "reference_limit": "All published state references include offline IMU fusion; Vicon additionally observes optical orientation."
+  },
+  "summary_primary": [
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "ukf",
+      "sequences": 5,
+      "inclination_rmse_deg": 5.003567625279668,
+      "heading_rmse_deg": 60.36599581525054,
+      "total_rmse_deg": 60.66272800239663
+    },
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "srukf",
+      "sequences": 5,
+      "inclination_rmse_deg": 5.0035676252796435,
+      "heading_rmse_deg": 60.36599581518071,
+      "total_rmse_deg": 60.66272800232738
+    },
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "robust-rest",
+      "sequences": 5,
+      "inclination_rmse_deg": 5.313104274115261,
+      "heading_rmse_deg": 97.6840886110397,
+      "total_rmse_deg": 97.79350461321266
+    },
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "robust-acc",
+      "sequences": 5,
+      "inclination_rmse_deg": 13.199772630731257,
+      "heading_rmse_deg": 96.48030295844507,
+      "total_rmse_deg": 97.14822347542342
+    },
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "robust",
+      "sequences": 5,
+      "inclination_rmse_deg": 13.244317672632468,
+      "heading_rmse_deg": 96.47962731514005,
+      "total_rmse_deg": 97.15198287434696
+    },
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "mav-srukf",
+      "sequences": 5,
+      "inclination_rmse_deg": 1.0558172754379878,
+      "heading_rmse_deg": 2.5312163489883046,
+      "total_rmse_deg": 2.7910794241758845
+    },
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "mav-srukf-gravity",
+      "sequences": 5,
+      "inclination_rmse_deg": 1.5398543030116727,
+      "heading_rmse_deg": 2.89081262888855,
+      "total_rmse_deg": 3.360271474976256
+    },
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "madgwick",
+      "sequences": 5,
+      "inclination_rmse_deg": 8.589124381381328,
+      "heading_rmse_deg": 95.67792947086949,
+      "total_rmse_deg": 95.97279074114934
+    },
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "mahony",
+      "sequences": 5,
+      "inclination_rmse_deg": 3.5637781589232502,
+      "heading_rmse_deg": 87.54768129246438,
+      "total_rmse_deg": 87.61531697529472
+    },
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "vqf",
+      "sequences": 5,
+      "inclination_rmse_deg": 5.463543534955443,
+      "heading_rmse_deg": 107.25151882561222,
+      "total_rmse_deg": 107.35728665755246
+    },
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "vqf-mav",
+      "sequences": 5,
+      "inclination_rmse_deg": 1.5701830933690708,
+      "heading_rmse_deg": 75.11887415945628,
+      "total_rmse_deg": 75.33325215215605
+    }
+  ],
+  "summary_primary_validation": [
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "ukf",
+      "sequences": 4,
+      "inclination_rmse_deg": 4.801374861285964,
+      "heading_rmse_deg": 69.43715406561687,
+      "total_rmse_deg": 69.63771985811992
+    },
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "srukf",
+      "sequences": 4,
+      "inclination_rmse_deg": 4.801374861285938,
+      "heading_rmse_deg": 69.43715406553007,
+      "total_rmse_deg": 69.63771985803383
+    },
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "robust-rest",
+      "sequences": 4,
+      "inclination_rmse_deg": 5.22089355118492,
+      "heading_rmse_deg": 102.86905429268926,
+      "total_rmse_deg": 102.96207474860859
+    },
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "robust-acc",
+      "sequences": 4,
+      "inclination_rmse_deg": 13.467990891855633,
+      "heading_rmse_deg": 102.01784439869672,
+      "total_rmse_deg": 102.6436758805882
+    },
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "robust",
+      "sequences": 4,
+      "inclination_rmse_deg": 13.516579805471224,
+      "heading_rmse_deg": 102.01765864148568,
+      "total_rmse_deg": 102.64805630526817
+    },
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "mav-srukf",
+      "sequences": 4,
+      "inclination_rmse_deg": 1.1297656229667281,
+      "heading_rmse_deg": 2.843879351255774,
+      "total_rmse_deg": 3.1165704783002597
+    },
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "mav-srukf-gravity",
+      "sequences": 4,
+      "inclination_rmse_deg": 1.6309004956626396,
+      "heading_rmse_deg": 3.3114166479713547,
+      "total_rmse_deg": 3.7788557718064615
+    },
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "madgwick",
+      "sequences": 4,
+      "inclination_rmse_deg": 8.811891405121845,
+      "heading_rmse_deg": 100.7085922486242,
+      "total_rmse_deg": 100.99521064209058
+    },
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "mahony",
+      "sequences": 4,
+      "inclination_rmse_deg": 3.295280988888418,
+      "heading_rmse_deg": 92.53771248646952,
+      "total_rmse_deg": 92.58725708527078
+    },
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "vqf",
+      "sequences": 4,
+      "inclination_rmse_deg": 5.4834101429678945,
+      "heading_rmse_deg": 111.53973254906525,
+      "total_rmse_deg": 111.63905519753187
+    },
+    {
+      "dataset": "euroc",
+      "axes": 6,
+      "algorithm": "vqf-mav",
+      "sequences": 4,
+      "inclination_rmse_deg": 1.6149960837864727,
+      "heading_rmse_deg": 88.52840046227809,
+      "total_rmse_deg": 88.78522618540583
+    }
+  ],
+  "summary_by_environment": {
+    "MH": [
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "ukf",
+        "sequences": 5,
+        "inclination_rmse_deg": 3.056160676113508,
+        "heading_rmse_deg": 98.79232381294136,
+        "total_rmse_deg": 98.84202757614364
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "srukf",
+        "sequences": 5,
+        "inclination_rmse_deg": 3.0560320358187987,
+        "heading_rmse_deg": 98.7879063743555,
+        "total_rmse_deg": 98.83760994696033
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "robust-rest",
+        "sequences": 5,
+        "inclination_rmse_deg": 4.661260801008567,
+        "heading_rmse_deg": 111.061213925328,
+        "total_rmse_deg": 111.12350586977603
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "robust-acc",
+        "sequences": 5,
+        "inclination_rmse_deg": 13.27538030670136,
+        "heading_rmse_deg": 111.1319727470482,
+        "total_rmse_deg": 111.64633536539898
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "robust",
+        "sequences": 5,
+        "inclination_rmse_deg": 13.289029430498388,
+        "heading_rmse_deg": 111.13232588123526,
+        "total_rmse_deg": 111.64783714440037
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "mav-srukf",
+        "sequences": 5,
+        "inclination_rmse_deg": 1.4168159016087376,
+        "heading_rmse_deg": 15.788929698577991,
+        "total_rmse_deg": 15.964813023511681
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "mav-srukf-gravity",
+        "sequences": 5,
+        "inclination_rmse_deg": 1.806089370032866,
+        "heading_rmse_deg": 19.047490912387296,
+        "total_rmse_deg": 19.256994060671865
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "madgwick",
+        "sequences": 5,
+        "inclination_rmse_deg": 6.03271111369594,
+        "heading_rmse_deg": 111.07115790818186,
+        "total_rmse_deg": 111.1705605821782
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "mahony",
+        "sequences": 5,
+        "inclination_rmse_deg": 2.7088972642210507,
+        "heading_rmse_deg": 109.18076213359868,
+        "total_rmse_deg": 109.20564660234545
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "vqf",
+        "sequences": 5,
+        "inclination_rmse_deg": 5.211029031954648,
+        "heading_rmse_deg": 113.07108834761485,
+        "total_rmse_deg": 113.15075588839167
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "vqf-mav",
+        "sequences": 5,
+        "inclination_rmse_deg": 2.141427113252243,
+        "heading_rmse_deg": 55.99482202401041,
+        "total_rmse_deg": 56.148212918599974
+      }
+    ],
+    "V1": [
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "ukf",
+        "sequences": 3,
+        "inclination_rmse_deg": 5.518227959577767,
+        "heading_rmse_deg": 74.31437720160103,
+        "total_rmse_deg": 74.64234061470422
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "srukf",
+        "sequences": 3,
+        "inclination_rmse_deg": 5.52535018554003,
+        "heading_rmse_deg": 72.89341682357335,
+        "total_rmse_deg": 73.22261090196575
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "robust-rest",
+        "sequences": 3,
+        "inclination_rmse_deg": 4.432872796788364,
+        "heading_rmse_deg": 97.24871442243335,
+        "total_rmse_deg": 97.34434200687072
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "robust-acc",
+        "sequences": 3,
+        "inclination_rmse_deg": 11.682638446036568,
+        "heading_rmse_deg": 95.35400496391544,
+        "total_rmse_deg": 95.92966176993286
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "robust",
+        "sequences": 3,
+        "inclination_rmse_deg": 11.728881556129238,
+        "heading_rmse_deg": 95.35125716842107,
+        "total_rmse_deg": 95.93181792439553
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "mav-srukf",
+        "sequences": 3,
+        "inclination_rmse_deg": 1.5637100561932151,
+        "heading_rmse_deg": 1.4154482309739216,
+        "total_rmse_deg": 2.138548812516484
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "mav-srukf-gravity",
+        "sequences": 3,
+        "inclination_rmse_deg": 2.1741210633245385,
+        "heading_rmse_deg": 2.693929941108577,
+        "total_rmse_deg": 3.5218090642518085
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "madgwick",
+        "sequences": 3,
+        "inclination_rmse_deg": 6.94659664535352,
+        "heading_rmse_deg": 93.94159260433116,
+        "total_rmse_deg": 94.19200535244839
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "mahony",
+        "sequences": 3,
+        "inclination_rmse_deg": 4.269107432325287,
+        "heading_rmse_deg": 93.15269361150877,
+        "total_rmse_deg": 93.23651112541681
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "vqf",
+        "sequences": 3,
+        "inclination_rmse_deg": 4.244466488389403,
+        "heading_rmse_deg": 102.50197227309054,
+        "total_rmse_deg": 102.5789742026274
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "vqf-mav",
+        "sequences": 3,
+        "inclination_rmse_deg": 1.8851469184398908,
+        "heading_rmse_deg": 12.23616704051038,
+        "total_rmse_deg": 12.674589079171113
+      }
+    ],
+    "V2": [
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "ukf",
+        "sequences": 3,
+        "inclination_rmse_deg": 4.055678326770182,
+        "heading_rmse_deg": 66.79192080269696,
+        "total_rmse_deg": 66.96965898481476
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "srukf",
+        "sequences": 3,
+        "inclination_rmse_deg": 4.055678326770161,
+        "heading_rmse_deg": 66.7919208025827,
+        "total_rmse_deg": 66.96965898470141
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "robust-rest",
+        "sequences": 3,
+        "inclination_rmse_deg": 5.3367272276340865,
+        "heading_rmse_deg": 105.07920252980716,
+        "total_rmse_deg": 105.17215609550509
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "robust-acc",
+        "sequences": 3,
+        "inclination_rmse_deg": 13.98597865550157,
+        "heading_rmse_deg": 105.07175350876905,
+        "total_rmse_deg": 105.71018478813869
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "robust",
+        "sequences": 3,
+        "inclination_rmse_deg": 14.018759787198725,
+        "heading_rmse_deg": 105.07334194085428,
+        "total_rmse_deg": 105.71451621495505
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "mav-srukf",
+        "sequences": 3,
+        "inclination_rmse_deg": 1.1840471560450399,
+        "heading_rmse_deg": 3.521222305781015,
+        "total_rmse_deg": 3.7345784140429004
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "mav-srukf-gravity",
+        "sequences": 3,
+        "inclination_rmse_deg": 1.7127378717641042,
+        "heading_rmse_deg": 4.175984882774779,
+        "total_rmse_deg": 4.518390780791009
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "madgwick",
+        "sequences": 3,
+        "inclination_rmse_deg": 8.608838093252858,
+        "heading_rmse_deg": 105.04757103757834,
+        "total_rmse_deg": 105.29975858129093
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "mahony",
+        "sequences": 3,
+        "inclination_rmse_deg": 2.8916664556910234,
+        "heading_rmse_deg": 92.43861576244097,
+        "total_rmse_deg": 92.47859717550477
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "vqf",
+        "sequences": 3,
+        "inclination_rmse_deg": 5.793099944312836,
+        "heading_rmse_deg": 111.37130924611176,
+        "total_rmse_deg": 111.4808285516627
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "vqf-mav",
+        "sequences": 3,
+        "inclination_rmse_deg": 1.6808465143527662,
+        "heading_rmse_deg": 117.86935199433525,
+        "total_rmse_deg": 117.87866945956489
+      }
+    ]
+  },
+  "summary_by_difficulty": {
+    "difficult": [
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "ukf",
+        "sequences": 4,
+        "inclination_rmse_deg": 4.484127932117702,
+        "heading_rmse_deg": 72.3501724027881,
+        "total_rmse_deg": 72.52580319755637
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "srukf",
+        "sequences": 4,
+        "inclination_rmse_deg": 4.48412793211767,
+        "heading_rmse_deg": 72.35017240272751,
+        "total_rmse_deg": 72.52580319749637
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "robust-rest",
+        "sequences": 4,
+        "inclination_rmse_deg": 4.836291803062382,
+        "heading_rmse_deg": 100.8387968012219,
+        "total_rmse_deg": 100.92263596408073
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "robust-acc",
+        "sequences": 4,
+        "inclination_rmse_deg": 13.06041662258372,
+        "heading_rmse_deg": 99.8010647829717,
+        "total_rmse_deg": 100.41558450679938
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "robust",
+        "sequences": 4,
+        "inclination_rmse_deg": 13.096521364721154,
+        "heading_rmse_deg": 99.79959324453735,
+        "total_rmse_deg": 100.41769032184573
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "mav-srukf",
+        "sequences": 4,
+        "inclination_rmse_deg": 1.0370901307469569,
+        "heading_rmse_deg": 2.095422948595792,
+        "total_rmse_deg": 2.3753612636032484
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "mav-srukf-gravity",
+        "sequences": 4,
+        "inclination_rmse_deg": 1.5554544892837592,
+        "heading_rmse_deg": 2.575247194188529,
+        "total_rmse_deg": 3.080500990558285
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "madgwick",
+        "sequences": 4,
+        "inclination_rmse_deg": 7.491689390085744,
+        "heading_rmse_deg": 97.3018076080501,
+        "total_rmse_deg": 97.53369596605422
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "mahony",
+        "sequences": 4,
+        "inclination_rmse_deg": 3.38211630298173,
+        "heading_rmse_deg": 100.116381204262,
+        "total_rmse_deg": 100.16097308944568
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "vqf",
+        "sequences": 4,
+        "inclination_rmse_deg": 5.219478215956421,
+        "heading_rmse_deg": 113.16438537427757,
+        "total_rmse_deg": 113.25058486661737
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "vqf-mav",
+        "sequences": 4,
+        "inclination_rmse_deg": 1.8509571016097994,
+        "heading_rmse_deg": 31.900428048270868,
+        "total_rmse_deg": 32.31532672340881
+      }
+    ],
+    "easy": [
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "ukf",
+        "sequences": 4,
+        "inclination_rmse_deg": 2.5722313440808815,
+        "heading_rmse_deg": 115.88742014568818,
+        "total_rmse_deg": 115.9063570419855
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "srukf",
+        "sequences": 4,
+        "inclination_rmse_deg": 2.577412313062892,
+        "heading_rmse_deg": 114.81617236633576,
+        "total_rmse_deg": 114.8360320475568
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "robust-rest",
+        "sequences": 4,
+        "inclination_rmse_deg": 4.112721285367028,
+        "heading_rmse_deg": 115.13399505723979,
+        "total_rmse_deg": 115.18244285913097
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "robust-acc",
+        "sequences": 4,
+        "inclination_rmse_deg": 12.964718447759832,
+        "heading_rmse_deg": 115.70442245988531,
+        "total_rmse_deg": 116.16252767625278
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "robust",
+        "sequences": 4,
+        "inclination_rmse_deg": 12.981614307358727,
+        "heading_rmse_deg": 115.70479594391098,
+        "total_rmse_deg": 116.1640726425402
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "mav-srukf",
+        "sequences": 4,
+        "inclination_rmse_deg": 2.0106382485856567,
+        "heading_rmse_deg": 19.33559474144827,
+        "total_rmse_deg": 19.79119681065223
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "mav-srukf-gravity",
+        "sequences": 4,
+        "inclination_rmse_deg": 2.328785189038733,
+        "heading_rmse_deg": 20.661280152842227,
+        "total_rmse_deg": 21.03457453347735
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "madgwick",
+        "sequences": 4,
+        "inclination_rmse_deg": 5.609507165922684,
+        "heading_rmse_deg": 116.05036055688184,
+        "total_rmse_deg": 116.14093540635079
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "mahony",
+        "sequences": 4,
+        "inclination_rmse_deg": 2.1946977543118478,
+        "heading_rmse_deg": 109.5475527308991,
+        "total_rmse_deg": 109.56217450269531
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "vqf",
+        "sequences": 4,
+        "inclination_rmse_deg": 4.719450149820531,
+        "heading_rmse_deg": 111.1965086008163,
+        "total_rmse_deg": 111.26792993480923
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "vqf-mav",
+        "sequences": 4,
+        "inclination_rmse_deg": 2.2180646420171626,
+        "heading_rmse_deg": 89.4539104320157,
+        "total_rmse_deg": 89.53273882631245
+      }
+    ],
+    "medium": [
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "ukf",
+        "sequences": 3,
+        "inclination_rmse_deg": 5.259028378272352,
+        "heading_rmse_deg": 54.77671429456522,
+        "total_rmse_deg": 55.105831907035906
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "srukf",
+        "sequences": 3,
+        "inclination_rmse_deg": 5.259028245100772,
+        "heading_rmse_deg": 54.77672189133082,
+        "total_rmse_deg": 55.10583947153017
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "robust-rest",
+        "sequences": 3,
+        "inclination_rmse_deg": 5.606350574864183,
+        "heading_rmse_deg": 99.46621768317156,
+        "total_rmse_deg": 99.58223612105358
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "robust-acc",
+        "sequences": 3,
+        "inclination_rmse_deg": 13.094070852249004,
+        "heading_rmse_deg": 98.30506339395549,
+        "total_rmse_deg": 98.94625592300027
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "robust",
+        "sequences": 3,
+        "inclination_rmse_deg": 13.125176164718766,
+        "heading_rmse_deg": 98.30595666006968,
+        "total_rmse_deg": 98.95037876083661
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "mav-srukf",
+        "sequences": 3,
+        "inclination_rmse_deg": 1.0454792091426668,
+        "heading_rmse_deg": 2.6768631143261783,
+        "total_rmse_deg": 2.925738166738214
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "mav-srukf-gravity",
+        "sequences": 3,
+        "inclination_rmse_deg": 1.7180216473800958,
+        "heading_rmse_deg": 7.633696548487836,
+        "total_rmse_deg": 7.981755914115076
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "madgwick",
+        "sequences": 3,
+        "inclination_rmse_deg": 8.14169118675504,
+        "heading_rmse_deg": 99.63820260230334,
+        "total_rmse_deg": 99.87652307416299
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "mahony",
+        "sequences": 3,
+        "inclination_rmse_deg": 4.239850585326625,
+        "heading_rmse_deg": 88.00733434973274,
+        "total_rmse_deg": 88.09365584864265
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "vqf",
+        "sequences": 3,
+        "inclination_rmse_deg": 5.470710331590716,
+        "heading_rmse_deg": 103.1772367984352,
+        "total_rmse_deg": 103.2863761663741
+      },
+      {
+        "dataset": "euroc",
+        "axes": 6,
+        "algorithm": "vqf-mav",
+        "sequences": 3,
+        "inclination_rmse_deg": 1.7096762967104455,
+        "heading_rmse_deg": 61.62443776781421,
+        "total_rmse_deg": 61.66952600344096
+      }
+    ]
+  },
+  "paired_comparison_to_vqf": {
+    "candidate": "mav-srukf",
+    "reference": "vqf",
+    "sequences": 11,
+    "inclination": {
+      "mean_difference_deg": -3.712772119374683,
+      "ratio_of_means": 0.27288480255375247,
+      "candidate_wins": 10
+    },
+    "heading": {
+      "mean_difference_deg": -101.2018751084115,
+      "ratio_of_means": 0.07767736520181495,
+      "candidate_wins": 11
+    },
+    "total": {
+      "mean_difference_deg": -100.95361280978109,
+      "ratio_of_means": 0.08066956665242972,
+      "candidate_wins": 11
+    }
+  },
+  "paired_comparison_primary": {
+    "vqf": {
+      "candidate": "mav-srukf",
+      "reference": "vqf",
+      "sequences": 5,
+      "inclination": {
+        "mean_difference_deg": -4.407726259517456,
+        "ratio_of_means": 0.1932477097844885,
+        "candidate_wins": 5
+      },
+      "heading": {
+        "mean_difference_deg": -104.72030247662391,
+        "ratio_of_means": 0.0236007506159795,
+        "candidate_wins": 5
+      },
+      "total": {
+        "mean_difference_deg": -104.56620723337656,
+        "ratio_of_means": 0.0259980436454104,
+        "candidate_wins": 5
+      }
+    },
+    "vqf-mav": {
+      "candidate": "mav-srukf",
+      "reference": "vqf-mav",
+      "sequences": 5,
+      "inclination": {
+        "mean_difference_deg": -0.5143658179310833,
+        "ratio_of_means": 0.6724166626788526,
+        "candidate_wins": 5
+      },
+      "heading": {
+        "mean_difference_deg": -72.58765781046799,
+        "ratio_of_means": 0.03369614331033826,
+        "candidate_wins": 4
+      },
+      "total": {
+        "mean_difference_deg": -72.54217272798016,
+        "ratio_of_means": 0.037049766795392534,
+        "candidate_wins": 5
+      }
+    }
+  },
+  "paired_comparison_primary_validation": {
+    "vqf": {
+      "candidate": "mav-srukf",
+      "reference": "vqf",
+      "sequences": 4,
+      "inclination": {
+        "mean_difference_deg": -4.353644520001167,
+        "ratio_of_means": 0.20603339774165474,
+        "candidate_wins": 4
+      },
+      "heading": {
+        "mean_difference_deg": -108.6958531978095,
+        "ratio_of_means": 0.025496558815978683,
+        "candidate_wins": 4
+      },
+      "total": {
+        "mean_difference_deg": -108.52248471923161,
+        "ratio_of_means": 0.027916489196239284,
+        "candidate_wins": 4
+      }
+    },
+    "vqf-mav": {
+      "candidate": "mav-srukf",
+      "reference": "vqf-mav",
+      "sequences": 4,
+      "inclination": {
+        "mean_difference_deg": -0.4852304608197446,
+        "ratio_of_means": 0.6995469737102473,
+        "candidate_wins": 4
+      },
+      "heading": {
+        "mean_difference_deg": -85.68452111102232,
+        "ratio_of_means": 0.03212392109657002,
+        "candidate_wins": 3
+      },
+      "total": {
+        "mean_difference_deg": -85.66865570710557,
+        "ratio_of_means": 0.03510235443667259,
+        "candidate_wins": 4
+      }
+    }
+  },
+  "paired_model_effect_primary": {
+    "candidate": "mav-srukf",
+    "reference": "mav-srukf-gravity",
+    "sequences": 5,
+    "inclination": {
+      "mean_difference_deg": -0.4840370275736852,
+      "ratio_of_means": 0.6856605026676892,
+      "candidate_wins": 5
+    },
+    "heading": {
+      "mean_difference_deg": -0.3595962799002449,
+      "ratio_of_means": 0.8756071990599744,
+      "candidate_wins": 2
+    },
+    "total": {
+      "mean_difference_deg": -0.5691920508003715,
+      "ratio_of_means": 0.8306112898796686,
+      "candidate_wins": 4
+    }
+  },
+  "paired_model_effect_primary_validation": {
+    "candidate": "mav-srukf",
+    "reference": "mav-srukf-gravity",
+    "sequences": 4,
+    "inclination": {
+      "mean_difference_deg": -0.5011348726959115,
+      "ratio_of_means": 0.6927250472799085,
+      "candidate_wins": 4
+    },
+    "heading": {
+      "mean_difference_deg": -0.46753729671558086,
+      "ratio_of_means": 0.8588104891596761,
+      "candidate_wins": 2
+    },
+    "total": {
+      "mean_difference_deg": -0.6622852935062014,
+      "ratio_of_means": 0.8247391979213856,
+      "candidate_wins": 3
+    }
+  },
+  "paired_comparison_by_split": {
+    "development": {
+      "candidate": "mav-srukf",
+      "reference": "vqf",
+      "sequences": 2,
+      "inclination": {
+        "mean_difference_deg": -4.324624743008783,
+        "ratio_of_means": 0.1843025374741554,
+        "candidate_wins": 2
+      },
+      "heading": {
+        "mean_difference_deg": -83.60174883859975,
+        "ratio_of_means": 0.14616161290270216,
+        "candidate_wins": 2
+      },
+      "total": {
+        "mean_difference_deg": -83.59420973723813,
+        "ratio_of_means": 0.14719283115970908,
+        "candidate_wins": 2
+      }
+    },
+    "validation": {
+      "candidate": "mav-srukf",
+      "reference": "vqf",
+      "sequences": 9,
+      "inclination": {
+        "mean_difference_deg": -3.5768048696782153,
+        "ratio_of_means": 0.2934992161265346,
+        "candidate_wins": 8
+      },
+      "heading": {
+        "mean_difference_deg": -105.11301427948077,
+        "ratio_of_means": 0.06441426771389272,
+        "candidate_wins": 9
+      },
+      "total": {
+        "mean_difference_deg": -104.81125793701287,
+        "ratio_of_means": 0.067781247103679,
+        "candidate_wins": 9
+      }
+    }
+  },
+  "build_description": "Release build with GCC 14.2.0, C++17, warnings treated as errors, patched Eigen 3.2.8, UKF double precision and Python 3.12.14."
+}

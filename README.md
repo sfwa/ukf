@@ -432,6 +432,10 @@ BROAD and Sassari in six- and nine-axis modes. See
 [methodology and measured results](docs/attitude-benchmark.md)
 for local reproduction and CI artifacts.
 
+The [EuRoC MAV benchmark](examples/euroc_benchmark/) adds a Firefly hexrotor
+process model and compares six-axis attitude estimates with the same references.
+See its [model, evaluation protocol and results](docs/euroc-benchmark.md).
+
 ## References
 
 <a name="ref1">[1]</a> "A New Extension of the Kalman Filter to Nonlinear Systems:,

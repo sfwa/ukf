@@ -1,0 +1,8 @@
+add_executable(euroc_benchmark estimator.cpp mav_estimator.cpp)
+target_link_libraries(euroc_benchmark PRIVATE ukf::double)
+ukf_project_warnings(euroc_benchmark)
+
+add_executable(mav_geometry_test test_mav_geometry.cpp)
+target_link_libraries(mav_geometry_test PRIVATE ukf::double)
+ukf_project_warnings(mav_geometry_test)
+add_dependencies(euroc_benchmark mav_geometry_test)

@@ -40,11 +40,16 @@ jobs:
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DUKF_USE_SYSTEM_EIGEN=${{ matrix.config.eigen }}
 
       - name: Build tests, benchmarks and examples with warnings as errors
-        run: cmake --build build --target unittest benchmark ahrs sfwa_ukf --config ${{ matrix.build_type }} --parallel 2
+        run: cmake --build build --target unittest benchmark ahrs sfwa_ukf attitude_benchmark euroc_benchmark --config ${{ matrix.build_type }} --parallel 2
 
       - name: Test
         working-directory: build
         run: ctest --build-config ${{ matrix.build_type }} --output-on-failure
+
+      - name: Test benchmark covariance geometry
+        run: |
+          build/examples/attitude_benchmark/robust_geometry_test
+          build/examples/euroc_benchmark/mav_geometry_test
 
       - name: Configure downstream consumer
         run: cmake -S test/cmake -B build-consumer -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DUKF_USE_SYSTEM_EIGEN=${{ matrix.config.eigen }}
