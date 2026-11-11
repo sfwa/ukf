@@ -119,7 +119,8 @@ rest gyroscope noise is 0.09 (°/s)·√s, looser than for a hand-held sensor: t
 bias measured with the rotors stopped shifts when they start. In powered
 flight the velocity process noise is 0.2 m/s/√s and the rotor-drag observation
 noise 0.067 m/s²·√s. The rest detector sees the IMU signals low-pass filtered
-at 2 Hz, and never reports rest while the rotors are on.
+at 2 Hz, requires an accelerometer magnitude between 0.7 g and 1.3 g, and never
+reports rest while the rotors are on.
 
 The executable's `--describe-filter` output and every report record the exact
 fixed numerical settings. Sensor-only development calibration is distinguished

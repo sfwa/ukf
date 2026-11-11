@@ -222,6 +222,8 @@ struct MAV_Tuning {
         0.5,                                            /* averaging_time (s) */
         RADIANS(2.0),                                   /* gyroscope_change (rad/s) */
         0.5,                                            /* accelerometer_change (m/s^2) */
+        0.7 * G_ACCEL,                                  /* accelerometer_minimum (m/s^2) */
+        1.3 * G_ACCEL,                                  /* accelerometer_maximum (m/s^2) */
         RADIANS(10.0),                                  /* gyroscope_bias (rad/s) */
         1.5                                             /* minimum_time (s) */
     };

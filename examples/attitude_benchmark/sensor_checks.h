@@ -30,18 +30,22 @@ void smooth(T& average, const T& sample, real_t dt, real_t time_constant) {
 
 /*
 The sensor is at rest once the gyroscope and accelerometer have both stayed
-close to their own recent averages for a while. The average angular velocity
-must also be small: a slow, steady turn would otherwise look just like a
-gyroscope bias.
+close to their own recent averages for a while. Two more conditions exclude
+steady readings which are not rest. The accelerometer must be measuring
+gravity: in free fall, or if its readings drop out, it measures nothing at
+all. And the average angular velocity must be small: a slow, steady turn
+would otherwise look just like a gyroscope bias.
 */
 class RestDetector {
 public:
     struct Limits {
-        real_t averaging_time;      /* Time constant of the running averages (s). */
-        real_t gyroscope_change;    /* Largest deviation from the average (rad/s). */
-        real_t accelerometer_change;/* Largest deviation from the average (m/s^2). */
-        real_t gyroscope_bias;      /* Largest average angular velocity (rad/s). */
-        real_t minimum_time;        /* How long the readings must stay quiet (s). */
+        real_t averaging_time;          /* Time constant of the running averages (s). */
+        real_t gyroscope_change;        /* Largest deviation from the average (rad/s). */
+        real_t accelerometer_change;    /* Largest deviation from the average (m/s^2). */
+        real_t accelerometer_minimum;   /* Smallest accelerometer magnitude at rest (m/s^2). */
+        real_t accelerometer_maximum;   /* Largest accelerometer magnitude at rest (m/s^2). */
+        real_t gyroscope_bias;          /* Largest average angular velocity (rad/s). */
+        real_t minimum_time;            /* How long the readings must stay quiet (s). */
     };
 
     explicit RestDetector(const Limits& limits) : limits(limits) {}
@@ -56,9 +60,12 @@ public:
         smooth(average_gyroscope, gyroscope, dt, limits.averaging_time);
         smooth(average_accelerometer, accelerometer, dt, limits.averaging_time);
 
+        const real_t magnitude = accelerometer.norm();
         const bool quiet =
             (gyroscope - average_gyroscope).norm() <= limits.gyroscope_change &&
             (accelerometer - average_accelerometer).norm() <= limits.accelerometer_change &&
+            magnitude >= limits.accelerometer_minimum &&
+            magnitude <= limits.accelerometer_maximum &&
             average_gyroscope.cwiseAbs().maxCoeff() <= limits.gyroscope_bias;
         quiet_time = quiet ? quiet_time + dt : real_t(0.0);
 

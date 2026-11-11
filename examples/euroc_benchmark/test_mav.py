@@ -256,6 +256,33 @@ class MAVEstimatorTests(unittest.TestCase):
                                    atol=2e-3, rtol=0)
         self.assertLess(error.max(), 1)
 
+    def test_accelerometer_dropout_is_not_mistaken_for_rest(self):
+        # A vehicle at rest measures gravity. During a dropout (or free fall)
+        # the accelerometer reads nothing, however steady that reading is, so
+        # a slow turn meanwhile must not be learned as gyroscope bias.
+        time = np.arange(2001)/100
+        dropout = (time >= 5) & (time < 11)
+        slow_turn = np.deg2rad([3., -4., 2.])  # Below the rest detector's 10 deg/s limit.
+        initial = Rotation.from_euler('y', -90, degrees=True) * aircraft_to_imu(self.thrust_axis).inv()
+        truth = initial * Rotation.from_rotvec(np.clip(time-5, 0, 6)[:, None]*slow_turn)
+        gyro = np.zeros((len(time), 3))
+        gyro[dropout] = slow_turn
+        acceleration = truth.inv().apply(np.tile([0., 0., G], (len(time), 1)))
+        acceleration[dropout] = 0
+        samples = np.column_stack((time, gyro, acceleration, np.zeros((len(time), 3))))
+        for algorithm in ("mav-srukf", "mav-srukf-gravity"):
+            with self.subTest(algorithm=algorithm):
+                estimate, details = self.replay(samples, algorithm)
+                self.assertTrue(details["rest"][(time > 3) & (time < 5)].all())
+                # The rest detector sees low-pass filtered signals, so it needs
+                # a few samples to notice that the dropout began.
+                self.assertFalse(details["rest"][dropout & (time >= 5.2)].any())
+                np.testing.assert_allclose(self.bias(details), 0, atol=2e-3, rtol=0)
+                aligned = (truth[0]*estimate[0].inv())*estimate
+                error = np.rad2deg((truth.inv()*aligned).magnitude())
+                self.assertLess(error[dropout][-1], 1)
+                self.assertLess(error[-1], .5)
+
     def test_timestamp_origin_does_not_change_state(self):
         samples = self.flight_samples.copy()
         original, _ = self.replay(samples)

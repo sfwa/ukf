@@ -286,6 +286,8 @@ struct Attitude_Tuning {
         0.5,                                            /* averaging_time (s) */
         RADIANS(2.0),                                   /* gyroscope_change (rad/s) */
         0.5,                                            /* accelerometer_change (m/s^2) */
+        0.7 * G_ACCEL,                                  /* accelerometer_minimum (m/s^2) */
+        1.3 * G_ACCEL,                                  /* accelerometer_maximum (m/s^2) */
         RADIANS(2.0),                                   /* gyroscope_bias (rad/s) */
         1.5                                             /* minimum_time (s) */
     };
@@ -436,7 +438,7 @@ public:
     }
 
     bool resting() const { return at_rest; }
-    bool magnetometer_rejected() const { return field_disturbed; }
+    bool magnetometer_rejected() const { return field_rejected; }
 
 private:
     /* Wrap an angle into the range -pi to pi. */
@@ -452,18 +454,19 @@ private:
         Rotate the magnetic field into the attitude filter's world frame.
         Its horizontal part points to magnetic north; the heading offset is
         the rotation about +Z which would bring that onto the +X axis. A
-        vertical (or missing) field says nothing about heading.
+        vertical (or missing) field says nothing about heading, and a
+        disturbed one must not be believed.
         */
         UKF::Vector<3> field = state.get_field<Attitude>() * sample.magnetometer;
-        if (field.head<2>().norm() <= 1e-6 * field.norm()) {
-            return true;
-        }
+        bool usable = field.head<2>().norm() > 1e-6 * field.norm();
+        field_rejected = !usable || field_check.update(field, dt, angular_velocity);
         real_t measured_offset = -std::atan2(field.y(), field.x());
-
-        field_disturbed = field_check.update(field, dt, angular_velocity);
 
         /* The first usable reading sets the initial heading. */
         if (!heading_started) {
+            if (!usable) {
+                return true;
+            }
             heading_state.set_field<HeadingOffset>(measured_offset);
 
             Heading_StateVector::StateVectorDelta sigma;
@@ -474,6 +477,11 @@ private:
             return true;
         }
 
+        /*
+        Predict at every step, whether or not a measurement follows, so
+        that the offset becomes less certain for as long as the
+        magnetometer cannot be used.
+        */
         Heading_StateVector::StateVectorDelta process_noise;
         process_noise << tuning.heading_walk * std::sqrt(dt);
         set_process_noise_sigma(heading_filter, process_noise);
@@ -483,7 +491,7 @@ private:
         }
 
         /* Without a trustworthy measurement, the prediction is all there is. */
-        if (field_disturbed) {
+        if (field_rejected) {
             return true;
         }
 
@@ -512,7 +520,7 @@ private:
     bool use_magnetometer = false;
     bool heading_started = false;
     bool at_rest = false;
-    bool field_disturbed = false;
+    bool field_rejected = false;
 };
 
 #endif

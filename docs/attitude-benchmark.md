@@ -48,9 +48,11 @@ process and measurement noise alone.
 Rest detection requires stable accelerometer and gyro readings for 1.5 s.
 Deviations are measured against 0.5 s running averages. Gyro deviation and
 average gyro limits are 2°/s; acceleration deviation is limited to 0.5 m/s².
-While the sensor is at rest, the gyroscope reading is added to the measurement
-vector as a direct measurement of the bias. Slow constant rotation below the
-detection limits can still be ambiguous with gyro bias.
+The accelerometer magnitude must also be between 0.7 g and 1.3 g, because a
+steady reading of nothing (free fall, or a dropout) is not rest. While the
+sensor is at rest, the gyroscope reading is added to the measurement vector as
+a direct measurement of the bias. Slow constant rotation below the detection
+limits can still be ambiguous with gyro bias.
 
 Magnetometer measurements update a separate filter whose single state is a
 world-yaw correction: `q_9D = q_yaw(offset) * q_6D`. They cannot change
@@ -60,7 +62,9 @@ measurement. Field strength and dip angle are compared with an accepted
 reference, and readings are ignored while either has strayed by more than 10%
 or 10°, until the field has matched again for 0.5 s. A persistent new field is
 adopted as the reference after 20 s of rotation above 20°/s. A field change
-preserving strength and dip remains undetectable.
+preserving strength and dip remains undetectable. The heading filter is
+predicted at every step, so its uncertainty keeps growing while readings are
+rejected, or missing, or have no horizontal component.
 
 A six-axis estimator cannot observe heading, so the attitude filter's
 uncertainty about its own heading would grow without limit. Once that
@@ -215,7 +219,7 @@ The metric tests cover signs, coordinate frames, optical gaps and yaw drift.
 Executable tests on synthetic recordings cover tilted rest, multi-axis rotation,
 bias convergence, agreement between the two cores, malformed input, prefix
 causality, irregular sampling, rest discrimination, translation, accelerometer
-dropout, magnetic isolation and recovery, and unobservable heading.
+dropout, magnetic isolation, outage and recovery, and unobservable heading.
 
 Timing is diagnostic only: the C++ measurement normally excludes CSV I/O;
 `--diagnostics` includes state-trace writes in the measured loop. The Python

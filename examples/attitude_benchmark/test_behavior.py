@@ -221,6 +221,54 @@ class EstimatorBehaviorTests(unittest.TestCase):
                 error = np.rad2deg((truth.inv() * estimate).magnitude())
                 self.assertLess(error.max(), 0.2)
 
+    def test_accelerometer_dropout_is_not_mistaken_for_rest(self):
+        # A sensor at rest measures gravity. During a dropout (or free fall)
+        # the accelerometer reads nothing, however steady that reading is, so
+        # a slow turn meanwhile must not be learned as gyroscope bias.
+        time = np.arange(2001) / 100
+        dropout = (time >= 5) & (time < 13)
+        slow_turn = np.deg2rad([0.9, -0.6, 0.8])  # Below the rest detector's 2 deg/s limit.
+        initial = Rotation.from_euler("xyz", [20, -15, 40], degrees=True)
+        truth = initial * Rotation.from_rotvec(np.clip(time - 5, 0, 8)[:, None] * slow_turn)
+        gyro = np.zeros((len(time), 3))
+        gyro[dropout] = slow_turn
+        acc = truth.inv().apply(np.tile([0., 0., 9.80665], (len(time), 1)))
+        acc[dropout] = 0
+        mag = truth.inv().apply(np.tile([0.6, 0., -0.8], (len(time), 1)))
+        samples = np.column_stack((time, gyro, acc, mag))
+        for algorithm in FILTERS:
+            with self.subTest(algorithm=algorithm):
+                estimate, details = self.replay(samples, algorithm=algorithm)
+                self.assertTrue(details["rest"][(time > 3) & (time < 5)].all())
+                self.assertFalse(details["rest"][dropout].any())
+                np.testing.assert_allclose(self.bias(details), 0, atol=5e-4, rtol=0)
+                estimate = (truth[0] * estimate[0].inv()) * estimate
+                error = np.rad2deg((truth.inv() * estimate).magnitude())
+                self.assertLess(error.max(), 0.2)
+
+    def test_heading_uncertainty_grows_while_the_magnetometer_is_missing(self):
+        # Turning about the vertical is never rest, so a gyroscope bias about
+        # that axis goes unnoticed and the six-axis heading drifts. With no
+        # magnetometer readings for a minute, the heading filter must become
+        # less sure of itself, so that it weights the first readings afterwards
+        # heavily. At its settled weighting it would need 12 s to halve an error.
+        time = np.arange(12001) / 100
+        outage = (time >= 40) & (time < 100)
+        initial = Rotation.from_euler("xyz", [20, -15, 40], degrees=True)
+        vertical = initial.inv().apply([0., 0., 1.])
+        samples, truth = self.recording(time, omega=np.deg2rad(20) * vertical)
+        samples[outage, 1:4] += np.deg2rad(0.2) * vertical
+        samples[outage, 7:10] = 0
+        for algorithm in FILTERS:
+            with self.subTest(algorithm=algorithm):
+                estimate, details = self.replay(samples, axes=9, algorithm=algorithm)
+                error = np.rad2deg((truth.inv() * estimate).magnitude())
+                drifted = error[time < 100][-1]
+                self.assertGreater(drifted, 10)
+                self.assertTrue(details["magnetometer_rejected"][outage].all())
+                self.assertLess(error[time >= 105][0], 0.6 * drifted)
+                self.assertLess(error[time >= 110][0], 0.4 * drifted)
+
     def test_accelerometer_dropout_coasts_on_the_gyroscope(self):
         time = np.arange(3001) / 100
         omega = np.array([0.12, -0.08, 0.3])

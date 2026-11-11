@@ -61,6 +61,8 @@ static void describe_filter(const std::string& filter, const MAV_Tuning& tuning)
         << ",\"rest_averaging_time_s\":" << tuning.rest.averaging_time
         << ",\"rest_gyroscope_change_rad_s\":" << tuning.rest.gyroscope_change
         << ",\"rest_accelerometer_change_m_s2\":" << tuning.rest.accelerometer_change
+        << ",\"rest_accelerometer_minimum_m_s2\":" << tuning.rest.accelerometer_minimum
+        << ",\"rest_accelerometer_maximum_m_s2\":" << tuning.rest.accelerometer_maximum
         << ",\"rest_gyroscope_bias_rad_s\":" << tuning.rest.gyroscope_bias
         << ",\"rest_minimum_time_s\":" << tuning.rest.minimum_time
         << ",\"rotor_vibration_cutoff_frequency_hz\":" << tuning.rotors.cutoff_frequency
