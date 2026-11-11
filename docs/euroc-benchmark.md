@@ -156,6 +156,28 @@ There is no reference-derived flight mask or trajectory-wide fit. Means give
 each recording equal weight. Paired differences, ratios and sequence wins are
 reported without claiming statistical significance from a small sample.
 
+## Recorded outcome
+
+The frozen implementation completed all **121 evaluations** on 2026-11-11.
+On the four primary Vicon validation sequences, mean inclination RMSE is
+**1.130°** for `mav-srukf`, compared with **1.615°** for adapted `vqf-mav`,
+**1.631°** for the joint-state gravity control, and **5.483°** for default VQF.
+This is a 30.0% reduction versus adapted VQF and 30.7% versus the gravity control.
+The MAV model has lower inclination error on all four reserved sequences.
+That comparison supports a process-model benefit beyond changing the bias prior
+or allowable bias range; it is an observed effect on a small benchmark, not a
+claim of statistical significance or universal superiority.
+
+Across all eleven recordings, the MAV model's mean inclination/total RMSE is
+1.393°/8.858°, versus adapted VQF's 1.946°/61.127°. The large heading differences
+also reflect startup and motion-bias handling, so they should not be attributed
+entirely to rotor dynamics. MH_01 and MH_02 retain substantial heading offsets;
+adapted VQF has lower inclination error on MH_02 and the known-problem V1_01
+reference, and some per-sequence heading or total errors favor the gravity
+control. All results and both VQF configurations
+are retained in the recorded tables. No model parameter changed after this
+validation replay.
+
 See the [example README](../examples/euroc_benchmark/README.md) for build and
 replay commands and [the recorded comparison](euroc/comparison.md) for results.
 The [CI workflow](../.github/workflows/euroc-benchmark.yml) runs complete-recording
