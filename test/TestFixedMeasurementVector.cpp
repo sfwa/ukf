@@ -4,6 +4,7 @@
 #include "UKF/Types.h"
 #include "UKF/StateVector.h"
 #include "UKF/MeasurementVector.h"
+#include "UKF/Core.h"
 #include "comparisons.h"
 
 enum MyFields {
@@ -21,6 +22,102 @@ using MyMeasurementVector = UKF::FixedMeasurementVector<
     UKF::Field<StaticPressure, real_t>,
     UKF::Field<DynamicPressure, real_t>
 >;
+
+using ScalarFilterState = UKF::StateVector<UKF::Field<130, real_t>>;
+using VectorFilterState = UKF::StateVector<UKF::Field<130, UKF::Vector<2>>>;
+using ScalarFixedMeasurement = UKF::FixedMeasurementVector<UKF::Field<131, real_t>>;
+using ScalarDynamicMeasurement = UKF::DynamicMeasurementVector<UKF::Field<131, real_t>>;
+struct ScalarIdentityIntegrator {
+    template <typename S> static S integrate(real_t, const S& state) { return state; }
+};
+namespace UKF {
+template <> template <>
+real_t ScalarFixedMeasurement::expected_measurement<ScalarFilterState, 131>(const ScalarFilterState& state) { return state(0); }
+template <> template <>
+real_t ScalarFixedMeasurement::expected_measurement<VectorFilterState, 131>(const VectorFilterState& state) { return state(0); }
+template <> template <>
+real_t ScalarDynamicMeasurement::expected_measurement<ScalarFilterState, 131>(const ScalarFilterState& state) { return state(0); }
+template <> template <>
+real_t ScalarDynamicMeasurement::expected_measurement<VectorFilterState, 131>(const VectorFilterState& state) { return state(0); }
+}
+
+template <typename S, typename M>
+void check_scalar_measurement() {
+    M z;
+    z.template set_field<131>(real_t(2));
+    UKF::Core<S, M, ScalarIdentityIntegrator> standard;
+    standard.state.setZero();
+    standard.covariance.setIdentity();
+    standard.process_noise_covariance.setZero();
+    standard.measurement_covariance.setOnes();
+    standard.step(real_t(1), z);
+
+    UKF::SquareRootCore<S, M, ScalarIdentityIntegrator> root;
+    root.state.setZero();
+    root.root_covariance.setIdentity();
+    root.process_noise_root_covariance.setZero();
+    root.measurement_root_covariance.setOnes();
+    root.step(real_t(1), z);
+
+    UKF::SquareRootParameterEstimationCore<S, M> parameter;
+    parameter.state.setZero();
+    parameter.root_covariance.setIdentity();
+    parameter.process_noise_root_covariance.setZero();
+    parameter.measurement_root_covariance.setOnes();
+    parameter.step(z);
+
+    S expected_state = S::Zero();
+    expected_state(0) = 1;
+    typename S::CovarianceMatrix expected_covariance = S::CovarianceMatrix::Identity();
+    expected_covariance(0, 0) = real_t(0.5);
+    EXPECT_LT((standard.state - expected_state).norm(), real_t(1e-5));
+    EXPECT_LT((root.state - expected_state).norm(), real_t(1e-5));
+    EXPECT_LT((parameter.state - expected_state).norm(), real_t(1e-5));
+    EXPECT_LT((standard.covariance - expected_covariance).norm(), real_t(1e-5));
+    EXPECT_LT((root.root_covariance * root.root_covariance.transpose() - expected_covariance).norm(), real_t(1e-5));
+    EXPECT_LT((parameter.root_covariance * parameter.root_covariance.transpose() - expected_covariance).norm(), real_t(1e-5));
+}
+
+TEST(ScalarMeasurementTest, FixedWithScalarState) { check_scalar_measurement<ScalarFilterState, ScalarFixedMeasurement>(); }
+TEST(ScalarMeasurementTest, DynamicWithScalarState) { check_scalar_measurement<ScalarFilterState, ScalarDynamicMeasurement>(); }
+TEST(ScalarMeasurementTest, FixedWithVectorState) { check_scalar_measurement<VectorFilterState, ScalarFixedMeasurement>(); }
+TEST(ScalarMeasurementTest, DynamicWithVectorState) { check_scalar_measurement<VectorFilterState, ScalarDynamicMeasurement>(); }
+
+using ScalarStateMultipleMeasurements = UKF::FixedMeasurementVector<UKF::Field<132, UKF::Vector<2>>>;
+namespace UKF {
+template <> template <>
+UKF::Vector<2> ScalarStateMultipleMeasurements::expected_measurement<ScalarFilterState, 132>(
+        const ScalarFilterState& state) { return UKF::Vector<2>(state(0), 2*state(0)); }
+}
+
+TEST(ScalarMeasurementTest, MultipleObservationsWithScalarState) {
+    ScalarStateMultipleMeasurements z;
+    z << 2, 4;
+    UKF::Core<ScalarFilterState, ScalarStateMultipleMeasurements, ScalarIdentityIntegrator> standard;
+    standard.state.setZero();
+    standard.covariance.setIdentity();
+    standard.process_noise_covariance.setZero();
+    standard.measurement_covariance.setOnes();
+    standard.step(real_t(0), z);
+    UKF::SquareRootCore<ScalarFilterState, ScalarStateMultipleMeasurements, ScalarIdentityIntegrator> root;
+    root.state.setZero();
+    root.root_covariance.setIdentity();
+    root.process_noise_root_covariance.setZero();
+    root.measurement_root_covariance.setOnes();
+    root.step(real_t(0), z);
+    UKF::SquareRootParameterEstimationCore<ScalarFilterState, ScalarStateMultipleMeasurements> parameter;
+    parameter.state.setZero();
+    parameter.root_covariance.setIdentity();
+    parameter.process_noise_root_covariance.setZero();
+    parameter.measurement_root_covariance.setOnes();
+    parameter.step(z);
+    EXPECT_NEAR(real_t(5.0/3.0), standard.state(0), real_t(1e-5));
+    EXPECT_NEAR(real_t(5.0/3.0), root.state(0), real_t(1e-5));
+    EXPECT_NEAR(real_t(5.0/3.0), parameter.state(0), real_t(1e-5));
+    EXPECT_NEAR(real_t(1.0/6.0), standard.covariance(0, 0), real_t(1e-5));
+    EXPECT_NEAR(real_t(1.0/6.0), root.root_covariance.squaredNorm(), real_t(1e-5));
+    EXPECT_NEAR(real_t(1.0/6.0), parameter.root_covariance.squaredNorm(), real_t(1e-5));
+}
 
 TEST(FixedMeasurementVectorTest, Instantiation) {
     MyMeasurementVector test_measurement;
