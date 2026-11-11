@@ -64,7 +64,9 @@ template <> template <> Mav::State Mav::State::process_model<>(real_t dt, const 
     Mav::Input actual = in;
     actual.omega -= get_field<Mav::Bias>();
     const auto midpoint = q * Mav::increment(actual.omega * (dt * .5));
-    const auto v_midpoint = v + Mav::acceleration(q, v, actual) * (dt * .5);
+    // Evaluate before acceleration's temporary is destroyed; Eigen expressions
+    // stored with auto would retain a dangling reference here.
+    const Mav::V3 v_midpoint = v + Mav::acceleration(q, v, actual) * (dt * .5);
     result.set_field<Mav::Attitude>((q * Mav::increment(actual.omega * dt)).normalized());
     result.set_field<Mav::Velocity>(v + Mav::acceleration(midpoint, v_midpoint, actual) * dt);
     return result;
