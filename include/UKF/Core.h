@@ -27,6 +27,7 @@ SOFTWARE.
 #include <Eigen/Geometry>
 #include "UKF/Types.h"
 #include "UKF/StateVector.h"
+#include "UKF/Covariance.h"
 #include <type_traits>
 
 namespace UKF {
@@ -100,17 +101,12 @@ public:
     template <typename... U>
     void a_priori_step(real_t delta, const U&... input) {
         /*
-        Add process noise covariance to the state covariance and calculate
-        the LLT decomposition of the scaled covariance matrix.
+        Generate sigma points from the prior covariance. Process noise is
+        additive in the predicted state: x_next = f(x, input) + noise.
         */
-        const typename StateVectorType::CovarianceMatrix augmented_covariance =
-            (covariance + process_noise_covariance) *
-            (StateVectorType::covariance_size() + Parameters::Lambda<StateVectorType>);
-        const Eigen::LLT<typename StateVectorType::CovarianceMatrix> covariance_llt(augmented_covariance);
-        assert((covariance_llt.info() == Eigen::Success)
-            && "Covariance matrix is not positive definite");
-
-        sigma_points = state.calculate_sigma_point_distribution(covariance_llt.matrixL());
+        const real_t sigma_scale = std::sqrt(StateVectorType::covariance_size() +
+            Parameters::Lambda<StateVectorType>);
+        sigma_points = state.calculate_sigma_point_distribution(Detail::covariance_root(covariance) * sigma_scale);
 
         /* Propagate the sigma points through the process model. */
         for(std::size_t i = 0; i < StateVectorType::num_sigma(); i++) {
@@ -127,6 +123,11 @@ public:
         state = StateVectorType::calculate_sigma_point_mean(sigma_points);
         w_prime = state.calculate_sigma_point_deltas(sigma_points);
         covariance = StateVectorType::calculate_sigma_point_covariance(w_prime);
+        covariance += process_noise_covariance;
+
+        /* Include the additive noise in measurement and cross covariance. */
+        sigma_points = state.calculate_sigma_point_distribution(Detail::covariance_root(covariance) * sigma_scale);
+        w_prime = state.calculate_sigma_point_deltas(sigma_points);
     }
 
     /*
