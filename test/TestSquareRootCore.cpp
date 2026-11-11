@@ -210,6 +210,38 @@ MyCore create_initialised_sr_test_filter() {
     return test_filter;
 }
 
+using ParameterNoiseState = UKF::StateVector<UKF::Field<120, UKF::Vector<2>>>;
+using ParameterNoiseMeasurement = UKF::FixedMeasurementVector<UKF::Field<121, UKF::Vector<2>>>;
+using ParameterNoiseFilter = UKF::SquareRootParameterEstimationCore<ParameterNoiseState, ParameterNoiseMeasurement>;
+
+TEST(ParameterNoiseTest, CorrelatedPriorAndDiagonalNoise) {
+    ParameterNoiseFilter filter;
+    filter.state << 2, -3;
+    filter.root_covariance << 1, 0, 1, 1;
+    filter.process_noise_root_covariance.setIdentity();
+    for (int i = 1; i <= 3; ++i) {
+        filter.a_priori_step();
+        UKF::Matrix<2, 2> expected;
+        expected << 1+i, 1, 1, 2+i;
+        EXPECT_LT((filter.root_covariance * filter.root_covariance.transpose() - expected).norm(), real_t(1e-5));
+        EXPECT_LT((filter.state - UKF::Vector<2>(2, -3)).norm(), real_t(1e-5));
+    }
+}
+
+TEST(ParameterNoiseTest, CorrelatedNoiseAndZeroNoise) {
+    ParameterNoiseFilter filter;
+    filter.state.setZero();
+    filter.root_covariance << -1, 0, 0.5, -2;
+    filter.process_noise_root_covariance << 0.2, 0, 0.3, 0.4;
+    UKF::Matrix<2, 2> expected = filter.root_covariance * filter.root_covariance.transpose() +
+        filter.process_noise_root_covariance * filter.process_noise_root_covariance.transpose();
+    filter.a_priori_step();
+    EXPECT_LT((filter.root_covariance * filter.root_covariance.transpose() - expected).norm(), real_t(1e-5));
+    filter.process_noise_root_covariance.setZero();
+    filter.a_priori_step();
+    EXPECT_LT((filter.root_covariance * filter.root_covariance.transpose() - expected).norm(), real_t(1e-5));
+}
+
 TEST(SquareRootCoreTest, Initialisation) {
     MyCore test_filter = create_initialised_sr_test_filter();
 }
