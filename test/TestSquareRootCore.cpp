@@ -2,6 +2,7 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <cmath>
+#include <limits>
 #include "UKF/Types.h"
 #include "UKF/Integrator.h"
 #include "UKF/StateVector.h"
@@ -476,7 +477,7 @@ void check_invalid_downdate(Filter filter) {
     filter.innovation_root_covariance *= real_t(0.1);
     const DowndateState original_state = filter.state;
     const UKF::Matrix<2, 2> original_root = filter.root_covariance;
-    EXPECT_THROW(filter.a_posteriori_step(), std::domain_error);
+    EXPECT_FALSE(filter.a_posteriori_step());
     EXPECT_EQ(real_t(0), (filter.state - original_state).norm());
     EXPECT_EQ(real_t(0), (filter.root_covariance - original_root).norm());
 }
@@ -602,6 +603,32 @@ void check_bounded_rank_updates() {
     scalar_factor << Scalar(1);
     EXPECT_EQ(0, UKF::Detail::rank_update<UpLo>(scalar_factor, scalar_vector, Scalar(-1)));
 
+    // A zero pivot with a zero entry is a valid (identity) downdate step, so
+    // a semidefinite factor must be downdated through it, not rejected.
+    Matrix semidefinite;
+    semidefinite << 0, 0, 0, 0, 2, 0, 0, Scalar(0.5), 1;
+    if constexpr (UpLo == Eigen::Upper) {
+        semidefinite.transposeInPlace();
+    }
+    Vector downdate;
+    downdate << 0, 1, Scalar(0.25);
+    Matrix expected_semidefinite;
+    if constexpr (UpLo == Eigen::Lower) {
+        expected_semidefinite = semidefinite * semidefinite.transpose();
+    } else {
+        expected_semidefinite = semidefinite.transpose() * semidefinite;
+    }
+    expected_semidefinite -= downdate * downdate.transpose();
+    ASSERT_EQ(-1, UKF::Detail::rank_update<UpLo>(semidefinite, downdate, Scalar(-1)));
+    Matrix actual_semidefinite;
+    if constexpr (UpLo == Eigen::Lower) {
+        actual_semidefinite = semidefinite * semidefinite.transpose();
+    } else {
+        actual_semidefinite = semidefinite.transpose() * semidefinite;
+    }
+    EXPECT_LT((actual_semidefinite - expected_semidefinite).norm(),
+        Scalar(128) * std::numeric_limits<Scalar>::epsilon() * expected_semidefinite.norm());
+
     Matrix invalid = Matrix::Identity();
     update << Scalar(0.1), Scalar(2), Scalar(0);
     EXPECT_EQ(1, UKF::Detail::rank_update<UpLo>(invalid, update, Scalar(-1)));
@@ -633,4 +660,100 @@ TEST(SquareRootRankUpdateTest, FixedAndBoundedDoublePrecision) {
 TEST(SquareRootRankUpdateTest, FixedAndBoundedSinglePrecision) {
     check_bounded_rank_updates<float, Eigen::Lower>();
     check_bounded_rank_updates<float, Eigen::Upper>();
+}
+
+/* The square-root cores accept direct process models, like Core. */
+using DirectRootState = UKF::StateVector<UKF::Field<190, UKF::Vector<2>>>;
+using DirectRootMeasurement = UKF::DynamicMeasurementVector<
+    UKF::Field<191, UKF::Vector<2>>,
+    UKF::Field<192, real_t>>;
+namespace UKF {
+template <> template <>
+DirectRootState DirectRootState::process_model<>(real_t dt) const {
+    DirectRootState next;
+    next << (*this)(0) + dt * (*this)(1), (*this)(1);
+    return next;
+}
+template <> template <>
+UKF::Vector<2> DirectRootMeasurement::expected_measurement<DirectRootState, 191>(const DirectRootState& state) {
+    return state;
+}
+template <> template <>
+real_t DirectRootMeasurement::expected_measurement<DirectRootState, 192>(const DirectRootState& state) {
+    return state(0);
+}
+}
+
+TEST(SquareRootDirectModelTest, PredictsWithDirectProcessModel) {
+    UKF::SquareRootCore<DirectRootState, DirectRootMeasurement> filter;
+    filter.state << 1, 2;
+    filter.root_covariance.setIdentity();
+    filter.process_noise_root_covariance.setZero();
+    ASSERT_TRUE(filter.a_priori_step(real_t(0.5)));
+    EXPECT_LT((filter.state - UKF::Vector<2>(2, 2)).norm(), real_t(1e-9));
+    UKF::Matrix<2, 2> transition, expected;
+    transition << 1, 0.5, 0, 1;
+    expected = transition * transition.transpose();
+    EXPECT_LT((filter.root_covariance * filter.root_covariance.transpose() - expected).norm(), real_t(1e-9));
+}
+
+TEST(SquareRootDirectModelTest, EmptyMeasurementPredictsOnly) {
+    UKF::SquareRootCore<DirectRootState, DirectRootMeasurement> filter;
+    filter.state << 1, 2;
+    filter.root_covariance.setIdentity();
+    filter.process_noise_root_covariance.setZero();
+    filter.measurement_root_covariance << 1, 1, 1;
+    ASSERT_TRUE(filter.step(real_t(0.5), DirectRootMeasurement()));
+    EXPECT_EQ(0, filter.innovation.size());
+    EXPECT_LT((filter.state - UKF::Vector<2>(2, 2)).norm(), real_t(1e-9));
+
+    DirectRootMeasurement z;
+    z.set_field<192>(real_t(2.5));
+    const UKF::Matrix<2, 2> prior = filter.root_covariance * filter.root_covariance.transpose();
+    ASSERT_TRUE(filter.step(real_t(0), z));
+    const UKF::Matrix<2, 2> posterior = filter.root_covariance * filter.root_covariance.transpose();
+    EXPECT_LT(posterior(0, 0), prior(0, 0));
+
+    UKF::SquareRootParameterEstimationCore<DirectRootState, DirectRootMeasurement> parameter;
+    parameter.state << 1, 2;
+    parameter.root_covariance.setIdentity();
+    parameter.process_noise_root_covariance.setZero();
+    parameter.measurement_root_covariance << 1, 1, 1;
+    ASSERT_TRUE(parameter.step(DirectRootMeasurement()));
+    EXPECT_EQ(UKF::Vector<2>(1, 2), UKF::Vector<2>(parameter.state));
+}
+
+TEST(SquareRootDirectModelTest, StepsRequireTheirPrerequisites) {
+    UKF::SquareRootCore<DirectRootState, DirectRootMeasurement> filter;
+    filter.state << 1, 2;
+    filter.root_covariance.setIdentity();
+    filter.process_noise_root_covariance.setZero();
+    filter.measurement_root_covariance << 1, 1, 1;
+    DirectRootMeasurement z;
+    z.set_field<192>(real_t(2.5));
+    EXPECT_FALSE(filter.innovation_step(z));
+    EXPECT_FALSE(filter.a_posteriori_step());
+    EXPECT_EQ(UKF::Vector<2>(1, 2), UKF::Vector<2>(filter.state));
+}
+
+/*
+After an exact observation the posterior factor has a zero row. The next
+correction must downdate through that zero pivot rather than rebuilding the
+factor or failing, and must keep the observed component exact.
+*/
+TEST(SquareRootDowndateTest, SemidefinitePosteriorKeepsCorrecting) {
+    DowndateFilter filter;
+    filter.state.setZero();
+    filter.root_covariance.setIdentity();
+    filter.process_noise_root_covariance.setZero();
+    filter.measurement_root_covariance << 0, 1;
+    DowndateMeasurement z;
+    z << 2, -3;
+    for (int i = 0; i < 3; ++i) {
+        ASSERT_TRUE(filter.step(real_t(0), z));
+        const UKF::Matrix<2, 2> covariance = filter.root_covariance * filter.root_covariance.transpose();
+        EXPECT_NEAR(real_t(2), filter.state(0), real_t(1e-9));
+        EXPECT_LT(std::abs(covariance(0, 0)), real_t(1e-12));
+        EXPECT_NEAR(real_t(1) / real_t(i + 2), covariance(1, 1), real_t(1e-9));
+    }
 }

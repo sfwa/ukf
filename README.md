@@ -72,7 +72,9 @@ template <> constexpr real_t UKF::Parameters::AlphaSquared<MyStateVector> = 1e-6
 ```
 
 For a description of what the scaling parameters do, see [[2]](#ref2) or read
-the comments in the [code](include/UKF/StateVector.h).
+the comments in the [code](include/UKF/StateVector.h). The weights and sigma
+point spread are derived from `AlphaSquared`, `Kappa` and `Beta` (via
+`ScaledDimension`, which is n + lambda), so adjust those rather than `Lambda`.
 
 ### Measurement vector
 
@@ -137,7 +139,10 @@ using MyCore = UKF::Core<
 Here, the user-specialised state vector and measurement vector classes are
 provided as template parameters, along with the integrator to use for the
 process model. For a list of available integrators, see
-[Integrator.h](include/UKF/Integrator.h).
+[Integrator.h](include/UKF/Integrator.h). If the integrator is omitted (or is
+`UKF::NotUsedIntegrator`), both `Core` and `SquareRootCore` call a direct
+`process_model(delta, input...)` specialisation instead of integrating a
+derivative.
 
 The square-root state estimation filter can be used instead like this:
 
@@ -323,9 +328,21 @@ densities must be discretised by the application. The square-root filter
 takes a factor whose product with its transpose is this same covariance.
 
 Square-root correction steps support positive semidefinite posterior
-covariances, including exact observations. If a covariance downdate instead
-produces an indefinite matrix beyond roundoff, `a_posteriori_step()` throws
-`std::domain_error` before changing the predicted state or its covariance.
+covariances, including exact observations.
+
+### Error handling
+
+The library does not use C++ exceptions and can be built with them disabled.
+Each of `step()`, `a_priori_step()`, `innovation_step()` and
+`a_posteriori_step()` returns `true` on success. On failure it returns `false`
+and leaves the public state, (root) covariance, innovation and innovation
+(root) covariance exactly as they were. A step fails when a covariance (or a
+covariance downdate) is indefinite beyond roundoff, or when a result is not
+finite. With a small `AlphaSquared`, the central sigma point weight is negative,
+and a strongly nonlinear model can make the predicted covariance indefinite;
+both cores report this the same way. A step that depends on a failed (or
+missing) earlier step also returns `false` until the next successful
+`a_priori_step()`.
 
 ### Iteration
 
@@ -338,7 +355,9 @@ meas.set_field<Gyroscope>(UKF::Vector<3>(0.0, 0.0, 0.0));
 meas.set_field<StaticPressure>(101300.0);
 meas.set_field<DynamicPressure>(101300.0);
 
-test_filter.step(0.01, meas);
+if (!test_filter.step(0.01, meas)) {
+    /* The filter is unchanged; reinitialise or skip this measurement. */
+}
 ```
 
 Or, if it's necessary to do things with the internal filter state (e.g.

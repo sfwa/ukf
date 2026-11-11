@@ -13,8 +13,10 @@ namespace Detail {
 Update L L^T by weight * v v^T using orthogonal (positive weight) or
 hyperbolic (negative weight) rotations. Keep the workspace bounded, unlike
 Eigen's LLT rank-update temporary in unpatched Eigen releases. Only the lower
-triangle is read or changed. Return -1 on success, or the first nonpositive
-downdate pivot; callers must discard a partially completed failed downdate.
+triangle is read or changed. Return -1 on success, or the index of the first
+pivot a downdate would make nonpositive; callers must discard a partially
+completed failed downdate. Zero pivots with zero update entries, as in
+semidefinite factors, pass through unchanged.
 */
 template <typename MatrixType, typename VectorType>
 typename MatrixType::Index rank_update_lower(MatrixType& factor,
@@ -54,6 +56,11 @@ typename MatrixType::Index rank_update_lower(MatrixType& factor,
                 work(j) = cosine * old_work - sine * old_factor;
             }
         } else {
+            if (entry == Scalar(0)) {
+                // The hyperbolic rotation is the identity, so a zero pivot
+                // of a semidefinite factor can be passed through unchanged.
+                continue;
+            }
             if (!(std::abs(diagonal) > std::abs(entry))) {
                 return k;
             }

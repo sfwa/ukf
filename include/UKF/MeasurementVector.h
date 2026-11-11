@@ -189,13 +189,14 @@ namespace UKF {
         template <typename T>
         static T sigma_point_mean(
                 const Matrix<Detail::StateVectorDimension<T>, S::num_sigma()>& sigma, [[maybe_unused]] const T& field) {
-            return Parameters::Sigma_WMI<S>*sigma.template block<Detail::StateVectorDimension<T>, S::num_sigma()-1>(
-                0, 1).rowwise().sum() + Parameters::Sigma_WM0<S>*sigma.col(0);
+            /* Accumulate offsets from the central point; see StateVector. */
+            return sigma.col(0) + Parameters::Sigma_WMI<S> *
+                (sigma.template rightCols<S::num_sigma()-1>().colwise() - sigma.col(0)).rowwise().sum();
         }
 
         static real_t sigma_point_mean(const Matrix<1, S::num_sigma()>& sigma, [[maybe_unused]] const real_t& field) {
-            return Parameters::Sigma_WMI<S>*sigma.template segment<S::num_sigma()-1>(1).sum()
-                + Parameters::Sigma_WM0<S>*sigma(0);
+            return sigma(0) + Parameters::Sigma_WMI<S> *
+                (sigma.template segment<S::num_sigma()-1>(1).array() - sigma(0)).sum();
         }
 
         /*
@@ -346,11 +347,9 @@ public:
         CovarianceMatrix cov;
 
         /* Calculate the covariance using equation 64 from the Kraft paper. */
-        cov = CovarianceMatrix::Zero();
-        for(std::size_t i = 1; i < S::num_sigma(); i++) {
-            cov.noalias() += Parameters::Sigma_WCI<S> * (z_prime.col(i) * z_prime.col(i).transpose());
-        }
-        cov.noalias() += Parameters::Sigma_WC0<S> * (z_prime.col(0) * z_prime.col(0).transpose());
+        cov.noalias() = (Parameters::Sigma_WCI<S> * z_prime.template rightCols<S::num_sigma() - 1>()) *
+            z_prime.template rightCols<S::num_sigma() - 1>().transpose();
+        cov.noalias() += (Parameters::Sigma_WC0<S> * z_prime.col(0)) * z_prime.col(0).transpose();
 
         return cov;
     }
@@ -363,9 +362,11 @@ public:
             const typename S::SigmaPointDistribution& X, const U&... input) const {
         SigmaPointDistribution<S> Z(size(), S::num_sigma());
 
+        /* Reference the inputs once rather than copying them per sigma point. */
+        const std::tuple<const U&...> inputs{input...};
         for(std::size_t i = 0; i < S::num_sigma(); i++) {
             FixedMeasurementVector temp;
-            calculate_field_measurements<S, std::tuple<U...>, Fields...>(temp, X.col(i), std::make_tuple(input...));
+            calculate_field_measurements<S, const std::tuple<const U&...>&, Fields...>(temp, X.col(i), inputs);
             Z.col(i) = temp;
         }
 
@@ -659,11 +660,9 @@ public:
         CovarianceMatrix cov(Base::size(), Base::size());
 
         /* Calculate the covariance using equation 64 from the Kraft paper. */
-        cov = CovarianceMatrix::Zero(Base::size(), Base::size());
-        for(std::size_t i = 1; i < S::num_sigma(); i++) {
-            cov.noalias() += Parameters::Sigma_WCI<S> * (z_prime.col(i) * z_prime.col(i).transpose());
-        }
-        cov.noalias() += Parameters::Sigma_WC0<S> * (z_prime.col(0) * z_prime.col(0).transpose());
+        cov.noalias() = (Parameters::Sigma_WCI<S> * z_prime.template rightCols<S::num_sigma() - 1>()) *
+            z_prime.template rightCols<S::num_sigma() - 1>().transpose();
+        cov.noalias() += (Parameters::Sigma_WC0<S> * z_prime.col(0)) * z_prime.col(0).transpose();
 
         return cov;
     }
@@ -676,9 +675,11 @@ public:
             const typename S::SigmaPointDistribution& X, const U&... input) const {
         SigmaPointDistribution<S> Z(Base::size(), S::num_sigma());
 
+        /* Reference the inputs once rather than copying them per sigma point. */
+        const std::tuple<const U&...> inputs{input...};
         for(std::size_t i = 0; i < S::num_sigma(); i++) {
             DynamicMeasurementVector temp(Base::size());
-            calculate_field_measurements<S, std::tuple<U...>, Fields...>(temp, X.col(i), std::make_tuple(input...));
+            calculate_field_measurements<S, const std::tuple<const U&...>&, Fields...>(temp, X.col(i), inputs);
             Z.col(i) = temp;
         }
 

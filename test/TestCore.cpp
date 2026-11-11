@@ -2,6 +2,7 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <cmath>
+#include <limits>
 #include "UKF/Types.h"
 #include "UKF/Integrator.h"
 #include "UKF/StateVector.h"
@@ -483,7 +484,47 @@ TEST(AdditiveNoiseTest, HandlesSemidefinitePriorAndRejectsIndefinitePrior) {
     expected << 0, 0, 0, 4;
     EXPECT_LT((filter.covariance - expected).norm(), real_t(1e-5));
     filter.covariance << 1, 2, 2, 1;
-    EXPECT_THROW(filter.a_priori_step(real_t(0)), std::domain_error);
+    filter.state << 1, 2;
+    const AdditiveNoiseState original_state = filter.state;
+    const UKF::Matrix<2, 2> original_covariance = filter.covariance;
+    EXPECT_FALSE(filter.a_priori_step(real_t(0)));
+    EXPECT_EQ(real_t(0), (filter.state - original_state).norm());
+    EXPECT_EQ(real_t(0), (filter.covariance - original_covariance).norm());
+
+    /* Steps that depend on the failed prediction do nothing. */
+    AdditiveNoiseMeasurement z;
+    z << 1, -2;
+    EXPECT_FALSE(filter.innovation_step(z));
+    EXPECT_FALSE(filter.a_posteriori_step());
+    EXPECT_FALSE(filter.step(real_t(0), z));
+    EXPECT_EQ(real_t(0), (filter.state - original_state).norm());
+    EXPECT_EQ(real_t(0), (filter.covariance - original_covariance).norm());
+}
+
+TEST(AdditiveNoiseTest, StepsRequireTheirPrerequisites) {
+    UKF::Core<AdditiveNoiseState, AdditiveNoiseMeasurement> filter;
+    filter.state << 2, -1;
+    filter.covariance << 2, 0.4, 0.4, 1;
+    filter.process_noise_covariance.setZero();
+    filter.measurement_covariance << 0.7, 0.9;
+    AdditiveNoiseMeasurement z;
+    z << 1, -2;
+
+    /* A fresh filter has no sigma points to correct with. */
+    EXPECT_FALSE(filter.innovation_step(z));
+    EXPECT_FALSE(filter.a_posteriori_step());
+    EXPECT_TRUE(filter.step(real_t(0.5), z));
+}
+
+TEST(AdditiveNoiseTest, RejectsNonFiniteStateWithoutChangingIt) {
+    UKF::Core<AdditiveNoiseState, AdditiveNoiseMeasurement> filter;
+    filter.state << std::numeric_limits<real_t>::quiet_NaN(), 0;
+    filter.covariance.setIdentity();
+    filter.process_noise_covariance.setIdentity();
+    const UKF::Matrix<2, 2> original_covariance = filter.covariance;
+    EXPECT_FALSE(filter.a_priori_step(real_t(0.5)));
+    EXPECT_TRUE(std::isnan(filter.state(0)));
+    EXPECT_EQ(real_t(0), (filter.covariance - original_covariance).norm());
 }
 
 TEST(AdditiveNoiseTest, FactorsCorrelatedSemidefiniteCovariancesWithoutAllocation) {
@@ -494,8 +535,98 @@ TEST(AdditiveNoiseTest, FactorsCorrelatedSemidefiniteCovariancesWithoutAllocatio
                  real_t(0.3), real_t(i % 3)*real_t(0.2), 0,
                  real_t(-0.7), real_t(0.6), 0;
         const UKF::Matrix<3, 3> covariance = basis * basis.transpose();
-        const auto root = UKF::Detail::covariance_root(covariance);
+        UKF::Matrix<3, 3> root;
+        ASSERT_TRUE(UKF::Detail::covariance_root(covariance, root));
         EXPECT_LT((root * root.transpose() - covariance).norm(), real_t(1e-5));
         EXPECT_EQ(real_t(0), root.template triangularView<Eigen::StrictlyUpper>().toDenseMatrix().norm());
     }
+}
+
+TEST(AdditiveNoiseTest, CovarianceRootReportsInvalidInputsWithoutChangingOutput) {
+    UKF::Matrix<2, 2> root = UKF::Matrix<2, 2>::Constant(real_t(7));
+    UKF::Matrix<2, 2> indefinite;
+    indefinite << 1, 2, 2, 1;
+    EXPECT_FALSE(UKF::Detail::covariance_root(indefinite, root));
+    UKF::Matrix<2, 2> non_finite = UKF::Matrix<2, 2>::Identity();
+    non_finite(1, 0) = std::numeric_limits<real_t>::infinity();
+    EXPECT_FALSE(UKF::Detail::covariance_root(non_finite, root));
+    EXPECT_EQ(real_t(0), (root.array() - real_t(7)).abs().maxCoeff());
+}
+
+/*
+A small-alpha scalar filter whose quadratic process model makes the unscented
+covariance indefinite (negative kappa). Both cores must reject the prediction
+without changing the filter; the square-root core previously ignored the failed
+downdate and kept a partially downdated factor.
+*/
+using IndefiniteUTState = UKF::StateVector<UKF::Field<170, real_t>>;
+using IndefiniteUTMeasurement = UKF::FixedMeasurementVector<UKF::Field<171, real_t>>;
+namespace UKF {
+namespace Parameters {
+template <> constexpr real_t Kappa<IndefiniteUTState> = -0.5;
+}
+template <> template <>
+IndefiniteUTState IndefiniteUTState::process_model<>(real_t) const {
+    IndefiniteUTState next;
+    next << (*this)(0) * (*this)(0);
+    return next;
+}
+template <> template <>
+real_t IndefiniteUTMeasurement::expected_measurement<IndefiniteUTState, 171>(const IndefiniteUTState& state) {
+    return state(0);
+}
+}
+
+TEST(AdditiveNoiseTest, IndefiniteUnscentedPredictionFailsInBothCores) {
+    ASSERT_LT(UKF::Parameters::Sigma_WC0<IndefiniteUTState>, real_t(0));
+    UKF::Core<IndefiniteUTState, IndefiniteUTMeasurement> standard;
+    standard.state << 0;
+    standard.covariance << 1;
+    standard.process_noise_covariance << real_t(1e-4);
+    EXPECT_FALSE(standard.a_priori_step(real_t(0)));
+    EXPECT_EQ(real_t(0), standard.state(0));
+    EXPECT_EQ(real_t(1), standard.covariance(0, 0));
+
+    UKF::SquareRootCore<IndefiniteUTState, IndefiniteUTMeasurement> root;
+    root.state << 0;
+    root.root_covariance << 1;
+    root.process_noise_root_covariance << real_t(1e-2);
+    EXPECT_FALSE(root.a_priori_step(real_t(0)));
+    EXPECT_EQ(real_t(0), root.state(0));
+    EXPECT_EQ(real_t(1), root.root_covariance(0, 0));
+}
+
+/*
+With small alpha the central and outer mean weights are huge and of opposite
+sign. The mean must still reproduce a component that is identical in every
+sigma point exactly, even at ECEF-like magnitudes.
+*/
+TEST(CoreTest, SigmaPointMeanIsExactForConstantComponents) {
+    ASSERT_LT(UKF::Parameters::Sigma_WM0<MyStateVector>, real_t(-1e5));
+    MyStateVector state;
+    state.set_field<Position>(UKF::Vector<3>(6378137.123, -4.5e6, 1.0/3.0));
+    state.set_field<Velocity>(UKF::Vector<3>(0.1, -7.25, 1e-3));
+    state.set_field<Attitude>(UKF::Quaternion(0.5, -0.5, 0.5, 0.5));
+    state.set_field<AngularVelocity>(UKF::Vector<3>(0.3, 0.2, 0.1));
+    MyStateVector::SigmaPointDistribution sigma_points;
+    for (std::size_t i = 0; i < MyStateVector::num_sigma(); ++i) {
+        sigma_points.col(i) = state;
+    }
+    const MyStateVector mean = MyStateVector::calculate_sigma_point_mean(sigma_points);
+    const UKF::Vector<3> mean_position = mean.get_field<Position>();
+    const UKF::Vector<3> mean_velocity = mean.get_field<Velocity>();
+    const UKF::Vector<3> mean_angular_velocity = mean.get_field<AngularVelocity>();
+    EXPECT_EQ(UKF::Vector<3>(6378137.123, -4.5e6, 1.0/3.0), mean_position);
+    EXPECT_EQ(UKF::Vector<3>(0.1, -7.25, 1e-3), mean_velocity);
+    EXPECT_EQ(UKF::Vector<3>(0.3, 0.2, 0.1), mean_angular_velocity);
+    EXPECT_LT((state.get_field<Attitude>().coeffs() - mean.get_field<Attitude>().coeffs()).norm(),
+        real_t(4) * std::numeric_limits<real_t>::epsilon());
+}
+
+TEST(CoreTest, ScaledDimensionAvoidsCancellation) {
+    constexpr real_t expected = real_t(1e-6) * real_t(MyStateVector::covariance_size() + 3);
+    EXPECT_EQ(expected, UKF::Parameters::ScaledDimension<MyStateVector>);
+    EXPECT_NEAR(real_t(1), UKF::Parameters::Sigma_WM0<MyStateVector> +
+        real_t(2 * MyStateVector::covariance_size()) * UKF::Parameters::Sigma_WMI<MyStateVector>,
+        real_t(1e-6));
 }
