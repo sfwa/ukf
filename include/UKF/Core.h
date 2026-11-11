@@ -166,6 +166,12 @@ public:
     desired.
     */
     void a_posteriori_step() {
+        /* No observations means prediction only; Eigen's QR requires a
+        nonempty matrix. This also supports the split-step interface. */
+        if (innovation.size() == 0) {
+            return;
+        }
+
         /*
         Calculate the cross-correlation matrix described in equations 70 and
         71 from from the Kraft paper.
