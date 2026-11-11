@@ -23,6 +23,8 @@ SOFTWARE.
 #ifndef INTERFACE_H
 #define INTERFACE_H
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

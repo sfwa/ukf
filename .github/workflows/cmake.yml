@@ -22,21 +22,36 @@ jobs:
       matrix:
         build_type: [Debug, Release]
         config:
-          - { name: Linux GCC, os: ubuntu-24.04, CC: gcc, CXX: g++ }
-          - { name: Linux Clang, os: ubuntu-24.04, CC: clang, CXX: clang++ }
-          - { name: macOS Clang, os: macos-latest, CC: clang, CXX: clang++ }
+          - { name: Linux GCC (bundled Eigen), os: ubuntu-24.04, CC: gcc, CXX: g++, eigen: 'OFF' }
+          - { name: Linux Clang (bundled Eigen), os: ubuntu-24.04, CC: clang, CXX: clang++, eigen: 'OFF' }
+          - { name: macOS Clang (bundled Eigen), os: macos-latest, CC: clang, CXX: clang++, eigen: 'OFF' }
+          - { name: Linux GCC (system Eigen), os: ubuntu-24.04, CC: gcc, CXX: g++, eigen: 'ON' }
     env:
       CC: ${{ matrix.config.CC }}
       CXX: ${{ matrix.config.CXX }}
     steps:
       - uses: actions/checkout@v5
 
-      - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+      - name: Install system Eigen
+        if: matrix.config.eigen == 'ON'
+        run: sudo apt-get update && sudo apt-get install -y libeigen3-dev
 
-      - name: Build tests
-        run: cmake --build build --target unittest --config ${{ matrix.build_type }} --parallel 2
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DUKF_USE_SYSTEM_EIGEN=${{ matrix.config.eigen }}
+
+      - name: Build tests, benchmarks and examples with warnings as errors
+        run: cmake --build build --target unittest benchmark ahrs sfwa_ukf --config ${{ matrix.build_type }} --parallel 2
 
       - name: Test
         working-directory: build
+        run: ctest --build-config ${{ matrix.build_type }} --output-on-failure
+
+      - name: Configure downstream consumer
+        run: cmake -S test/cmake -B build-consumer -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DUKF_USE_SYSTEM_EIGEN=${{ matrix.config.eigen }}
+
+      - name: Build downstream consumer
+        run: cmake --build build-consumer --config ${{ matrix.build_type }} --parallel 2
+
+      - name: Test downstream consumer
+        working-directory: build-consumer
         run: ctest --build-config ${{ matrix.build_type }} --output-on-failure

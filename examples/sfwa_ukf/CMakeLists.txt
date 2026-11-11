@@ -1,12 +1,8 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.10 FATAL_ERROR)
 PROJECT(sfwa_ukf)
 
-# Disable dynamic memory allocation in Eigen
-ADD_DEFINITIONS(-DEIGEN_NO_MALLOC -DUKF_DOUBLE_PRECISION)
-
-INCLUDE_DIRECTORIES(../../include ${eigen_dir})
-
-cmake_policy(SET CMP0042 NEW)
-
 ADD_LIBRARY(sfwa_ukf SHARED cukf.cpp)
+TARGET_LINK_LIBRARIES(sfwa_ukf PRIVATE ukf::double)
+TARGET_COMPILE_DEFINITIONS(sfwa_ukf PRIVATE EIGEN_NO_MALLOC)
+ukf_project_warnings(sfwa_ukf)
 SET_TARGET_PROPERTIES(sfwa_ukf PROPERTIES OUTPUT_NAME cukf)

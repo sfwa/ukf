@@ -34,7 +34,8 @@ T1 a, T2 b, real_t tol = 0.0001) {
     } else {
         return ::testing::AssertionFailure() <<
             "Value of: " << actual_expression << "\n"
-            "Expected: " << a.format(CmpFormat) << "\n" <<
+            "Expected: " << expected_expression << "\n"
+            "Which is: " << a.format(CmpFormat) << "\n" <<
             "  Actual: " << b.format(CmpFormat) << "\n";
     }
 }

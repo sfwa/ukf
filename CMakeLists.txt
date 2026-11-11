@@ -1,48 +1,89 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.10 FATAL_ERROR)
-PROJECT(ukf)
-INCLUDE(ExternalProject)
+cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
+project(ukf LANGUAGES CXX)
 
-# Public headers use C++17 features, including inline variables and is_same_v.
-SET(CMAKE_CXX_STANDARD 17)
-SET(CMAKE_CXX_STANDARD_REQUIRED ON)
-SET(CMAKE_CXX_EXTENSIONS OFF)
+option(UKF_USE_SYSTEM_EIGEN "Use an installed Eigen3 package instead of patched Eigen 3.2.8" OFF)
+option(UKF_WARNINGS_AS_ERRORS "Treat warnings in UKF's own targets as errors" ON)
+set(ukf_project_source_dir ${CMAKE_CURRENT_SOURCE_DIR})
 
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-register -Wno-ignored-attributes")
+# A consumer needs only the header targets unless it opts into the project tools.
+set(ukf_standalone OFF)
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    set(ukf_standalone ON)
+endif()
+option(UKF_BUILD_TESTS "Configure the UKF unit tests" ${ukf_standalone})
+option(UKF_BUILD_BENCHMARKS "Configure the UKF benchmarks" ${ukf_standalone})
+option(UKF_BUILD_EXAMPLES "Configure the UKF examples" ${ukf_standalone})
 
-# Set default ExternalProject root directory
-SET_DIRECTORY_PROPERTIES(PROPERTIES EP_PREFIX .)
+add_library(ukf INTERFACE)
+add_library(ukf::ukf ALIAS ukf)
+target_compile_features(ukf INTERFACE cxx_std_17)
+target_include_directories(ukf INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-# Add eigen3.2.8
-ExternalProject_Add(
-eigen3
-URL https://gitlab.com/libeigen/eigen/-/archive/3.2.8/eigen-3.2.8.tar.gz
-TIMEOUT 30
-# Apply the LLT malloc fix patch, necessary to avoid dynamic memory allocation on embedded systems.
-# This can be omitted on systems where dynamic memory allocation is acceptable.
-PATCH_COMMAND patch -p1 -t -N < ${PROJECT_SOURCE_DIR}/patch/eigen-3.2.8-no-malloc-in-llt.patch
-# C++17 removed std::binder1st/binder2nd, including their libc++ declarations.
-COMMAND patch -p1 -t -N < ${PROJECT_SOURCE_DIR}/patch/eigen-3.2.8-cxx17.patch
-# Eigen is header-only; no upstream configure, build or install is needed.
-CONFIGURE_COMMAND ""
-BUILD_COMMAND ""
-INSTALL_COMMAND ""
-# Wrap download, configure and build steps in a script to log output
-LOG_DOWNLOAD ON
-LOG_CONFIGURE ON
-LOG_BUILD ON)
+if(UKF_USE_SYSTEM_EIGEN)
+    find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+    target_link_libraries(ukf INTERFACE Eigen3::Eigen)
+else()
+    include(ExternalProject)
+    set_directory_properties(PROPERTIES EP_PREFIX .)
+    ExternalProject_Add(eigen3
+        URL https://gitlab.com/libeigen/eigen/-/archive/3.2.8/eigen-3.2.8.tar.gz
+        TIMEOUT 30
+        # Preserve the allocation and C++17/libc++ compatibility fixes.
+        PATCH_COMMAND patch -p1 -t -N < ${CMAKE_CURRENT_SOURCE_DIR}/patch/eigen-3.2.8-no-malloc-in-llt.patch
+        COMMAND patch -p1 -t -N < ${CMAKE_CURRENT_SOURCE_DIR}/patch/eigen-3.2.8-cxx17.patch
+        CONFIGURE_COMMAND ""
+        BUILD_COMMAND ""
+        INSTALL_COMMAND ""
+        LOG_DOWNLOAD ON
+        LOG_CONFIGURE ON
+        LOG_BUILD ON)
+    ExternalProject_Get_Property(eigen3 source_dir)
+    target_include_directories(ukf SYSTEM INTERFACE ${source_dir})
+    # INTERFACE dependencies propagate to consumers, including parallel builds.
+    add_dependencies(ukf eigen3)
+endif()
 
-ExternalProject_Get_Property(eigen3 source_dir)
-SET(eigen_dir ${source_dir})
+# Keep ukf precision-neutral for applications that already define a precision.
+add_library(ukf_single INTERFACE)
+add_library(ukf::single ALIAS ukf_single)
+target_link_libraries(ukf_single INTERFACE ukf)
+target_compile_definitions(ukf_single INTERFACE UKF_SINGLE_PRECISION)
+add_library(ukf_double INTERFACE)
+add_library(ukf::double ALIAS ukf_double)
+target_link_libraries(ukf_double INTERFACE ukf)
+target_compile_definitions(ukf_double INTERFACE UKF_DOUBLE_PRECISION)
 
-INCLUDE_DIRECTORIES(${eigen_dir})
+# Warning policy is private to project executables/libraries, never consumers.
+function(ukf_project_warnings target)
+    set_target_properties(${target} PROPERTIES CXX_EXTENSIONS OFF)
+    if(MSVC)
+        target_compile_options(${target} PRIVATE /W4)
+        if(UKF_WARNINGS_AS_ERRORS)
+            target_compile_options(${target} PRIVATE /WX)
+        endif()
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(${target} PRIVATE -Wall -Wextra)
+        if(UKF_WARNINGS_AS_ERRORS)
+            target_compile_options(${target} PRIVATE -Werror)
+        endif()
+        if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND
+                CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 13 AND
+                UKF_USE_SYSTEM_EIGEN AND Eigen3_VERSION VERSION_EQUAL 3.4.0)
+            # GCC diagnoses unreachable packet/QR paths in Eigen 3.4.0 even
+            # with SYSTEM includes. Limit the workaround to dependency headers.
+            target_compile_options(${target} PRIVATE
+                "-include${ukf_project_source_dir}/cmake/EigenGccWarnings.h")
+        endif()
+    endif()
+endfunction()
 
-GET_DIRECTORY_PROPERTY(hasParent PARENT_DIRECTORY)
-IF(hasParent)
-    SET(eigen_dir ${eigen_dir} PARENT_SCOPE)
-ENDIF()
-
-ENABLE_TESTING()
-
-ADD_SUBDIRECTORY(test EXCLUDE_FROM_ALL)
-ADD_SUBDIRECTORY(benchmark EXCLUDE_FROM_ALL)
-ADD_SUBDIRECTORY(examples EXCLUDE_FROM_ALL)
+if(UKF_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(test EXCLUDE_FROM_ALL)
+endif()
+if(UKF_BUILD_BENCHMARKS)
+    add_subdirectory(benchmark EXCLUDE_FROM_ALL)
+endif()
+if(UKF_BUILD_EXAMPLES)
+    add_subdirectory(examples EXCLUDE_FROM_ALL)
+endif()
