@@ -384,6 +384,8 @@ configure with `-DUKF_USE_SYSTEM_EIGEN=ON`. That package supplies
 `Eigen3::Eigen` and is used as installed; the bundled patches are not applied
 to it. Tests, benchmarks and examples enable `EIGEN_NO_MALLOC`; Debug retains
 Eigen's allocation assertions.
+Square-root rank updates use UKF-owned bounded workspace, so these checks also
+apply when using an unpatched installed Eigen package.
 
 To include UKF in another CMake project:
 

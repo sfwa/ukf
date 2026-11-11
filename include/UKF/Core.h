@@ -28,6 +28,7 @@ SOFTWARE.
 #include "UKF/Types.h"
 #include "UKF/StateVector.h"
 #include "UKF/Covariance.h"
+#include "UKF/RankUpdate.h"
 #include <type_traits>
 
 namespace UKF {
@@ -313,7 +314,7 @@ public:
         Do a rank-one Cholesky update of the root covariance matrix using the
         central sigma point delta.
         */
-        Eigen::internal::llt_inplace<real_t, Eigen::Upper>::rankUpdate(
+        Detail::rank_update<Eigen::Upper>(
             root_covariance, w_prime.col(0), Parameters::Sigma_WC0<StateVectorType>);
         root_covariance.transposeInPlace();
 
@@ -375,7 +376,7 @@ public:
         Do a rank-one Cholesky update of the innovation root covariance
         matrix using the central innovation delta.
         */
-        Eigen::internal::llt_inplace<real_t, Eigen::Upper>::rankUpdate(
+        Detail::rank_update<Eigen::Upper>(
             innovation_root_covariance, z_prime.col(0), Parameters::Sigma_WC0<StateVectorType>);
         innovation_root_covariance.transposeInPlace();
     }
@@ -427,7 +428,7 @@ public:
         */
         typename StateVectorType::CovarianceMatrix updated_root = root_covariance;
         for(std::ptrdiff_t i = 0; i < cross_correlation.cols(); i++) {
-            if (Eigen::internal::llt_inplace<real_t, Eigen::Lower>::rankUpdate(
+            if (Detail::rank_update<Eigen::Lower>(
                     updated_root, cross_correlation.col(i), real_t(-1.0)) >= 0) {
                 /* LLT downdates require strict positivity. An exact
                 observation can instead leave a semidefinite covariance.
@@ -580,7 +581,7 @@ public:
         Do a rank-one Cholesky update of the innovation root covariance
         matrix using the central innovation delta.
         */
-        Eigen::internal::llt_inplace<real_t, Eigen::Upper>::rankUpdate(
+        Detail::rank_update<Eigen::Upper>(
             innovation_root_covariance, z_prime.col(0), Parameters::Sigma_WC0<StateVectorType>);
         innovation_root_covariance.transposeInPlace();
     }
@@ -632,7 +633,7 @@ public:
         */
         typename StateVectorType::CovarianceMatrix updated_root = root_covariance;
         for(std::ptrdiff_t i = 0; i < cross_correlation.cols(); i++) {
-            if (Eigen::internal::llt_inplace<real_t, Eigen::Lower>::rankUpdate(
+            if (Detail::rank_update<Eigen::Lower>(
                     updated_root, cross_correlation.col(i), real_t(-1.0)) >= 0) {
                 /* LLT downdates require strict positivity. An exact
                 observation can instead leave a semidefinite covariance.
