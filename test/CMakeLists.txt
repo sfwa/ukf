@@ -20,14 +20,9 @@ LOG_DOWNLOAD ON
 LOG_CONFIGURE ON
 LOG_BUILD ON)
 
-# Disable dynamic memory allocation in Eigen
-ADD_DEFINITIONS(-DEIGEN_NO_MALLOC -DUKF_DOUBLE_PRECISION)
-
 # Specify include dir
 ExternalProject_Get_Property(googletest source_dir)
 SET(googletest_dir ${source_dir})
-
-INCLUDE_DIRECTORIES(${googletest_dir}/include ../include ${eigen_dir})
 
 # Add test executable target
 ADD_EXECUTABLE(unittest
@@ -37,15 +32,21 @@ ADD_EXECUTABLE(unittest
     TestCore.cpp
     TestSquareRootCore.cpp)
 
+TARGET_COMPILE_DEFINITIONS(unittest PRIVATE EIGEN_NO_MALLOC)
+TARGET_INCLUDE_DIRECTORIES(unittest SYSTEM PRIVATE ${googletest_dir}/include)
+ukf_project_warnings(unittest)
+
 # Create dependency of test on googletest
-ADD_DEPENDENCIES(unittest googletest eigen3)
+ADD_DEPENDENCIES(unittest googletest)
 
 # Specify test's link libraries
 ExternalProject_Get_Property(googletest binary_dir)
-TARGET_LINK_LIBRARIES(unittest
+FIND_PACKAGE(Threads REQUIRED)
+TARGET_LINK_LIBRARIES(unittest PRIVATE
+    ukf::double
     ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}gtest.a
     ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}gtest_main.a
-    pthread)
+    Threads::Threads)
 
 ADD_TEST(unittest unittest)
 ADD_CUSTOM_TARGET(check COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS unittest)

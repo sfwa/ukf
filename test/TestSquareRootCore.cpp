@@ -138,35 +138,35 @@ calculated using the state vector and a dynamics model.
 template <> template <>
 UKF::Vector<3> MyMeasurementVector::expected_measurement
 <MyStateVector, GPS_Position>(const MyStateVector& state,
-        const UKF::Vector<3>& acceleration, const UKF::Vector<3>& angular_acceleration) {
+        [[maybe_unused]] const UKF::Vector<3>& acceleration, [[maybe_unused]] const UKF::Vector<3>& angular_acceleration) {
     return state.get_field<Position>();
 }
 
 template <> template <>
 UKF::Vector<3> MyMeasurementVector::expected_measurement
 <MyStateVector, GPS_Velocity>(const MyStateVector& state,
-        const UKF::Vector<3>& acceleration, const UKF::Vector<3>& angular_acceleration) {
+        [[maybe_unused]] const UKF::Vector<3>& acceleration, [[maybe_unused]] const UKF::Vector<3>& angular_acceleration) {
     return state.get_field<Velocity>();
 }
 
 template <> template <>
 UKF::Vector<3> MyMeasurementVector::expected_measurement
 <MyStateVector, Accelerometer, UKF::Vector<3>>(const MyStateVector& state,
-        const UKF::Vector<3>& acceleration, const UKF::Vector<3>& angular_acceleration) {
+        const UKF::Vector<3>& acceleration, [[maybe_unused]] const UKF::Vector<3>& angular_acceleration) {
     return state.get_field<Attitude>() * UKF::Vector<3>(0, 0, -9.8) + acceleration;
 }
 
 template <> template <>
 UKF::FieldVector MyMeasurementVector::expected_measurement
 <MyStateVector, Magnetometer, UKF::Vector<3>>(const MyStateVector& state,
-        const UKF::Vector<3>& acceleration, const UKF::Vector<3>& angular_acceleration) {
+        [[maybe_unused]] const UKF::Vector<3>& acceleration, [[maybe_unused]] const UKF::Vector<3>& angular_acceleration) {
     return state.get_field<Attitude>() * UKF::FieldVector(1, 0, 0);
 }
 
 template <> template <>
 UKF::Vector<3> MyMeasurementVector::expected_measurement
 <MyStateVector, Gyroscope, UKF::Vector<3>>(const MyStateVector& state,
-        const UKF::Vector<3>& acceleration, const UKF::Vector<3>& angular_acceleration) {
+        [[maybe_unused]] const UKF::Vector<3>& acceleration, [[maybe_unused]] const UKF::Vector<3>& angular_acceleration) {
     return state.get_field<AngularVelocity>();
 }
 
@@ -244,6 +244,7 @@ TEST(ParameterNoiseTest, CorrelatedNoiseAndZeroNoise) {
 
 TEST(SquareRootCoreTest, Initialisation) {
     MyCore test_filter = create_initialised_sr_test_filter();
+    ASSERT_EQ(13, test_filter.state.size());
 }
 
 /*
@@ -514,4 +515,122 @@ TEST(SquareRootDowndateTest, FailureDoesNotPartiallyApplyCorrection) {
     parameter.measurement_root_covariance.setOnes();
     parameter.a_priori_step();
     check_invalid_downdate(parameter);
+}
+
+template <typename Scalar, int UpLo>
+void check_bounded_rank_updates() {
+    using Matrix = Eigen::Matrix<Scalar, 3, 3>;
+    using Vector = Eigen::Matrix<Scalar, 3, 1>;
+    Matrix lower;
+    lower << -2, 0, 0, Scalar(0.5), 3, 0, Scalar(-0.3), Scalar(0.2), Scalar(-1.5);
+    Vector update;
+    update << Scalar(0.25), Scalar(-0.5), Scalar(0.125);
+    for (Scalar weight : {Scalar(1.75), Scalar(-0.75)}) {
+        const Matrix expected = lower * lower.transpose() + weight * update * update.transpose();
+        Matrix factor = lower;
+        if constexpr (UpLo == Eigen::Upper) {
+            factor.transposeInPlace();
+        }
+        // Sentinel values outside the stored triangle must remain untouched.
+        for (int row = 0; row < 3; ++row) {
+            for (int column = 0; column < 3; ++column) {
+                if ((UpLo == Eigen::Lower && row < column) ||
+                        (UpLo == Eigen::Upper && row > column)) {
+                    factor(row, column) = Scalar(17 + row + column);
+                }
+            }
+        }
+        ASSERT_EQ(-1, UKF::Detail::rank_update<UpLo>(factor, update, weight));
+        const Matrix triangle = factor.template triangularView<UpLo>();
+        Matrix actual;
+        if constexpr (UpLo == Eigen::Lower) {
+            actual = triangle * triangle.transpose();
+        } else {
+            actual = triangle.transpose() * triangle;
+        }
+        EXPECT_LT((actual - expected).norm(),
+            Scalar(128) * std::numeric_limits<Scalar>::epsilon() * expected.norm());
+        for (int row = 0; row < 3; ++row) {
+            EXPECT_GT(factor(row, row), Scalar(0));
+            for (int column = 0; column < 3; ++column) {
+                if ((UpLo == Eigen::Lower && row < column) ||
+                        (UpLo == Eigen::Upper && row > column)) {
+                    EXPECT_EQ(Scalar(17 + row + column), factor(row, column));
+                }
+            }
+        }
+    }
+
+    // Runtime sizes retain their compile-time storage bound, including zero.
+    using BoundedMatrix = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic, 0, 3, 3>;
+    using BoundedVector = Eigen::Matrix<Scalar, Eigen::Dynamic, 1, 0, 3, 1>;
+    for (int size = 0; size <= 3; ++size) {
+        BoundedMatrix factor = BoundedMatrix::Zero(size, size);
+        BoundedVector vector = update.head(size);
+        if (size > 1) {
+            vector(0) = Scalar(0); // Exercise a leading zero pivot.
+        }
+        ASSERT_EQ(-1, UKF::Detail::rank_update<UpLo>(factor, vector, Scalar(0)));
+        EXPECT_EQ(Scalar(0), factor.squaredNorm());
+        const BoundedMatrix expected = Scalar(2) * vector * vector.transpose();
+        ASSERT_EQ(-1, UKF::Detail::rank_update<UpLo>(factor, vector, Scalar(2)));
+        BoundedMatrix actual;
+        if constexpr (UpLo == Eigen::Lower) {
+            actual = factor * factor.transpose();
+        } else {
+            actual = factor.transpose() * factor;
+        }
+        EXPECT_LE((actual - expected).norm(), Scalar(128) *
+            std::numeric_limits<Scalar>::epsilon() * std::max(Scalar(1), expected.norm()));
+        const BoundedMatrix unchanged = factor;
+        ASSERT_EQ(-1, UKF::Detail::rank_update<UpLo>(factor, vector, Scalar(0)));
+        EXPECT_EQ(Scalar(0), (factor - unchanged).norm());
+    }
+
+    // Fixed scalar roots are also used by both square-root filter variants.
+    Eigen::Matrix<Scalar, 1, 1> scalar_factor, scalar_vector;
+    scalar_factor << Scalar(-2);
+    scalar_vector << Scalar(1);
+    ASSERT_EQ(-1, UKF::Detail::rank_update<UpLo>(scalar_factor, scalar_vector, Scalar(-1)));
+    EXPECT_LT(std::abs(scalar_factor.squaredNorm() - Scalar(3)),
+        Scalar(16) * std::numeric_limits<Scalar>::epsilon());
+    EXPECT_GT(scalar_factor(0), Scalar(0));
+    scalar_factor << Scalar(0);
+    ASSERT_EQ(-1, UKF::Detail::rank_update<UpLo>(scalar_factor, scalar_vector, Scalar(2)));
+    EXPECT_LT(std::abs(scalar_factor.squaredNorm() - Scalar(2)),
+        Scalar(16) * std::numeric_limits<Scalar>::epsilon());
+    scalar_factor << Scalar(1);
+    EXPECT_EQ(0, UKF::Detail::rank_update<UpLo>(scalar_factor, scalar_vector, Scalar(-1)));
+
+    Matrix invalid = Matrix::Identity();
+    update << Scalar(0.1), Scalar(2), Scalar(0);
+    EXPECT_EQ(1, UKF::Detail::rank_update<UpLo>(invalid, update, Scalar(-1)));
+
+    // The input may reference the factor: workspace must be copied first.
+    Matrix aliased = lower;
+    if constexpr (UpLo == Eigen::Upper) {
+        aliased.transposeInPlace();
+    }
+    const Vector aliased_vector = aliased.col(0);
+    const Matrix expected_alias = lower * lower.transpose() +
+        Scalar(0.5) * aliased_vector * aliased_vector.transpose();
+    ASSERT_EQ(-1, UKF::Detail::rank_update<UpLo>(aliased, aliased.col(0), Scalar(0.5)));
+    Matrix actual_alias;
+    if constexpr (UpLo == Eigen::Lower) {
+        actual_alias = aliased * aliased.transpose();
+    } else {
+        actual_alias = aliased.transpose() * aliased;
+    }
+    EXPECT_LT((actual_alias - expected_alias).norm(), Scalar(128) *
+        std::numeric_limits<Scalar>::epsilon() * expected_alias.norm());
+}
+
+TEST(SquareRootRankUpdateTest, FixedAndBoundedDoublePrecision) {
+    check_bounded_rank_updates<double, Eigen::Lower>();
+    check_bounded_rank_updates<double, Eigen::Upper>();
+}
+
+TEST(SquareRootRankUpdateTest, FixedAndBoundedSinglePrecision) {
+    check_bounded_rank_updates<float, Eigen::Lower>();
+    check_bounded_rank_updates<float, Eigen::Upper>();
 }

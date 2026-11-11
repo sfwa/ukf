@@ -467,15 +467,15 @@ void ukf_set_params(struct ukf_ioboard_params_t *in) {
         in->barometer_amsl_covariance;
 }
 
-void ukf_choose_dynamics(enum ukf_model_t t) {
+void ukf_choose_dynamics(enum ukf_model_t) {
 
 }
 
-void ukf_set_custom_dynamics_model(ukf_model_function_t func) {
+void ukf_set_custom_dynamics_model(ukf_model_function_t) {
 
 }
 
-void ukf_iterate(float dt, real_t control_vector[UKF_CONTROL_DIM]) {
+void ukf_iterate(float dt, real_t[UKF_CONTROL_DIM]) {
     ukf.step(dt, meas);
 }
 
