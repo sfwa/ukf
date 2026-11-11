@@ -130,7 +130,13 @@ namespace UKF {
                 const T& p, const T& z_pred, const T& z) {
             Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> temp =
                 Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>>::Zero();
-            temp.diagonal() << p;
+            if constexpr (std::is_arithmetic_v<T>) {
+                temp(0, 0) = p;
+            } else {
+                // Avoid the nested diagonal block created by Eigen 3.2's comma
+                // initializer, which GCC 13 can miscompile in optimized builds.
+                temp.diagonal() = p;
+            }
             return temp;
         }
 
@@ -150,7 +156,12 @@ namespace UKF {
                 const T& p, const T& z_pred, const T& z) {
             Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> temp =
                 Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>>::Zero();
-            temp.diagonal() << p;
+            if constexpr (std::is_arithmetic_v<T>) {
+                temp(0, 0) = p;
+            } else {
+                // Use direct assignment here for the same reason as above.
+                temp.diagonal() = p;
+            }
             return temp;
         }
 
