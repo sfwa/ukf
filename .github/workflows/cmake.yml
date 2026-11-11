@@ -34,8 +34,8 @@ jobs:
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
 
-      - name: Build tests
-        run: cmake --build build --target unittest --config ${{ matrix.build_type }} --parallel 2
+      - name: Build tests and examples
+        run: cmake --build build --target unittest ukf_examples --config ${{ matrix.build_type }} --parallel 2
 
       - name: Test
         working-directory: build

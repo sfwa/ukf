@@ -188,7 +188,7 @@ UKF::Vector<3> AHRS_MeasurementVector::expected_measurement
 
 }
 
-/* Just use the Euler integrator since there's no process model. */
+/* Parameter prediction adds its configured noise; no integrator is needed. */
 using AHRS_ParameterEstimationFilter = UKF::SquareRootParameterEstimationCore<
     AHRS_SensorErrorVector,
     AHRS_MeasurementVector
@@ -214,13 +214,13 @@ void ukf_init() {
         1e0, 1e0, 3.2e0,
         1e-3 * UKF::Vector<3>::Ones();
 
-    /* Set measurement noise covariance. */
+    /* Set diagonal measurement-noise standard deviations. */
     ahrs.measurement_root_covariance <<
         0.5 * UKF::Vector<3>::Ones(),
         0.004 * UKF::Vector<3>::Ones(),
         0.1 * UKF::Vector<3>::Ones();
 
-    /* Set process noise covariance. */
+    /* Set diagonal process-noise standard deviations for one update. */
     ahrs.process_noise_root_covariance = AHRS_StateVector::CovarianceMatrix::Zero();
     ahrs.process_noise_root_covariance.diagonal() <<
         5e-5 * UKF::Vector<3>::Ones(),
@@ -242,7 +242,7 @@ void ukf_init() {
         5.0e-2 * UKF::Vector<3>::Ones(), 1.0e-1 * UKF::Vector<3>::Ones(),
         0.4, 0.7;
 
-    /* Set measurement noise covariance. */
+    /* Use the same measurement-noise standard deviations for parameter estimation. */
     ahrs_errors.measurement_root_covariance << ahrs.measurement_root_covariance;
 
     /*

@@ -9,4 +9,5 @@ INCLUDE_DIRECTORIES(../../include ${eigen_dir})
 cmake_policy(SET CMP0042 NEW)
 
 ADD_LIBRARY(ahrs SHARED ahrs.cpp)
+ADD_DEPENDENCIES(ahrs eigen3)
 SET_TARGET_PROPERTIES(ahrs PROPERTIES OUTPUT_NAME ahrs)
