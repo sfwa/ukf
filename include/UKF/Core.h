@@ -26,6 +26,7 @@ SOFTWARE.
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <Eigen/QR>
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include "UKF/Types.h"
@@ -82,13 +83,11 @@ factor unchanged, if the result is indefinite or not finite.
 template <typename MatrixType, typename VectorsType>
 bool update_root(MatrixType& factor, const VectorsType& vectors, typename MatrixType::Scalar weight) {
     MatrixType updated = factor;
-    for(typename MatrixType::Index i = 0; i < vectors.cols(); i++) {
-        if (rank_update<Eigen::Lower>(updated, vectors.col(i), weight) >= 0) {
-            const MatrixType prior = factor * factor.transpose();
-            MatrixType covariance = prior;
-            covariance.noalias() += (weight * vectors) * vectors.transpose();
-            return covariance_root(covariance, factor, prior.cwiseAbs().maxCoeff());
-        }
+    if (rank_update<Eigen::Lower>(updated, vectors, weight) >= 0) {
+        const MatrixType prior = factor * factor.transpose();
+        MatrixType covariance = prior;
+        covariance.noalias() += (weight * vectors) * vectors.transpose();
+        return covariance_root(covariance, factor, prior.cwiseAbs().maxCoeff());
     }
     if (!updated.allFinite()) {
         return false;
@@ -98,24 +97,71 @@ bool update_root(MatrixType& factor, const VectorsType& vectors, typename Matrix
 }
 
 /*
-Solve K (S S^T) = P for the Kalman gain K, given the cross-correlation P and
-the lower triangular innovation root S. This is (S'\(S\P'))', equivalent to
-(P/S')/S in the literature. When S is well conditioned, two triangular solves
-are used. Otherwise, as for field-vector measurements, whose innovation
-covariance has no component along the predicted field, rank-revealing QR
-solves are used instead.
+Calculate the lower triangular root L of the covariance of a set of sigma
+point deltas d_i about their mean, plus additive noise with root covariance N:
+
+    L L^T = WC0 d_0 d_0^T + WCI sum(d_i d_i^T) + N N^T
+
+This is the QR decomposition and rank-one Cholesky update of the square-root
+UKF paper. The central delta d_0 joins the QR decomposition unless its weight
+is negative, as it is for small alpha; it is then a downdate, which fails if
+the covariance is indefinite. Return false, leaving the root unchanged, in
+that case or if the result is not finite.
 */
-template <typename GainType, typename CrossType, typename RootType>
-void square_root_gain(GainType& gain, const CrossType& cross, const RootType& root) {
+template <typename StateVectorType, typename RootType, typename DeltasType, typename NoiseType>
+bool sigma_point_root(RootType& root, const DeltasType& deltas, const NoiseType& noise_root) {
+    constexpr real_t central = Parameters::Sigma_WC0<StateVectorType>;
+    constexpr real_t outer = Parameters::Sigma_WCI<StateVectorType>;
+
+    /* One row for each weighted delta, followed by one for each noise vector. */
+    Eigen::Matrix<real_t, Eigen::Dynamic, DeltasType::RowsAtCompileTime, Eigen::ColMajor,
+        int(DeltasType::MaxColsAtCompileTime) + int(NoiseType::MaxColsAtCompileTime),
+        DeltasType::MaxRowsAtCompileTime> vectors(deltas.cols() + noise_root.cols(), deltas.rows());
+    vectors.topRows(deltas.cols()) = std::sqrt(outer) * deltas.transpose();
+    vectors.row(0) *= std::sqrt(std::max(central, real_t(0)) / outer);
+    vectors.bottomRows(noise_root.cols()) = noise_root.transpose();
+
+    RootType factor = lower_factor(vectors);
+    if (!factor.allFinite() || (central < 0 && !update_root(factor, deltas.col(0), central))) {
+        return false;
+    }
+    root = factor;
+    return true;
+}
+
+/*
+Whiten the cross-correlation P and the innovation v by the lower triangular
+innovation root S: replace P with U = P S^-T and v with w = S^-1 v, by
+forward substitution. The Kalman gain K = P (S S^T)^-1 itself is not needed,
+because the state changes by K v = U w and its covariance by
+-K S S^T K^T = -U U^T.
+
+An innovation which cannot vary in some direction has a pivot that is
+negligible beside the rest of its row: a field vector's rotation, for one,
+has no component along the predicted field. That column of S is rotated into
+the later columns, which leaves S S^T unchanged, and its direction, in which
+there is nothing to learn, is left out of the correction.
+*/
+template <typename CrossType, typename InnovationType, typename RootType>
+void whiten(CrossType& cross, InnovationType& innovation, const RootType& innovation_root) {
     using Scalar = typename RootType::Scalar;
+    using Index = typename RootType::Index;
     const Scalar tolerance = std::sqrt(std::numeric_limits<Scalar>::epsilon());
-    const Scalar largest = root.diagonal().cwiseAbs().maxCoeff();
-    if (root.diagonal().cwiseAbs().minCoeff() > tolerance * largest) {
-        gain = root.transpose().template triangularView<Eigen::Upper>().solve(
-            root.template triangularView<Eigen::Lower>().solve(cross.transpose())).transpose();
-    } else {
-        gain = root.transpose().fullPivHouseholderQr().solve(
-            root.fullPivHouseholderQr().solve(cross.transpose())).transpose();
+    RootType root = innovation_root;
+    for (Index k = 0; k < root.cols(); ++k) {
+        const Index rest = root.cols() - k - 1;
+        if (std::abs(root(k, k)) > tolerance * root.row(k).head(k).norm()) {
+            cross.col(k) /= root(k, k);
+            innovation(k) /= root(k, k);
+            cross.rightCols(rest).noalias() -= cross.col(k) * root.col(k).tail(rest).transpose();
+            innovation.tail(rest) -= innovation(k) * root.col(k).tail(rest);
+        } else {
+            auto later = root.bottomRightCorner(rest, rest);
+            rank_update_lower(later, root.col(k).tail(rest), Scalar(1));
+            root.col(k).tail(rest).setZero();
+            cross.col(k).setZero();
+            innovation(k) = Scalar(0);
+        }
     }
 }
 
@@ -468,11 +514,11 @@ public:
     compute the LLT decomposition of the state covariance matrix.
 
     In addition, the a priori state root covariance is recovered from the
-    sigma point distribution using a QR decomposition and a rank-one Cholesky
-    update. That update is a downdate when the central weight is negative
-    (small alpha); if it cannot be applied, the factor is rebuilt from the
-    covariance, and the step fails without changing the filter if the
-    predicted covariance is indefinite.
+    sigma point distribution using a QR decomposition. The central sigma
+    point is part of it unless its weight is negative (small alpha); it is
+    then applied as a rank-one Cholesky downdate. If that cannot be applied,
+    the factor is rebuilt from the covariance, and the step fails without
+    changing the filter if the predicted covariance is indefinite.
     */
     template <typename... U>
     bool a_priori_step(real_t delta, const U&... input) {
@@ -485,39 +531,15 @@ public:
         /* Propagate the sigma points through the process model. */
         Detail::propagate_sigma_points<StateVectorType, IntegratorType>(sigma_points, delta, input...);
 
-        /* Calculate the a priori estimate mean, deltas and root covariance. */
+        /*
+        Calculate the a priori estimate mean and deltas, and from the deltas
+        and the process noise the a priori root covariance.
+        */
         const StateVectorType predicted_state = StateVectorType::calculate_sigma_point_mean(sigma_points);
         w_prime = predicted_state.calculate_sigma_point_deltas(sigma_points);
-
-        /*
-        Create an augmented matrix containing all but the centre sigma point
-        delta, with the process noise root covariance to the right.
-        */
-        using AugmentedSigmaPointDeltas = Matrix<
-            StateVectorType::covariance_size(),
-            StateVectorType::num_sigma() - 1 + StateVectorType::covariance_size()>;
-
-        AugmentedSigmaPointDeltas augmented_w_prime;
-        augmented_w_prime <<
-            std::sqrt(Parameters::Sigma_WCI<StateVectorType>) * w_prime.rightCols(StateVectorType::num_sigma() - 1),
-            process_noise_root_covariance;
-
-        /*
-        Calculate the QR decomposition of the augmented sigma point deltas,
-        and transpose its triangular factor to a lower root.
-        */
-        typename StateVectorType::CovarianceMatrix predicted_root =
-            augmented_w_prime.transpose().householderQr().matrixQR().topLeftCorner(
-                StateVectorType::covariance_size(),
-                StateVectorType::covariance_size()).template triangularView<Eigen::Upper>();
-        predicted_root.transposeInPlace();
-
-        /*
-        Do a rank-one Cholesky update of the root covariance matrix using the
-        central sigma point delta.
-        */
-        if (!predicted_state.allFinite() || !Detail::update_root(
-                predicted_root, w_prime.col(0), Parameters::Sigma_WC0<StateVectorType>)) {
+        typename StateVectorType::CovarianceMatrix predicted_root;
+        if (!predicted_state.allFinite() || !Detail::sigma_point_root<StateVectorType>(
+                predicted_root, w_prime, process_noise_root_covariance)) {
             return false;
         }
 
@@ -535,7 +557,8 @@ public:
     /*
     The innovation step differs from the standard UKF in the same way as the
     a priori step; it recovers the innovation root covariance using a QR
-    decomposition and a rank-one Cholesky update.
+    decomposition and, when the central weight is negative, a rank-one
+    Cholesky downdate.
     */
     template <typename... U>
     bool innovation_step(const MeasurementVectorType& z, const U&... input) {
@@ -565,46 +588,14 @@ public:
             z.template calculate_sigma_point_mean<StateVectorType>(measurement_sigma_points);
         z_prime = z_pred.template calculate_sigma_point_deltas<StateVectorType>(measurement_sigma_points);
 
-        /* Calculate innovation and innovation root covariance. */
+        /*
+        Calculate the innovation, and from the innovation deltas and the
+        measurement noise the innovation root covariance.
+        */
         const MeasurementVectorType predicted_innovation = z_pred.calculate_innovation(z);
-
-        /*
-        Create an augmented matrix containing all but the centre innovation
-        delta, with the measurement root covariance to the right.
-        */
-        constexpr std::ptrdiff_t augmented_innovation_cols =
-            (MeasurementVectorType::RowsAtCompileTime != Eigen::Dynamic) ?
-            StateVectorType::num_sigma() - 1 + MeasurementVectorType::RowsAtCompileTime : Eigen::Dynamic;
-
-        using AugmentedInnovationDeltas = Eigen::Matrix<
-            real_t,
-            MeasurementVectorType::RowsAtCompileTime,
-            augmented_innovation_cols,
-            MeasurementVectorType::MaxRowsAtCompileTime == 1 ? Eigen::RowMajor : Eigen::ColMajor,
-            MeasurementVectorType::MaxRowsAtCompileTime,
-            StateVectorType::num_sigma() - 1 + MeasurementVectorType::MaxRowsAtCompileTime>;
-
-        AugmentedInnovationDeltas augmented_z_prime(z.size(), StateVectorType::num_sigma() - 1 + z.size());
-        augmented_z_prime.block(0, 0, z.size(), StateVectorType::num_sigma() - 1) =
-            std::sqrt(Parameters::Sigma_WCI<StateVectorType>) * z_prime.rightCols(StateVectorType::num_sigma() - 1);
-        augmented_z_prime.block(0, StateVectorType::num_sigma() - 1, z.size(), z.size()) =
-            z.calculate_measurement_root_covariance(measurement_root_covariance, z_pred);
-
-        /*
-        Calculate the QR decomposition of the augmented innovation deltas,
-        and transpose its triangular factor to a lower root.
-        */
-        typename MeasurementVectorType::CovarianceMatrix predicted_root =
-            augmented_z_prime.transpose().householderQr().matrixQR().topLeftCorner(
-                z.size(), z.size()).template triangularView<Eigen::Upper>();
-        predicted_root.transposeInPlace();
-
-        /*
-        Do a rank-one Cholesky update of the innovation root covariance
-        matrix using the central innovation delta.
-        */
-        if (!predicted_innovation.allFinite() || !Detail::update_root(
-                predicted_root, z_prime.col(0), Parameters::Sigma_WC0<StateVectorType>)) {
+        typename MeasurementVectorType::CovarianceMatrix predicted_root;
+        if (!predicted_innovation.allFinite() || !Detail::sigma_point_root<StateVectorType>(predicted_root,
+                z_prime, z.calculate_measurement_root_covariance(measurement_root_covariance, z_pred))) {
             return false;
         }
 
@@ -615,10 +606,11 @@ public:
     }
 
     /*
-    Compared to the standard UKF, the a posteriori step calculates the Kalman
-    gain using triangular solves, and then updates the root covariance using
-    a series of rank-one Cholesky downdates. Nothing is changed unless every
-    update succeeds.
+    Compared to the standard UKF, the a posteriori step whitens the
+    cross-correlation with a triangular solve rather than calculating the
+    Kalman gain, and then updates the root covariance using a series of
+    rank-one Cholesky downdates. Nothing is changed unless every downdate
+    succeeds.
     */
     bool a_posteriori_step() {
         if (!innovation_valid) {
@@ -635,38 +627,29 @@ public:
         CrossCorrelation cross_correlation(StateVectorType::covariance_size(), innovation.size());
         Detail::calculate_cross_correlation<StateVectorType>(cross_correlation, w_prime, z_prime);
 
-        /* Calculate the Kalman gain from the innovation root covariance. */
-        CrossCorrelation kalman_gain(StateVectorType::covariance_size(), innovation.size());
-        Detail::square_root_gain(kalman_gain, cross_correlation, innovation_root_covariance);
-
         /*
-        Calculate the update delta vector, to be applied to the a priori
-        estimate.
+        Whiten the cross-correlation and the innovation by the innovation
+        root covariance. Their product is the update delta vector, which is
+        applied to a copy of the a priori estimate.
         */
-        typename StateVectorType::StateVectorDelta update_delta = kalman_gain * innovation;
-
-        /*
-        Calculate the Cholesky update matrix. Reuse the cross-correlation
-        variable, since we don't need it again.
-        */
-        cross_correlation.noalias() = kalman_gain * innovation_root_covariance;
+        MeasurementVectorType whitened_innovation = innovation;
+        Detail::whiten(cross_correlation, whitened_innovation, innovation_root_covariance);
+        StateVectorType updated_state = state;
+        updated_state.apply_delta(cross_correlation * whitened_innovation);
 
         /*
         Update the root covariance using a series of rank-one Cholesky
-        downdates. LLT downdates require strict positivity; an exact
-        observation can instead leave a semidefinite covariance, which is
-        rebuilt from the original factor rather than the partial downdate.
+        downdates, one for each column of the whitened cross-correlation.
+        LLT downdates require strict positivity; an exact observation can
+        instead leave a semidefinite covariance, which is rebuilt from the
+        original factor rather than the partial downdate. The root covariance
+        is left as it was unless every downdate succeeds.
         */
-        typename StateVectorType::CovarianceMatrix updated_root = root_covariance;
-        StateVectorType updated_state = state;
-        updated_state.apply_delta(update_delta);
-        if (!updated_state.allFinite() || !Detail::update_root(updated_root, cross_correlation, real_t(-1.0))) {
+        if (!updated_state.allFinite() || !Detail::update_root(
+                root_covariance, cross_correlation, real_t(-1.0))) {
             return false;
         }
-
-        /* Commit the correction only after every covariance update succeeds. */
         state = updated_state;
-        root_covariance = updated_root;
         return true;
     }
 };
@@ -766,17 +749,13 @@ public:
         innovation_valid = false;
 
         /*
-        Recover a factor of S*S' + Q*Q' from the augmented matrix [S Q].
+        Recover a factor of S*S' + Q*Q' from the columns of S and Q.
         Updating only S's diagonal would also change the off-diagonal
         covariance whenever the parameters are correlated.
         */
-        Matrix<StateVectorType::covariance_size(), 2 * StateVectorType::covariance_size()> augmented;
-        augmented << root_covariance, process_noise_root_covariance;
-        typename StateVectorType::CovarianceMatrix predicted_root =
-            augmented.transpose().householderQr().matrixQR().topLeftCorner(
-                StateVectorType::covariance_size(), StateVectorType::covariance_size())
-            .template triangularView<Eigen::Upper>();
-        predicted_root.transposeInPlace();
+        Matrix<2 * StateVectorType::covariance_size(), StateVectorType::covariance_size()> vectors;
+        vectors << root_covariance.transpose(), process_noise_root_covariance.transpose();
+        const typename StateVectorType::CovarianceMatrix predicted_root = Detail::lower_factor(vectors);
         if (!predicted_root.allFinite() || !state.allFinite()) {
             return false;
         }
@@ -794,7 +773,8 @@ public:
     /*
     The innovation step differs from the standard UKF in the same way as the
     a priori step; it recovers the innovation root covariance using a QR
-    decomposition and a rank-one Cholesky update.
+    decomposition and, when the central weight is negative, a rank-one
+    Cholesky downdate.
     */
     template <typename... U>
     bool innovation_step(const MeasurementVectorType& z, const U&... input) {
@@ -824,46 +804,14 @@ public:
             z.template calculate_sigma_point_mean<StateVectorType>(measurement_sigma_points);
         z_prime = z_pred.template calculate_sigma_point_deltas<StateVectorType>(measurement_sigma_points);
 
-        /* Calculate innovation and innovation root covariance. */
+        /*
+        Calculate the innovation, and from the innovation deltas and the
+        measurement noise the innovation root covariance.
+        */
         const MeasurementVectorType predicted_innovation = z_pred.calculate_innovation(z);
-
-        /*
-        Create an augmented matrix containing all but the centre innovation
-        delta, with the measurement root covariance to the right.
-        */
-        constexpr std::ptrdiff_t augmented_innovation_cols =
-            (MeasurementVectorType::RowsAtCompileTime != Eigen::Dynamic) ?
-            StateVectorType::num_sigma() - 1 + MeasurementVectorType::RowsAtCompileTime : Eigen::Dynamic;
-
-        using AugmentedInnovationDeltas = Eigen::Matrix<
-            real_t,
-            MeasurementVectorType::RowsAtCompileTime,
-            augmented_innovation_cols,
-            MeasurementVectorType::MaxRowsAtCompileTime == 1 ? Eigen::RowMajor : Eigen::ColMajor,
-            MeasurementVectorType::MaxRowsAtCompileTime,
-            StateVectorType::num_sigma() - 1 + MeasurementVectorType::MaxRowsAtCompileTime>;
-
-        AugmentedInnovationDeltas augmented_z_prime(z.size(), StateVectorType::num_sigma() - 1 + z.size());
-        augmented_z_prime.block(0, 0, z.size(), StateVectorType::num_sigma() - 1) =
-            std::sqrt(Parameters::Sigma_WCI<StateVectorType>) * z_prime.rightCols(StateVectorType::num_sigma() - 1);
-        augmented_z_prime.block(0, StateVectorType::num_sigma() - 1, z.size(), z.size()) =
-            z.calculate_measurement_root_covariance(measurement_root_covariance, z_pred);
-
-        /*
-        Calculate the QR decomposition of the augmented innovation deltas,
-        and transpose its triangular factor to a lower root.
-        */
-        typename MeasurementVectorType::CovarianceMatrix predicted_root =
-            augmented_z_prime.transpose().householderQr().matrixQR().topLeftCorner(
-                z.size(), z.size()).template triangularView<Eigen::Upper>();
-        predicted_root.transposeInPlace();
-
-        /*
-        Do a rank-one Cholesky update of the innovation root covariance
-        matrix using the central innovation delta.
-        */
-        if (!predicted_innovation.allFinite() || !Detail::update_root(
-                predicted_root, z_prime.col(0), Parameters::Sigma_WC0<StateVectorType>)) {
+        typename MeasurementVectorType::CovarianceMatrix predicted_root;
+        if (!predicted_innovation.allFinite() || !Detail::sigma_point_root<StateVectorType>(predicted_root,
+                z_prime, z.calculate_measurement_root_covariance(measurement_root_covariance, z_pred))) {
             return false;
         }
 
@@ -874,10 +822,11 @@ public:
     }
 
     /*
-    Compared to the standard UKF, the a posteriori step calculates the Kalman
-    gain using triangular solves, and then updates the root covariance using
-    a series of rank-one Cholesky downdates. Nothing is changed unless every
-    update succeeds.
+    Compared to the standard UKF, the a posteriori step whitens the
+    cross-correlation with a triangular solve rather than calculating the
+    Kalman gain, and then updates the root covariance using a series of
+    rank-one Cholesky downdates. Nothing is changed unless every downdate
+    succeeds.
     */
     bool a_posteriori_step() {
         if (!innovation_valid) {
@@ -894,37 +843,27 @@ public:
         CrossCorrelation cross_correlation(StateVectorType::covariance_size(), innovation.size());
         Detail::calculate_cross_correlation<StateVectorType>(cross_correlation, w_prime, z_prime);
 
-        /* Calculate the Kalman gain from the innovation root covariance. */
-        CrossCorrelation kalman_gain(StateVectorType::covariance_size(), innovation.size());
-        Detail::square_root_gain(kalman_gain, cross_correlation, innovation_root_covariance);
-
         /*
-        Calculate the update delta vector, to be applied to the a priori
-        estimate.
+        Whiten the cross-correlation and the innovation by the innovation
+        root covariance. Their product is the update delta vector, which is
+        applied to a copy of the a priori estimate.
         */
-        typename StateVectorType::StateVectorDelta update_delta = kalman_gain * innovation;
-
-        /*
-        Calculate the Cholesky update matrix. Reuse the cross-correlation
-        variable, since we don't need it again.
-        */
-        cross_correlation.noalias() = kalman_gain * innovation_root_covariance;
+        MeasurementVectorType whitened_innovation = innovation;
+        Detail::whiten(cross_correlation, whitened_innovation, innovation_root_covariance);
+        StateVectorType updated_state = state;
+        updated_state.apply_delta(cross_correlation * whitened_innovation);
 
         /*
         Update the root covariance using a series of rank-one Cholesky
         downdates, rebuilding it from the original factor if the posterior
-        is only semidefinite.
+        is only semidefinite. It is left as it was unless every downdate
+        succeeds.
         */
-        typename StateVectorType::CovarianceMatrix updated_root = root_covariance;
-        StateVectorType updated_state = state;
-        updated_state.apply_delta(update_delta);
-        if (!updated_state.allFinite() || !Detail::update_root(updated_root, cross_correlation, real_t(-1.0))) {
+        if (!updated_state.allFinite() || !Detail::update_root(
+                root_covariance, cross_correlation, real_t(-1.0))) {
             return false;
         }
-
-        /* Commit the correction only after every covariance update succeeds. */
         state = updated_state;
-        root_covariance = updated_root;
         return true;
     }
 };
