@@ -477,12 +477,6 @@ with a rotor-drag model of a Firefly hexrotor, and compares six-axis attitude
 estimates with the same references. See its
 [model, evaluation protocol and results](docs/euroc-benchmark.md).
 
-The [interactive explainer](explainer/) is an article that explains the
-unscented Kalman filter with figures you can change, from a single noisy
-sensor up to that EuRoC estimator. The estimator runs in the browser, on the
-recorded flights. See [its README](explainer/README.md) for how to build and
-publish it.
-
 ## References
 
 <a name="ref1">[1]</a> "A New Extension of the Kalman Filter to Nonlinear Systems:,

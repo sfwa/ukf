@@ -2,11 +2,6 @@
 .benchmark-cache/
 benchmark-results/
 .venv/
-
-# The built explainer site and its WebAssembly build
-explainer/_site/
-build-wasm/
-node_modules/
 .DS_Store
 
 # C extensions

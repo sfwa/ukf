@@ -376,13 +376,6 @@ public:
     bool rotor_model_active() const { return powered; }
     real_t rotor_vibration() const { return rotor_detector.vibration_rms(); }
 
-    /*
-    The filter itself, read-only: its state, root covariance, noise settings
-    and latest innovation. The explainer (see explainer/) uses this to show
-    how sure the filter is; the benchmark does not need it.
-    */
-    const MAV_Filter& ukf() const { return filter; }
-
 private:
     /*
     Work out whether the rotors are running, and whether the vehicle is at
