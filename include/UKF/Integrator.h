@@ -27,13 +27,15 @@ SOFTWARE.
 
 namespace UKF {
 
-/* When we want a direct process model (avoid to integrate the process model derivative). */
+/*
+Select a direct process model: the cores call the state vector's
+process_model(delta, input...) specialisation instead of integrating its
+derivative. Integrating with this type is a compile-time error.
+*/
 class NotUsedIntegrator {
    public:
     template <typename S, typename... U>
-    static S integrate(real_t delta, const S& state, const U&... input) {
-        throw std::runtime_error("NotUsedIntegrator is not supposed to be used");
-    }
+    static S integrate(real_t, const S&, const U&...) = delete;
 };
 
 /* Fourth-order integrator. */

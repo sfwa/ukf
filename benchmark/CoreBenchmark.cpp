@@ -153,9 +153,14 @@ MyCore create_initialised_test_filter() {
 
 void Core_APrioriStep(benchmark::State& state) {
     MyCore test_filter = create_initialised_test_filter();
+    const MyStateVector::CovarianceMatrix initial_cov = test_filter.covariance;
+    const MyStateVector initial_state = test_filter.state;
 
+    /* Reset each iteration so the covariance does not grow without bound. */
     while(state.KeepRunning()) {
-        test_filter.a_priori_step(0.01);
+        test_filter.covariance = initial_cov;
+        test_filter.state = initial_state;
+        benchmark::DoNotOptimize(test_filter.a_priori_step(0.01));
     }
 }
 

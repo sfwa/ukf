@@ -1,0 +1,4 @@
+add_executable(attitude_benchmark estimator.cpp)
+target_link_libraries(attitude_benchmark PRIVATE ukf::double)
+target_compile_definitions(attitude_benchmark PRIVATE EIGEN_NO_MALLOC)
+ukf_project_warnings(attitude_benchmark)

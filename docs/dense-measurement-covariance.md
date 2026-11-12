@@ -28,6 +28,12 @@ accept the full symmetric positive-semidefinite noise covariance `R`;
 square-root filters accept a full factor `L`, **not** `R`. A lower Cholesky
 factor is conventional, but the factor need not be triangular.
 
+The status-returning interface is the same for diagonal and dense noise:
+`step(...)` and the split steps return `bool`. Check that result before using
+an update. A failed full step restores the public state, uncertainty and
+innovation diagnostics; it does not throw. Supply finite noise and a valid
+covariance (or factor), as for the diagonal interface.
+
 For both fixed and dynamic measurements, dense matrices contain every declared
 field in declaration order, with vector components contiguous. Keep this matrix
 size and ordering when only some dynamic fields are populated, even if they
@@ -41,4 +47,3 @@ Noise for a `FieldVector` is specified in raw Cartesian sensor coordinates.
 The library applies its rotation-vector Jacobian to both sides of the
 covariance, including correlations with other fields (or to the left of a
 square-root factor), before using it as innovation noise.
-
