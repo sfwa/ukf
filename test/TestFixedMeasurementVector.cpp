@@ -4,6 +4,7 @@
 #include "UKF/Types.h"
 #include "UKF/StateVector.h"
 #include "UKF/MeasurementVector.h"
+#include "UKF/Core.h"
 #include "comparisons.h"
 
 enum MyFields {
@@ -21,6 +22,102 @@ using MyMeasurementVector = UKF::FixedMeasurementVector<
     UKF::Field<StaticPressure, real_t>,
     UKF::Field<DynamicPressure, real_t>
 >;
+
+using ScalarFilterState = UKF::StateVector<UKF::Field<130, real_t>>;
+using VectorFilterState = UKF::StateVector<UKF::Field<130, UKF::Vector<2>>>;
+using ScalarFixedMeasurement = UKF::FixedMeasurementVector<UKF::Field<131, real_t>>;
+using ScalarDynamicMeasurement = UKF::DynamicMeasurementVector<UKF::Field<131, real_t>>;
+struct ScalarIdentityIntegrator {
+    template <typename S> static S integrate(real_t, const S& state) { return state; }
+};
+namespace UKF {
+template <> template <>
+real_t ScalarFixedMeasurement::expected_measurement<ScalarFilterState, 131>(const ScalarFilterState& state) { return state(0); }
+template <> template <>
+real_t ScalarFixedMeasurement::expected_measurement<VectorFilterState, 131>(const VectorFilterState& state) { return state(0); }
+template <> template <>
+real_t ScalarDynamicMeasurement::expected_measurement<ScalarFilterState, 131>(const ScalarFilterState& state) { return state(0); }
+template <> template <>
+real_t ScalarDynamicMeasurement::expected_measurement<VectorFilterState, 131>(const VectorFilterState& state) { return state(0); }
+}
+
+template <typename S, typename M>
+void check_scalar_measurement() {
+    M z;
+    z.template set_field<131>(real_t(2));
+    UKF::Core<S, M, ScalarIdentityIntegrator> standard;
+    standard.state.setZero();
+    standard.covariance.setIdentity();
+    standard.process_noise_covariance.setZero();
+    standard.measurement_covariance.setOnes();
+    standard.step(real_t(1), z);
+
+    UKF::SquareRootCore<S, M, ScalarIdentityIntegrator> root;
+    root.state.setZero();
+    root.root_covariance.setIdentity();
+    root.process_noise_root_covariance.setZero();
+    root.measurement_root_covariance.setOnes();
+    root.step(real_t(1), z);
+
+    UKF::SquareRootParameterEstimationCore<S, M> parameter;
+    parameter.state.setZero();
+    parameter.root_covariance.setIdentity();
+    parameter.process_noise_root_covariance.setZero();
+    parameter.measurement_root_covariance.setOnes();
+    parameter.step(z);
+
+    S expected_state = S::Zero();
+    expected_state(0) = 1;
+    typename S::CovarianceMatrix expected_covariance = S::CovarianceMatrix::Identity();
+    expected_covariance(0, 0) = real_t(0.5);
+    EXPECT_LT((standard.state - expected_state).norm(), real_t(1e-5));
+    EXPECT_LT((root.state - expected_state).norm(), real_t(1e-5));
+    EXPECT_LT((parameter.state - expected_state).norm(), real_t(1e-5));
+    EXPECT_LT((standard.covariance - expected_covariance).norm(), real_t(1e-5));
+    EXPECT_LT((root.root_covariance * root.root_covariance.transpose() - expected_covariance).norm(), real_t(1e-5));
+    EXPECT_LT((parameter.root_covariance * parameter.root_covariance.transpose() - expected_covariance).norm(), real_t(1e-5));
+}
+
+TEST(ScalarMeasurementTest, FixedWithScalarState) { check_scalar_measurement<ScalarFilterState, ScalarFixedMeasurement>(); }
+TEST(ScalarMeasurementTest, DynamicWithScalarState) { check_scalar_measurement<ScalarFilterState, ScalarDynamicMeasurement>(); }
+TEST(ScalarMeasurementTest, FixedWithVectorState) { check_scalar_measurement<VectorFilterState, ScalarFixedMeasurement>(); }
+TEST(ScalarMeasurementTest, DynamicWithVectorState) { check_scalar_measurement<VectorFilterState, ScalarDynamicMeasurement>(); }
+
+using ScalarStateMultipleMeasurements = UKF::FixedMeasurementVector<UKF::Field<132, UKF::Vector<2>>>;
+namespace UKF {
+template <> template <>
+UKF::Vector<2> ScalarStateMultipleMeasurements::expected_measurement<ScalarFilterState, 132>(
+        const ScalarFilterState& state) { return UKF::Vector<2>(state(0), 2*state(0)); }
+}
+
+TEST(ScalarMeasurementTest, MultipleObservationsWithScalarState) {
+    ScalarStateMultipleMeasurements z;
+    z << 2, 4;
+    UKF::Core<ScalarFilterState, ScalarStateMultipleMeasurements, ScalarIdentityIntegrator> standard;
+    standard.state.setZero();
+    standard.covariance.setIdentity();
+    standard.process_noise_covariance.setZero();
+    standard.measurement_covariance.setOnes();
+    standard.step(real_t(0), z);
+    UKF::SquareRootCore<ScalarFilterState, ScalarStateMultipleMeasurements, ScalarIdentityIntegrator> root;
+    root.state.setZero();
+    root.root_covariance.setIdentity();
+    root.process_noise_root_covariance.setZero();
+    root.measurement_root_covariance.setOnes();
+    root.step(real_t(0), z);
+    UKF::SquareRootParameterEstimationCore<ScalarFilterState, ScalarStateMultipleMeasurements> parameter;
+    parameter.state.setZero();
+    parameter.root_covariance.setIdentity();
+    parameter.process_noise_root_covariance.setZero();
+    parameter.measurement_root_covariance.setOnes();
+    parameter.step(z);
+    EXPECT_NEAR(real_t(5.0/3.0), standard.state(0), real_t(1e-5));
+    EXPECT_NEAR(real_t(5.0/3.0), root.state(0), real_t(1e-5));
+    EXPECT_NEAR(real_t(5.0/3.0), parameter.state(0), real_t(1e-5));
+    EXPECT_NEAR(real_t(1.0/6.0), standard.covariance(0, 0), real_t(1e-5));
+    EXPECT_NEAR(real_t(1.0/6.0), root.root_covariance.squaredNorm(), real_t(1e-5));
+    EXPECT_NEAR(real_t(1.0/6.0), parameter.root_covariance.squaredNorm(), real_t(1e-5));
+}
 
 TEST(FixedMeasurementVectorTest, Instantiation) {
     MyMeasurementVector test_measurement;
@@ -186,19 +283,19 @@ UKF::Vector<3> MyMeasurementVector::expected_measurement
 
 template <> template <>
 UKF::Vector<3> MyMeasurementVector::expected_measurement
-<MyStateVector, Gyroscope, UKF::Vector<3>>(const MyStateVector& state, const UKF::Vector<3>& input) {
+<MyStateVector, Gyroscope, UKF::Vector<3>>(const MyStateVector& state, [[maybe_unused]] const UKF::Vector<3>& input) {
     return state.get_field<AngularVelocity>();
 }
 
 template <> template <>
 real_t MyMeasurementVector::expected_measurement
-<MyStateVector, StaticPressure, UKF::Vector<3>>(const MyStateVector& state, const UKF::Vector<3>& input) {
+<MyStateVector, StaticPressure, UKF::Vector<3>>(const MyStateVector& state, [[maybe_unused]] const UKF::Vector<3>& input) {
     return 101.3 - 1.2*(state.get_field<Altitude>() / 100.0);
 }
 
 template <> template <>
 real_t MyMeasurementVector::expected_measurement
-<MyStateVector, DynamicPressure, UKF::Vector<3>>(const MyStateVector& state, const UKF::Vector<3>& input) {
+<MyStateVector, DynamicPressure, UKF::Vector<3>>(const MyStateVector& state, [[maybe_unused]] const UKF::Vector<3>& input) {
     return 0.5 * 1.225 * state.get_field<Velocity>().squaredNorm();
 }
 
@@ -597,6 +694,22 @@ TEST(FixedMeasurementVectorTest, MeasurementRootCovariance) {
     EXPECT_VECTOR_EQ(expected_measurement_root_covariance.col(10),  out_measurement_root_covariance.col(10));
 }
 
+TEST(FixedMeasurementVectorTest, AntiparallelRotationRoundTrip) {
+    const UKF::Vector<3> directions[] = {
+        UKF::Vector<3>(1, 0, 0), UKF::Vector<3>(0, 1, 0), UKF::Vector<3>(0, 0, 1),
+        UKF::Vector<3>(1, 2, -3), UKF::Vector<3>(-4, 1, 2)
+    };
+    for (const auto& direction : directions) {
+        for (real_t scale : {real_t(0.1), real_t(1), real_t(10)}) {
+            const UKF::Vector<3> source = scale * direction;
+            const UKF::Vector<3> rotation = UKF::Detail::calculate_rotation_vector<MyMeasurementVector>(-source, source);
+            const UKF::Quaternion q = UKF::Detail::rotation_vector_to_quaternion<MyMeasurementVector>(rotation);
+            EXPECT_LT((q * source + source).norm() / source.norm(), real_t(1e-5));
+            EXPECT_NEAR(real_t(0), q.vec().dot(source.normalized()), real_t(1e-5));
+        }
+    }
+}
+
 TEST(FixedMeasurementVectorTest, CalculateRotationVector) {
     UKF::Vector<3> test;
 
@@ -713,3 +826,42 @@ TEST(FixedMeasurementVectorTest, CalculateRotationVectorJacobian) {
     EXPECT_VECTOR_EQ(UKF::Vector<3>(-0.474603,  1.420474,  0.389206).transpose(), (test*c*test.transpose()).row(1));
     EXPECT_VECTOR_EQ(UKF::Vector<3>(-1.085418,  0.389206,  0.646079).transpose(), (test*c*test.transpose()).row(2));
 }
+
+using UnitMRPMeasurement = UKF::FixedMeasurementVector<UKF::Field<170, UKF::FieldVector>>;
+using HalfMRPMeasurement = UKF::DynamicMeasurementVector<UKF::Field<171, UKF::FieldVector>>;
+namespace UKF { namespace Parameters {
+template <> constexpr real_t MRP_A<UnitMRPMeasurement> = 1;
+template <> constexpr real_t MRP_A<HalfMRPMeasurement> = real_t(0.5);
+} }
+
+template <typename M>
+void check_normalized_mrp_rotation() {
+    const UKF::Vector<3> sources[] = {UKF::Vector<3>(1, 0, 0), UKF::Vector<3>(-0.2, 0.3, 0.8)};
+    const UKF::Vector<3> targets[] = {UKF::Vector<3>(0, 1, 0), UKF::Vector<3>(0.4, -0.3, 0.1)};
+    for (int i = 0; i < 2; ++i) {
+        const auto rotation = UKF::Detail::calculate_rotation_vector<M>(targets[i], sources[i]);
+        const auto q = UKF::Detail::rotation_vector_to_quaternion<M>(rotation);
+        EXPECT_LT((q * sources[i].normalized() - targets[i].normalized()).norm(), real_t(1e-5));
+        for (real_t scale : {real_t(0.1), real_t(10)}) {
+            const auto scaled = UKF::Detail::calculate_rotation_vector<M>(scale * targets[i], sources[i] / scale);
+            EXPECT_LT((scaled - rotation).norm(), real_t(1e-5));
+            const auto both_scaled = UKF::Detail::calculate_rotation_vector<M>(scale * targets[i], scale * sources[i]);
+            EXPECT_LT((both_scaled - rotation).norm(), real_t(1e-5));
+        }
+        UKF::Matrix<3, 3> numerical_jacobian;
+        const real_t h = sizeof(real_t) == sizeof(float) ? real_t(1e-3) : real_t(1e-5);
+        for (int j = 0; j < 3; ++j) {
+            UKF::Vector<3> plus = targets[i], minus = targets[i];
+            plus(j) += h;
+            minus(j) -= h;
+            numerical_jacobian.col(j) = (UKF::Detail::calculate_rotation_vector<M>(plus, sources[i]) -
+                UKF::Detail::calculate_rotation_vector<M>(minus, sources[i])) / (2*h);
+        }
+        const auto analytic_jacobian = UKF::Detail::calculate_rotation_vector_jacobian<M>(targets[i], sources[i]);
+        const real_t tolerance = sizeof(real_t) == sizeof(float) ? real_t(5e-3) : real_t(1e-6);
+        EXPECT_LT((numerical_jacobian - analytic_jacobian).norm(), tolerance);
+    }
+}
+
+TEST(MRPRotationTest, UnitA) { check_normalized_mrp_rotation<UnitMRPMeasurement>(); }
+TEST(MRPRotationTest, HalfA) { check_normalized_mrp_rotation<HalfMRPMeasurement>(); }

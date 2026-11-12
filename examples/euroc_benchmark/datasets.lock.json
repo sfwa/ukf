@@ -1,0 +1,429 @@
+{
+  "schema_version": 1,
+  "dataset": "EuRoC MAV",
+  "source": "https://ethz-asl.github.io/datasets/euroc-mav/",
+  "doi": "10.1177/0278364915620033",
+  "archive_doi": "10.3929/ethz-b-000690084",
+  "license": "Consult the authors' dataset page and ETH Research Collection terms; the mirror repository license is not treated as a separate dataset license.",
+  "mirror_repository": "https://github.com/SasaKuruppuarachchi/data-for-emblio",
+  "mirror_revision": "a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26",
+  "sequences": [
+    "MH_01_easy",
+    "MH_02_easy",
+    "MH_03_medium",
+    "MH_04_difficult",
+    "MH_05_difficult",
+    "V1_01_easy",
+    "V1_02_medium",
+    "V1_03_difficult",
+    "V2_01_easy",
+    "V2_02_medium",
+    "V2_03_difficult"
+  ],
+  "development": [
+    "MH_01_easy",
+    "V1_02_medium"
+  ],
+  "files": [
+    {
+      "sequence": "MH_01_easy",
+      "path": "MH_01_easy/mav0/body.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/MH_01_easy/mav0/body.yaml",
+      "bytes": 28,
+      "sha256": "793286c8e95e05db8fae0cf32203b3ccb0880c646919aa59f9f9526a3b0caa28"
+    },
+    {
+      "sequence": "MH_01_easy",
+      "path": "MH_01_easy/mav0/imu0/data.csv",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/MH_01_easy/mav0/imu0/data.csv",
+      "bytes": 5210832,
+      "sha256": "226470999dc8ba758c838982fd7eb2bc9f3f2b489e85a38d0ecf8b9d40785a5b"
+    },
+    {
+      "sequence": "MH_01_easy",
+      "path": "MH_01_easy/mav0/imu0/sensor.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/MH_01_easy/mav0/imu0/sensor.yaml",
+      "bytes": 695,
+      "sha256": "91e6c408416f549f87e7405830b83849cca10521f3d3fc8bb3de862c2bc882d0"
+    },
+    {
+      "sequence": "MH_01_easy",
+      "path": "MH_01_easy/mav0/state_groundtruth_estimate0/data.csv",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/MH_01_easy/mav0/state_groundtruth_estimate0/data.csv",
+      "bytes": 6225269,
+      "sha256": "aae2d7c5684724c8afe364d2fd8499a6ed77a9169adf03736531f67d8e7b2117"
+    },
+    {
+      "sequence": "MH_01_easy",
+      "path": "MH_01_easy/mav0/state_groundtruth_estimate0/sensor.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/MH_01_easy/mav0/state_groundtruth_estimate0/sensor.yaml",
+      "bytes": 489,
+      "sha256": "e02cacbad1b654908f1fad9f8997672a2928ec348840225919259f73f1084a95"
+    },
+    {
+      "sequence": "MH_02_easy",
+      "path": "MH_02_easy/mav0/body.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/MH_02_easy/mav0/body.yaml",
+      "bytes": 28,
+      "sha256": "793286c8e95e05db8fae0cf32203b3ccb0880c646919aa59f9f9526a3b0caa28"
+    },
+    {
+      "sequence": "MH_02_easy",
+      "path": "MH_02_easy/mav0/imu0/data.csv",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/MH_02_easy/mav0/imu0/data.csv",
+      "bytes": 4302332,
+      "sha256": "7add4feaa342c6b6874996058b6b5679d908eca25b7e063eae46fec49558cc8e"
+    },
+    {
+      "sequence": "MH_02_easy",
+      "path": "MH_02_easy/mav0/imu0/sensor.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/MH_02_easy/mav0/imu0/sensor.yaml",
+      "bytes": 695,
+      "sha256": "91e6c408416f549f87e7405830b83849cca10521f3d3fc8bb3de862c2bc882d0"
+    },
+    {
+      "sequence": "MH_02_easy",
+      "path": "MH_02_easy/mav0/state_groundtruth_estimate0/data.csv",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/MH_02_easy/mav0/state_groundtruth_estimate0/data.csv",
+      "bytes": 5135160,
+      "sha256": "f49666ad4991c80bc467fc05e6d250cec7e28fbd05c1643402298e67438f754f"
+    },
+    {
+      "sequence": "MH_02_easy",
+      "path": "MH_02_easy/mav0/state_groundtruth_estimate0/sensor.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/MH_02_easy/mav0/state_groundtruth_estimate0/sensor.yaml",
+      "bytes": 489,
+      "sha256": "e02cacbad1b654908f1fad9f8997672a2928ec348840225919259f73f1084a95"
+    },
+    {
+      "sequence": "MH_03_medium",
+      "path": "MH_03_medium/mav0/body.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/MH_03_medium/mav0/body.yaml",
+      "bytes": 28,
+      "sha256": "793286c8e95e05db8fae0cf32203b3ccb0880c646919aa59f9f9526a3b0caa28"
+    },
+    {
+      "sequence": "MH_03_medium",
+      "path": "MH_03_medium/mav0/imu0/data.csv",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/MH_03_medium/mav0/imu0/data.csv",
+      "bytes": 3815432,
+      "sha256": "5defd7c9770344df34ebbd5805264341f8a4920c13a22e1b9ef8607168cad02e"
+    },
+    {
+      "sequence": "MH_03_medium",
+      "path": "MH_03_medium/mav0/imu0/sensor.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/MH_03_medium/mav0/imu0/sensor.yaml",
+      "bytes": 695,
+      "sha256": "91e6c408416f549f87e7405830b83849cca10521f3d3fc8bb3de862c2bc882d0"
+    },
+    {
+      "sequence": "MH_03_medium",
+      "path": "MH_03_medium/mav0/state_groundtruth_estimate0/data.csv",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/MH_03_medium/mav0/state_groundtruth_estimate0/data.csv",
+      "bytes": 4504568,
+      "sha256": "7e52fd28088b0d428509cc365fbb44ed5d910e5174ac155e1d987923c056000f"
+    },
+    {
+      "sequence": "MH_03_medium",
+      "path": "MH_03_medium/mav0/state_groundtruth_estimate0/sensor.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/MH_03_medium/mav0/state_groundtruth_estimate0/sensor.yaml",
+      "bytes": 489,
+      "sha256": "e02cacbad1b654908f1fad9f8997672a2928ec348840225919259f73f1084a95"
+    },
+    {
+      "sequence": "MH_04_difficult",
+      "path": "MH_04_difficult/mav0/body.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/MH_04_difficult/mav0/body.yaml",
+      "bytes": 28,
+      "sha256": "793286c8e95e05db8fae0cf32203b3ccb0880c646919aa59f9f9526a3b0caa28"
+    },
+    {
+      "sequence": "MH_04_difficult",
+      "path": "MH_04_difficult/mav0/imu0/data.csv",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/MH_04_difficult/mav0/imu0/data.csv",
+      "bytes": 2871307,
+      "sha256": "330c25e4532c1f27853d0eeee06968d5c4c00c16be1187fdcfd909cfe060360c"
+    },
+    {
+      "sequence": "MH_04_difficult",
+      "path": "MH_04_difficult/mav0/imu0/sensor.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/MH_04_difficult/mav0/imu0/sensor.yaml",
+      "bytes": 695,
+      "sha256": "91e6c408416f549f87e7405830b83849cca10521f3d3fc8bb3de862c2bc882d0"
+    },
+    {
+      "sequence": "MH_04_difficult",
+      "path": "MH_04_difficult/mav0/state_groundtruth_estimate0/data.csv",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/MH_04_difficult/mav0/state_groundtruth_estimate0/data.csv",
+      "bytes": 3380116,
+      "sha256": "c13de3d5ba9ead60688505d4773286c290fa642264943c88aa182d0eac9f4960"
+    },
+    {
+      "sequence": "MH_04_difficult",
+      "path": "MH_04_difficult/mav0/state_groundtruth_estimate0/sensor.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/MH_04_difficult/mav0/state_groundtruth_estimate0/sensor.yaml",
+      "bytes": 489,
+      "sha256": "e02cacbad1b654908f1fad9f8997672a2928ec348840225919259f73f1084a95"
+    },
+    {
+      "sequence": "MH_05_difficult",
+      "path": "MH_05_difficult/mav0/body.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/MH_05_difficult/mav0/body.yaml",
+      "bytes": 28,
+      "sha256": "793286c8e95e05db8fae0cf32203b3ccb0880c646919aa59f9f9526a3b0caa28"
+    },
+    {
+      "sequence": "MH_05_difficult",
+      "path": "MH_05_difficult/mav0/imu0/data.csv",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/MH_05_difficult/mav0/imu0/data.csv",
+      "bytes": 3215270,
+      "sha256": "e6498fb86f0b618abb07b256b1822957bb4bcf158d07cc82d3b43ca8166ec004"
+    },
+    {
+      "sequence": "MH_05_difficult",
+      "path": "MH_05_difficult/mav0/imu0/sensor.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/MH_05_difficult/mav0/imu0/sensor.yaml",
+      "bytes": 695,
+      "sha256": "91e6c408416f549f87e7405830b83849cca10521f3d3fc8bb3de862c2bc882d0"
+    },
+    {
+      "sequence": "MH_05_difficult",
+      "path": "MH_05_difficult/mav0/state_groundtruth_estimate0/data.csv",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/MH_05_difficult/mav0/state_groundtruth_estimate0/data.csv",
+      "bytes": 3800565,
+      "sha256": "da13e5dcb3d5fc2f12c4e8bfae10dd380d765150be3312f989b0bc5550965451"
+    },
+    {
+      "sequence": "MH_05_difficult",
+      "path": "MH_05_difficult/mav0/state_groundtruth_estimate0/sensor.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/MH_05_difficult/mav0/state_groundtruth_estimate0/sensor.yaml",
+      "bytes": 489,
+      "sha256": "e02cacbad1b654908f1fad9f8997672a2928ec348840225919259f73f1084a95"
+    },
+    {
+      "sequence": "V1_01_easy",
+      "path": "V1_01_easy/mav0/body.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/V1_01_easy/mav0/body.yaml",
+      "bytes": 28,
+      "sha256": "793286c8e95e05db8fae0cf32203b3ccb0880c646919aa59f9f9526a3b0caa28"
+    },
+    {
+      "sequence": "V1_01_easy",
+      "path": "V1_01_easy/mav0/imu0/data.csv",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/V1_01_easy/mav0/imu0/data.csv",
+      "bytes": 4113500,
+      "sha256": "4cef78a5cf7c8ee52016a160de4b50184da2a216d615feb7ebbbb3bc99efa89e"
+    },
+    {
+      "sequence": "V1_01_easy",
+      "path": "V1_01_easy/mav0/imu0/sensor.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/V1_01_easy/mav0/imu0/sensor.yaml",
+      "bytes": 695,
+      "sha256": "91e6c408416f549f87e7405830b83849cca10521f3d3fc8bb3de862c2bc882d0"
+    },
+    {
+      "sequence": "V1_01_easy",
+      "path": "V1_01_easy/mav0/state_groundtruth_estimate0/data.csv",
+      "url": "https://raw.githubusercontent.com/rpng/open_vins/69488123ed9362dd44b6f28e7f4680abbff1442b/ov_data/euroc_mav/V1_01_easy_original.csv",
+      "bytes": 4881721,
+      "sha256": "701200e6924ba845ccdeea884bd717c82d1ed91f480913ea6e2e6ccb9c0fbf6d"
+    },
+    {
+      "sequence": "V1_01_easy",
+      "path": "V1_01_easy/mav0/state_groundtruth_estimate0/sensor.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/V1_01_easy/mav0/state_groundtruth_estimate0/sensor.yaml",
+      "bytes": 440,
+      "sha256": "7cfa7e00a38c5c4f3331ec6c388af8718db75e21cc01aa39d978ec9f8645dff5"
+    },
+    {
+      "sequence": "V1_02_medium",
+      "path": "V1_02_medium/mav0/body.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/V1_02_medium/mav0/body.yaml",
+      "bytes": 28,
+      "sha256": "793286c8e95e05db8fae0cf32203b3ccb0880c646919aa59f9f9526a3b0caa28"
+    },
+    {
+      "sequence": "V1_02_medium",
+      "path": "V1_02_medium/mav0/imu0/data.csv",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/V1_02_medium/mav0/imu0/data.csv",
+      "bytes": 2405855,
+      "sha256": "51804ce6362dc200fff3ed6a3aba1df769528badf1a877d19d5cac976a544c09"
+    },
+    {
+      "sequence": "V1_02_medium",
+      "path": "V1_02_medium/mav0/imu0/sensor.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/V1_02_medium/mav0/imu0/sensor.yaml",
+      "bytes": 695,
+      "sha256": "91e6c408416f549f87e7405830b83849cca10521f3d3fc8bb3de862c2bc882d0"
+    },
+    {
+      "sequence": "V1_02_medium",
+      "path": "V1_02_medium/mav0/state_groundtruth_estimate0/data.csv",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/V1_02_medium/mav0/state_groundtruth_estimate0/data.csv",
+      "bytes": 2837076,
+      "sha256": "fed415eee44313584b9c4f61010dac146d5e4a4a35301db25b1ecd7d4d91b5f0"
+    },
+    {
+      "sequence": "V1_02_medium",
+      "path": "V1_02_medium/mav0/state_groundtruth_estimate0/sensor.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/V1_02_medium/mav0/state_groundtruth_estimate0/sensor.yaml",
+      "bytes": 440,
+      "sha256": "7cfa7e00a38c5c4f3331ec6c388af8718db75e21cc01aa39d978ec9f8645dff5"
+    },
+    {
+      "sequence": "V1_03_difficult",
+      "path": "V1_03_difficult/mav0/body.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/V1_03_difficult/mav0/body.yaml",
+      "bytes": 28,
+      "sha256": "793286c8e95e05db8fae0cf32203b3ccb0880c646919aa59f9f9526a3b0caa28"
+    },
+    {
+      "sequence": "V1_03_difficult",
+      "path": "V1_03_difficult/mav0/imu0/data.csv",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/V1_03_difficult/mav0/imu0/data.csv",
+      "bytes": 3024020,
+      "sha256": "543835f7b7dd9d1287c9052955e030ade113c51dc97ec2c15d13a318521ad0d7"
+    },
+    {
+      "sequence": "V1_03_difficult",
+      "path": "V1_03_difficult/mav0/imu0/sensor.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/V1_03_difficult/mav0/imu0/sensor.yaml",
+      "bytes": 695,
+      "sha256": "91e6c408416f549f87e7405830b83849cca10521f3d3fc8bb3de862c2bc882d0"
+    },
+    {
+      "sequence": "V1_03_difficult",
+      "path": "V1_03_difficult/mav0/state_groundtruth_estimate0/data.csv",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/V1_03_difficult/mav0/state_groundtruth_estimate0/data.csv",
+      "bytes": 3551709,
+      "sha256": "703ba51a854daba80f20df93e76605c2278b3f227afe2bcbe9eb4255186fc3d9"
+    },
+    {
+      "sequence": "V1_03_difficult",
+      "path": "V1_03_difficult/mav0/state_groundtruth_estimate0/sensor.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/V1_03_difficult/mav0/state_groundtruth_estimate0/sensor.yaml",
+      "bytes": 440,
+      "sha256": "7cfa7e00a38c5c4f3331ec6c388af8718db75e21cc01aa39d978ec9f8645dff5"
+    },
+    {
+      "sequence": "V2_01_easy",
+      "path": "V2_01_easy/mav0/body.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/V2_01_easy/mav0/body.yaml",
+      "bytes": 28,
+      "sha256": "793286c8e95e05db8fae0cf32203b3ccb0880c646919aa59f9f9526a3b0caa28"
+    },
+    {
+      "sequence": "V2_01_easy",
+      "path": "V2_01_easy/mav0/imu0/data.csv",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/V2_01_easy/mav0/imu0/data.csv",
+      "bytes": 3217729,
+      "sha256": "d8df41e85c12761104043264a61054ad4bfa19087886e847f4e0412a19cd1633"
+    },
+    {
+      "sequence": "V2_01_easy",
+      "path": "V2_01_easy/mav0/imu0/sensor.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/V2_01_easy/mav0/imu0/sensor.yaml",
+      "bytes": 695,
+      "sha256": "91e6c408416f549f87e7405830b83849cca10521f3d3fc8bb3de862c2bc882d0"
+    },
+    {
+      "sequence": "V2_01_easy",
+      "path": "V2_01_easy/mav0/state_groundtruth_estimate0/data.csv",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/V2_01_easy/mav0/state_groundtruth_estimate0/data.csv",
+      "bytes": 3832485,
+      "sha256": "315807fd7d91868ed6085a3d8fde40315842135f13199ed83e2e6270eb5b5126"
+    },
+    {
+      "sequence": "V2_01_easy",
+      "path": "V2_01_easy/mav0/state_groundtruth_estimate0/sensor.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/V2_01_easy/mav0/state_groundtruth_estimate0/sensor.yaml",
+      "bytes": 440,
+      "sha256": "7cfa7e00a38c5c4f3331ec6c388af8718db75e21cc01aa39d978ec9f8645dff5"
+    },
+    {
+      "sequence": "V2_02_medium",
+      "path": "V2_02_medium/mav0/body.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/V2_02_medium/mav0/body.yaml",
+      "bytes": 28,
+      "sha256": "793286c8e95e05db8fae0cf32203b3ccb0880c646919aa59f9f9526a3b0caa28"
+    },
+    {
+      "sequence": "V2_02_medium",
+      "path": "V2_02_medium/mav0/imu0/data.csv",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/V2_02_medium/mav0/imu0/data.csv",
+      "bytes": 3305153,
+      "sha256": "7f1028007d030a38e5c7e2cee19ca773015b2fecbbbe80794f5c34e900b2ee8e"
+    },
+    {
+      "sequence": "V2_02_medium",
+      "path": "V2_02_medium/mav0/imu0/sensor.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/V2_02_medium/mav0/imu0/sensor.yaml",
+      "bytes": 695,
+      "sha256": "91e6c408416f549f87e7405830b83849cca10521f3d3fc8bb3de862c2bc882d0"
+    },
+    {
+      "sequence": "V2_02_medium",
+      "path": "V2_02_medium/mav0/state_groundtruth_estimate0/data.csv",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/V2_02_medium/mav0/state_groundtruth_estimate0/data.csv",
+      "bytes": 3921620,
+      "sha256": "019ec178d0d2636dca66808f6422ae835b24f14184c54823b3a4a47bf187be2d"
+    },
+    {
+      "sequence": "V2_02_medium",
+      "path": "V2_02_medium/mav0/state_groundtruth_estimate0/sensor.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/V2_02_medium/mav0/state_groundtruth_estimate0/sensor.yaml",
+      "bytes": 440,
+      "sha256": "7cfa7e00a38c5c4f3331ec6c388af8718db75e21cc01aa39d978ec9f8645dff5"
+    },
+    {
+      "sequence": "V2_03_difficult",
+      "path": "V2_03_difficult/mav0/body.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/V2_03_difficult/mav0/body.yaml",
+      "bytes": 28,
+      "sha256": "793286c8e95e05db8fae0cf32203b3ccb0880c646919aa59f9f9526a3b0caa28"
+    },
+    {
+      "sequence": "V2_03_difficult",
+      "path": "V2_03_difficult/mav0/imu0/data.csv",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/V2_03_difficult/mav0/imu0/data.csv",
+      "bytes": 3283929,
+      "sha256": "55911f078feea76eb5bdeb97c9ebbebb679de39c4dd44c50e81064d5d8cf77f6"
+    },
+    {
+      "sequence": "V2_03_difficult",
+      "path": "V2_03_difficult/mav0/imu0/sensor.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/V2_03_difficult/mav0/imu0/sensor.yaml",
+      "bytes": 695,
+      "sha256": "91e6c408416f549f87e7405830b83849cca10521f3d3fc8bb3de862c2bc882d0"
+    },
+    {
+      "sequence": "V2_03_difficult",
+      "path": "V2_03_difficult/mav0/state_groundtruth_estimate0/data.csv",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/V2_03_difficult/mav0/state_groundtruth_estimate0/data.csv",
+      "bytes": 3915115,
+      "sha256": "2c273cf35909c4ca7786137cf63f04cf292ca13da48c406c72b8e96a2b1372e5"
+    },
+    {
+      "sequence": "V2_03_difficult",
+      "path": "V2_03_difficult/mav0/state_groundtruth_estimate0/sensor.yaml",
+      "url": "https://raw.githubusercontent.com/SasaKuruppuarachchi/data-for-emblio/a5974e6968f90a5b4b31f892c9fdcdb2fd17bc26/EuRoC-Dataset/V2_03_difficult/mav0/state_groundtruth_estimate0/sensor.yaml",
+      "bytes": 440,
+      "sha256": "7cfa7e00a38c5c4f3331ec6c388af8718db75e21cc01aa39d978ec9f8645dff5"
+    }
+  ],
+  "reference_exception": "The primary mirror replaces V1_01_easy with OpenVINS corrected ground truth. This benchmark explicitly fetches V1_01_easy_original.csv from pinned OpenVINS to retain the canonical original, and flags its known orientation issue.",
+  "cross_checks": {
+    "policy": "All 11 IMU and all 11 original reference CSV files were independently compared after CRLF/LF normalization; sensor/reference values are unchanged.",
+    "imu_repository": "https://github.com/shanpenghui/ORB_SLAM3_Fixed",
+    "imu_revision": "060181f6ba48b7031afa89970f60fd23b87f3169",
+    "reference_repository": "https://github.com/rpng/open_vins",
+    "reference_revision": "69488123ed9362dd44b6f28e7f4680abbff1442b",
+    "v1_01_reference_file": "ov_data/euroc_mav/V1_01_easy_original.csv",
+    "verified_files": 22,
+    "v1_01_archive_verification": {
+      "url": "https://huggingface.co/datasets/pepijn223/euroc-mirror/resolve/d05bd6a92a5f456562153f83d65805fea27cb57d/V1_01_easy.zip",
+      "method": "HTTP range extraction of original imu0/data.csv and state_groundtruth_estimate0/data.csv; both match the pinned files after newline normalization.",
+      "compressed_bytes_downloaded": 2760982
+    }
+  }
+}

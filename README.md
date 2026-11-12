@@ -72,7 +72,9 @@ template <> constexpr real_t UKF::Parameters::AlphaSquared<MyStateVector> = 1e-6
 ```
 
 For a description of what the scaling parameters do, see [[2]](#ref2) or read
-the comments in the [code](include/UKF/StateVector.h).
+the comments in the [code](include/UKF/StateVector.h). The weights and sigma
+point spread are derived from `AlphaSquared`, `Kappa` and `Beta` (via
+`ScaledDimension`, which is n + lambda), so adjust those rather than `Lambda`.
 
 ### Measurement vector
 
@@ -137,7 +139,10 @@ using MyCore = UKF::Core<
 Here, the user-specialised state vector and measurement vector classes are
 provided as template parameters, along with the integrator to use for the
 process model. For a list of available integrators, see
-[Integrator.h](include/UKF/Integrator.h).
+[Integrator.h](include/UKF/Integrator.h). If the integrator is omitted (or is
+`UKF::NotUsedIntegrator`), both `Core` and `SquareRootCore` call a direct
+`process_model(delta, input...)` specialisation instead of integrating a
+derivative.
 
 The square-root state estimation filter can be used instead like this:
 
@@ -194,6 +199,22 @@ ProcessModelTestStateVector ProcessModelTestStateVector::derivative<UKF::Vector<
     temp.set_field<Velocity>(acceleration);
 
     return temp;
+}
+```
+
+If the Core class specialisation has no integrator, the process model is
+instead a function which returns the next state directly. Leave its template
+argument list empty; the input types are deduced from the parameters:
+
+```C++
+template <> template <>
+ProcessModelTestStateVector ProcessModelTestStateVector::process_model<>(
+        real_t delta, const UKF::Vector<3>& acceleration) const {
+    ProcessModelTestStateVector next = *this;
+    next.set_field<Position>(get_field<Position>() + delta * get_field<Velocity>());
+    next.set_field<Velocity>(get_field<Velocity>() + delta * acceleration);
+
+    return next;
 }
 ```
 
@@ -322,6 +343,25 @@ Supply the discrete-time covariance for each step; continuous-time noise
 densities must be discretised by the application. The square-root filter
 takes a factor whose product with its transpose is this same covariance.
 
+Square-root correction steps support positive semidefinite posterior
+covariances, including exact observations.
+
+### Error handling
+
+The library does not use C++ exceptions and can be built with them disabled.
+Each of `step()`, `a_priori_step()`, `innovation_step()` and
+`a_posteriori_step()` returns `true` on success. On failure it returns `false`
+and leaves the public state, (root) covariance, innovation and innovation
+(root) covariance exactly as they were. A step fails when a covariance (or a
+covariance downdate) is indefinite beyond roundoff, or when a result is not
+finite. With a small `AlphaSquared`, the central sigma point weight is negative,
+and a strongly nonlinear model can make the predicted covariance indefinite;
+both cores report this the same way. A step that depends on a failed (or
+missing) earlier step also returns `false` until the next successful
+`a_priori_step()`. `step()` is all-or-nothing: if its correction fails after a
+successful prediction, the prediction is rolled back too. To keep the
+prediction when a measurement cannot be applied, call the split steps below.
+
 ### Iteration
 
 The general steps for carrying out a filter iteration are something like:
@@ -333,7 +373,9 @@ meas.set_field<Gyroscope>(UKF::Vector<3>(0.0, 0.0, 0.0));
 meas.set_field<StaticPressure>(101300.0);
 meas.set_field<DynamicPressure>(101300.0);
 
-test_filter.step(0.01, meas);
+if (!test_filter.step(0.01, meas)) {
+    /* The filter is unchanged; reinitialise or skip this measurement. */
+}
 ```
 
 Or, if it's necessary to do things with the internal filter state (e.g.
@@ -364,36 +406,89 @@ measurement after its innovation has been calculated. The gate receives the
 const filter, measurement and model inputs; rejection retains the prediction
 and innovation diagnostics. The square-root parameter estimator omits `dt`.
 A corresponding `a_posteriori_step(gate, context...)` overload supports split
-updates. See [innovation gating](docs/innovation-gating.md) for callback contracts
+updates. Gated calls return whether a correction was applied; numerical failure
+also returns `false`. A failed full step rolls back to its pre-step values,
+while gate rejection retains the prediction. See
+[innovation gating](docs/innovation-gating.md) for callback contracts
 and covariance/square-root Mahalanobis examples.
 
-## Building test and benchmark suites
+## Building and CMake integration
 
-Build requires a compiler supporting C++17. 
+The public headers require C++17. The commands below use CMake 3.20 or newer;
+the project files retain a CMake 3.10 minimum.
 
-First, clone the repo:
+```sh
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+cmake --build build --target unittest benchmark ahrs sfwa_ukf --parallel 2
+ctest --test-dir build --output-on-failure
+./build/benchmark/benchmark
+```
 
-    git clone git@github.com:sfwa/ukf.git && cd ukf
+These commands assume a single-configuration generator. For multi-configuration
+generators, add `--config Debug` when building and `-C Debug` when running CTest;
+executables are placed in the configuration subdirectory.
 
-Then, configure CMake:
+The default build downloads Eigen 3.2.8 and applies the allocation and C++17
+compatibility patches. To use an installed Eigen 3.3 or newer CMake package,
+configure with `-DUKF_USE_SYSTEM_EIGEN=ON`. That package supplies
+`Eigen3::Eigen` and is used as installed; the bundled patches are not applied
+to it. Tests, benchmarks and examples enable `EIGEN_NO_MALLOC`; Debug retains
+Eigen's allocation assertions.
+Square-root rank updates use UKF-owned bounded workspace, so these checks also
+apply when using an unpatched installed Eigen package.
 
-    cmake -B ./build -DCMAKE_BUILD_TYPE=Release
+To include UKF in another CMake project:
 
-Then build:
+```cmake
+add_subdirectory(path/to/ukf)
+add_executable(my_model src/my_model.cpp)
+target_link_libraries(my_model PRIVATE ukf::double)
+```
 
-    cmake --build ./build --config Release
-    
-Build and run the unit test suite:
+`ukf::double` selects `UKF_DOUBLE_PRECISION`; use `ukf::single` for
+`UKF_SINGLE_PRECISION`. Both targets propagate the UKF/Eigen include paths,
+C++17 requirement and any Eigen download dependency. If your application already
+defines its precision, link `ukf::ukf` (also available as `ukf`) instead: this
+target does not define either precision macro. Choose exactly one precision
+consistently across interacting translation units; adding the opposite macro
+does not override a precision target. An installed `find_package(ukf)` package
+is not provided.
 
-    cd build && make unittest && test/unittest && cd ..
-    
-If desired, build and run the benchmark suite:
+| CMake option | Default | Purpose |
+| --- | --- | --- |
+| `UKF_USE_SYSTEM_EIGEN` | `OFF` | Use an installed Eigen package instead of patched Eigen 3.2.8 |
+| `UKF_WARNINGS_AS_ERRORS` | `ON` | Treat warnings in UKF's own targets as errors |
+| `UKF_BUILD_TESTS` | `ON` standalone, `OFF` as a subdirectory | Configure the unit tests and `check` target |
+| `UKF_BUILD_BENCHMARKS` | `ON` standalone, `OFF` as a subdirectory | Configure the benchmark target |
+| `UKF_BUILD_EXAMPLES` | `ON` standalone, `OFF` as a subdirectory | Configure the example libraries and benchmark executables |
 
-    cd build && make benchmark && benchmark/benchmark && cd ..
+Warnings are enabled privately on UKF's own targets, with flags selected for the
+compiler. They are not imposed on downstream consumers or third-party
+dependencies. Set `UKF_WARNINGS_AS_ERRORS=OFF` to keep warnings without making
+them fatal.
+
+CI builds the project and its [downstream consumer fixture](test/cmake/) in
+Debug and Release. The fixture checks both precision targets, manual precision,
+C++17 propagation, parallel dependency ordering and isolation from parent
+project settings.
 
 ## Examples
 
 Some examples are provided [here](examples/).
+
+The [recorded-data attitude benchmark](examples/attitude_benchmark/) is the
+best place to start: [`attitude_estimator.h`](examples/attitude_benchmark/attitude_estimator.h)
+is a complete attitude estimator for a gyroscope, accelerometer and optional
+magnetometer, written once for both `UKF::Core` and `UKF::SquareRootCore`. It
+is compared with Madgwick, Mahony and VQF on the BROAD and Sassari recordings
+in six- and nine-axis modes. See
+[methodology and measured results](docs/attitude-benchmark.md)
+for local reproduction and CI artifacts.
+
+The [EuRoC MAV benchmark](examples/euroc_benchmark/) extends that estimator
+with a rotor-drag model of a Firefly hexrotor, and compares six-axis attitude
+estimates with the same references. See its
+[model, evaluation protocol and results](docs/euroc-benchmark.md).
 
 ## References
 

@@ -16,7 +16,7 @@ For `SquareRootParameterEstimationCore`, omit `dt`:
 bool applied = filter.step_with_gate(measurement, gate, model_inputs...);
 ```
 
-After prediction and innovation calculation, the filter invokes
+After successful prediction and innovation calculation, the filter invokes
 `gate(const Filter&, const Measurement&, const Inputs&...)` once. The filter
 reference exposes the predicted state, innovation and `innovation_covariance`
 (`Core`) or `innovation_root_covariance` (both square-root filters). The
@@ -26,8 +26,22 @@ Returning `true` applies the usual correction. Returning `false` rejects the
 whole measurement vector: the predicted state and covariance remain intact,
 while innovation diagnostics remain available for logging. The step returns
 whether a correction was applied. An empty dynamic measurement returns `false`
-without invoking the gate. If the gate throws, no correction has been applied;
-the predicted state and innovation diagnostics remain available.
+without invoking the gate, retaining the prediction and clearing the innovation
+diagnostics.
+
+Like ordinary `step`, a gated full step restores the pre-step state, covariance,
+innovation and innovation covariance on numerical failure. A failed prediction
+or innovation never invokes the gate, including when diagnostics remain from an
+earlier successful update. If an accepting gate is followed by a failed
+correction, the step returns `false` and rolls back the prediction as well.
+Thus `false` can mean rejection, an empty observation, or numerical failure;
+use the checked split stages below and record the gate's decision when the
+application needs to distinguish those outcomes.
+
+The library reports numerical failure without exceptions and works with
+exceptions disabled. If an application enables exceptions and its gate throws,
+the exception propagates; no correction has been applied, and the prediction
+and innovation diagnostics remain available.
 
 The callable is invoked synchronously and is neither copied nor stored. A lambda
 can capture a threshold, counters, or other application state. No type erasure or
@@ -80,9 +94,11 @@ inverse. It assumes a nonsingular innovation root.
 To inspect prediction or innovation independently, use the posterior overload:
 
 ```cpp
-filter.a_priori_step(dt, model_inputs...);
-filter.innovation_step(measurement, model_inputs...);
-bool applied = filter.a_posteriori_step(gate, measurement, model_inputs...);
+if (filter.a_priori_step(dt, model_inputs...) &&
+        filter.innovation_step(measurement, model_inputs...)) {
+    bool applied = filter.a_posteriori_step(gate, measurement, model_inputs...);
+    // Handle acceptance, rejection, or a failed correction here.
+}
 ```
 
 Only the const filter argument is implicit. Any other context is passed
@@ -97,7 +113,11 @@ bool applied = filter.a_posteriori_step(
 ```
 
 This overload must follow `innovation_step`, just like the original posterior
-method. It returns `false` for an empty innovation without calling the gate.
+method. It returns `false` for a missing, failed, or empty innovation without
+calling the gate. If the gate accepts, the return value reports the actual
+correction result. A rejected or failed split posterior leaves the predicted
+state, covariance and innovation diagnostics unchanged; unlike a failed full
+step, it does not roll back preceding successful split stages.
 Gating selects whether to correct with the entire measurement vector; an
 application needing separate decisions per sensor can perform separate
 measurement updates with its dynamic measurement vector.

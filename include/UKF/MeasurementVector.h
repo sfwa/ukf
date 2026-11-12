@@ -37,6 +37,14 @@ namespace UKF {
 
     namespace Detail {
 
+    /* A deterministic unit axis perpendicular to a nonzero field vector. */
+    inline Vector<3> antiparallel_axis(const Vector<3>& v) {
+        if (std::abs(v(0)) > std::abs(v(1))) {
+            return Vector<3>(-v(2), 0, v(0)).normalized();
+        }
+        return Vector<3>(0, -v(2), v(1)).normalized();
+    }
+
     /* Calculate the smallest rotation vector which transforms v1 into v2. */
     template <typename T>
     inline Vector<3> calculate_rotation_vector(const Vector<3>& v2, const Vector<3>& v1) {
@@ -48,12 +56,16 @@ namespace UKF {
         if(q_w > std::numeric_limits<real_t>::epsilon()) {
             axis = v1.cross(v2);
         } else if(norm > std::numeric_limits<real_t>::epsilon()) {
-            axis = Vector<3>(-v1(2), v1(1), v1(0));
+            axis = antiparallel_axis(v1);
         }
 
+        /* The cross/dot quaternion is not unit length. Multiplying the
+        normalized MRP expression by its norm gives f*axis/(a*norm + w). */
+        const real_t quaternion_norm = std::sqrt(axis.squaredNorm() + q_w*q_w);
+        const real_t denominator = Parameters::MRP_A<T> * quaternion_norm + q_w;
         return Parameters::MRP_F<T> * axis /
-            (std::abs(Parameters::MRP_A<T> + q_w) > std::numeric_limits<real_t>::epsilon() ?
-            Parameters::MRP_A<T> + q_w : std::numeric_limits<real_t>::epsilon());
+            (std::abs(denominator) > std::numeric_limits<real_t>::epsilon() ?
+            denominator : std::numeric_limits<real_t>::epsilon());
     }
 
     /*
@@ -62,54 +74,42 @@ namespace UKF {
     rotation vector corresponding to the transformation between the field
     vector v1 and v2.
 
-    This is done by using an expression for the exact Jacobian of the rotation
-    vector, as a function of the field vector.
-
-    The expression for the exact Jacobian was derived using the following
-    MATLAB commands (with the Symbolic Toolbox):
-
-    v1_ = sym('v1_', [3 1], 'real');
-    v2_ = sym('v2_', [3 1], 'real');
-    f = sym('f', 1, 'real');
-    a = sym('a', 1, 'real');
-    Ra = cross(v1_, v2_) * (f/(a + sqrt(dot(v1_, v1_) * dot(v2_, v2_)) + dot(v1_, v2_)));
-    J_Ra = jacobian(Ra, v2_);
-    pretty(J_Ra);
+    Differentiate r = f*c/(a*n + w), where c = v1 cross v2,
+    w = |v1|*|v2| + v1 dot v2, and n = sqrt(c dot c + w*w).
+    At an exactly antiparallel pair the rotation axis is not unique; use
+    the same deterministic axis convention as calculate_rotation_vector.
     */
     template <typename T>
     inline Matrix<3, 3> calculate_rotation_vector_jacobian(const Vector<3>& v2, const Vector<3>& v1) {
-        Matrix<3, 3> j;
-        real_t c8 = std::sqrt(v1.squaredNorm() * v2.squaredNorm());
-        real_t q_w = c8 + v1.dot(v2);
-        real_t c9_8 = real_t(0.0);
-
-        /* Check whether the vectors are antiparallel or too small. */
-        Vector<3> c123 = Vector<3>::Zero();
-        if(c8 > std::numeric_limits<real_t>::epsilon()) {
-            c9_8 = v1.squaredNorm() / c8;
-
-            if(q_w > std::numeric_limits<real_t>::epsilon()) {
-                c123 = v1.cross(v2);
+        const real_t norm = std::sqrt(v1.squaredNorm() * v2.squaredNorm());
+        const real_t w = norm + v1.dot(v2);
+        Vector<3> c = Vector<3>::Zero();
+        Vector<3> dw = v1;
+        if (norm > std::numeric_limits<real_t>::epsilon()) {
+            dw += v2 * (v1.squaredNorm() / norm);
+            if (w > std::numeric_limits<real_t>::epsilon()) {
+                c = v1.cross(v2);
             } else {
-                c123 = Vector<3>(-v1(2), v1(1), v1(0));
+                c = antiparallel_axis(v1);
             }
-            c123(1) = -c123(1);
         }
+        Matrix<3, 3> dc;
+        dc << 0, -v1(2), v1(1),
+              v1(2), 0, -v1(0),
+              -v1(1), v1(0), 0;
 
-        real_t c4 = Parameters::MRP_A<T> + q_w;
-        if(std::abs(c4) < std::numeric_limits<real_t>::epsilon()) {
-            c4 = std::numeric_limits<real_t>::epsilon();
+        const real_t quaternion_norm = std::sqrt(c.squaredNorm() + w*w);
+        real_t denominator = Parameters::MRP_A<T> * quaternion_norm + w;
+        Vector<3> denominator_gradient = dw;
+        if (quaternion_norm > std::numeric_limits<real_t>::epsilon()) {
+            denominator_gradient += Parameters::MRP_A<T> *
+                (dc.transpose() * c + w * dw) / quaternion_norm;
         }
-        real_t c4_2 = c4*c4;
-
-        Vector<3> c765 = v1 + v2*c9_8;
-
-        j <<            -c123(0)*c765(0)/c4_2, -v1(2)/c4 - c123(0)*c765(1)/c4_2,  v1(1)/c4 - c123(0)*c765(2)/c4_2,
-              v1(2)/c4 + c123(1)*c765(0)/c4_2,             c123(1)*c765(1)/c4_2, -v1(0)/c4 + c123(1)*c765(2)/c4_2,
-             -v1(1)/c4 - c123(2)*c765(0)/c4_2,  v1(0)/c4 - c123(2)*c765(1)/c4_2,            -c123(2)*c765(2)/c4_2;
-        j *= Parameters::MRP_F<T>;
-
-        return j;
+        if (std::abs(denominator) < std::numeric_limits<real_t>::epsilon()) {
+            denominator = std::numeric_limits<real_t>::epsilon();
+        }
+        return Parameters::MRP_F<T> * (dc / denominator -
+            c * denominator_gradient.transpose() / (denominator * denominator));
     }
 
     /*
@@ -127,7 +127,7 @@ namespace UKF {
         */
         template <typename T>
         static Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> field_covariance(
-                const T& p, const T& z_pred, const T& z) {
+                const T& p, [[maybe_unused]] const T& z_pred, [[maybe_unused]] const T& z) {
             Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> temp =
                 Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>>::Zero();
             if constexpr (std::is_arithmetic_v<T>) {
@@ -153,7 +153,7 @@ namespace UKF {
 
         template <typename T>
         static Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> field_root_covariance(
-                const T& p, const T& z_pred, const T& z) {
+                const T& p, [[maybe_unused]] const T& z_pred, [[maybe_unused]] const T& z) {
             Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> temp =
                 Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>>::Zero();
             if constexpr (std::is_arithmetic_v<T>) {
@@ -188,14 +188,15 @@ namespace UKF {
         */
         template <typename T>
         static T sigma_point_mean(
-                const Matrix<Detail::StateVectorDimension<T>, S::num_sigma()>& sigma, const T& field) {
-            return Parameters::Sigma_WMI<S>*sigma.template block<Detail::StateVectorDimension<T>, S::num_sigma()-1>(
-                0, 1).rowwise().sum() + Parameters::Sigma_WM0<S>*sigma.col(0);
+                const Matrix<Detail::StateVectorDimension<T>, S::num_sigma()>& sigma, [[maybe_unused]] const T& field) {
+            /* Accumulate offsets from the central point; see StateVector. */
+            return sigma.col(0) + Parameters::Sigma_WMI<S> *
+                (sigma.template rightCols<S::num_sigma()-1>().colwise() - sigma.col(0)).rowwise().sum();
         }
 
-        static real_t sigma_point_mean(const Matrix<1, S::num_sigma()>& sigma, const real_t& field) {
-            return Parameters::Sigma_WMI<S>*sigma.template segment<S::num_sigma()-1>(1).sum()
-                + Parameters::Sigma_WM0<S>*sigma(0);
+        static real_t sigma_point_mean(const Matrix<1, S::num_sigma()>& sigma, [[maybe_unused]] const real_t& field) {
+            return sigma(0) + Parameters::Sigma_WMI<S> *
+                (sigma.template segment<S::num_sigma()-1>(1).array() - sigma(0)).sum();
         }
 
         /*
@@ -204,7 +205,7 @@ namespace UKF {
         set of sigma points. Then, calculate the mean of these rotations and
         apply it to the central sigma point.
         */
-        static FieldVector sigma_point_mean(const Matrix<3, S::num_sigma()>& sigma, const FieldVector& field) {
+        static FieldVector sigma_point_mean(const Matrix<3, S::num_sigma()>& sigma, [[maybe_unused]] const FieldVector& field) {
             Vector<3> temp = Vector<3>::Zero();
 
             for(std::size_t i = 0; i < S::num_sigma()-1; i++) {
@@ -346,11 +347,9 @@ public:
         CovarianceMatrix cov;
 
         /* Calculate the covariance using equation 64 from the Kraft paper. */
-        cov = CovarianceMatrix::Zero();
-        for(std::size_t i = 1; i < S::num_sigma(); i++) {
-            cov.noalias() += Parameters::Sigma_WCI<S> * (z_prime.col(i) * z_prime.col(i).transpose());
-        }
-        cov.noalias() += Parameters::Sigma_WC0<S> * (z_prime.col(0) * z_prime.col(0).transpose());
+        cov.noalias() = (Parameters::Sigma_WCI<S> * z_prime.template rightCols<S::num_sigma() - 1>()) *
+            z_prime.template rightCols<S::num_sigma() - 1>().transpose();
+        cov.noalias() += (Parameters::Sigma_WC0<S> * z_prime.col(0)) * z_prime.col(0).transpose();
 
         return cov;
     }
@@ -363,9 +362,11 @@ public:
             const typename S::SigmaPointDistribution& X, const U&... input) const {
         SigmaPointDistribution<S> Z(size(), S::num_sigma());
 
+        /* Reference the inputs once rather than copying them per sigma point. */
+        const std::tuple<const U&...> inputs{input...};
         for(std::size_t i = 0; i < S::num_sigma(); i++) {
             FixedMeasurementVector temp;
-            calculate_field_measurements<S, std::tuple<U...>, Fields...>(temp, X.col(i), std::make_tuple(input...));
+            calculate_field_measurements<S, const std::tuple<const U&...>&, Fields...>(temp, X.col(i), inputs);
             Z.col(i) = temp;
         }
 
@@ -601,7 +602,7 @@ public:
         std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(Key)>(field_offsets);
 
         /* Check if this field has already been set. If so, replace it. */
-        if(offset < Base::size()) {
+        if(offset < static_cast<std::size_t>(Base::size())) {
             Base::template segment<Detail::get_field_size<Fields...>(Key)>(offset) << in;
         } else {
             /*
@@ -659,11 +660,9 @@ public:
         CovarianceMatrix cov(Base::size(), Base::size());
 
         /* Calculate the covariance using equation 64 from the Kraft paper. */
-        cov = CovarianceMatrix::Zero(Base::size(), Base::size());
-        for(std::size_t i = 1; i < S::num_sigma(); i++) {
-            cov.noalias() += Parameters::Sigma_WCI<S> * (z_prime.col(i) * z_prime.col(i).transpose());
-        }
-        cov.noalias() += Parameters::Sigma_WC0<S> * (z_prime.col(0) * z_prime.col(0).transpose());
+        cov.noalias() = (Parameters::Sigma_WCI<S> * z_prime.template rightCols<S::num_sigma() - 1>()) *
+            z_prime.template rightCols<S::num_sigma() - 1>().transpose();
+        cov.noalias() += (Parameters::Sigma_WC0<S> * z_prime.col(0)) * z_prime.col(0).transpose();
 
         return cov;
     }
@@ -676,9 +675,11 @@ public:
             const typename S::SigmaPointDistribution& X, const U&... input) const {
         SigmaPointDistribution<S> Z(Base::size(), S::num_sigma());
 
+        /* Reference the inputs once rather than copying them per sigma point. */
+        const std::tuple<const U&...> inputs{input...};
         for(std::size_t i = 0; i < S::num_sigma(); i++) {
             DynamicMeasurementVector temp(Base::size());
-            calculate_field_measurements<S, std::tuple<U...>, Fields...>(temp, X.col(i), std::make_tuple(input...));
+            calculate_field_measurements<S, const std::tuple<const U&...>&, Fields...>(temp, X.col(i), inputs);
             Z.col(i) = temp;
         }
 

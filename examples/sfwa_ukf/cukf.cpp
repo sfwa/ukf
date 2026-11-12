@@ -173,12 +173,13 @@ SFWA_StateVector SFWA_StateVector::derivative<>() const {
     /*
     Calculate change in position. Using the small angle approximation, this
     becomes very simple – no trig required for latitude derivative, and one
-    cosine function for longitude derivative.
+    cosine function for longitude derivative: an eastward velocity covers a
+    parallel of radius (N + h) * cos(lat).
     */
     UKF::Vector<3> vel = get_field<Velocity>();
     output.set_field<LatLon>(Vector<2>(
         vel[0] / (M + get_field<Altitude>()),
-        (vel[1] / (N + get_field<Altitude>())) * std::cos(lat)));
+        vel[1] / ((N + get_field<Altitude>()) * std::cos(lat))));
     output.set_field<Altitude>(-vel[2]);
 
     /* Calculate change in velocity. */
@@ -467,15 +468,15 @@ void ukf_set_params(struct ukf_ioboard_params_t *in) {
         in->barometer_amsl_covariance;
 }
 
-void ukf_choose_dynamics(enum ukf_model_t t) {
+void ukf_choose_dynamics(enum ukf_model_t) {
 
 }
 
-void ukf_set_custom_dynamics_model(ukf_model_function_t func) {
+void ukf_set_custom_dynamics_model(ukf_model_function_t) {
 
 }
 
-void ukf_iterate(float dt, real_t control_vector[UKF_CONTROL_DIM]) {
+void ukf_iterate(float dt, real_t[UKF_CONTROL_DIM]) {
     ukf.step(dt, meas);
 }
 

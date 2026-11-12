@@ -23,8 +23,9 @@ SOFTWARE.
 #ifndef TYPES_H
 #define TYPES_H
 
-#include <Eigen/Core>
 #include "UKF/Config.h"
+#include <Eigen/Core>
+#include <Eigen/Geometry>
 
 namespace UKF {
 
@@ -32,7 +33,8 @@ template <int Rows, int Columns>
 using Matrix = Eigen::Matrix<real_t, Rows, Columns>;
 
 template <int Rows, int Columns>
-using MatrixDynamic = Eigen::Matrix<real_t, Eigen::Dynamic, Eigen::Dynamic, 0, Rows, Columns>;
+using MatrixDynamic = Eigen::Matrix<real_t, Eigen::Dynamic, Eigen::Dynamic,
+    Rows == 1 && Columns != 1 ? Eigen::RowMajor : Eigen::ColMajor, Rows, Columns>;
 
 template <int Rows, int Columns>
 using Array = Eigen::Array<real_t, Rows, Columns>;
