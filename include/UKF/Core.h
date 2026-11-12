@@ -35,6 +35,7 @@ SOFTWARE.
 #include "UKF/Covariance.h"
 #include "UKF/RankUpdate.h"
 #include <type_traits>
+#include <utility>
 
 namespace UKF {
 
@@ -263,6 +264,38 @@ public:
     }
 
     /*
+    Apply a correction only when a gate accepts its valid innovation. A
+    rejected or empty observation keeps the prediction and diagnostics;
+    numerical failure restores the public values from before this call,
+    matching step(). False can therefore mean rejection, empty input or
+    failure. Application callbacks are invoked synchronously and not copied.
+    */
+    template <typename Gate, typename... U>
+    bool step_with_gate(real_t delta, const MeasurementVectorType& z, Gate&& gate, const U&... input) {
+        const StateVectorType previous_state = state;
+        const typename StateVectorType::CovarianceMatrix previous_covariance = covariance;
+        const MeasurementVectorType previous_innovation = innovation;
+        const typename MeasurementVectorType::CovarianceMatrix previous_innovation_covariance =
+            innovation_covariance;
+        if (a_priori_step(delta, input...) && innovation_step(z, input...)) {
+            if (innovation.size() == 0 ||
+                    !std::forward<Gate>(gate)(static_cast<const Core&>(*this), z, input...)) {
+                return false;
+            }
+            if (a_posteriori_step()) {
+                return true;
+            }
+        }
+        state = previous_state;
+        covariance = previous_covariance;
+        innovation = previous_innovation;
+        innovation_covariance = previous_innovation_covariance;
+        prior_valid = false;
+        innovation_valid = false;
+        return false;
+    }
+
+    /*
     The a priori step calculates the sigma point distribution using the
     previous state covariance and previous state estimate, and then
     propagates all sigma points through the process model.
@@ -422,6 +455,21 @@ public:
         covariance = updated_covariance;
         return true;
     }
+
+    /*
+    Split-step gating hook. A missing or failed innovation never calls the
+    gate. Rejection retains prediction and diagnostics; an accepted gate
+    returns the actual correction result. Context is passed unchanged.
+    */
+    template <typename Gate, typename... U>
+    bool a_posteriori_step(Gate&& gate, const U&... context) {
+        if (!innovation_valid || innovation.size() == 0 ||
+                !std::forward<Gate>(gate)(static_cast<const Core&>(*this), context...)) {
+            return false;
+        }
+        return a_posteriori_step();
+    }
+
 };
 
 /*
@@ -510,6 +558,38 @@ public:
         root_covariance = previous_root;
         innovation = previous_innovation;
         innovation_root_covariance = previous_innovation_root;
+        prior_valid = false;
+        innovation_valid = false;
+        return false;
+    }
+
+    /*
+    Apply a correction only when a gate accepts its valid innovation. A
+    rejected or empty observation keeps the prediction and diagnostics;
+    numerical failure restores the public values from before this call,
+    matching step(). False can therefore mean rejection, empty input or
+    failure. Application callbacks are invoked synchronously and not copied.
+    */
+    template <typename Gate, typename... U>
+    bool step_with_gate(real_t delta, const MeasurementVectorType& z, Gate&& gate, const U&... input) {
+        const StateVectorType previous_state = state;
+        const typename StateVectorType::CovarianceMatrix previous_covariance = root_covariance;
+        const MeasurementVectorType previous_innovation = innovation;
+        const typename MeasurementVectorType::CovarianceMatrix previous_innovation_covariance =
+            innovation_root_covariance;
+        if (a_priori_step(delta, input...) && innovation_step(z, input...)) {
+            if (innovation.size() == 0 ||
+                    !std::forward<Gate>(gate)(static_cast<const SquareRootCore&>(*this), z, input...)) {
+                return false;
+            }
+            if (a_posteriori_step()) {
+                return true;
+            }
+        }
+        state = previous_state;
+        root_covariance = previous_covariance;
+        innovation = previous_innovation;
+        innovation_root_covariance = previous_innovation_covariance;
         prior_valid = false;
         innovation_valid = false;
         return false;
@@ -658,6 +738,21 @@ public:
         state = updated_state;
         return true;
     }
+
+    /*
+    Split-step gating hook. A missing or failed innovation never calls the
+    gate. Rejection retains prediction and diagnostics; an accepted gate
+    returns the actual correction result. Context is passed unchanged.
+    */
+    template <typename Gate, typename... U>
+    bool a_posteriori_step(Gate&& gate, const U&... context) {
+        if (!innovation_valid || innovation.size() == 0 ||
+                !std::forward<Gate>(gate)(static_cast<const SquareRootCore&>(*this), context...)) {
+            return false;
+        }
+        return a_posteriori_step();
+    }
+
 };
 
 /*
@@ -745,6 +840,38 @@ public:
         root_covariance = previous_root;
         innovation = previous_innovation;
         innovation_root_covariance = previous_innovation_root;
+        prior_valid = false;
+        innovation_valid = false;
+        return false;
+    }
+
+    /*
+    Apply a correction only when a gate accepts its valid innovation. A
+    rejected or empty observation keeps the prediction and diagnostics;
+    numerical failure restores the public values from before this call,
+    matching step(). False can therefore mean rejection, empty input or
+    failure. Application callbacks are invoked synchronously and not copied.
+    */
+    template <typename Gate, typename... U>
+    bool step_with_gate(const MeasurementVectorType& z, Gate&& gate, const U&... input) {
+        const StateVectorType previous_state = state;
+        const typename StateVectorType::CovarianceMatrix previous_covariance = root_covariance;
+        const MeasurementVectorType previous_innovation = innovation;
+        const typename MeasurementVectorType::CovarianceMatrix previous_innovation_covariance =
+            innovation_root_covariance;
+        if (a_priori_step() && innovation_step(z, input...)) {
+            if (innovation.size() == 0 ||
+                    !std::forward<Gate>(gate)(static_cast<const SquareRootParameterEstimationCore&>(*this), z, input...)) {
+                return false;
+            }
+            if (a_posteriori_step()) {
+                return true;
+            }
+        }
+        state = previous_state;
+        root_covariance = previous_covariance;
+        innovation = previous_innovation;
+        innovation_root_covariance = previous_innovation_covariance;
         prior_valid = false;
         innovation_valid = false;
         return false;
@@ -878,6 +1005,21 @@ public:
         state = updated_state;
         return true;
     }
+
+    /*
+    Split-step gating hook. A missing or failed innovation never calls the
+    gate. Rejection retains prediction and diagnostics; an accepted gate
+    returns the actual correction result. Context is passed unchanged.
+    */
+    template <typename Gate, typename... U>
+    bool a_posteriori_step(Gate&& gate, const U&... context) {
+        if (!innovation_valid || innovation.size() == 0 ||
+                !std::forward<Gate>(gate)(static_cast<const SquareRootParameterEstimationCore&>(*this), context...)) {
+            return false;
+        }
+        return a_posteriori_step();
+    }
+
 };
 
 }
