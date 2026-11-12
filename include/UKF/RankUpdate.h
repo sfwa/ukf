@@ -41,14 +41,18 @@ typename MatrixType::Index rank_update_lower(MatrixType& factor,
         return Index(-1);
     }
 
+    /*
+    The workspace has the largest size the factor and vectors can take, and
+    is zeroed in full, so that no part of it is ever read before it has a
+    value, whatever a compiler can work out about the sizes.
+    */
     const Scalar tolerance = std::sqrt(std::numeric_limits<Scalar>::epsilon());
-    Eigen::Matrix<Scalar, MatrixType::RowsAtCompileTime, VectorsType::ColsAtCompileTime,
-        MatrixType::MaxRowsAtCompileTime == 1 ? Eigen::RowMajor : Eigen::ColMajor,
-        MatrixType::MaxRowsAtCompileTime, VectorsType::MaxColsAtCompileTime> work =
-        std::sqrt(std::abs(weight)) * vectors;
+    using Workspace = Eigen::Matrix<Scalar, MatrixType::MaxRowsAtCompileTime, VectorsType::MaxColsAtCompileTime>;
+    Workspace work = Workspace::Zero();
+    work.topLeftCorner(vectors.rows(), vectors.cols()) = std::sqrt(std::abs(weight)) * vectors;
 
     for (Index k = 0; k < factor.rows(); ++k) {
-        for (Index i = 0; i < work.cols(); ++i) {
+        for (Index i = 0; i < vectors.cols(); ++i) {
             const Scalar diagonal = factor(k, k);
             const Scalar entry = work(k, i);
             if (weight > Scalar(0)) {

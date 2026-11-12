@@ -479,8 +479,14 @@ public:
     typename MeasurementVectorType::CovarianceMatrix innovation_root_covariance;
 
     SquareRootCore() {
-        /* Give fixed-size innovation values a defined state before any step. */
+        /*
+        Give the fixed-size values which the steps fill in a defined state
+        before any step, so that a filter can be copied at any time.
+        */
+        sigma_points.setZero();
+        w_prime.setZero();
         if constexpr (MeasurementVectorType::RowsAtCompileTime != Eigen::Dynamic) {
+            z_prime.setZero();
             innovation.setZero();
             innovation_root_covariance.setZero();
         }
@@ -708,8 +714,14 @@ public:
     typename MeasurementVectorType::CovarianceMatrix innovation_root_covariance;
 
     SquareRootParameterEstimationCore() {
-        /* Give fixed-size innovation values a defined state before any step. */
+        /*
+        Give the fixed-size values which the steps fill in a defined state
+        before any step, so that a filter can be copied at any time.
+        */
+        sigma_points.setZero();
+        w_prime.setZero();
         if constexpr (MeasurementVectorType::RowsAtCompileTime != Eigen::Dynamic) {
+            z_prime.setZero();
             innovation.setZero();
             innovation_root_covariance.setZero();
         }
