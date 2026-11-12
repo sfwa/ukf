@@ -8,7 +8,7 @@ does three things:
   1. compiles the estimator to WebAssembly (needs Emscripten's emcmake on
      the PATH, and CMake),
   2. packs the EuRoC recordings (needs numpy; downloads the pinned files on
-     the first run, about 30 MB),
+     the first run, about 40 MB),
   3. copies the page (explainer/web) next to them.
 
 The result is explainer/_site. Serve it with any static web server, for

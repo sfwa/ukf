@@ -50,7 +50,7 @@ python explainer/build.py
 python -m http.server --directory explainer/_site
 ```
 
-Open <http://localhost:8000>. The first build downloads about 30 MB of EuRoC
+Open <http://localhost:8000>. The first build downloads about 40 MB of EuRoC
 files into `.benchmark-cache/euroc`, the same cache that the benchmark uses.
 
 Opening `index.html` straight from the disk does not work. Browsers do not
@@ -67,12 +67,19 @@ which show the figures without the article around them.
 
 ## Tests
 
+The tests need the site built as above, and Node.js 22 or newer.
+
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DUKF_BUILD_EXPLAINER=ON
 cmake --build build --target euroc_benchmark explainer_check
-python -m unittest discover -s explainer/test -v
+EXPLAINER_REQUIRE_ALL=1 python -m unittest discover -s explainer/test -v
+npm install --no-save playwright@1.63.0
+npx playwright install chromium
 node explainer/test/smoke.cjs
 ```
+
+A Python test is skipped if what it needs has not been built.
+`EXPLAINER_REQUIRE_ALL=1` turns a skip into a failure, as in CI.
 
 The Python tests hold the page to its claim that it runs the benchmark's
 estimator on the benchmark's inputs:
