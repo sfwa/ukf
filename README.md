@@ -334,7 +334,11 @@ test_filter.measurement_root_covariance << 10, 10, 10, 1, 1, 1, 5e-1, 5e-1, 5e-1
 test_filter.measurement_root_covariance = test_filter.measurement_root_covariance.array().sqrt();
 ```
 
-Currently, only a diagonal measurement noise covariance matrix is supported.
+Diagonal measurement noise remains the default. To include correlations,
+select `MyMeasurementVector::DenseCovarianceMatrix` as the final core template
+argument. See [dense measurement covariance](docs/dense-measurement-covariance.md)
+for fixed and dynamic measurement examples, square-root factors, and field
+ordering.
 
 Both state estimation filters use additive process noise:
 `x_next = process_model(x, dt, inputs) + noise`. The process noise covariance

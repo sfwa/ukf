@@ -189,7 +189,8 @@ successful a_priori_step. step() restores them even when only its correction
 fails. A step fails when a covariance is not finite or is indefinite beyond
 roundoff. The cores never throw.
 */
-template <typename StateVectorType, typename MeasurementVectorType, typename IntegratorType=NotUsedIntegrator>
+template <typename StateVectorType, typename MeasurementVectorType, typename IntegratorType=NotUsedIntegrator,
+    typename MeasurementNoiseType=typename MeasurementVectorType::CovarianceVector>
 class Core {
 protected:
     typename StateVectorType::SigmaPointDistribution sigma_points;
@@ -218,9 +219,10 @@ public:
     /*
     Measurement noise covariance is an attribute of the filter instance,
     rather than the MeasurementVector specialisation.
-    Only diagonal measurement noise covariance is supported at the moment.
+    Defaults to a vector of diagonal variances. Use DenseCovarianceMatrix as
+    MeasurementNoiseType to retain correlations between sensor components.
     */
-    typename MeasurementVectorType::CovarianceVector measurement_covariance;
+    MeasurementNoiseType measurement_covariance;
 
     /*
     Innovation and innovation covariance are public to ease implementation of
@@ -434,7 +436,8 @@ The SR-UKF has a number of numerical and stability advantages over the
 standard UKF, and a lower computational cost. Steps report failure in the
 same way as Core.
 */
-template <typename StateVectorType, typename MeasurementVectorType, typename IntegratorType=NotUsedIntegrator>
+template <typename StateVectorType, typename MeasurementVectorType, typename IntegratorType=NotUsedIntegrator,
+    typename MeasurementNoiseType=typename MeasurementVectorType::CovarianceVector>
 class SquareRootCore {
 protected:
     typename StateVectorType::SigmaPointDistribution sigma_points;
@@ -466,10 +469,10 @@ public:
     /*
     Measurement noise root covariance is an attribute of the filter instance,
     rather than the MeasurementVector specialisation.
-    Only diagonal measurement noise root covariance is supported at the
-    moment.
+    Defaults to a vector of standard deviations. Use DenseCovarianceMatrix
+    as MeasurementNoiseType for a full factor L with noise covariance L*L^T.
     */
-    typename MeasurementVectorType::CovarianceVector measurement_root_covariance;
+    MeasurementNoiseType measurement_root_covariance;
 
     /*
     Innovation covariance is also stored in square-root form as described
@@ -669,7 +672,8 @@ http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.80.1421&rep=rep1&type=p
 
 Steps report failure in the same way as Core.
 */
-template <typename StateVectorType, typename MeasurementVectorType>
+template <typename StateVectorType, typename MeasurementVectorType,
+    typename MeasurementNoiseType=typename MeasurementVectorType::CovarianceVector>
 class SquareRootParameterEstimationCore {
 protected:
     typename StateVectorType::SigmaPointDistribution sigma_points;
@@ -701,10 +705,10 @@ public:
     /*
     Measurement noise root covariance is an attribute of the filter instance,
     rather than the MeasurementVector specialisation.
-    Only diagonal measurement noise root covariance is supported at the
-    moment.
+    Defaults to a vector of standard deviations. Use DenseCovarianceMatrix
+    as MeasurementNoiseType for a full factor L with noise covariance L*L^T.
     */
-    typename MeasurementVectorType::CovarianceVector measurement_root_covariance;
+    MeasurementNoiseType measurement_root_covariance;
 
     /*
     Innovation covariance is also stored in square-root form as described
