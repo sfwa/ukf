@@ -1,6 +1,6 @@
 {
   "scope": "full EuRoC dataset",
-  "revision": "0a0d7d23b99dc8fc53b0b1d86ca5f517c375ebc3",
+  "revision": "4faf4ca7a026462a786546cff2ce180c015eb825",
   "dirty": false,
   "source_sha256": {
     "CMakeLists.txt": "52e051eff179c2eb3876ab2a76b30c4523b5a7af0772f06048cdca01f421684d",
@@ -25,17 +25,17 @@
     "examples/euroc_benchmark/rotor_vibration.h": "c48a73a9f9d81590719eca2fdc9eb637755433b6e323d968f485a8e47bb0a4f6",
     "examples/euroc_benchmark/run.py": "53cb75da03c2eba0ef6a3340d74928bf506cb9118f6a4690e27fe57cd7bfff36",
     "include/UKF/Config.h": "cb7ecbc40d15a5689d07dd649ceb52c61d8a6d43119ca4a3d910ff58aedf11a5",
-    "include/UKF/Core.h": "82a85cf6527163a64a95c6a6bbc40234641e8bfbe1bfb6c87bd74f220e7459c1",
+    "include/UKF/Core.h": "5823a50222894043d9ef78fb326a252b613dc8fa5ad1cfacea8e5ff3554d977f",
     "include/UKF/Covariance.h": "adb762d09bdf9b1bcae0edd26cd87a5ef13e97c291e36f128a9d4effc8f0323a",
     "include/UKF/Integrator.h": "239361c00080b3fb451b8a7e8ece39ae35c3444eb0e41a73ae64cc7cdc946549",
     "include/UKF/MeasurementVector.h": "29226c3ac359848a2adc19cbf3af2c2a5d03ed1154d2889a1c4058b8d0a7bd76",
-    "include/UKF/RankUpdate.h": "9b4538752e3e98966ccfd01854a1eb9f18f7bc4e774ae71606e09c5a4e1d81cd",
+    "include/UKF/RankUpdate.h": "9986ba29a46de9cae694c4c8df748b32ef4b8623532bc32c5cb16d0ce52e22c8",
     "include/UKF/StateVector.h": "3c54b0442492974420c0b774571704de4152b3abb80b81f066a2e480311a09ff",
     "include/UKF/Types.h": "8d6299373fe92651f3b6742f460e4520bb5c6fe6b082756078dbbd328f21dfa7"
   },
   "binary_sha256": {
-    "attitude_benchmark": "371331c5dc0fd80ad3707155a5b723db1e3c00bb4dca7aea27ab2baf42d66cbc",
-    "euroc_benchmark": "8e420521c60d1d8eac1ed8e3777f37a0d596c81e4219beeed74238026420c558"
+    "attitude_benchmark": "0671d66ab91e180f7acd21ae8015c0098396188d80b1976e22d6de66a2b7e2c7",
+    "euroc_benchmark": "5fddd7fd439efc8143db5267d6bc281134dd248c7488532f32b96863ddab4b02"
   },
   "platform": "macOS-27.2-arm64-arm-64bit",
   "machine": "arm64",
