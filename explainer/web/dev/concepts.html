@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concept figures (test page)</title>
+<link rel="stylesheet" href="../css/style.css">
+<script type="module" src="../js/dev-concepts.js"></script>
+</head>
+<body>
+<header class="title">
+<h1>Concept figures</h1>
+<p class="byline">Test page. Not part of the article.</p>
+</header>
+<main>
+
+<h2>noise</h2>
+<p>A <span class="k k-orange" data-hl="reading">reading</span> scatters about the
+<span class="k k-ink" data-hl="truth">true height</span>; the <span class="k k-orange" data-hl="spread">spread</span>
+says how far. <button class="act" data-fig="fig-noise" data-set='{"noise": 0.35}'>A poor sensor</button>,
+<button class="act" data-fig="fig-noise" data-set='{"noise": 0.06}'>a good one</button>,
+<button class="act" data-fig="fig-noise" data-do="restart">start again</button>.</p>
+<figure class="fig" id="fig-noise" data-figure="noise" style="--ratio: 2 / 1; --ratio-narrow: 1 / 1">
+<div class="fig-stage"></div>
+<div class="fig-controls"></div>
+<figcaption>A quadcopter hovers 1 m above the floor. Its height sensor reports a slightly different height each time.</figcaption>
+</figure>
+
+<h2>fuse</h2>
+<p><span class="k k-green" data-hl="prediction">prediction</span>,
+<span class="k k-orange" data-hl="reading">reading</span>,
+<span class="k k-blue" data-hl="estimate">estimate</span>,
+<span class="k k-ink" data-hl="gain">gain</span>.
+<button class="act" data-fig="fig-fuse" data-set='{"sensorSpread": 0.2}'>A very good sensor</button>,
+<button class="act" data-fig="fig-fuse" data-set='{"sensorSpread": 2.4}'>a very poor one</button>,
+<button class="act" data-fig="fig-fuse" data-set='{"sensorSpread": 1.2, "predictionSpread": 1.2}'>equal trust</button>.</p>
+<figure class="fig" id="fig-fuse" data-figure="fuse" style="--ratio: 2 / 1; --ratio-narrow: 1 / 1">
+<div class="fig-stage"></div>
+<div class="fig-controls"></div>
+<figcaption>Two guesses about the same position, and the one guess which both together support.</figcaption>
+</figure>
+
+<h2>predict</h2>
+<p><span class="k k-blue" data-hl="start">where it was</span>,
+<span class="k k-green" data-hl="prediction">where it may be now</span>,
+<span class="k k-ink" data-hl="truth">where it really is</span>.
+<button class="act" data-fig="fig-predict" data-set='{"t": 6}'>Wait six seconds</button>,
+<button class="act" data-fig="fig-predict" data-set='{"t": 0}'>go back</button>,
+<button class="act" data-fig="fig-predict" data-set='{"noise": 0.9}'>a rough model</button>.</p>
+<figure class="fig" id="fig-predict" data-figure="predict" style="--ratio: 2 / 1; --ratio-narrow: 1 / 1">
+<div class="fig-stage"></div>
+<div class="fig-controls"></div>
+<figcaption>Without a new reading, the belief about the position moves with the quadcopter and spreads out.</figcaption>
+</figure>
+
+<h2>loop</h2>
+<p><span class="k k-ink" data-hl="truth">truth</span>,
+<span class="k k-orange" data-hl="reading">readings</span>,
+<span class="k k-blue" data-hl="estimate">estimate</span>,
+<span class="k k-blue" data-hl="spread">spread</span>.
+<button class="act" data-fig="fig-loop" data-set='{"outage": true}'>Block the sensor</button>,
+<button class="act" data-fig="fig-loop" data-set='{"outage": false}'>unblock it</button>,
+<button class="act" data-fig="fig-loop" data-set='{"modelNoise": 0.08}'>trust the model too much</button>,
+<button class="act" data-fig="fig-loop" data-set='{"modelNoise": 4}'>trust it too little</button>.</p>
+<figure class="fig" id="fig-loop" data-figure="loop" style="--ratio: 16 / 9; --ratio-narrow: 4 / 5">
+<div class="fig-stage"></div>
+<div class="fig-controls"></div>
+<figcaption>A quadcopter flies back and forth along a line. The filter predicts all the time and corrects at each reading.</figcaption>
+</figure>
+
+<h2>hidden</h2>
+<p><span class="k k-blue" data-hl="start">start</span>,
+<span class="k k-green" data-hl="prediction">prediction</span>,
+<span class="k k-orange" data-hl="reading">reading</span>,
+<span class="k k-blue" data-hl="estimate">estimate</span>,
+<span class="k k-ink" data-hl="truth">truth</span>.
+<button class="act" data-fig="fig-hidden" data-set='{"wait": 2}'>Wait two seconds</button>,
+<button class="act" data-fig="fig-hidden" data-set='{"reading": true}'>take a reading</button>,
+<button class="act" data-fig="fig-hidden" data-set='{"wait": 0, "reading": false}'>start again</button>.</p>
+<figure class="fig" id="fig-hidden" data-figure="hidden" style="--ratio: 16 / 9; --ratio-narrow: 1 / 1">
+<div class="fig-stage"></div>
+<div class="fig-controls"></div>
+<figcaption>Each dot is one possible quadcopter: where it is, and how fast it moves.</figcaption>
+</figure>
+
+<h2>curve</h2>
+<p><span class="k k-blue" data-hl="belief">belief</span>,
+<span class="k k-ink" data-hl="truth">truth</span>,
+<span class="k k-ink" data-hl="linear">straight line</span>,
+<span class="k k-green" data-hl="sigma">sigma points</span>.
+<button class="act" data-fig="fig-curve" data-set='{"tilt": 0}'>Level</button>,
+<button class="act" data-fig="fig-curve" data-set='{"tilt": 30, "spread": 10}'>default</button>,
+<button class="act" data-fig="fig-curve" data-set='{"spread": 2}'>a small spread</button>.</p>
+<figure class="fig" id="fig-curve" data-figure="curve" style="--ratio: 16 / 10; --ratio-narrow: 4 / 5">
+<div class="fig-stage"></div>
+<div class="fig-controls"></div>
+<figcaption>A tilted quadcopter measures a longer distance to the floor. The link between tilt and reading is a curve.</figcaption>
+</figure>
+
+<h2>sigma2d</h2>
+<p><span class="k k-blue" data-hl="belief">belief</span>,
+<span class="k k-blue" data-hl="sigma">sigma points</span>,
+<span class="k k-green" data-hl="unscented">unscented result</span>,
+<span class="k k-ink" data-hl="linear">straight-line result</span>,
+<span class="k k-ink" data-hl="cloud">cloud</span>.
+<button class="act" data-fig="fig-sigma2d" data-set='{"bearingSpread": 30}'>A poor bearing</button>,
+<button class="act" data-fig="fig-sigma2d" data-set='{"bearingSpread": 4}'>a good one</button>.</p>
+<figure class="fig" id="fig-sigma2d" data-figure="sigma2d" style="--ratio: 2 / 1; --ratio-narrow: 2 / 3">
+<div class="fig-stage"></div>
+<div class="fig-controls"></div>
+<figcaption>A ground station knows the distance and the direction to the quadcopter. Where is it on the map?</figcaption>
+</figure>
+
+</main>
+</body>
+</html>

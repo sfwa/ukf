@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Real-data figures (test page)</title>
+<link rel="stylesheet" href="../css/style.css">
+<script type="module" src="../js/dev-real.js"></script>
+</head>
+<body>
+<main>
+<h2>flight</h2>
+<figure class="fig" id="fig-flight" data-figure="flight" style="--ratio: 16 / 9; --ratio-narrow: 1 / 1">
+<div class="fig-stage"></div><div class="fig-controls"></div><figcaption>flight</figcaption></figure>
+<h2>gyro</h2>
+<p>The gyroscope reads <span class="live" data-live="gyro-rest-rate"></span>°/s at rest; after 10 s: <span class="live" data-live="gyro-only-tilt-10s"></span>° vs <span class="live" data-live="filter-tilt-10s"></span>°. <span class="k k-orange" data-hl="gyro">gyroscope alone</span> <span class="k k-blue" data-hl="estimate">filter</span></p>
+<figure class="fig" id="fig-gyro" data-figure="gyro" style="--ratio: 16 / 10; --ratio-narrow: 4 / 5">
+<div class="fig-stage"></div><div class="fig-controls"></div><figcaption>gyro</figcaption></figure>
+<h2>level</h2>
+<p>True tilt up to <span class="live" data-live="level-true-max"></span>°, accelerometer never more than <span class="live" data-live="level-accel-max"></span>°.</p>
+<figure class="fig" id="fig-level" data-figure="level" style="--ratio: 2 / 1; --ratio-narrow: 1 / 1">
+<div class="fig-stage"></div><div class="fig-controls"></div><figcaption>level</figcaption></figure>
+<h2>drag</h2>
+<p>Estimator: <span class="live" data-live="drag-rate"></span>; fit <span class="live" data-live="drag-fit"></span>; dots <span class="live" data-live="drag-dots"></span>. <span class="k k-green" data-hl="model">model</span> <span class="k k-orange" data-hl="reading">reading</span></p>
+<figure class="fig" id="fig-drag" data-figure="drag" style="--ratio: 16 / 10; --ratio-narrow: 1 / 1">
+<div class="fig-stage"></div><div class="fig-controls"></div><figcaption>drag</figcaption></figure>
+<h2>modes</h2>
+<figure class="fig" id="fig-modes" data-figure="modes" style="--ratio: 16 / 11; --ratio-narrow: 3 / 4">
+<div class="fig-stage"></div><div class="fig-controls"></div><figcaption>modes</figcaption></figure>
+<h2>fan</h2>
+<figure class="fig" id="fig-fan" data-figure="fan" style="--ratio: 2 / 1; --ratio-narrow: 1 / 2">
+<div class="fig-stage"></div><div class="fig-controls"></div><figcaption>fan</figcaption></figure>
+<h2>step</h2>
+<figure class="fig narrow" id="fig-step" data-figure="step" style="--ratio: 1 / 1; --ratio-narrow: 1 / 1">
+<div class="fig-stage"></div><div class="fig-controls"></div><figcaption>step</figcaption></figure>
+<h2>playground</h2>
+<figure class="fig wide" id="fig-playground" data-figure="playground" style="--ratio: 5 / 2; --ratio-narrow: 1 / 1">
+<div class="fig-stage"></div><div class="fig-controls"></div><figcaption>playground</figcaption></figure>
+<h2>position</h2>
+<p>After 10 s: filter <span class="live" data-live="reckon-filter-10s"></span> m, raw <span class="live" data-live="reckon-raw-10s"></span> m; raw after 2 s <span class="live" data-live="reckon-raw-2s"></span> m.</p>
+<figure class="fig" id="fig-position" data-figure="position" style="--ratio: 16 / 9; --ratio-narrow: 3 / 5">
+<div class="fig-stage"></div><div class="fig-controls"></div><figcaption>position</figcaption></figure>
+<h2>forces</h2>
+<figure class="fig" id="fig-forces" data-figure="forces" style="--ratio: 16 / 9; --ratio-narrow: 1 / 1">
+<div class="fig-stage"></div><div class="fig-controls"></div><figcaption>forces</figcaption></figure>
+<h2>attitude</h2>
+<p>tilt sd <span class="live" data-live="sd-tilt"></span>°, heading sd <span class="live" data-live="sd-heading"></span>°</p>
+<figure class="fig" id="fig-attitude" data-figure="attitude" style="--ratio: 16 / 9; --ratio-narrow: 1 / 1">
+<div class="fig-stage"></div><div class="fig-controls"></div><figcaption>attitude</figcaption></figure>
+</main>
+</body>
+</html>
