@@ -1,33 +1,33 @@
 {
   "broad": {
     "scope": "full selected datasets",
-    "revision": "8ec099b0312a7d86a988bb65cc3ebd7675f86211",
-    "dirty": false,
+    "revision": "3d89b54261ff36bd1ce2431c83f3e51c2ae3d81d",
+    "dirty": true,
     "source_sha256": {
-      "examples/attitude_benchmark/CMakeLists.txt": "73c063b9278b5bf6aa997f2675037f87ffa53371650e6bfa2ccbee5eb6018da7",
+      "examples/attitude_benchmark/CMakeLists.txt": "da08ad74f84250fff13c1e0d109037c8e5b6b98fef4e5ad54a8f76dca15a25a6",
+      "examples/attitude_benchmark/attitude_estimator.h": "a3514ea8a4148ce5fdda5d61aed04b74190a47128d86831901fd38383165ea00",
       "examples/attitude_benchmark/datasets.lock.json": "186770478d3e702911ba4d0bdfd712977535261cfd0a34342c4a2077f259bea5",
       "examples/attitude_benchmark/datasets.py": "e73adba68b74eda802f6c3092939112f38ead066d4d50fe931d156409c5695e2",
-      "examples/attitude_benchmark/estimator.cpp": "c7db9fc114facfbf1ab0e2c32f2676783f5751f13780611106345150ff7b4035",
+      "examples/attitude_benchmark/estimator.cpp": "1f38598a02840ec2d8dafd8ea6a75a80c2548a35aaee1cfe0fa5798472520d3d",
+      "examples/attitude_benchmark/imu_csv.h": "9503906fc1078e20f594d09151c723cbdb48ca663611c49d2efca2c7b363a7ac",
       "examples/attitude_benchmark/metrics.py": "8e66283acaca20fe56d845ea3a237583780d877a1eba37282a9680cecf9827b4",
       "examples/attitude_benchmark/references.py": "a0faafb3109f9931999277bcecc80cd0932524cf2a7dc9de4029bd304074f95c",
       "examples/attitude_benchmark/requirements.txt": "047bf25111774a6343100d73aa2675a807a79712e015666e4e6943e95b3b3a52",
-      "examples/attitude_benchmark/robust_correction.h": "bf3b42c73547393395a8a43a9bfd2b476595d594a8b222e97e37eeb4f01f8d02",
-      "examples/attitude_benchmark/robust_estimator.cpp": "23df5a5aeb23fe3b1b6ae24cc957be646ce39522345b505c77489955c4dced23",
-      "examples/attitude_benchmark/robust_estimator.h": "eda2ad771fbf5ab4d86743bd75c94c7ade58c1a7bcf48a2e2bf3775272df9fba",
-      "examples/attitude_benchmark/robust_geometry.h": "943c67b1811ea052fc99559ee93968a982c9ab27782cfd95ca6dc8fcd32c9e95",
-      "examples/attitude_benchmark/run.py": "7de16e7863e96f17b36f957f9b83f7233f3caf137e5e5b7571ddbd07017e1377",
+      "examples/attitude_benchmark/run.py": "d57b843e2c8f8d95367e89b530a6f371d27f352a75c1cf0cfcc54eae392ce3fa",
+      "examples/attitude_benchmark/sensor_checks.h": "d5e7f4ad5f66f856de51de26c5aae41e7bbb5e362bdc09891853546ead894395",
       "include/UKF/Config.h": "cb7ecbc40d15a5689d07dd649ceb52c61d8a6d43119ca4a3d910ff58aedf11a5",
-      "include/UKF/Core.h": "f2a19e9015dec20aa4e754cce2add1eec015dfa25bb7ae931ce795eb70bddb30",
-      "include/UKF/Covariance.h": "3fc9aa2e42a47af716a1e8ddde2936f9d3d5e6aa67bf58147eb48c813abb25d6",
-      "include/UKF/Integrator.h": "51fdc85bd7d47a838d7fc8fd32a6234d9faa1f6a54888a37c9c90bf07bf427e0",
-      "include/UKF/MeasurementVector.h": "7d5c3f378996ffbbf4897b7a53e8cb305aab343b06a5952cd8911239efc89da7",
-      "include/UKF/StateVector.h": "960e22d464e352076fb90b5c34216407b29b9701f32686b88095a3d4b8631234",
-      "include/UKF/Types.h": "bf54e8b21656402f2a24b03491a148cd81acf11a2f3222b9ddb65b3db512a272"
+      "include/UKF/Core.h": "e7ad669c3f4629dbefba79531f6c0da0f25b6fe9f9530eab8cd2d9cfcfd5aa96",
+      "include/UKF/Covariance.h": "732da5fcd733af33fac63cb171ffb4d8d726624b029229cb235b3d472820c601",
+      "include/UKF/Integrator.h": "239361c00080b3fb451b8a7e8ece39ae35c3444eb0e41a73ae64cc7cdc946549",
+      "include/UKF/MeasurementVector.h": "29226c3ac359848a2adc19cbf3af2c2a5d03ed1154d2889a1c4058b8d0a7bd76",
+      "include/UKF/RankUpdate.h": "e087c14cc81553afc87690f697bbf7bfac6bddb00d2ca8e6335439b3074056d7",
+      "include/UKF/StateVector.h": "3c54b0442492974420c0b774571704de4152b3abb80b81f066a2e480311a09ff",
+      "include/UKF/Types.h": "8d6299373fe92651f3b6742f460e4520bb5c6fe6b082756078dbbd328f21dfa7"
     },
-    "binary_sha256": "a85da439efab3374787131953eb66c1bf76546d12adbd6b907ddd4c32de6ad14",
-    "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
-    "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
-    "machine": "x86_64",
+    "binary_sha256": "6b6ae2de24c7ae8c4e7a623fe1159cbc79aba377717f410d7c3a1e145aff661a",
+    "platform": "macOS-27.2-arm64-arm-64bit",
+    "python": "3.12.16 (main, Oct 26 2026, 13:59:40) [Clang 23.1.3 ]",
+    "machine": "arm64",
     "packages": {
       "numpy": "2.2.6",
       "scipy": "1.15.3",
@@ -51,152 +51,76 @@
       }
     },
     "cpp_parameters": {
-      "robust": {
-        "stage": "robust",
-        "attitude": "quaternion-only SR-UKF",
-        "bias": "separate rest-only SR-UKF",
-        "gravity_gain_constraint": "horizontal left/world Gibbs error",
-        "covariance_reset": "analytic left-Gibbs transport",
-        "unscented_alpha_squared": 1,
-        "unscented_beta": 2,
-        "unscented_kappa": 0,
-        "mrp_a": 0,
-        "mrp_f": 2,
-        "gyro_integration": "exact quaternion increment, midpoint gyro minus previous bias estimate",
-        "initial_attitude_sigma_rad": 0.05,
-        "initial_bias_sigma_deg_s": 0.5,
-        "gravity_observation": "two-dimensional predicted-gravity tangent plane",
-        "raw_acc_direction_sigma": 0.1,
-        "filtered_acc_direction_sigma_base": 0.002,
-        "filtered_acc_sigma_formula": "0.002*sqrt(max(1,6/observation_dt))",
-        "attitude_covariance_scope": "conditional on separate bias estimate; filtered-observation R is an effective model",
-        "acceleration_filter_enabled": true,
-        "magnetic_rejection_enabled": true,
-        "acceleration_rejection_enabled": true,
-        "acc_tau_seconds": 3,
-        "correction_period_seconds": 0.05,
-        "rest_min_seconds": 1.5,
-        "rest_filter_tau_seconds": 0.5,
-        "rest_gyro_threshold_deg_s": 2,
-        "rest_absolute_filtered_gyro_limit_deg_s": 2,
-        "rest_acc_threshold_m_s2": 0.5,
-        "gyro_noise_rad_sqrt_s": 0.02,
-        "bias_random_walk_deg_s_sqrt_s": 0.01,
-        "mag_tau_seconds": 9,
-        "mag_norm_threshold_fraction": 0.1,
-        "rest_bias_target_sigma_deg_s": 0.03,
-        "rest_bias_effective_R": "P_target^2/Q_interval+P_target",
-        "bias_health_bound_deg_s": 2.1,
-        "mag_norm_dip_lowpass_tau_seconds": 0.05,
-        "mag_reference_tau_seconds": 20,
-        "mag_dip_threshold_degrees": 10,
-        "mag_good_dwell_seconds": 0.5,
-        "mag_new_field_rotation_seconds": 20,
-        "mag_new_field_min_rotation_deg_s": 20,
-        "heading_startup": "first usable magnetic sample",
-        "gravity_m_s2": 9.80665,
-        "acc_norm_reject_fraction": 0.3,
-        "acc_max_innovation_degrees": 60,
-        "acc_norm_gating_location": "measurement and rest updates; nonzero LPF input retained"
+      "srukf": {
+        "stage": "srukf",
+        "core": "UKF::SquareRootCore",
+        "state": "attitude quaternion, world-frame velocity, gyroscope bias",
+        "measurements": "zero velocity; gyroscope at rest; magnetic heading (separate filter)",
+        "integrator": "UKF::IntegratorRK4",
+        "initial_tilt_rad": 0.05,
+        "initial_velocity_m_s": 0.1,
+        "initial_gyro_bias_rad_s": 0.008726646259971648,
+        "gyroscope_noise_rad_sqrt_s": 0.003,
+        "gyroscope_scale_error": 0.002,
+        "accelerometer_noise_m_s_sqrt_s": 0.05,
+        "gyro_bias_walk_rad_s_sqrt_s": 1.7453292519943296e-05,
+        "zero_velocity_noise_m_s_sqrt_s": 0.09,
+        "rest_gyroscope_noise_rad_s_sqrt_s": 0.00020943951023931956,
+        "heading_sigma_limit_rad": 0.3,
+        "rest_averaging_time_s": 0.5,
+        "rest_gyroscope_change_rad_s": 0.03490658503988659,
+        "rest_accelerometer_change_m_s2": 0.5,
+        "rest_accelerometer_minimum_m_s2": 6.864654999999999,
+        "rest_accelerometer_maximum_m_s2": 12.748645,
+        "rest_gyroscope_bias_rad_s": 0.03490658503988659,
+        "rest_minimum_time_s": 1.5,
+        "initial_heading_rad": 0.17453292519943295,
+        "heading_walk_rad_sqrt_s": 0.002967059728390361,
+        "magnetic_heading_noise_rad_sqrt_s": 0.05235987755982988,
+        "magnetic_strength_change": 0.1,
+        "magnetic_dip_change_rad": 0.17453292519943295,
+        "magnetic_smoothing_time_s": 0.05,
+        "magnetic_settle_time_s": 0.5,
+        "magnetic_reference_time_s": 20,
+        "magnetic_new_field_time_s": 20,
+        "magnetic_new_field_rotation_rad_s": 0.3490658503988659
       },
-      "robust-acc": {
-        "stage": "robust-acc",
-        "attitude": "quaternion-only SR-UKF",
-        "bias": "separate rest-only SR-UKF",
-        "gravity_gain_constraint": "horizontal left/world Gibbs error",
-        "covariance_reset": "analytic left-Gibbs transport",
-        "unscented_alpha_squared": 1,
-        "unscented_beta": 2,
-        "unscented_kappa": 0,
-        "mrp_a": 0,
-        "mrp_f": 2,
-        "gyro_integration": "exact quaternion increment, midpoint gyro minus previous bias estimate",
-        "initial_attitude_sigma_rad": 0.05,
-        "initial_bias_sigma_deg_s": 0.5,
-        "gravity_observation": "two-dimensional predicted-gravity tangent plane",
-        "raw_acc_direction_sigma": 0.1,
-        "filtered_acc_direction_sigma_base": 0.002,
-        "filtered_acc_sigma_formula": "0.002*sqrt(max(1,6/observation_dt))",
-        "attitude_covariance_scope": "conditional on separate bias estimate; filtered-observation R is an effective model",
-        "acceleration_filter_enabled": true,
-        "magnetic_rejection_enabled": false,
-        "acceleration_rejection_enabled": false,
-        "acc_tau_seconds": 3,
-        "correction_period_seconds": 0.05,
-        "rest_min_seconds": 1.5,
-        "rest_filter_tau_seconds": 0.5,
-        "rest_gyro_threshold_deg_s": 2,
-        "rest_absolute_filtered_gyro_limit_deg_s": 2,
-        "rest_acc_threshold_m_s2": 0.5,
-        "gyro_noise_rad_sqrt_s": 0.02,
-        "bias_random_walk_deg_s_sqrt_s": 0.01,
-        "mag_tau_seconds": 9,
-        "mag_norm_threshold_fraction": 0.1,
-        "rest_bias_target_sigma_deg_s": 0.03,
-        "rest_bias_effective_R": "P_target^2/Q_interval+P_target",
-        "bias_health_bound_deg_s": 2.1,
-        "mag_norm_dip_lowpass_tau_seconds": 0.05,
-        "mag_reference_tau_seconds": 20,
-        "mag_dip_threshold_degrees": 10,
-        "mag_good_dwell_seconds": 0.5,
-        "mag_new_field_rotation_seconds": 20,
-        "mag_new_field_min_rotation_deg_s": 20,
-        "heading_startup": "first usable magnetic sample",
-        "gravity_m_s2": 9.80665,
-        "acc_norm_reject_fraction": 0.3,
-        "acc_max_innovation_degrees": 60,
-        "acc_norm_gating_location": "measurement and rest updates; nonzero LPF input retained"
-      },
-      "robust-rest": {
-        "stage": "robust-rest",
-        "attitude": "quaternion-only SR-UKF",
-        "bias": "separate rest-only SR-UKF",
-        "gravity_gain_constraint": "horizontal left/world Gibbs error",
-        "covariance_reset": "analytic left-Gibbs transport",
-        "unscented_alpha_squared": 1,
-        "unscented_beta": 2,
-        "unscented_kappa": 0,
-        "mrp_a": 0,
-        "mrp_f": 2,
-        "gyro_integration": "exact quaternion increment, midpoint gyro minus previous bias estimate",
-        "initial_attitude_sigma_rad": 0.05,
-        "initial_bias_sigma_deg_s": 0.5,
-        "gravity_observation": "two-dimensional predicted-gravity tangent plane",
-        "raw_acc_direction_sigma": 0.1,
-        "filtered_acc_direction_sigma_base": 0.002,
-        "filtered_acc_sigma_formula": "0.002*sqrt(max(1,6/observation_dt))",
-        "attitude_covariance_scope": "conditional on separate bias estimate; filtered-observation R is an effective model",
-        "acceleration_filter_enabled": false,
-        "magnetic_rejection_enabled": false,
-        "acceleration_rejection_enabled": false,
-        "acc_tau_seconds": 3,
-        "correction_period_seconds": 0.05,
-        "rest_min_seconds": 1.5,
-        "rest_filter_tau_seconds": 0.5,
-        "rest_gyro_threshold_deg_s": 2,
-        "rest_absolute_filtered_gyro_limit_deg_s": 2,
-        "rest_acc_threshold_m_s2": 0.5,
-        "gyro_noise_rad_sqrt_s": 0.02,
-        "bias_random_walk_deg_s_sqrt_s": 0.01,
-        "mag_tau_seconds": 9,
-        "mag_norm_threshold_fraction": 0.1,
-        "rest_bias_target_sigma_deg_s": 0.03,
-        "rest_bias_effective_R": "P_target^2/Q_interval+P_target",
-        "bias_health_bound_deg_s": 2.1,
-        "mag_norm_dip_lowpass_tau_seconds": 0.05,
-        "mag_reference_tau_seconds": 20,
-        "mag_dip_threshold_degrees": 10,
-        "mag_good_dwell_seconds": 0.5,
-        "mag_new_field_rotation_seconds": 20,
-        "mag_new_field_min_rotation_deg_s": 20,
-        "heading_startup": "first usable magnetic sample",
-        "gravity_m_s2": 9.80665,
-        "acc_norm_reject_fraction": 0.3,
-        "acc_max_innovation_degrees": 60,
-        "acc_norm_gating_location": "measurement and rest updates; nonzero LPF input retained"
+      "ukf": {
+        "stage": "ukf",
+        "core": "UKF::Core",
+        "state": "attitude quaternion, world-frame velocity, gyroscope bias",
+        "measurements": "zero velocity; gyroscope at rest; magnetic heading (separate filter)",
+        "integrator": "UKF::IntegratorRK4",
+        "initial_tilt_rad": 0.05,
+        "initial_velocity_m_s": 0.1,
+        "initial_gyro_bias_rad_s": 0.008726646259971648,
+        "gyroscope_noise_rad_sqrt_s": 0.003,
+        "gyroscope_scale_error": 0.002,
+        "accelerometer_noise_m_s_sqrt_s": 0.05,
+        "gyro_bias_walk_rad_s_sqrt_s": 1.7453292519943296e-05,
+        "zero_velocity_noise_m_s_sqrt_s": 0.09,
+        "rest_gyroscope_noise_rad_s_sqrt_s": 0.00020943951023931956,
+        "heading_sigma_limit_rad": 0.3,
+        "rest_averaging_time_s": 0.5,
+        "rest_gyroscope_change_rad_s": 0.03490658503988659,
+        "rest_accelerometer_change_m_s2": 0.5,
+        "rest_accelerometer_minimum_m_s2": 6.864654999999999,
+        "rest_accelerometer_maximum_m_s2": 12.748645,
+        "rest_gyroscope_bias_rad_s": 0.03490658503988659,
+        "rest_minimum_time_s": 1.5,
+        "initial_heading_rad": 0.17453292519943295,
+        "heading_walk_rad_sqrt_s": 0.002967059728390361,
+        "magnetic_heading_noise_rad_sqrt_s": 0.05235987755982988,
+        "magnetic_strength_change": 0.1,
+        "magnetic_dip_change_rad": 0.17453292519943295,
+        "magnetic_smoothing_time_s": 0.05,
+        "magnetic_settle_time_s": 0.5,
+        "magnetic_reference_time_s": 20,
+        "magnetic_new_field_time_s": 20,
+        "magnetic_new_field_rotation_rad_s": 0.3490658503988659
       }
     },
-    "cpp_configuration": "Fixed defaults in source_sha256; robust stage names select cumulative feature additions.",
+    "cpp_configuration": "Fixed tuning in attitude_estimator.h; ukf and srukf run the same model on UKF::Core and UKF::SquareRootCore.",
     "datasets": [
       "broad"
     ],
@@ -207,16 +131,13 @@
     "algorithms": [
       "ukf",
       "srukf",
-      "robust-rest",
-      "robust-acc",
-      "robust",
       "madgwick",
       "mahony",
       "vqf"
     ],
     "split": "all",
     "split_protocol": {
-      "name": "robust-development-v1",
+      "name": "attitude-development-v1",
       "development_broad": [
         "01",
         "08",
@@ -228,7 +149,7 @@
         "slow"
       ],
       "grouping": "All Sassari sensors from one physical motion stay in the same split.",
-      "qualification": "Splits govern new-estimator development; baseline results were already observed on all recordings."
+      "qualification": "The estimator is tuned on the development recordings only; reference results were already known on all recordings."
     },
     "trial_patterns": [],
     "selected_trials": [
@@ -281,144 +202,90 @@
         "axes": 6,
         "algorithm": "ukf",
         "trials": 39,
-        "inclination_rmse_deg": 9.866297996086534,
-        "heading_rmse_deg": 76.36842081776595,
-        "total_rmse_deg": 77.10279045641897
+        "inclination_rmse_deg": 0.9357782618359906,
+        "heading_rmse_deg": 6.218346806068497,
+        "total_rmse_deg": 6.40426795865387
       },
       {
         "dataset": "broad",
         "axes": 6,
         "algorithm": "srukf",
         "trials": 39,
-        "inclination_rmse_deg": 9.843054330664762,
-        "heading_rmse_deg": 76.50379149352133,
-        "total_rmse_deg": 77.23733357543297
-      },
-      {
-        "dataset": "broad",
-        "axes": 6,
-        "algorithm": "robust-rest",
-        "trials": 39,
-        "inclination_rmse_deg": 4.014088043382085,
-        "heading_rmse_deg": 9.517107477738257,
-        "total_rmse_deg": 10.965900448883815
-      },
-      {
-        "dataset": "broad",
-        "axes": 6,
-        "algorithm": "robust-acc",
-        "trials": 39,
-        "inclination_rmse_deg": 0.8918363474939249,
-        "heading_rmse_deg": 6.232292848240736,
-        "total_rmse_deg": 6.373973289968708
-      },
-      {
-        "dataset": "broad",
-        "axes": 6,
-        "algorithm": "robust",
-        "trials": 39,
-        "inclination_rmse_deg": 0.9063896623707576,
-        "heading_rmse_deg": 6.232248512996108,
-        "total_rmse_deg": 6.3763225450640455
+        "inclination_rmse_deg": 0.9357782618359948,
+        "heading_rmse_deg": 6.2183468060685625,
+        "total_rmse_deg": 6.404267958653926
       },
       {
         "dataset": "broad",
         "axes": 6,
         "algorithm": "madgwick",
         "trials": 39,
-        "inclination_rmse_deg": 2.158322296473824,
-        "heading_rmse_deg": 22.987179884203652,
-        "total_rmse_deg": 23.257263981949816
+        "inclination_rmse_deg": 2.158322296473832,
+        "heading_rmse_deg": 22.987179884203492,
+        "total_rmse_deg": 23.257263981949666
       },
       {
         "dataset": "broad",
         "axes": 6,
         "algorithm": "mahony",
         "trials": 39,
-        "inclination_rmse_deg": 10.325635993345337,
-        "heading_rmse_deg": 68.58597836800034,
-        "total_rmse_deg": 69.61815940687183
+        "inclination_rmse_deg": 10.325635993345335,
+        "heading_rmse_deg": 68.5859783680003,
+        "total_rmse_deg": 69.61815940687177
       },
       {
         "dataset": "broad",
         "axes": 6,
         "algorithm": "vqf",
         "trials": 39,
-        "inclination_rmse_deg": 0.857336113834429,
-        "heading_rmse_deg": 6.311473939147517,
-        "total_rmse_deg": 6.447937236531103
+        "inclination_rmse_deg": 0.8573361138342154,
+        "heading_rmse_deg": 6.311473939147547,
+        "total_rmse_deg": 6.447937236531092
       },
       {
         "dataset": "broad",
         "axes": 9,
         "algorithm": "ukf",
         "trials": 39,
-        "inclination_rmse_deg": 6.97815017890849,
-        "heading_rmse_deg": 12.047787651831928,
-        "total_rmse_deg": 14.076800239158457
+        "inclination_rmse_deg": 0.9357782618358368,
+        "heading_rmse_deg": 2.2435717679073086,
+        "total_rmse_deg": 2.4723211479043843
       },
       {
         "dataset": "broad",
         "axes": 9,
         "algorithm": "srukf",
         "trials": 39,
-        "inclination_rmse_deg": 6.978150178908417,
-        "heading_rmse_deg": 12.047787651831277,
-        "total_rmse_deg": 14.076800239157857
-      },
-      {
-        "dataset": "broad",
-        "axes": 9,
-        "algorithm": "robust-rest",
-        "trials": 39,
-        "inclination_rmse_deg": 4.0140880433820225,
-        "heading_rmse_deg": 5.7797552766000635,
-        "total_rmse_deg": 7.148105324782146
-      },
-      {
-        "dataset": "broad",
-        "axes": 9,
-        "algorithm": "robust-acc",
-        "trials": 39,
-        "inclination_rmse_deg": 0.8918363474937553,
-        "heading_rmse_deg": 3.4873672249640757,
-        "total_rmse_deg": 3.637132941064131
-      },
-      {
-        "dataset": "broad",
-        "axes": 9,
-        "algorithm": "robust",
-        "trials": 39,
-        "inclination_rmse_deg": 0.9063896623705713,
-        "heading_rmse_deg": 2.8806084902370444,
-        "total_rmse_deg": 3.051060189337467
+        "inclination_rmse_deg": 0.9357782618358377,
+        "heading_rmse_deg": 2.243571767907336,
+        "total_rmse_deg": 2.4723211479044203
       },
       {
         "dataset": "broad",
         "axes": 9,
         "algorithm": "madgwick",
         "trials": 39,
-        "inclination_rmse_deg": 2.411019706809806,
-        "heading_rmse_deg": 4.60479144950762,
-        "total_rmse_deg": 5.315961076107194
+        "inclination_rmse_deg": 2.4110197068098205,
+        "heading_rmse_deg": 4.604791449507632,
+        "total_rmse_deg": 5.3159610761072305
       },
       {
         "dataset": "broad",
         "axes": 9,
         "algorithm": "mahony",
         "trials": 39,
-        "inclination_rmse_deg": 8.934157598703765,
-        "heading_rmse_deg": 26.453573460500355,
-        "total_rmse_deg": 28.01367488106792
+        "inclination_rmse_deg": 8.934157598703836,
+        "heading_rmse_deg": 26.453573460500685,
+        "total_rmse_deg": 28.013674881068265
       },
       {
         "dataset": "broad",
         "axes": 9,
         "algorithm": "vqf",
         "trials": 39,
-        "inclination_rmse_deg": 0.8573361138341877,
-        "heading_rmse_deg": 2.3972218626260364,
-        "total_rmse_deg": 2.5928972629433233
+        "inclination_rmse_deg": 0.8573361138339539,
+        "heading_rmse_deg": 2.3972218626268087,
+        "total_rmse_deg": 2.5928972629439455
       }
     ],
     "summary_by_split": {
@@ -428,144 +295,90 @@
           "axes": 6,
           "algorithm": "ukf",
           "trials": 5,
-          "inclination_rmse_deg": 6.035395019953017,
-          "heading_rmse_deg": 79.89282713637334,
-          "total_rmse_deg": 80.12199225211121
+          "inclination_rmse_deg": 1.042014386581895,
+          "heading_rmse_deg": 6.4210251786023775,
+          "total_rmse_deg": 6.607134101485997
         },
         {
           "dataset": "broad",
           "axes": 6,
           "algorithm": "srukf",
           "trials": 5,
-          "inclination_rmse_deg": 6.042759830476686,
-          "heading_rmse_deg": 80.25726155800817,
-          "total_rmse_deg": 80.48534127068936
-        },
-        {
-          "dataset": "broad",
-          "axes": 6,
-          "algorithm": "robust-rest",
-          "trials": 5,
-          "inclination_rmse_deg": 2.519250445913915,
-          "heading_rmse_deg": 11.811089093790905,
-          "total_rmse_deg": 12.245551676824773
-        },
-        {
-          "dataset": "broad",
-          "axes": 6,
-          "algorithm": "robust-acc",
-          "trials": 5,
-          "inclination_rmse_deg": 1.0985993673920913,
-          "heading_rmse_deg": 7.3981737777184735,
-          "total_rmse_deg": 7.5198374177867695
-        },
-        {
-          "dataset": "broad",
-          "axes": 6,
-          "algorithm": "robust",
-          "trials": 5,
-          "inclination_rmse_deg": 1.1108632184710756,
-          "heading_rmse_deg": 7.395260055931258,
-          "total_rmse_deg": 7.519603017275218
+          "inclination_rmse_deg": 1.0420143865818936,
+          "heading_rmse_deg": 6.4210251786026005,
+          "total_rmse_deg": 6.607134101486162
         },
         {
           "dataset": "broad",
           "axes": 6,
           "algorithm": "madgwick",
           "trials": 5,
-          "inclination_rmse_deg": 1.8287776276388712,
-          "heading_rmse_deg": 19.389864320231226,
-          "total_rmse_deg": 19.605039437541723
+          "inclination_rmse_deg": 1.8287776276388734,
+          "heading_rmse_deg": 19.38986432023091,
+          "total_rmse_deg": 19.605039437541414
         },
         {
           "dataset": "broad",
           "axes": 6,
           "algorithm": "mahony",
           "trials": 5,
-          "inclination_rmse_deg": 5.355941814663855,
-          "heading_rmse_deg": 48.699935262063306,
-          "total_rmse_deg": 49.20702969712336
+          "inclination_rmse_deg": 5.355941814663852,
+          "heading_rmse_deg": 48.69993526206311,
+          "total_rmse_deg": 49.20702969712316
         },
         {
           "dataset": "broad",
           "axes": 6,
           "algorithm": "vqf",
           "trials": 5,
-          "inclination_rmse_deg": 1.0643710384338745,
-          "heading_rmse_deg": 7.495177752478462,
-          "total_rmse_deg": 7.611020068243991
+          "inclination_rmse_deg": 1.0643710384337022,
+          "heading_rmse_deg": 7.495177752478166,
+          "total_rmse_deg": 7.611020068243621
         },
         {
           "dataset": "broad",
           "axes": 9,
           "algorithm": "ukf",
           "trials": 5,
-          "inclination_rmse_deg": 4.510525557980603,
-          "heading_rmse_deg": 5.624074486689359,
-          "total_rmse_deg": 7.269552404895634
+          "inclination_rmse_deg": 1.0420143865817706,
+          "heading_rmse_deg": 2.09431203415948,
+          "total_rmse_deg": 2.38038376848678
         },
         {
           "dataset": "broad",
           "axes": 9,
           "algorithm": "srukf",
           "trials": 5,
-          "inclination_rmse_deg": 4.510525557980552,
-          "heading_rmse_deg": 5.624074486689217,
-          "total_rmse_deg": 7.26955240489543
-        },
-        {
-          "dataset": "broad",
-          "axes": 9,
-          "algorithm": "robust-rest",
-          "trials": 5,
-          "inclination_rmse_deg": 2.5192504459138334,
-          "heading_rmse_deg": 3.4305646951402027,
-          "total_rmse_deg": 4.273682932465047
-        },
-        {
-          "dataset": "broad",
-          "axes": 9,
-          "algorithm": "robust-acc",
-          "trials": 5,
-          "inclination_rmse_deg": 1.0985993673919694,
-          "heading_rmse_deg": 3.2678780304839536,
-          "total_rmse_deg": 3.463366344488832
-        },
-        {
-          "dataset": "broad",
-          "axes": 9,
-          "algorithm": "robust",
-          "trials": 5,
-          "inclination_rmse_deg": 1.1108632184709388,
-          "heading_rmse_deg": 2.5460151060987255,
-          "total_rmse_deg": 2.8064252680535615
+          "inclination_rmse_deg": 1.0420143865817637,
+          "heading_rmse_deg": 2.0943120341594326,
+          "total_rmse_deg": 2.380383768486593
         },
         {
           "dataset": "broad",
           "axes": 9,
           "algorithm": "madgwick",
           "trials": 5,
-          "inclination_rmse_deg": 1.8704546440028729,
-          "heading_rmse_deg": 2.7821462681701257,
-          "total_rmse_deg": 3.4452359577609606
+          "inclination_rmse_deg": 1.8704546440028953,
+          "heading_rmse_deg": 2.782146268170161,
+          "total_rmse_deg": 3.44523595776093
         },
         {
           "dataset": "broad",
           "axes": 9,
           "algorithm": "mahony",
           "trials": 5,
-          "inclination_rmse_deg": 4.386941270899693,
-          "heading_rmse_deg": 10.61992349189354,
-          "total_rmse_deg": 11.486564991758453
+          "inclination_rmse_deg": 4.386941270899688,
+          "heading_rmse_deg": 10.619923491893541,
+          "total_rmse_deg": 11.486564991758321
         },
         {
           "dataset": "broad",
           "axes": 9,
           "algorithm": "vqf",
           "trials": 5,
-          "inclination_rmse_deg": 1.0643710384336518,
-          "heading_rmse_deg": 2.3554819137294425,
-          "total_rmse_deg": 2.618426095656184
+          "inclination_rmse_deg": 1.0643710384334564,
+          "heading_rmse_deg": 2.355481913730225,
+          "total_rmse_deg": 2.6184260956569765
         }
       ],
       "validation": [
@@ -574,54 +387,27 @@
           "axes": 6,
           "algorithm": "ukf",
           "trials": 34,
-          "inclination_rmse_deg": 10.429666080812051,
-          "heading_rmse_deg": 75.85012577091193,
-          "total_rmse_deg": 76.6587901923466
+          "inclination_rmse_deg": 0.9201553023145342,
+          "heading_rmse_deg": 6.188541163048809,
+          "total_rmse_deg": 6.374434702355028
         },
         {
           "dataset": "broad",
           "axes": 6,
           "algorithm": "srukf",
           "trials": 34,
-          "inclination_rmse_deg": 10.401921168927712,
-          "heading_rmse_deg": 75.95181060168504,
-          "total_rmse_deg": 76.75968538495408
-        },
-        {
-          "dataset": "broad",
-          "axes": 6,
-          "algorithm": "robust-rest",
-          "trials": 34,
-          "inclination_rmse_deg": 4.233917101833285,
-          "heading_rmse_deg": 9.179757240083458,
-          "total_rmse_deg": 10.777716444774851
-        },
-        {
-          "dataset": "broad",
-          "axes": 6,
-          "algorithm": "robust-acc",
-          "trials": 34,
-          "inclination_rmse_deg": 0.8614300210383121,
-          "heading_rmse_deg": 6.0608397703763615,
-          "total_rmse_deg": 6.205463859407227
-        },
-        {
-          "dataset": "broad",
-          "axes": 6,
-          "algorithm": "robust",
-          "trials": 34,
-          "inclination_rmse_deg": 0.8763200217677697,
-          "heading_rmse_deg": 6.061217403740938,
-          "total_rmse_deg": 6.20819306385652
+          "inclination_rmse_deg": 0.9201553023145389,
+          "heading_rmse_deg": 6.188541163048851,
+          "total_rmse_deg": 6.374434702355068
         },
         {
           "dataset": "broad",
           "axes": 6,
           "algorithm": "madgwick",
           "trials": 34,
-          "inclination_rmse_deg": 2.2067847477730815,
-          "heading_rmse_deg": 23.51619687890548,
-          "total_rmse_deg": 23.794355826715712
+          "inclination_rmse_deg": 2.2067847477730895,
+          "heading_rmse_deg": 23.516196878905337,
+          "total_rmse_deg": 23.794355826715588
         },
         {
           "dataset": "broad",
@@ -629,89 +415,62 @@
           "algorithm": "mahony",
           "trials": 34,
           "inclination_rmse_deg": 11.056473372563202,
-          "heading_rmse_deg": 71.51039647181462,
-          "total_rmse_deg": 72.61979612889365
+          "heading_rmse_deg": 71.51039647181459,
+          "total_rmse_deg": 72.61979612889363
         },
         {
           "dataset": "broad",
           "axes": 6,
           "algorithm": "vqf",
           "trials": 34,
-          "inclination_rmse_deg": 0.8268898013933339,
-          "heading_rmse_deg": 6.13739984895179,
-          "total_rmse_deg": 6.276895643632149
+          "inclination_rmse_deg": 0.8268898013931147,
+          "heading_rmse_deg": 6.137399848951866,
+          "total_rmse_deg": 6.276895643632191
         },
         {
           "dataset": "broad",
           "axes": 9,
           "algorithm": "ukf",
           "trials": 34,
-          "inclination_rmse_deg": 7.341036152574354,
-          "heading_rmse_deg": 12.992451352588189,
-          "total_rmse_deg": 15.077866097138285
+          "inclination_rmse_deg": 0.9201553023143759,
+          "heading_rmse_deg": 2.2655217287525775,
+          "total_rmse_deg": 2.4858413507599133
         },
         {
           "dataset": "broad",
           "axes": 9,
           "algorithm": "srukf",
           "trials": 34,
-          "inclination_rmse_deg": 7.341036152574277,
-          "heading_rmse_deg": 12.99245135258746,
-          "total_rmse_deg": 15.077866097137624
-        },
-        {
-          "dataset": "broad",
-          "axes": 9,
-          "algorithm": "robust-rest",
-          "trials": 34,
-          "inclination_rmse_deg": 4.233917101833227,
-          "heading_rmse_deg": 6.125224479755925,
-          "total_rmse_deg": 7.570814500122897
-        },
-        {
-          "dataset": "broad",
-          "axes": 9,
-          "algorithm": "robust-acc",
-          "trials": 34,
-          "inclination_rmse_deg": 0.8614300210381355,
-          "heading_rmse_deg": 3.51964504768174,
-          "total_rmse_deg": 3.662686852325205
-        },
-        {
-          "dataset": "broad",
-          "axes": 9,
-          "algorithm": "robust",
-          "trials": 34,
-          "inclination_rmse_deg": 0.8763200217675762,
-          "heading_rmse_deg": 2.9298133996691504,
-          "total_rmse_deg": 3.0870359130556895
+          "inclination_rmse_deg": 0.9201553023143781,
+          "heading_rmse_deg": 2.2655217287526157,
+          "total_rmse_deg": 2.4858413507599835
         },
         {
           "dataset": "broad",
           "axes": 9,
           "algorithm": "madgwick",
           "trials": 34,
-          "inclination_rmse_deg": 2.4905145689872965,
-          "heading_rmse_deg": 4.872827505586663,
-          "total_rmse_deg": 5.591067711158111
+          "inclination_rmse_deg": 2.4905145689873103,
+          "heading_rmse_deg": 4.872827505586669,
+          "total_rmse_deg": 5.591067711158157
         },
         {
           "dataset": "broad",
           "axes": 9,
           "algorithm": "mahony",
           "trials": 34,
-          "inclination_rmse_deg": 9.602865882204366,
-          "heading_rmse_deg": 28.78205139706018,
-          "total_rmse_deg": 30.44413221773108
+          "inclination_rmse_deg": 9.602865882204448,
+          "heading_rmse_deg": 28.78205139706056,
+          "total_rmse_deg": 30.444132217731493
         },
         {
           "dataset": "broad",
           "axes": 9,
           "algorithm": "vqf",
           "trials": 34,
-          "inclination_rmse_deg": 0.8268898013930899,
-          "heading_rmse_deg": 2.4033600904049472,
-          "total_rmse_deg": 2.589143022838491
+          "inclination_rmse_deg": 0.8268898013928504,
+          "heading_rmse_deg": 2.4033600904057173,
+          "total_rmse_deg": 2.5891430228390884
         }
       ]
     },
@@ -722,54 +481,27 @@
           "axes": 6,
           "algorithm": "ukf",
           "trials": 16,
-          "inclination_rmse_deg": 9.340653172485693,
-          "heading_rmse_deg": 80.22681577378307,
-          "total_rmse_deg": 80.66802599812728
+          "inclination_rmse_deg": 1.0155626034551806,
+          "heading_rmse_deg": 5.857844108661509,
+          "total_rmse_deg": 5.995523886798244
         },
         {
           "dataset": "broad",
           "axes": 6,
           "algorithm": "srukf",
           "trials": 16,
-          "inclination_rmse_deg": 9.2931723098882,
-          "heading_rmse_deg": 80.39393890614727,
-          "total_rmse_deg": 80.83370757208499
-        },
-        {
-          "dataset": "broad",
-          "axes": 6,
-          "algorithm": "robust-rest",
-          "trials": 16,
-          "inclination_rmse_deg": 3.9716847804044964,
-          "heading_rmse_deg": 9.250879133323814,
-          "total_rmse_deg": 10.35207756768515
-        },
-        {
-          "dataset": "broad",
-          "axes": 6,
-          "algorithm": "robust-acc",
-          "trials": 16,
-          "inclination_rmse_deg": 0.93987802166417,
-          "heading_rmse_deg": 5.94801527566068,
-          "total_rmse_deg": 6.063086497733286
-        },
-        {
-          "dataset": "broad",
-          "axes": 6,
-          "algorithm": "robust",
-          "trials": 16,
-          "inclination_rmse_deg": 0.9547486527348009,
-          "heading_rmse_deg": 5.947684106204899,
-          "total_rmse_deg": 6.0657704851930845
+          "inclination_rmse_deg": 1.015562603455183,
+          "heading_rmse_deg": 5.857844108661608,
+          "total_rmse_deg": 5.995523886798338
         },
         {
           "dataset": "broad",
           "axes": 6,
           "algorithm": "madgwick",
           "trials": 16,
-          "inclination_rmse_deg": 2.3152047101477873,
-          "heading_rmse_deg": 15.83992844039362,
-          "total_rmse_deg": 16.28969138005487
+          "inclination_rmse_deg": 2.3152047101478,
+          "heading_rmse_deg": 15.839928440393447,
+          "total_rmse_deg": 16.28969138005471
         },
         {
           "dataset": "broad",
@@ -777,89 +509,62 @@
           "algorithm": "mahony",
           "trials": 16,
           "inclination_rmse_deg": 10.00799523048763,
-          "heading_rmse_deg": 74.72560216154419,
-          "total_rmse_deg": 75.4432741827856
+          "heading_rmse_deg": 74.72560216154416,
+          "total_rmse_deg": 75.44327418278559
         },
         {
           "dataset": "broad",
           "axes": 6,
           "algorithm": "vqf",
           "trials": 16,
-          "inclination_rmse_deg": 0.898101831957932,
-          "heading_rmse_deg": 5.9303833129272725,
-          "total_rmse_deg": 6.038428869353566
+          "inclination_rmse_deg": 0.8981018319580525,
+          "heading_rmse_deg": 5.9303833129272965,
+          "total_rmse_deg": 6.038428869353612
         },
         {
           "dataset": "broad",
           "axes": 9,
           "algorithm": "ukf",
           "trials": 16,
-          "inclination_rmse_deg": 8.45900871277987,
-          "heading_rmse_deg": 15.561901409669485,
-          "total_rmse_deg": 17.924819114029262
+          "inclination_rmse_deg": 1.015562603455049,
+          "heading_rmse_deg": 2.431123697529255,
+          "total_rmse_deg": 2.688772068119552
         },
         {
           "dataset": "broad",
           "axes": 9,
           "algorithm": "srukf",
           "trials": 16,
-          "inclination_rmse_deg": 8.459008712779765,
-          "heading_rmse_deg": 15.561901409668424,
-          "total_rmse_deg": 17.92481911402828
-        },
-        {
-          "dataset": "broad",
-          "axes": 9,
-          "algorithm": "robust-rest",
-          "trials": 16,
-          "inclination_rmse_deg": 3.9716847804044644,
-          "heading_rmse_deg": 6.231106474219929,
-          "total_rmse_deg": 7.547554636786268
-        },
-        {
-          "dataset": "broad",
-          "axes": 9,
-          "algorithm": "robust-acc",
-          "trials": 16,
-          "inclination_rmse_deg": 0.9398780216640433,
-          "heading_rmse_deg": 4.424769657932011,
-          "total_rmse_deg": 4.57378861707262
-        },
-        {
-          "dataset": "broad",
-          "axes": 9,
-          "algorithm": "robust",
-          "trials": 16,
-          "inclination_rmse_deg": 0.9547486527346376,
-          "heading_rmse_deg": 2.956155516152296,
-          "total_rmse_deg": 3.1463731809227844
+          "inclination_rmse_deg": 1.0155626034550498,
+          "heading_rmse_deg": 2.4311236975292956,
+          "total_rmse_deg": 2.6887720681195635
         },
         {
           "dataset": "broad",
           "axes": 9,
           "algorithm": "madgwick",
           "trials": 16,
-          "inclination_rmse_deg": 2.7842006725219663,
-          "heading_rmse_deg": 4.750167138188587,
-          "total_rmse_deg": 5.676659659973054
+          "inclination_rmse_deg": 2.784200672521986,
+          "heading_rmse_deg": 4.750167138188641,
+          "total_rmse_deg": 5.676659659973133
         },
         {
           "dataset": "broad",
           "axes": 9,
           "algorithm": "mahony",
           "trials": 16,
-          "inclination_rmse_deg": 10.150026682894513,
-          "heading_rmse_deg": 35.08651615197673,
-          "total_rmse_deg": 36.61827870715191
+          "inclination_rmse_deg": 10.15002668289452,
+          "heading_rmse_deg": 35.08651615197671,
+          "total_rmse_deg": 36.6182787071519
         },
         {
           "dataset": "broad",
           "axes": 9,
           "algorithm": "vqf",
           "trials": 16,
-          "inclination_rmse_deg": 0.8981018319577508,
-          "heading_rmse_deg": 3.008365698778702,
-          "total_rmse_deg": 3.1851126486780776
+          "inclination_rmse_deg": 0.8981018319578487,
+          "heading_rmse_deg": 3.008365698778751,
+          "total_rmse_deg": 3.1851126486782393
         }
       ],
       "undisturbed": [
@@ -868,54 +573,27 @@
           "axes": 6,
           "algorithm": "ukf",
           "trials": 23,
-          "inclination_rmse_deg": 10.231963960330598,
-          "heading_rmse_deg": 73.68431997879752,
-          "total_rmse_deg": 74.62262660131758
+          "inclination_rmse_deg": 0.8802761111443802,
+          "heading_rmse_deg": 6.469131291221187,
+          "total_rmse_deg": 6.688611660814305
         },
         {
           "dataset": "broad",
           "axes": 6,
           "algorithm": "srukf",
           "trials": 23,
-          "inclination_rmse_deg": 10.22558095381367,
-          "heading_rmse_deg": 73.79760198908592,
-          "total_rmse_deg": 74.73550818645764
-        },
-        {
-          "dataset": "broad",
-          "axes": 6,
-          "algorithm": "robust-rest",
-          "trials": 23,
-          "inclination_rmse_deg": 4.043585965453448,
-          "heading_rmse_deg": 9.702309804287436,
-          "total_rmse_deg": 11.392907670587231
-        },
-        {
-          "dataset": "broad",
-          "axes": 6,
-          "algorithm": "robust-acc",
-          "trials": 23,
-          "inclination_rmse_deg": 0.8584160524189713,
-          "heading_rmse_deg": 6.430051159600774,
-          "total_rmse_deg": 6.590242362828131
-        },
-        {
-          "dataset": "broad",
-          "axes": 6,
-          "algorithm": "robust",
-          "trials": 23,
-          "inclination_rmse_deg": 0.8727486255957709,
-          "heading_rmse_deg": 6.430206361198688,
-          "total_rmse_deg": 6.592358760626452
+          "inclination_rmse_deg": 0.8802761111443856,
+          "heading_rmse_deg": 6.469131291221226,
+          "total_rmse_deg": 6.6886116608143364
         },
         {
           "dataset": "broad",
           "axes": 6,
           "algorithm": "madgwick",
           "trials": 23,
-          "inclination_rmse_deg": 2.0491867043528065,
-          "heading_rmse_deg": 27.959180888593238,
-          "total_rmse_deg": 28.104271009355
+          "inclination_rmse_deg": 2.049186704352809,
+          "heading_rmse_deg": 27.95918088859308,
+          "total_rmse_deg": 28.10427100935485
         },
         {
           "dataset": "broad",
@@ -923,89 +601,62 @@
           "algorithm": "mahony",
           "trials": 23,
           "inclination_rmse_deg": 10.546603480550699,
-          "heading_rmse_deg": 64.31493572901333,
-          "total_rmse_deg": 65.56590564971441
+          "heading_rmse_deg": 64.31493572901324,
+          "total_rmse_deg": 65.56590564971432
         },
         {
           "dataset": "broad",
           "axes": 6,
           "algorithm": "vqf",
           "trials": 23,
-          "inclination_rmse_deg": 0.8289773534006875,
-          "heading_rmse_deg": 6.576580461735512,
-          "total_rmse_deg": 6.732812622393737
+          "inclination_rmse_deg": 0.8289773534002421,
+          "heading_rmse_deg": 6.576580461735546,
+          "total_rmse_deg": 6.732812622393688
         },
         {
           "dataset": "broad",
           "axes": 9,
           "algorithm": "ukf",
           "trials": 23,
-          "inclination_rmse_deg": 5.947987720563181,
-          "heading_rmse_deg": 9.603186776814493,
-          "total_rmse_deg": 11.399917543596159
+          "inclination_rmse_deg": 0.8802761111442108,
+          "heading_rmse_deg": 2.1131008603442147,
+          "total_rmse_deg": 2.321746594711224
         },
         {
           "dataset": "broad",
           "axes": 9,
           "algorithm": "srukf",
           "trials": 23,
-          "inclination_rmse_deg": 5.947987720563128,
-          "heading_rmse_deg": 9.603186776814127,
-          "total_rmse_deg": 11.399917543595823
-        },
-        {
-          "dataset": "broad",
-          "axes": 9,
-          "algorithm": "robust-rest",
-          "trials": 23,
-          "inclination_rmse_deg": 4.043585965453366,
-          "heading_rmse_deg": 5.465771834777548,
-          "total_rmse_deg": 6.870227542518409
-        },
-        {
-          "dataset": "broad",
-          "axes": 9,
-          "algorithm": "robust-acc",
-          "trials": 23,
-          "inclination_rmse_deg": 0.8584160524187721,
-          "heading_rmse_deg": 2.835261184638556,
-          "total_rmse_deg": 2.9855463838408345
-        },
-        {
-          "dataset": "broad",
-          "axes": 9,
-          "algorithm": "robust",
-          "trials": 23,
-          "inclination_rmse_deg": 0.8727486255955685,
-          "heading_rmse_deg": 2.8280540374264347,
-          "total_rmse_deg": 2.984755499538987
+          "inclination_rmse_deg": 0.8802761111442122,
+          "heading_rmse_deg": 2.113100860344234,
+          "total_rmse_deg": 2.3217465947112776
         },
         {
           "dataset": "broad",
           "axes": 9,
           "algorithm": "madgwick",
           "trials": 23,
-          "inclination_rmse_deg": 2.151415556749173,
-          "heading_rmse_deg": 4.503660535642598,
-          "total_rmse_deg": 5.065040322113553
+          "inclination_rmse_deg": 2.151415556749184,
+          "heading_rmse_deg": 4.503660535642579,
+          "total_rmse_deg": 5.06504032211356
         },
         {
           "dataset": "broad",
           "axes": 9,
           "algorithm": "mahony",
           "trials": 23,
-          "inclination_rmse_deg": 8.088335627092807,
-          "heading_rmse_deg": 20.44804810990809,
-          "total_rmse_deg": 22.027863523792107
+          "inclination_rmse_deg": 8.088335627092926,
+          "heading_rmse_deg": 20.448048109908658,
+          "total_rmse_deg": 22.027863523792686
         },
         {
           "dataset": "broad",
           "axes": 9,
           "algorithm": "vqf",
           "trials": 23,
-          "inclination_rmse_deg": 0.8289773534004046,
-          "heading_rmse_deg": 1.9720783244328772,
-          "total_rmse_deg": 2.18092134243219
+          "inclination_rmse_deg": 0.8289773533999399,
+          "heading_rmse_deg": 1.9720783244341527,
+          "total_rmse_deg": 2.1809213424331326
         }
       ]
     },
@@ -1013,143 +664,71 @@
       {
         "dataset": "broad",
         "axes": 6,
-        "algorithm": "robust-rest",
-        "reference": "ukf",
-        "inclination_rmse_ratio": 0.40684844963878775,
-        "heading_rmse_ratio": 0.12462098045013191,
-        "total_rmse_ratio": 0.14222443032178067
+        "algorithm": "ukf",
+        "reference": "vqf",
+        "inclination_rmse_ratio": 1.0914952102635254,
+        "heading_rmse_ratio": 0.9852447884635284,
+        "total_rmse_ratio": 0.9932274033888215
       },
       {
         "dataset": "broad",
         "axes": 6,
-        "algorithm": "robust-rest",
+        "algorithm": "srukf",
         "reference": "vqf",
-        "inclination_rmse_ratio": 4.6820470741971985,
-        "heading_rmse_ratio": 1.5079056919981073,
-        "total_rmse_ratio": 1.700683497158746
-      },
-      {
-        "dataset": "broad",
-        "axes": 6,
-        "algorithm": "robust-acc",
-        "reference": "ukf",
-        "inclination_rmse_ratio": 0.09039219653082359,
-        "heading_rmse_ratio": 0.08160824567935661,
-        "total_rmse_ratio": 0.08266851630449727
-      },
-      {
-        "dataset": "broad",
-        "axes": 6,
-        "algorithm": "robust-acc",
-        "reference": "vqf",
-        "inclination_rmse_ratio": 1.0402411995748015,
-        "heading_rmse_ratio": 0.9874544216342789,
-        "total_rmse_ratio": 0.9885290529592397
-      },
-      {
-        "dataset": "broad",
-        "axes": 6,
-        "algorithm": "robust",
-        "reference": "ukf",
-        "inclination_rmse_ratio": 0.09186724977598254,
-        "heading_rmse_ratio": 0.08160766513514536,
-        "total_rmse_ratio": 0.08269898543643699
-      },
-      {
-        "dataset": "broad",
-        "axes": 6,
-        "algorithm": "robust",
-        "reference": "vqf",
-        "inclination_rmse_ratio": 1.0572162396343447,
-        "heading_rmse_ratio": 0.9874473970873894,
-        "total_rmse_ratio": 0.9888933950750449
+        "inclination_rmse_ratio": 1.0914952102635302,
+        "heading_rmse_ratio": 0.9852447884635388,
+        "total_rmse_ratio": 0.9932274033888302
       },
       {
         "dataset": "broad",
         "axes": 9,
-        "algorithm": "robust-rest",
-        "reference": "ukf",
-        "inclination_rmse_ratio": 0.575236694606349,
-        "heading_rmse_ratio": 0.47973581902576296,
-        "total_rmse_ratio": 0.5077933339494115
-      },
-      {
-        "dataset": "broad",
-        "axes": 9,
-        "algorithm": "robust-rest",
+        "algorithm": "ukf",
         "reference": "vqf",
-        "inclination_rmse_ratio": 4.682047074198444,
-        "heading_rmse_ratio": 2.411022261522607,
-        "total_rmse_ratio": 2.756802371979824
+        "inclination_rmse_ratio": 1.0914952102636788,
+        "heading_rmse_ratio": 0.9359049334919987,
+        "total_rmse_ratio": 0.9534975346833987
       },
       {
         "dataset": "broad",
         "axes": 9,
-        "algorithm": "robust-acc",
-        "reference": "ukf",
-        "inclination_rmse_ratio": 0.12780412066643926,
-        "heading_rmse_ratio": 0.2894612127757583,
-        "total_rmse_ratio": 0.2583778187706645
-      },
-      {
-        "dataset": "broad",
-        "axes": 9,
-        "algorithm": "robust-acc",
+        "algorithm": "srukf",
         "reference": "vqf",
-        "inclination_rmse_ratio": 1.0402411995748964,
-        "heading_rmse_ratio": 1.454753637672835,
-        "total_rmse_ratio": 1.4027292916864145
-      },
-      {
-        "dataset": "broad",
-        "axes": 9,
-        "algorithm": "robust",
-        "reference": "ukf",
-        "inclination_rmse_ratio": 0.12988967550600167,
-        "heading_rmse_ratio": 0.23909854435382855,
-        "total_rmse_ratio": 0.21674387200935846
-      },
-      {
-        "dataset": "broad",
-        "axes": 9,
-        "algorithm": "robust",
-        "reference": "vqf",
-        "inclination_rmse_ratio": 1.057216239634425,
-        "heading_rmse_ratio": 1.2016445099000899,
-        "total_rmse_ratio": 1.1766992209610576
+        "inclination_rmse_ratio": 1.09149521026368,
+        "heading_rmse_ratio": 0.9359049334920102,
+        "total_rmse_ratio": 0.9534975346834126
       }
     ],
-    "build_description": "Linux x86_64, GCC 14.2.0, CMake 3.31.10, Release, double precision; Python 3.12.14 and pinned reference packages."
+    "build_description": "macOS 27.2 arm64, Apple clang 21.0.0, CMake 4.4.4, Release, patched Eigen 3.2.8, double precision; Python 3.12.16 and pinned reference packages."
   },
   "sassari": {
     "scope": "full selected datasets",
-    "revision": "8ec099b0312a7d86a988bb65cc3ebd7675f86211",
-    "dirty": false,
+    "revision": "3d89b54261ff36bd1ce2431c83f3e51c2ae3d81d",
+    "dirty": true,
     "source_sha256": {
-      "examples/attitude_benchmark/CMakeLists.txt": "73c063b9278b5bf6aa997f2675037f87ffa53371650e6bfa2ccbee5eb6018da7",
+      "examples/attitude_benchmark/CMakeLists.txt": "da08ad74f84250fff13c1e0d109037c8e5b6b98fef4e5ad54a8f76dca15a25a6",
+      "examples/attitude_benchmark/attitude_estimator.h": "a3514ea8a4148ce5fdda5d61aed04b74190a47128d86831901fd38383165ea00",
       "examples/attitude_benchmark/datasets.lock.json": "186770478d3e702911ba4d0bdfd712977535261cfd0a34342c4a2077f259bea5",
       "examples/attitude_benchmark/datasets.py": "e73adba68b74eda802f6c3092939112f38ead066d4d50fe931d156409c5695e2",
-      "examples/attitude_benchmark/estimator.cpp": "c7db9fc114facfbf1ab0e2c32f2676783f5751f13780611106345150ff7b4035",
+      "examples/attitude_benchmark/estimator.cpp": "1f38598a02840ec2d8dafd8ea6a75a80c2548a35aaee1cfe0fa5798472520d3d",
+      "examples/attitude_benchmark/imu_csv.h": "9503906fc1078e20f594d09151c723cbdb48ca663611c49d2efca2c7b363a7ac",
       "examples/attitude_benchmark/metrics.py": "8e66283acaca20fe56d845ea3a237583780d877a1eba37282a9680cecf9827b4",
       "examples/attitude_benchmark/references.py": "a0faafb3109f9931999277bcecc80cd0932524cf2a7dc9de4029bd304074f95c",
       "examples/attitude_benchmark/requirements.txt": "047bf25111774a6343100d73aa2675a807a79712e015666e4e6943e95b3b3a52",
-      "examples/attitude_benchmark/robust_correction.h": "bf3b42c73547393395a8a43a9bfd2b476595d594a8b222e97e37eeb4f01f8d02",
-      "examples/attitude_benchmark/robust_estimator.cpp": "23df5a5aeb23fe3b1b6ae24cc957be646ce39522345b505c77489955c4dced23",
-      "examples/attitude_benchmark/robust_estimator.h": "eda2ad771fbf5ab4d86743bd75c94c7ade58c1a7bcf48a2e2bf3775272df9fba",
-      "examples/attitude_benchmark/robust_geometry.h": "943c67b1811ea052fc99559ee93968a982c9ab27782cfd95ca6dc8fcd32c9e95",
-      "examples/attitude_benchmark/run.py": "7de16e7863e96f17b36f957f9b83f7233f3caf137e5e5b7571ddbd07017e1377",
+      "examples/attitude_benchmark/run.py": "d57b843e2c8f8d95367e89b530a6f371d27f352a75c1cf0cfcc54eae392ce3fa",
+      "examples/attitude_benchmark/sensor_checks.h": "d5e7f4ad5f66f856de51de26c5aae41e7bbb5e362bdc09891853546ead894395",
       "include/UKF/Config.h": "cb7ecbc40d15a5689d07dd649ceb52c61d8a6d43119ca4a3d910ff58aedf11a5",
-      "include/UKF/Core.h": "f2a19e9015dec20aa4e754cce2add1eec015dfa25bb7ae931ce795eb70bddb30",
-      "include/UKF/Covariance.h": "3fc9aa2e42a47af716a1e8ddde2936f9d3d5e6aa67bf58147eb48c813abb25d6",
-      "include/UKF/Integrator.h": "51fdc85bd7d47a838d7fc8fd32a6234d9faa1f6a54888a37c9c90bf07bf427e0",
-      "include/UKF/MeasurementVector.h": "7d5c3f378996ffbbf4897b7a53e8cb305aab343b06a5952cd8911239efc89da7",
-      "include/UKF/StateVector.h": "960e22d464e352076fb90b5c34216407b29b9701f32686b88095a3d4b8631234",
-      "include/UKF/Types.h": "bf54e8b21656402f2a24b03491a148cd81acf11a2f3222b9ddb65b3db512a272"
+      "include/UKF/Core.h": "e7ad669c3f4629dbefba79531f6c0da0f25b6fe9f9530eab8cd2d9cfcfd5aa96",
+      "include/UKF/Covariance.h": "732da5fcd733af33fac63cb171ffb4d8d726624b029229cb235b3d472820c601",
+      "include/UKF/Integrator.h": "239361c00080b3fb451b8a7e8ece39ae35c3444eb0e41a73ae64cc7cdc946549",
+      "include/UKF/MeasurementVector.h": "29226c3ac359848a2adc19cbf3af2c2a5d03ed1154d2889a1c4058b8d0a7bd76",
+      "include/UKF/RankUpdate.h": "e087c14cc81553afc87690f697bbf7bfac6bddb00d2ca8e6335439b3074056d7",
+      "include/UKF/StateVector.h": "3c54b0442492974420c0b774571704de4152b3abb80b81f066a2e480311a09ff",
+      "include/UKF/Types.h": "8d6299373fe92651f3b6742f460e4520bb5c6fe6b082756078dbbd328f21dfa7"
     },
-    "binary_sha256": "a85da439efab3374787131953eb66c1bf76546d12adbd6b907ddd4c32de6ad14",
-    "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
-    "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
-    "machine": "x86_64",
+    "binary_sha256": "6b6ae2de24c7ae8c4e7a623fe1159cbc79aba377717f410d7c3a1e145aff661a",
+    "platform": "macOS-27.2-arm64-arm-64bit",
+    "python": "3.12.16 (main, Oct 26 2026, 13:59:40) [Clang 23.1.3 ]",
+    "machine": "arm64",
     "packages": {
       "numpy": "2.2.6",
       "scipy": "1.15.3",
@@ -1173,152 +752,76 @@
       }
     },
     "cpp_parameters": {
-      "robust": {
-        "stage": "robust",
-        "attitude": "quaternion-only SR-UKF",
-        "bias": "separate rest-only SR-UKF",
-        "gravity_gain_constraint": "horizontal left/world Gibbs error",
-        "covariance_reset": "analytic left-Gibbs transport",
-        "unscented_alpha_squared": 1,
-        "unscented_beta": 2,
-        "unscented_kappa": 0,
-        "mrp_a": 0,
-        "mrp_f": 2,
-        "gyro_integration": "exact quaternion increment, midpoint gyro minus previous bias estimate",
-        "initial_attitude_sigma_rad": 0.05,
-        "initial_bias_sigma_deg_s": 0.5,
-        "gravity_observation": "two-dimensional predicted-gravity tangent plane",
-        "raw_acc_direction_sigma": 0.1,
-        "filtered_acc_direction_sigma_base": 0.002,
-        "filtered_acc_sigma_formula": "0.002*sqrt(max(1,6/observation_dt))",
-        "attitude_covariance_scope": "conditional on separate bias estimate; filtered-observation R is an effective model",
-        "acceleration_filter_enabled": true,
-        "magnetic_rejection_enabled": true,
-        "acceleration_rejection_enabled": true,
-        "acc_tau_seconds": 3,
-        "correction_period_seconds": 0.05,
-        "rest_min_seconds": 1.5,
-        "rest_filter_tau_seconds": 0.5,
-        "rest_gyro_threshold_deg_s": 2,
-        "rest_absolute_filtered_gyro_limit_deg_s": 2,
-        "rest_acc_threshold_m_s2": 0.5,
-        "gyro_noise_rad_sqrt_s": 0.02,
-        "bias_random_walk_deg_s_sqrt_s": 0.01,
-        "mag_tau_seconds": 9,
-        "mag_norm_threshold_fraction": 0.1,
-        "rest_bias_target_sigma_deg_s": 0.03,
-        "rest_bias_effective_R": "P_target^2/Q_interval+P_target",
-        "bias_health_bound_deg_s": 2.1,
-        "mag_norm_dip_lowpass_tau_seconds": 0.05,
-        "mag_reference_tau_seconds": 20,
-        "mag_dip_threshold_degrees": 10,
-        "mag_good_dwell_seconds": 0.5,
-        "mag_new_field_rotation_seconds": 20,
-        "mag_new_field_min_rotation_deg_s": 20,
-        "heading_startup": "first usable magnetic sample",
-        "gravity_m_s2": 9.80665,
-        "acc_norm_reject_fraction": 0.3,
-        "acc_max_innovation_degrees": 60,
-        "acc_norm_gating_location": "measurement and rest updates; nonzero LPF input retained"
+      "srukf": {
+        "stage": "srukf",
+        "core": "UKF::SquareRootCore",
+        "state": "attitude quaternion, world-frame velocity, gyroscope bias",
+        "measurements": "zero velocity; gyroscope at rest; magnetic heading (separate filter)",
+        "integrator": "UKF::IntegratorRK4",
+        "initial_tilt_rad": 0.05,
+        "initial_velocity_m_s": 0.1,
+        "initial_gyro_bias_rad_s": 0.008726646259971648,
+        "gyroscope_noise_rad_sqrt_s": 0.003,
+        "gyroscope_scale_error": 0.002,
+        "accelerometer_noise_m_s_sqrt_s": 0.05,
+        "gyro_bias_walk_rad_s_sqrt_s": 1.7453292519943296e-05,
+        "zero_velocity_noise_m_s_sqrt_s": 0.09,
+        "rest_gyroscope_noise_rad_s_sqrt_s": 0.00020943951023931956,
+        "heading_sigma_limit_rad": 0.3,
+        "rest_averaging_time_s": 0.5,
+        "rest_gyroscope_change_rad_s": 0.03490658503988659,
+        "rest_accelerometer_change_m_s2": 0.5,
+        "rest_accelerometer_minimum_m_s2": 6.864654999999999,
+        "rest_accelerometer_maximum_m_s2": 12.748645,
+        "rest_gyroscope_bias_rad_s": 0.03490658503988659,
+        "rest_minimum_time_s": 1.5,
+        "initial_heading_rad": 0.17453292519943295,
+        "heading_walk_rad_sqrt_s": 0.002967059728390361,
+        "magnetic_heading_noise_rad_sqrt_s": 0.05235987755982988,
+        "magnetic_strength_change": 0.1,
+        "magnetic_dip_change_rad": 0.17453292519943295,
+        "magnetic_smoothing_time_s": 0.05,
+        "magnetic_settle_time_s": 0.5,
+        "magnetic_reference_time_s": 20,
+        "magnetic_new_field_time_s": 20,
+        "magnetic_new_field_rotation_rad_s": 0.3490658503988659
       },
-      "robust-acc": {
-        "stage": "robust-acc",
-        "attitude": "quaternion-only SR-UKF",
-        "bias": "separate rest-only SR-UKF",
-        "gravity_gain_constraint": "horizontal left/world Gibbs error",
-        "covariance_reset": "analytic left-Gibbs transport",
-        "unscented_alpha_squared": 1,
-        "unscented_beta": 2,
-        "unscented_kappa": 0,
-        "mrp_a": 0,
-        "mrp_f": 2,
-        "gyro_integration": "exact quaternion increment, midpoint gyro minus previous bias estimate",
-        "initial_attitude_sigma_rad": 0.05,
-        "initial_bias_sigma_deg_s": 0.5,
-        "gravity_observation": "two-dimensional predicted-gravity tangent plane",
-        "raw_acc_direction_sigma": 0.1,
-        "filtered_acc_direction_sigma_base": 0.002,
-        "filtered_acc_sigma_formula": "0.002*sqrt(max(1,6/observation_dt))",
-        "attitude_covariance_scope": "conditional on separate bias estimate; filtered-observation R is an effective model",
-        "acceleration_filter_enabled": true,
-        "magnetic_rejection_enabled": false,
-        "acceleration_rejection_enabled": false,
-        "acc_tau_seconds": 3,
-        "correction_period_seconds": 0.05,
-        "rest_min_seconds": 1.5,
-        "rest_filter_tau_seconds": 0.5,
-        "rest_gyro_threshold_deg_s": 2,
-        "rest_absolute_filtered_gyro_limit_deg_s": 2,
-        "rest_acc_threshold_m_s2": 0.5,
-        "gyro_noise_rad_sqrt_s": 0.02,
-        "bias_random_walk_deg_s_sqrt_s": 0.01,
-        "mag_tau_seconds": 9,
-        "mag_norm_threshold_fraction": 0.1,
-        "rest_bias_target_sigma_deg_s": 0.03,
-        "rest_bias_effective_R": "P_target^2/Q_interval+P_target",
-        "bias_health_bound_deg_s": 2.1,
-        "mag_norm_dip_lowpass_tau_seconds": 0.05,
-        "mag_reference_tau_seconds": 20,
-        "mag_dip_threshold_degrees": 10,
-        "mag_good_dwell_seconds": 0.5,
-        "mag_new_field_rotation_seconds": 20,
-        "mag_new_field_min_rotation_deg_s": 20,
-        "heading_startup": "first usable magnetic sample",
-        "gravity_m_s2": 9.80665,
-        "acc_norm_reject_fraction": 0.3,
-        "acc_max_innovation_degrees": 60,
-        "acc_norm_gating_location": "measurement and rest updates; nonzero LPF input retained"
-      },
-      "robust-rest": {
-        "stage": "robust-rest",
-        "attitude": "quaternion-only SR-UKF",
-        "bias": "separate rest-only SR-UKF",
-        "gravity_gain_constraint": "horizontal left/world Gibbs error",
-        "covariance_reset": "analytic left-Gibbs transport",
-        "unscented_alpha_squared": 1,
-        "unscented_beta": 2,
-        "unscented_kappa": 0,
-        "mrp_a": 0,
-        "mrp_f": 2,
-        "gyro_integration": "exact quaternion increment, midpoint gyro minus previous bias estimate",
-        "initial_attitude_sigma_rad": 0.05,
-        "initial_bias_sigma_deg_s": 0.5,
-        "gravity_observation": "two-dimensional predicted-gravity tangent plane",
-        "raw_acc_direction_sigma": 0.1,
-        "filtered_acc_direction_sigma_base": 0.002,
-        "filtered_acc_sigma_formula": "0.002*sqrt(max(1,6/observation_dt))",
-        "attitude_covariance_scope": "conditional on separate bias estimate; filtered-observation R is an effective model",
-        "acceleration_filter_enabled": false,
-        "magnetic_rejection_enabled": false,
-        "acceleration_rejection_enabled": false,
-        "acc_tau_seconds": 3,
-        "correction_period_seconds": 0.05,
-        "rest_min_seconds": 1.5,
-        "rest_filter_tau_seconds": 0.5,
-        "rest_gyro_threshold_deg_s": 2,
-        "rest_absolute_filtered_gyro_limit_deg_s": 2,
-        "rest_acc_threshold_m_s2": 0.5,
-        "gyro_noise_rad_sqrt_s": 0.02,
-        "bias_random_walk_deg_s_sqrt_s": 0.01,
-        "mag_tau_seconds": 9,
-        "mag_norm_threshold_fraction": 0.1,
-        "rest_bias_target_sigma_deg_s": 0.03,
-        "rest_bias_effective_R": "P_target^2/Q_interval+P_target",
-        "bias_health_bound_deg_s": 2.1,
-        "mag_norm_dip_lowpass_tau_seconds": 0.05,
-        "mag_reference_tau_seconds": 20,
-        "mag_dip_threshold_degrees": 10,
-        "mag_good_dwell_seconds": 0.5,
-        "mag_new_field_rotation_seconds": 20,
-        "mag_new_field_min_rotation_deg_s": 20,
-        "heading_startup": "first usable magnetic sample",
-        "gravity_m_s2": 9.80665,
-        "acc_norm_reject_fraction": 0.3,
-        "acc_max_innovation_degrees": 60,
-        "acc_norm_gating_location": "measurement and rest updates; nonzero LPF input retained"
+      "ukf": {
+        "stage": "ukf",
+        "core": "UKF::Core",
+        "state": "attitude quaternion, world-frame velocity, gyroscope bias",
+        "measurements": "zero velocity; gyroscope at rest; magnetic heading (separate filter)",
+        "integrator": "UKF::IntegratorRK4",
+        "initial_tilt_rad": 0.05,
+        "initial_velocity_m_s": 0.1,
+        "initial_gyro_bias_rad_s": 0.008726646259971648,
+        "gyroscope_noise_rad_sqrt_s": 0.003,
+        "gyroscope_scale_error": 0.002,
+        "accelerometer_noise_m_s_sqrt_s": 0.05,
+        "gyro_bias_walk_rad_s_sqrt_s": 1.7453292519943296e-05,
+        "zero_velocity_noise_m_s_sqrt_s": 0.09,
+        "rest_gyroscope_noise_rad_s_sqrt_s": 0.00020943951023931956,
+        "heading_sigma_limit_rad": 0.3,
+        "rest_averaging_time_s": 0.5,
+        "rest_gyroscope_change_rad_s": 0.03490658503988659,
+        "rest_accelerometer_change_m_s2": 0.5,
+        "rest_accelerometer_minimum_m_s2": 6.864654999999999,
+        "rest_accelerometer_maximum_m_s2": 12.748645,
+        "rest_gyroscope_bias_rad_s": 0.03490658503988659,
+        "rest_minimum_time_s": 1.5,
+        "initial_heading_rad": 0.17453292519943295,
+        "heading_walk_rad_sqrt_s": 0.002967059728390361,
+        "magnetic_heading_noise_rad_sqrt_s": 0.05235987755982988,
+        "magnetic_strength_change": 0.1,
+        "magnetic_dip_change_rad": 0.17453292519943295,
+        "magnetic_smoothing_time_s": 0.05,
+        "magnetic_settle_time_s": 0.5,
+        "magnetic_reference_time_s": 20,
+        "magnetic_new_field_time_s": 20,
+        "magnetic_new_field_rotation_rad_s": 0.3490658503988659
       }
     },
-    "cpp_configuration": "Fixed defaults in source_sha256; robust stage names select cumulative feature additions.",
+    "cpp_configuration": "Fixed tuning in attitude_estimator.h; ukf and srukf run the same model on UKF::Core and UKF::SquareRootCore.",
     "datasets": [
       "sassari"
     ],
@@ -1329,16 +832,13 @@
     "algorithms": [
       "ukf",
       "srukf",
-      "robust-rest",
-      "robust-acc",
-      "robust",
       "madgwick",
       "mahony",
       "vqf"
     ],
     "split": "all",
     "split_protocol": {
-      "name": "robust-development-v1",
+      "name": "attitude-development-v1",
       "development_broad": [
         "01",
         "08",
@@ -1350,7 +850,7 @@
         "slow"
       ],
       "grouping": "All Sassari sensors from one physical motion stay in the same split.",
-      "qualification": "Splits govern new-estimator development; baseline results were already observed on all recordings."
+      "qualification": "The estimator is tuned on the development recordings only; reference results were already known on all recordings."
     },
     "trial_patterns": [],
     "selected_trials": [
@@ -1382,54 +882,27 @@
         "axes": 6,
         "algorithm": "ukf",
         "trials": 18,
-        "inclination_rmse_deg": 4.9878159808477,
-        "heading_rmse_deg": 88.48353482752913,
-        "total_rmse_deg": 88.5988289859453
+        "inclination_rmse_deg": 1.861022775040365,
+        "heading_rmse_deg": 3.8618725604860353,
+        "total_rmse_deg": 4.422862633553553
       },
       {
         "dataset": "sassari",
         "axes": 6,
         "algorithm": "srukf",
         "trials": 18,
-        "inclination_rmse_deg": 4.987815980847444,
-        "heading_rmse_deg": 88.48353482754236,
-        "total_rmse_deg": 88.59882898595842
-      },
-      {
-        "dataset": "sassari",
-        "axes": 6,
-        "algorithm": "robust-rest",
-        "trials": 18,
-        "inclination_rmse_deg": 3.4856690025588777,
-        "heading_rmse_deg": 3.547006760611129,
-        "total_rmse_deg": 5.300571798234329
-      },
-      {
-        "dataset": "sassari",
-        "axes": 6,
-        "algorithm": "robust-acc",
-        "trials": 18,
-        "inclination_rmse_deg": 2.162553968132929,
-        "heading_rmse_deg": 3.694374862204527,
-        "total_rmse_deg": 4.414808580395967
-      },
-      {
-        "dataset": "sassari",
-        "axes": 6,
-        "algorithm": "robust",
-        "trials": 18,
-        "inclination_rmse_deg": 2.1958347872735735,
-        "heading_rmse_deg": 3.6948353958687483,
-        "total_rmse_deg": 4.4400505872535865
+        "inclination_rmse_deg": 1.8610227750403692,
+        "heading_rmse_deg": 3.8618725604857898,
+        "total_rmse_deg": 4.422862633553337
       },
       {
         "dataset": "sassari",
         "axes": 6,
         "algorithm": "madgwick",
         "trials": 18,
-        "inclination_rmse_deg": 3.3765363076595025,
-        "heading_rmse_deg": 31.781619110492784,
-        "total_rmse_deg": 32.44098696698567
+        "inclination_rmse_deg": 3.3765363076595043,
+        "heading_rmse_deg": 31.781619116886507,
+        "total_rmse_deg": 32.44098697335855
       },
       {
         "dataset": "sassari",
@@ -1437,89 +910,62 @@
         "algorithm": "mahony",
         "trials": 18,
         "inclination_rmse_deg": 8.098778718920942,
-        "heading_rmse_deg": 69.22330961896678,
-        "total_rmse_deg": 69.94968103948568
+        "heading_rmse_deg": 69.22330961896675,
+        "total_rmse_deg": 69.94968103948563
       },
       {
         "dataset": "sassari",
         "axes": 6,
         "algorithm": "vqf",
         "trials": 18,
-        "inclination_rmse_deg": 2.0951468673255493,
-        "heading_rmse_deg": 3.6374452450695287,
-        "total_rmse_deg": 4.3227435161854295
+        "inclination_rmse_deg": 2.0951468673255484,
+        "heading_rmse_deg": 3.6374452450695562,
+        "total_rmse_deg": 4.32274351618544
       },
       {
         "dataset": "sassari",
         "axes": 9,
         "algorithm": "ukf",
         "trials": 18,
-        "inclination_rmse_deg": 3.999777287656808,
-        "heading_rmse_deg": 5.081625379671218,
-        "total_rmse_deg": 6.535888752693618
+        "inclination_rmse_deg": 1.8610227750404067,
+        "heading_rmse_deg": 3.689386228975514,
+        "total_rmse_deg": 4.198670197714645
       },
       {
         "dataset": "sassari",
         "axes": 9,
         "algorithm": "srukf",
         "trials": 18,
-        "inclination_rmse_deg": 3.9997772876567876,
-        "heading_rmse_deg": 5.081625379671199,
-        "total_rmse_deg": 6.5358887526935785
-      },
-      {
-        "dataset": "sassari",
-        "axes": 9,
-        "algorithm": "robust-rest",
-        "trials": 18,
-        "inclination_rmse_deg": 3.485669002558902,
-        "heading_rmse_deg": 4.305747994805165,
-        "total_rmse_deg": 5.693451076495487
-      },
-      {
-        "dataset": "sassari",
-        "axes": 9,
-        "algorithm": "robust-acc",
-        "trials": 18,
-        "inclination_rmse_deg": 2.1625539681329613,
-        "heading_rmse_deg": 3.620562482108317,
-        "total_rmse_deg": 4.329115458277275
-      },
-      {
-        "dataset": "sassari",
-        "axes": 9,
-        "algorithm": "robust",
-        "trials": 18,
-        "inclination_rmse_deg": 2.1958347872736024,
-        "heading_rmse_deg": 3.692334933308558,
-        "total_rmse_deg": 4.414907157028332
+        "inclination_rmse_deg": 1.861022775040404,
+        "heading_rmse_deg": 3.689386228975484,
+        "total_rmse_deg": 4.198670197714638
       },
       {
         "dataset": "sassari",
         "axes": 9,
         "algorithm": "madgwick",
         "trials": 18,
-        "inclination_rmse_deg": 3.2958051541688125,
-        "heading_rmse_deg": 3.8477374964860402,
-        "total_rmse_deg": 5.143231147002515
+        "inclination_rmse_deg": 3.295805154168815,
+        "heading_rmse_deg": 3.847737496486038,
+        "total_rmse_deg": 5.143231147002519
       },
       {
         "dataset": "sassari",
         "axes": 9,
         "algorithm": "mahony",
         "trials": 18,
-        "inclination_rmse_deg": 7.548321922463305,
+        "inclination_rmse_deg": 7.548321922463304,
         "heading_rmse_deg": 11.583268126131587,
-        "total_rmse_deg": 13.941827316067679
+        "total_rmse_deg": 13.941827316067682
       },
       {
         "dataset": "sassari",
         "axes": 9,
         "algorithm": "vqf",
         "trials": 18,
-        "inclination_rmse_deg": 2.095146867325661,
-        "heading_rmse_deg": 3.5725781014515894,
-        "total_rmse_deg": 4.235021296030032
+        "inclination_rmse_deg": 2.0951468673256617,
+        "heading_rmse_deg": 3.572578101451443,
+        "total_rmse_deg": 4.235021296029902
       }
     ],
     "summary_by_split": {
@@ -1529,45 +975,18 @@
           "axes": 6,
           "algorithm": "ukf",
           "trials": 6,
-          "inclination_rmse_deg": 2.6174992360288107,
-          "heading_rmse_deg": 70.90836326289457,
-          "total_rmse_deg": 70.94904514926073
+          "inclination_rmse_deg": 1.625767301627915,
+          "heading_rmse_deg": 3.851182263502128,
+          "total_rmse_deg": 4.24103612522096
         },
         {
           "dataset": "sassari",
           "axes": 6,
           "algorithm": "srukf",
           "trials": 6,
-          "inclination_rmse_deg": 2.617499236028768,
-          "heading_rmse_deg": 70.90836326287429,
-          "total_rmse_deg": 70.94904514924048
-        },
-        {
-          "dataset": "sassari",
-          "axes": 6,
-          "algorithm": "robust-rest",
-          "trials": 6,
-          "inclination_rmse_deg": 1.8315091109799153,
-          "heading_rmse_deg": 4.06475897996732,
-          "total_rmse_deg": 4.534285500986035
-        },
-        {
-          "dataset": "sassari",
-          "axes": 6,
-          "algorithm": "robust-acc",
-          "trials": 6,
-          "inclination_rmse_deg": 1.6736192301051755,
-          "heading_rmse_deg": 4.070083188168063,
-          "total_rmse_deg": 4.44896665033513
-        },
-        {
-          "dataset": "sassari",
-          "axes": 6,
-          "algorithm": "robust",
-          "trials": 6,
-          "inclination_rmse_deg": 1.673636977632179,
-          "heading_rmse_deg": 4.07008378267155,
-          "total_rmse_deg": 4.448977956343877
+          "inclination_rmse_deg": 1.6257673016279213,
+          "heading_rmse_deg": 3.8511822635021917,
+          "total_rmse_deg": 4.241036125221034
         },
         {
           "dataset": "sassari",
@@ -1575,7 +994,7 @@
           "algorithm": "madgwick",
           "trials": 6,
           "inclination_rmse_deg": 2.0492935942970756,
-          "heading_rmse_deg": 40.361739237851516,
+          "heading_rmse_deg": 40.36173923785153,
           "total_rmse_deg": 40.652714361237784
         },
         {
@@ -1583,90 +1002,63 @@
           "axes": 6,
           "algorithm": "mahony",
           "trials": 6,
-          "inclination_rmse_deg": 3.107068063759438,
-          "heading_rmse_deg": 74.12179258304957,
-          "total_rmse_deg": 74.19241030801145
+          "inclination_rmse_deg": 3.1070680637594363,
+          "heading_rmse_deg": 74.12179258304948,
+          "total_rmse_deg": 74.19241030801133
         },
         {
           "dataset": "sassari",
           "axes": 6,
           "algorithm": "vqf",
           "trials": 6,
-          "inclination_rmse_deg": 1.6328303259887766,
-          "heading_rmse_deg": 3.9116808275905868,
-          "total_rmse_deg": 4.281733182975088
+          "inclination_rmse_deg": 1.6328303259888013,
+          "heading_rmse_deg": 3.9116808275906494,
+          "total_rmse_deg": 4.281733182975112
         },
         {
           "dataset": "sassari",
           "axes": 9,
           "algorithm": "ukf",
           "trials": 6,
-          "inclination_rmse_deg": 2.2616993645589827,
-          "heading_rmse_deg": 3.332345228204113,
-          "total_rmse_deg": 4.159457061231628
+          "inclination_rmse_deg": 1.6257673016279623,
+          "heading_rmse_deg": 3.088010965060743,
+          "total_rmse_deg": 3.573812028006024
         },
         {
           "dataset": "sassari",
           "axes": 9,
           "algorithm": "srukf",
           "trials": 6,
-          "inclination_rmse_deg": 2.261699364558972,
-          "heading_rmse_deg": 3.332345228204101,
-          "total_rmse_deg": 4.15945706123161
-        },
-        {
-          "dataset": "sassari",
-          "axes": 9,
-          "algorithm": "robust-rest",
-          "trials": 6,
-          "inclination_rmse_deg": 1.8315091109799593,
-          "heading_rmse_deg": 2.75567713529763,
-          "total_rmse_deg": 3.444077874143043
-        },
-        {
-          "dataset": "sassari",
-          "axes": 9,
-          "algorithm": "robust-acc",
-          "trials": 6,
-          "inclination_rmse_deg": 1.6736192301052215,
-          "heading_rmse_deg": 2.7402471863986637,
-          "total_rmse_deg": 3.34073356726531
-        },
-        {
-          "dataset": "sassari",
-          "axes": 9,
-          "algorithm": "robust",
-          "trials": 6,
-          "inclination_rmse_deg": 1.6736369776322215,
-          "heading_rmse_deg": 2.740243520964732,
-          "total_rmse_deg": 3.3407427977638258
+          "inclination_rmse_deg": 1.625767301627964,
+          "heading_rmse_deg": 3.0880109650607426,
+          "total_rmse_deg": 3.573812028006093
         },
         {
           "dataset": "sassari",
           "axes": 9,
           "algorithm": "madgwick",
           "trials": 6,
-          "inclination_rmse_deg": 2.005759052107883,
-          "heading_rmse_deg": 2.9213151422709482,
-          "total_rmse_deg": 3.5955350463040356
+          "inclination_rmse_deg": 2.005759052107887,
+          "heading_rmse_deg": 2.921315142270949,
+          "total_rmse_deg": 3.595535046304041
         },
         {
           "dataset": "sassari",
           "axes": 9,
           "algorithm": "mahony",
           "trials": 6,
-          "inclination_rmse_deg": 2.714443433288519,
-          "heading_rmse_deg": 3.347943186510662,
-          "total_rmse_deg": 4.421508892088884
+          "inclination_rmse_deg": 2.714443433288512,
+          "heading_rmse_deg": 3.347943186510659,
+          "total_rmse_deg": 4.421508892088885
         },
         {
           "dataset": "sassari",
           "axes": 9,
           "algorithm": "vqf",
           "trials": 6,
-          "inclination_rmse_deg": 1.6328303259889179,
-          "heading_rmse_deg": 3.0287195657941,
-          "total_rmse_deg": 3.5447042800850266
+          "inclination_rmse_deg": 1.6328303259889492,
+          "heading_rmse_deg": 3.028719565794052,
+          "total_rmse_deg": 3.5447042800850004
         }
       ],
       "validation": [
@@ -1675,54 +1067,27 @@
           "axes": 6,
           "algorithm": "ukf",
           "trials": 12,
-          "inclination_rmse_deg": 6.172974353257146,
-          "heading_rmse_deg": 97.27112060984642,
-          "total_rmse_deg": 97.42372090428756
+          "inclination_rmse_deg": 1.9786505117465898,
+          "heading_rmse_deg": 3.8672177089779893,
+          "total_rmse_deg": 4.51377588771985
         },
         {
           "dataset": "sassari",
           "axes": 6,
           "algorithm": "srukf",
           "trials": 12,
-          "inclination_rmse_deg": 6.172974353256781,
-          "heading_rmse_deg": 97.2711206098764,
-          "total_rmse_deg": 97.4237209043174
-        },
-        {
-          "dataset": "sassari",
-          "axes": 6,
-          "algorithm": "robust-rest",
-          "trials": 12,
-          "inclination_rmse_deg": 4.312748948348359,
-          "heading_rmse_deg": 3.288130650933033,
-          "total_rmse_deg": 5.683714946858477
-        },
-        {
-          "dataset": "sassari",
-          "axes": 6,
-          "algorithm": "robust-acc",
-          "trials": 12,
-          "inclination_rmse_deg": 2.4070213371468054,
-          "heading_rmse_deg": 3.5065206992227584,
-          "total_rmse_deg": 4.397729545426384
-        },
-        {
-          "dataset": "sassari",
-          "axes": 6,
-          "algorithm": "robust",
-          "trials": 12,
-          "inclination_rmse_deg": 2.456933692094271,
-          "heading_rmse_deg": 3.507211202467347,
-          "total_rmse_deg": 4.435586902708442
+          "inclination_rmse_deg": 1.978650511746593,
+          "heading_rmse_deg": 3.8672177089775883,
+          "total_rmse_deg": 4.51377588771949
         },
         {
           "dataset": "sassari",
           "axes": 6,
           "algorithm": "madgwick",
           "trials": 12,
-          "inclination_rmse_deg": 4.0401576643407155,
-          "heading_rmse_deg": 27.491559046813432,
-          "total_rmse_deg": 28.33512326985961
+          "inclination_rmse_deg": 4.040157664340717,
+          "heading_rmse_deg": 27.491559056403986,
+          "total_rmse_deg": 28.335123279418934
         },
         {
           "dataset": "sassari",
@@ -1730,7 +1095,7 @@
           "algorithm": "mahony",
           "trials": 12,
           "inclination_rmse_deg": 10.594634046501694,
-          "heading_rmse_deg": 66.7740681369254,
+          "heading_rmse_deg": 66.77406813692538,
           "total_rmse_deg": 67.82831640522278
         },
         {
@@ -1738,81 +1103,54 @@
           "axes": 6,
           "algorithm": "vqf",
           "trials": 12,
-          "inclination_rmse_deg": 2.3263051379939355,
-          "heading_rmse_deg": 3.5003274538089992,
-          "total_rmse_deg": 4.343248682790601
+          "inclination_rmse_deg": 2.326305137993922,
+          "heading_rmse_deg": 3.5003274538090103,
+          "total_rmse_deg": 4.3432486827906045
         },
         {
           "dataset": "sassari",
           "axes": 9,
           "algorithm": "ukf",
           "trials": 12,
-          "inclination_rmse_deg": 4.868816249205721,
-          "heading_rmse_deg": 5.956265455404769,
-          "total_rmse_deg": 7.724104598424613
+          "inclination_rmse_deg": 1.9786505117466289,
+          "heading_rmse_deg": 3.9900738609329003,
+          "total_rmse_deg": 4.5110992825689555
         },
         {
           "dataset": "sassari",
           "axes": 9,
           "algorithm": "srukf",
           "trials": 12,
-          "inclination_rmse_deg": 4.868816249205696,
-          "heading_rmse_deg": 5.95626545540475,
-          "total_rmse_deg": 7.724104598424564
-        },
-        {
-          "dataset": "sassari",
-          "axes": 9,
-          "algorithm": "robust-rest",
-          "trials": 12,
-          "inclination_rmse_deg": 4.312748948348373,
-          "heading_rmse_deg": 5.080783424558932,
-          "total_rmse_deg": 6.818137677671708
-        },
-        {
-          "dataset": "sassari",
-          "axes": 9,
-          "algorithm": "robust-acc",
-          "trials": 12,
-          "inclination_rmse_deg": 2.4070213371468316,
-          "heading_rmse_deg": 4.060720129963143,
-          "total_rmse_deg": 4.823306403783257
-        },
-        {
-          "dataset": "sassari",
-          "axes": 9,
-          "algorithm": "robust",
-          "trials": 12,
-          "inclination_rmse_deg": 2.4569336920942937,
-          "heading_rmse_deg": 4.168380639480472,
-          "total_rmse_deg": 4.951989336660584
+          "inclination_rmse_deg": 1.9786505117466244,
+          "heading_rmse_deg": 3.990073860932855,
+          "total_rmse_deg": 4.511099282568909
         },
         {
           "dataset": "sassari",
           "axes": 9,
           "algorithm": "madgwick",
           "trials": 12,
-          "inclination_rmse_deg": 3.9408282051992773,
-          "heading_rmse_deg": 4.310948673593587,
-          "total_rmse_deg": 5.917079197351755
+          "inclination_rmse_deg": 3.940828205199279,
+          "heading_rmse_deg": 4.310948673593583,
+          "total_rmse_deg": 5.9170791973517565
         },
         {
           "dataset": "sassari",
           "axes": 9,
           "algorithm": "mahony",
           "trials": 12,
-          "inclination_rmse_deg": 9.965261167050699,
-          "heading_rmse_deg": 15.700930595942049,
-          "total_rmse_deg": 18.701986528057073
+          "inclination_rmse_deg": 9.965261167050697,
+          "heading_rmse_deg": 15.700930595942053,
+          "total_rmse_deg": 18.70198652805708
         },
         {
           "dataset": "sassari",
           "axes": 9,
           "algorithm": "vqf",
           "trials": 12,
-          "inclination_rmse_deg": 2.326305137994032,
-          "heading_rmse_deg": 3.8445073692803344,
-          "total_rmse_deg": 4.580179804002535
+          "inclination_rmse_deg": 2.326305137994017,
+          "heading_rmse_deg": 3.8445073692801386,
+          "total_rmse_deg": 4.580179804002352
         }
       ]
     },
@@ -1823,144 +1161,90 @@
           "axes": 6,
           "algorithm": "ukf",
           "trials": 6,
-          "inclination_rmse_deg": 6.914030806699444,
-          "heading_rmse_deg": 97.29771194458651,
-          "total_rmse_deg": 97.49041420000968
+          "inclination_rmse_deg": 2.293906018726537,
+          "heading_rmse_deg": 4.5947891303278405,
+          "total_rmse_deg": 5.379813187065161
         },
         {
           "dataset": "sassari",
           "axes": 6,
           "algorithm": "srukf",
           "trials": 6,
-          "inclination_rmse_deg": 6.914030806699099,
-          "heading_rmse_deg": 97.29771194462201,
-          "total_rmse_deg": 97.49041420004494
-        },
-        {
-          "dataset": "sassari",
-          "axes": 6,
-          "algorithm": "robust-rest",
-          "trials": 6,
-          "inclination_rmse_deg": 5.079975697103342,
-          "heading_rmse_deg": 3.410457921622226,
-          "total_rmse_deg": 6.441693192962453
-        },
-        {
-          "dataset": "sassari",
-          "axes": 6,
-          "algorithm": "robust-acc",
-          "trials": 6,
-          "inclination_rmse_deg": 2.9294960408169537,
-          "heading_rmse_deg": 3.801325284377152,
-          "total_rmse_deg": 5.036338886029124
-        },
-        {
-          "dataset": "sassari",
-          "axes": 6,
-          "algorithm": "robust",
-          "trials": 6,
-          "inclination_rmse_deg": 3.0265337240500503,
-          "heading_rmse_deg": 3.8028964612195195,
-          "total_rmse_deg": 5.11099114755588
+          "inclination_rmse_deg": 2.2939060187265423,
+          "heading_rmse_deg": 4.594789130327314,
+          "total_rmse_deg": 5.379813187064694
         },
         {
           "dataset": "sassari",
           "axes": 6,
           "algorithm": "madgwick",
           "trials": 6,
-          "inclination_rmse_deg": 5.2631795974281355,
-          "heading_rmse_deg": 26.75331742652824,
-          "total_rmse_deg": 28.19928391155845
+          "inclination_rmse_deg": 5.263179597428131,
+          "heading_rmse_deg": 26.753317426525353,
+          "total_rmse_deg": 28.199283911555565
         },
         {
           "dataset": "sassari",
           "axes": 6,
           "algorithm": "mahony",
           "trials": 6,
-          "inclination_rmse_deg": 9.600764740148739,
-          "heading_rmse_deg": 52.516859033553715,
-          "total_rmse_deg": 53.490823044379376
+          "inclination_rmse_deg": 9.600764740148742,
+          "heading_rmse_deg": 52.51685903355371,
+          "total_rmse_deg": 53.49082304437935
         },
         {
           "dataset": "sassari",
           "axes": 6,
           "algorithm": "vqf",
           "trials": 6,
-          "inclination_rmse_deg": 2.8196704063301063,
-          "heading_rmse_deg": 3.796491422235294,
-          "total_rmse_deg": 4.959296862206684
+          "inclination_rmse_deg": 2.819670406330007,
+          "heading_rmse_deg": 3.7964914222353525,
+          "total_rmse_deg": 4.9592968622066955
         },
         {
           "dataset": "sassari",
           "axes": 9,
           "algorithm": "ukf",
           "trials": 6,
-          "inclination_rmse_deg": 5.65472491503727,
-          "heading_rmse_deg": 7.242773268275243,
-          "total_rmse_deg": 9.229352298489859
+          "inclination_rmse_deg": 2.2939060187265863,
+          "heading_rmse_deg": 4.538212801149024,
+          "total_rmse_deg": 5.177305723494722
         },
         {
           "dataset": "sassari",
           "axes": 9,
           "algorithm": "srukf",
           "trials": 6,
-          "inclination_rmse_deg": 5.654724915037236,
-          "heading_rmse_deg": 7.242773268275196,
-          "total_rmse_deg": 9.229352298489781
-        },
-        {
-          "dataset": "sassari",
-          "axes": 9,
-          "algorithm": "robust-rest",
-          "trials": 6,
-          "inclination_rmse_deg": 5.0799756971033565,
-          "heading_rmse_deg": 5.477318819139671,
-          "total_rmse_deg": 7.74248723974999
-        },
-        {
-          "dataset": "sassari",
-          "axes": 9,
-          "algorithm": "robust-acc",
-          "trials": 6,
-          "inclination_rmse_deg": 2.929496040816982,
-          "heading_rmse_deg": 4.6721775485002235,
-          "total_rmse_deg": 5.669514529256446
-        },
-        {
-          "dataset": "sassari",
-          "axes": 9,
-          "algorithm": "robust",
-          "trials": 6,
-          "inclination_rmse_deg": 3.0265337240500743,
-          "heading_rmse_deg": 4.895503056083124,
-          "total_rmse_deg": 5.932092410656721
+          "inclination_rmse_deg": 2.2939060187265827,
+          "heading_rmse_deg": 4.538212801148844,
+          "total_rmse_deg": 5.177305723494553
         },
         {
           "dataset": "sassari",
           "axes": 9,
           "algorithm": "madgwick",
           "trials": 6,
-          "inclination_rmse_deg": 5.0817908774547424,
-          "heading_rmse_deg": 4.800673505732147,
-          "total_rmse_deg": 7.054141762577096
+          "inclination_rmse_deg": 5.081790877454744,
+          "heading_rmse_deg": 4.800673505732146,
+          "total_rmse_deg": 7.054141762577083
         },
         {
           "dataset": "sassari",
           "axes": 9,
           "algorithm": "mahony",
           "trials": 6,
-          "inclination_rmse_deg": 8.467812750139244,
-          "heading_rmse_deg": 11.252771765513664,
-          "total_rmse_deg": 14.191122561541667
+          "inclination_rmse_deg": 8.46781275013924,
+          "heading_rmse_deg": 11.252771765513662,
+          "total_rmse_deg": 14.19112256154166
         },
         {
           "dataset": "sassari",
           "axes": 9,
           "algorithm": "vqf",
           "trials": 6,
-          "inclination_rmse_deg": 2.8196704063301876,
-          "heading_rmse_deg": 4.193647642630877,
-          "total_rmse_deg": 5.183501257897298
+          "inclination_rmse_deg": 2.819670406330099,
+          "heading_rmse_deg": 4.19364764263049,
+          "total_rmse_deg": 5.183501257896888
         }
       ],
       "medium": [
@@ -1969,144 +1253,90 @@
           "axes": 6,
           "algorithm": "ukf",
           "trials": 6,
-          "inclination_rmse_deg": 5.431917899814849,
-          "heading_rmse_deg": 97.24452927510634,
-          "total_rmse_deg": 97.35702760856545
+          "inclination_rmse_deg": 1.6633950047666426,
+          "heading_rmse_deg": 3.1396462876281377,
+          "total_rmse_deg": 3.6477385883745383
         },
         {
           "dataset": "sassari",
           "axes": 6,
           "algorithm": "srukf",
           "trials": 6,
-          "inclination_rmse_deg": 5.431917899814462,
-          "heading_rmse_deg": 97.24452927513079,
-          "total_rmse_deg": 97.35702760858983
-        },
-        {
-          "dataset": "sassari",
-          "axes": 6,
-          "algorithm": "robust-rest",
-          "trials": 6,
-          "inclination_rmse_deg": 3.5455221995933766,
-          "heading_rmse_deg": 3.165803380243839,
-          "total_rmse_deg": 4.925736700754501
-        },
-        {
-          "dataset": "sassari",
-          "axes": 6,
-          "algorithm": "robust-acc",
-          "trials": 6,
-          "inclination_rmse_deg": 1.8845466334766572,
-          "heading_rmse_deg": 3.211716114068365,
-          "total_rmse_deg": 3.759120204823646
-        },
-        {
-          "dataset": "sassari",
-          "axes": 6,
-          "algorithm": "robust",
-          "trials": 6,
-          "inclination_rmse_deg": 1.8873336601384916,
-          "heading_rmse_deg": 3.2115259437151757,
-          "total_rmse_deg": 3.7601826578610047
+          "inclination_rmse_deg": 1.6633950047666441,
+          "heading_rmse_deg": 3.1396462876278632,
+          "total_rmse_deg": 3.647738588374285
         },
         {
           "dataset": "sassari",
           "axes": 6,
           "algorithm": "madgwick",
           "trials": 6,
-          "inclination_rmse_deg": 2.817135731253296,
-          "heading_rmse_deg": 28.229800667098612,
-          "total_rmse_deg": 28.470962628160773
+          "inclination_rmse_deg": 2.8171357312533054,
+          "heading_rmse_deg": 28.22980068628263,
+          "total_rmse_deg": 28.470962647282303
         },
         {
           "dataset": "sassari",
           "axes": 6,
           "algorithm": "mahony",
           "trials": 6,
-          "inclination_rmse_deg": 11.588503352854646,
-          "heading_rmse_deg": 81.03127724029707,
-          "total_rmse_deg": 82.16580976606622
+          "inclination_rmse_deg": 11.58850335285465,
+          "heading_rmse_deg": 81.03127724029706,
+          "total_rmse_deg": 82.16580976606619
         },
         {
           "dataset": "sassari",
           "axes": 6,
           "algorithm": "vqf",
           "trials": 6,
-          "inclination_rmse_deg": 1.8329398696577648,
-          "heading_rmse_deg": 3.2041634853827046,
-          "total_rmse_deg": 3.7272005033745157
+          "inclination_rmse_deg": 1.8329398696578376,
+          "heading_rmse_deg": 3.204163485382668,
+          "total_rmse_deg": 3.727200503374513
         },
         {
           "dataset": "sassari",
           "axes": 9,
           "algorithm": "ukf",
           "trials": 6,
-          "inclination_rmse_deg": 4.082907583374172,
-          "heading_rmse_deg": 4.669757642534298,
-          "total_rmse_deg": 6.2188568983593635
+          "inclination_rmse_deg": 1.6633950047666717,
+          "heading_rmse_deg": 3.441934920716776,
+          "total_rmse_deg": 3.8448928416431882
         },
         {
           "dataset": "sassari",
           "axes": 9,
           "algorithm": "srukf",
           "trials": 6,
-          "inclination_rmse_deg": 4.082907583374154,
-          "heading_rmse_deg": 4.669757642534302,
-          "total_rmse_deg": 6.218856898359346
-        },
-        {
-          "dataset": "sassari",
-          "axes": 9,
-          "algorithm": "robust-rest",
-          "trials": 6,
-          "inclination_rmse_deg": 3.5455221995933903,
-          "heading_rmse_deg": 4.684248029978194,
-          "total_rmse_deg": 5.893788115593427
-        },
-        {
-          "dataset": "sassari",
-          "axes": 9,
-          "algorithm": "robust-acc",
-          "trials": 6,
-          "inclination_rmse_deg": 1.884546633476681,
-          "heading_rmse_deg": 3.4492627114260643,
-          "total_rmse_deg": 3.9770982783100695
-        },
-        {
-          "dataset": "sassari",
-          "axes": 9,
-          "algorithm": "robust",
-          "trials": 6,
-          "inclination_rmse_deg": 1.8873336601385124,
-          "heading_rmse_deg": 3.4412582228778206,
-          "total_rmse_deg": 3.9718862626644458
+          "inclination_rmse_deg": 1.663395004766666,
+          "heading_rmse_deg": 3.4419349207168657,
+          "total_rmse_deg": 3.844892841643267
         },
         {
           "dataset": "sassari",
           "axes": 9,
           "algorithm": "madgwick",
           "trials": 6,
-          "inclination_rmse_deg": 2.7998655329438127,
-          "heading_rmse_deg": 3.821223841455027,
-          "total_rmse_deg": 4.780016632126414
+          "inclination_rmse_deg": 2.799865532943814,
+          "heading_rmse_deg": 3.8212238414550193,
+          "total_rmse_deg": 4.78001663212643
         },
         {
           "dataset": "sassari",
           "axes": 9,
           "algorithm": "mahony",
           "trials": 6,
-          "inclination_rmse_deg": 11.462709583962152,
-          "heading_rmse_deg": 20.149089426370438,
-          "total_rmse_deg": 23.21285049457248
+          "inclination_rmse_deg": 11.462709583962157,
+          "heading_rmse_deg": 20.149089426370445,
+          "total_rmse_deg": 23.212850494572503
         },
         {
           "dataset": "sassari",
           "axes": 9,
           "algorithm": "vqf",
           "trials": 6,
-          "inclination_rmse_deg": 1.832939869657876,
-          "heading_rmse_deg": 3.495367095929792,
-          "total_rmse_deg": 3.9768583501077726
+          "inclination_rmse_deg": 1.8329398696579358,
+          "heading_rmse_deg": 3.4953670959297867,
+          "total_rmse_deg": 3.9768583501078165
         }
       ],
       "slow": [
@@ -2115,45 +1345,18 @@
           "axes": 6,
           "algorithm": "ukf",
           "trials": 6,
-          "inclination_rmse_deg": 2.6174992360288107,
-          "heading_rmse_deg": 70.90836326289457,
-          "total_rmse_deg": 70.94904514926073
+          "inclination_rmse_deg": 1.625767301627915,
+          "heading_rmse_deg": 3.851182263502128,
+          "total_rmse_deg": 4.24103612522096
         },
         {
           "dataset": "sassari",
           "axes": 6,
           "algorithm": "srukf",
           "trials": 6,
-          "inclination_rmse_deg": 2.617499236028768,
-          "heading_rmse_deg": 70.90836326287429,
-          "total_rmse_deg": 70.94904514924048
-        },
-        {
-          "dataset": "sassari",
-          "axes": 6,
-          "algorithm": "robust-rest",
-          "trials": 6,
-          "inclination_rmse_deg": 1.8315091109799153,
-          "heading_rmse_deg": 4.06475897996732,
-          "total_rmse_deg": 4.534285500986035
-        },
-        {
-          "dataset": "sassari",
-          "axes": 6,
-          "algorithm": "robust-acc",
-          "trials": 6,
-          "inclination_rmse_deg": 1.6736192301051755,
-          "heading_rmse_deg": 4.070083188168063,
-          "total_rmse_deg": 4.44896665033513
-        },
-        {
-          "dataset": "sassari",
-          "axes": 6,
-          "algorithm": "robust",
-          "trials": 6,
-          "inclination_rmse_deg": 1.673636977632179,
-          "heading_rmse_deg": 4.07008378267155,
-          "total_rmse_deg": 4.448977956343877
+          "inclination_rmse_deg": 1.6257673016279213,
+          "heading_rmse_deg": 3.8511822635021917,
+          "total_rmse_deg": 4.241036125221034
         },
         {
           "dataset": "sassari",
@@ -2161,7 +1364,7 @@
           "algorithm": "madgwick",
           "trials": 6,
           "inclination_rmse_deg": 2.0492935942970756,
-          "heading_rmse_deg": 40.361739237851516,
+          "heading_rmse_deg": 40.36173923785153,
           "total_rmse_deg": 40.652714361237784
         },
         {
@@ -2169,90 +1372,63 @@
           "axes": 6,
           "algorithm": "mahony",
           "trials": 6,
-          "inclination_rmse_deg": 3.107068063759438,
-          "heading_rmse_deg": 74.12179258304957,
-          "total_rmse_deg": 74.19241030801145
+          "inclination_rmse_deg": 3.1070680637594363,
+          "heading_rmse_deg": 74.12179258304948,
+          "total_rmse_deg": 74.19241030801133
         },
         {
           "dataset": "sassari",
           "axes": 6,
           "algorithm": "vqf",
           "trials": 6,
-          "inclination_rmse_deg": 1.6328303259887766,
-          "heading_rmse_deg": 3.9116808275905868,
-          "total_rmse_deg": 4.281733182975088
+          "inclination_rmse_deg": 1.6328303259888013,
+          "heading_rmse_deg": 3.9116808275906494,
+          "total_rmse_deg": 4.281733182975112
         },
         {
           "dataset": "sassari",
           "axes": 9,
           "algorithm": "ukf",
           "trials": 6,
-          "inclination_rmse_deg": 2.2616993645589827,
-          "heading_rmse_deg": 3.332345228204113,
-          "total_rmse_deg": 4.159457061231628
+          "inclination_rmse_deg": 1.6257673016279623,
+          "heading_rmse_deg": 3.088010965060743,
+          "total_rmse_deg": 3.573812028006024
         },
         {
           "dataset": "sassari",
           "axes": 9,
           "algorithm": "srukf",
           "trials": 6,
-          "inclination_rmse_deg": 2.261699364558972,
-          "heading_rmse_deg": 3.332345228204101,
-          "total_rmse_deg": 4.15945706123161
-        },
-        {
-          "dataset": "sassari",
-          "axes": 9,
-          "algorithm": "robust-rest",
-          "trials": 6,
-          "inclination_rmse_deg": 1.8315091109799593,
-          "heading_rmse_deg": 2.75567713529763,
-          "total_rmse_deg": 3.444077874143043
-        },
-        {
-          "dataset": "sassari",
-          "axes": 9,
-          "algorithm": "robust-acc",
-          "trials": 6,
-          "inclination_rmse_deg": 1.6736192301052215,
-          "heading_rmse_deg": 2.7402471863986637,
-          "total_rmse_deg": 3.34073356726531
-        },
-        {
-          "dataset": "sassari",
-          "axes": 9,
-          "algorithm": "robust",
-          "trials": 6,
-          "inclination_rmse_deg": 1.6736369776322215,
-          "heading_rmse_deg": 2.740243520964732,
-          "total_rmse_deg": 3.3407427977638258
+          "inclination_rmse_deg": 1.625767301627964,
+          "heading_rmse_deg": 3.0880109650607426,
+          "total_rmse_deg": 3.573812028006093
         },
         {
           "dataset": "sassari",
           "axes": 9,
           "algorithm": "madgwick",
           "trials": 6,
-          "inclination_rmse_deg": 2.005759052107883,
-          "heading_rmse_deg": 2.9213151422709482,
-          "total_rmse_deg": 3.5955350463040356
+          "inclination_rmse_deg": 2.005759052107887,
+          "heading_rmse_deg": 2.921315142270949,
+          "total_rmse_deg": 3.595535046304041
         },
         {
           "dataset": "sassari",
           "axes": 9,
           "algorithm": "mahony",
           "trials": 6,
-          "inclination_rmse_deg": 2.714443433288519,
-          "heading_rmse_deg": 3.347943186510662,
-          "total_rmse_deg": 4.421508892088884
+          "inclination_rmse_deg": 2.714443433288512,
+          "heading_rmse_deg": 3.347943186510659,
+          "total_rmse_deg": 4.421508892088885
         },
         {
           "dataset": "sassari",
           "axes": 9,
           "algorithm": "vqf",
           "trials": 6,
-          "inclination_rmse_deg": 1.6328303259889179,
-          "heading_rmse_deg": 3.0287195657941,
-          "total_rmse_deg": 3.5447042800850266
+          "inclination_rmse_deg": 1.6328303259889492,
+          "heading_rmse_deg": 3.028719565794052,
+          "total_rmse_deg": 3.5447042800850004
         }
       ]
     },
@@ -2260,112 +1436,40 @@
       {
         "dataset": "sassari",
         "axes": 6,
-        "algorithm": "robust-rest",
-        "reference": "ukf",
-        "inclination_rmse_ratio": 0.6988367285287204,
-        "heading_rmse_ratio": 0.04008663043949256,
-        "total_rmse_ratio": 0.059826657517958556
+        "algorithm": "ukf",
+        "reference": "vqf",
+        "inclination_rmse_ratio": 0.8882540904714511,
+        "heading_rmse_ratio": 1.061699159793727,
+        "total_rmse_ratio": 1.0231610126747612
       },
       {
         "dataset": "sassari",
         "axes": 6,
-        "algorithm": "robust-rest",
+        "algorithm": "srukf",
         "reference": "vqf",
-        "inclination_rmse_ratio": 1.6636871891507667,
-        "heading_rmse_ratio": 0.9751368121400625,
-        "total_rmse_ratio": 1.2262054823256727
-      },
-      {
-        "dataset": "sassari",
-        "axes": 6,
-        "algorithm": "robust-acc",
-        "reference": "ukf",
-        "inclination_rmse_ratio": 0.4335673121135062,
-        "heading_rmse_ratio": 0.041752116587629,
-        "total_rmse_ratio": 0.049829197867799144
-      },
-      {
-        "dataset": "sassari",
-        "axes": 6,
-        "algorithm": "robust-acc",
-        "reference": "vqf",
-        "inclination_rmse_ratio": 1.032172971670203,
-        "heading_rmse_ratio": 1.015650989444354,
-        "total_rmse_ratio": 1.0212978317741552
-      },
-      {
-        "dataset": "sassari",
-        "axes": 6,
-        "algorithm": "robust",
-        "reference": "ukf",
-        "inclination_rmse_ratio": 0.44023973532808286,
-        "heading_rmse_ratio": 0.04175732132617294,
-        "total_rmse_ratio": 0.05011410013057763
-      },
-      {
-        "dataset": "sassari",
-        "axes": 6,
-        "algorithm": "robust",
-        "reference": "vqf",
-        "inclination_rmse_ratio": 1.0480576906174373,
-        "heading_rmse_ratio": 1.0157775985431012,
-        "total_rmse_ratio": 1.0271371805032914
+        "inclination_rmse_ratio": 0.8882540904714531,
+        "heading_rmse_ratio": 1.0616991597936596,
+        "total_rmse_ratio": 1.0231610126747113
       },
       {
         "dataset": "sassari",
         "axes": 9,
-        "algorithm": "robust-rest",
-        "reference": "ukf",
-        "inclination_rmse_ratio": 0.8714657721857593,
-        "heading_rmse_ratio": 0.8473170832368102,
-        "total_rmse_ratio": 0.8711058728086614
-      },
-      {
-        "dataset": "sassari",
-        "axes": 9,
-        "algorithm": "robust-rest",
+        "algorithm": "ukf",
         "reference": "vqf",
-        "inclination_rmse_ratio": 1.66368718915069,
-        "heading_rmse_ratio": 1.205221515816737,
-        "total_rmse_ratio": 1.3443736591909483
+        "inclination_rmse_ratio": 0.888254090471423,
+        "heading_rmse_ratio": 1.032695751977155,
+        "total_rmse_ratio": 0.9914165488732408
       },
       {
         "dataset": "sassari",
         "axes": 9,
-        "algorithm": "robust-acc",
-        "reference": "ukf",
-        "inclination_rmse_ratio": 0.5406685954256847,
-        "heading_rmse_ratio": 0.7124811869430974,
-        "total_rmse_ratio": 0.6623606401643737
-      },
-      {
-        "dataset": "sassari",
-        "axes": 9,
-        "algorithm": "robust-acc",
+        "algorithm": "srukf",
         "reference": "vqf",
-        "inclination_rmse_ratio": 1.0321729716701635,
-        "heading_rmse_ratio": 1.013431303471639,
-        "total_rmse_ratio": 1.0222181084037163
-      },
-      {
-        "dataset": "sassari",
-        "axes": 9,
-        "algorithm": "robust",
-        "reference": "ukf",
-        "inclination_rmse_ratio": 0.5489892634897153,
-        "heading_rmse_ratio": 0.72660510317812,
-        "total_rmse_ratio": 0.6754868884830435
-      },
-      {
-        "dataset": "sassari",
-        "axes": 9,
-        "algorithm": "robust",
-        "reference": "vqf",
-        "inclination_rmse_ratio": 1.0480576906173953,
-        "heading_rmse_ratio": 1.0335211235293387,
-        "total_rmse_ratio": 1.0424757866428978
+        "inclination_rmse_ratio": 0.8882540904714217,
+        "heading_rmse_ratio": 1.0326957519771465,
+        "total_rmse_ratio": 0.9914165488732394
       }
     ],
-    "build_description": "Linux x86_64, GCC 14.2.0, CMake 3.31.10, Release, double precision; Python 3.12.14 and pinned reference packages."
+    "build_description": "macOS 27.2 arm64, Apple clang 21.0.0, CMake 4.4.4, Release, patched Eigen 3.2.8, double precision; Python 3.12.16 and pinned reference packages."
   }
 }

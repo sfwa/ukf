@@ -10,7 +10,7 @@ import datetime
 import json
 from pathlib import Path
 
-ALGORITHMS = {"ukf", "srukf", "robust-rest", "robust-acc", "robust", "madgwick", "mahony", "vqf"}
+ALGORITHMS = {"ukf", "srukf", "madgwick", "mahony", "vqf"}
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -38,7 +38,7 @@ def validate_reports(reports):
         if (report["scope"] != "full selected datasets" or report.get("split") != "all"
                 or report.get("trial_patterns") or set(report["axes"]) != {6, 9}
                 or set(report["algorithms"]) != ALGORITHMS):
-            raise ValueError("Only full, eight-algorithm, six/nine-axis runs can update the recorded comparison")
+            raise ValueError(f"Only full, {len(ALGORITHMS)}-algorithm, six/nine-axis runs can update the recorded comparison")
         rows = report["per_trial"]
         wanted = {(trial, axes, algorithm) for trial in expected[dataset]
                   for axes in (6, 9) for algorithm in ALGORITHMS}
@@ -89,28 +89,26 @@ def main():
              "Values are mean per-recording RMSE in degrees over author-marked movement intervals. "
              "Heading/total use fixed initial yaw alignment; six-axis heading is drift, not absolute heading accuracy.", "",
              "## Validation split", "",
-             "New-estimator development uses BROAD 01, 08, 10, 24, 28 and Sassari slow (all six sensors). "
+             "The UKF estimator is tuned on BROAD 01, 08, 10, 24, 28 and Sassari slow (all six sensors) only. "
              "The table below evaluates the remaining 34 BROAD and 12 Sassari recordings. "
-             "These labels govern the new implementation's iteration; baseline results on all recordings were already known.", ""]
+             "Reference-algorithm results on all recordings were already known.", ""]
     lines += table([row for dataset in ("broad", "sassari")
                     for row in by_dataset[dataset]["summary_by_split"]["validation"]])
     lines += ["", "## Full dataset comparison", ""]
     lines += table([row for dataset in ("broad", "sassari") for row in by_dataset[dataset]["summary"]])
-    lines += ["", "## Nine-axis conditions", "",
-              "Mean per-recording total RMSE in degrees. The final stage adds both magnetic rejection "
-              "and acceleration guards; protection can trade accuracy on clean data for disturbance tolerance.", "",
-              "| Dataset | Condition | Recordings | robust-acc | robust | VQF |",
-              "|---|---|---:|---:|---:|---:|"]
+    lines += ["", "## Conditions", "",
+              "Mean per-recording total RMSE in degrees. BROAD recordings 24 to 39 contain deliberate "
+              "magnetic or mechanical disturbances; Sassari recordings differ in rotation speed.", "",
+              "| Dataset | Axes | Condition | Recordings | UKF | SR-UKF | Madgwick | Mahony | VQF |",
+              "|---|---:|---|---:|---:|---:|---:|---:|---:|"]
     for dataset in ("broad", "sassari"):
         for condition, summary in by_dataset[dataset]["summary_by_condition"].items():
-            selected = {row["algorithm"]: row for row in summary if row["axes"] == 9}
-            lines.append(f"| {dataset} | {condition} | {selected['robust']['trials']} | "
-                         f"{selected['robust-acc']['total_rmse_deg']:.3f} | "
-                         f"{selected['robust']['total_rmse_deg']:.3f} | "
-                         f"{selected['vqf']['total_rmse_deg']:.3f} |")
-    lines += ["", "The baseline `ukf`/`srukf` use the original fixed-noise joint attitude/bias model. "
-              "`robust-rest`, `robust-acc`, and `robust` are cumulative estimator variants; "
-              "the first stage also changes the bias/heading architecture, so its difference is not a rest-only ablation. "
+            for axes in (6, 9):
+                selected = {row["algorithm"]: row for row in summary if row["axes"] == axes}
+                lines.append(f"| {dataset} | {axes} | {condition} | {selected['srukf']['trials']} | " + " | ".join(
+                    f"{selected[algorithm]['total_rmse_deg']:.3f}"
+                    for algorithm in ("ukf", "srukf", "madgwick", "mahony", "vqf")) + " |")
+    lines += ["", "`ukf` and `srukf` run the same estimator model on `UKF::Core` and `UKF::SquareRootCore`. "
               "These measurements are not an optimized ranking of filter families.", "",
               "[Methodology and reproduction](../attitude-benchmark.md) · "
               "[Per-trial metrics](attitude-per-trial.csv) · "

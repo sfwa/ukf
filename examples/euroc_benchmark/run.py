@@ -38,13 +38,10 @@ datasets = load_module("euroc_datasets", HERE / "datasets.py")
 metrics = load_module("euroc_common_metrics", ATTITUDE / "metrics.py")
 references = load_module("euroc_common_references", ATTITUDE / "references.py")
 
-ALGORITHMS = ("ukf", "srukf", "robust-rest", "robust-acc", "robust", "mav-srukf", "mav-srukf-gravity",
-              "madgwick", "mahony", "vqf", "vqf-mav")
-BASELINE_CPP = frozenset(("ukf", "srukf", "robust-rest", "robust-acc", "robust"))
-ROBUST_CPP = frozenset(("robust-rest", "robust-acc", "robust"))
+ALGORITHMS = ("ukf", "srukf", "mav-srukf", "mav-srukf-gravity", "madgwick", "mahony", "vqf", "vqf-mav")
+ATTITUDE_CPP = frozenset(("ukf", "srukf"))
 MAV_CPP = frozenset(("mav-srukf", "mav-srukf-gravity"))
-CPP_ALGORITHMS = BASELINE_CPP | MAV_CPP
-DIAGNOSTIC_ALGORITHMS = ROBUST_CPP | MAV_CPP
+CPP_ALGORITHMS = ATTITUDE_CPP | MAV_CPP
 DEVELOPMENT = frozenset(("MH_01_easy", "V1_02_medium"))
 SPLIT_PROTOCOL = {
     "name": "euroc-mav-development-v1",
@@ -318,7 +315,7 @@ def main():
     except ValueError as error:
         parser.error(str(error))
     executables = {}
-    if BASELINE_CPP.intersection(args.algorithms):
+    if ATTITUDE_CPP.intersection(args.algorithms):
         executables["attitude_benchmark"] = args.executable.resolve()
     if MAV_CPP.intersection(args.algorithms):
         executables["euroc_benchmark"] = args.mav_executable.resolve()
@@ -329,7 +326,7 @@ def main():
     sources = source_hashes()
     binaries = {name: file_hash(path) for name, path in executables.items()}
     parameters = {name: describe(args.executable.resolve(), name)
-                  for name in sorted(ROBUST_CPP.intersection(args.algorithms))}
+                  for name in sorted(ATTITUDE_CPP.intersection(args.algorithms))}
     for name in sorted(MAV_CPP.intersection(args.algorithms)):
         parameters[name] = describe(args.mav_executable.resolve(), name)
     rows, sequence_metadata = [], {}
@@ -346,7 +343,7 @@ def main():
                 if algorithm in CPP_ALGORITHMS:
                     executable = args.mav_executable if algorithm in MAV_CPP else args.executable
                     diagnostics = (args.output / "diagnostics" / f"{trial.name}-{algorithm}.csv") \
-                        if args.diagnostics and algorithm in DIAGNOSTIC_ALGORITHMS else None
+                        if args.diagnostics else None
                     quat, elapsed = cpp_estimate(executable.resolve(), trial, algorithm,
                                                  Path(temporary), diagnostics)
                     timing_scope = "cpp_update_loop_with_diagnostics_io" if diagnostics else "cpp_update_loop"

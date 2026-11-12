@@ -19,7 +19,7 @@ from datasets import fetch, manifest, read_csv
 ROOT = Path(__file__).resolve().parents[2]
 DEVELOPMENT = ("MH_01_easy", "V1_02_medium")
 SAMPLE_PERIOD_NS = 5_000_000
-# Rotor detector constants, identical to mav_estimator.cpp.
+# Rotor detector constants, identical to MAV_Tuning::rotors in mav_estimator.h.
 VIBRATION_LOWPASS_HZ = 20
 VIBRATION_ENERGY_TAU_SECONDS = .5
 ROTOR_ON_RMS_M_S2 = .8
@@ -29,7 +29,7 @@ ROTOR_OFF_RMS_M_S2 = .5
 def rotor_detector(time: np.ndarray, force: np.ndarray) -> np.ndarray:
     """Return the runtime rotor state for each sample.
 
-    This is a sample-by-sample port of the detector in mav_estimator.cpp, so
+    This is a sample-by-sample port of RotorDetector in rotor_vibration.h, so
     calibration selects exactly the samples where the estimator treats the
     rotors as running: vibration is the specific force minus its exact
     zero-order-hold second-order Butterworth low-pass (20 Hz cutoff, variable
@@ -47,7 +47,7 @@ def rotor_detector(time: np.ndarray, force: np.ndarray) -> np.ndarray:
         sample = [float(component) for component in force[index]]
         dt = float(time[index] - time[index - 1]) if index else 0.0
         if index == 0:
-            # LowPass::update initializes to the first sample.
+            # LowPassFilter::update starts from the first sample.
             value = sample
         else:
             h = dt / tau
@@ -58,7 +58,7 @@ def rotor_detector(time: np.ndarray, force: np.ndarray) -> np.ndarray:
             rate = [decay * ((-2 * sine / tau) * error[axis] + (cosine - sine) * rate[axis])
                     for axis in range(3)]
         vibration = [sample[axis] - value[axis] for axis in range(3)]
-        gain = -math.expm1(-dt / VIBRATION_ENERGY_TAU_SECONDS)
+        gain = 1.0 - math.exp(-dt / VIBRATION_ENERGY_TAU_SECONDS)
         energy += gain * (sum(component * component for component in vibration) - energy)
         rms = math.sqrt(max(0.0, energy))
         if rms > ROTOR_ON_RMS_M_S2:
@@ -121,7 +121,7 @@ def calibrate(cache: Path) -> dict:
             "The result is empirical calibration, not a published exact Firefly-to-IMU transform.",
         ],
         "selection": {
-            "detector": "runtime rotor detector of mav_estimator.cpp",
+            "detector": "runtime RotorDetector of rotor_vibration.h",
             "vibration": "specific force minus exact zero-order-hold second-order Butterworth low-pass",
             "lowpass_cutoff_hz": VIBRATION_LOWPASS_HZ,
             "nominal_sample_rate_hz": 200,

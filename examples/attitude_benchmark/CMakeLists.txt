@@ -1,8 +1,4 @@
-add_executable(attitude_benchmark estimator.cpp robust_estimator.cpp)
+add_executable(attitude_benchmark estimator.cpp)
 target_link_libraries(attitude_benchmark PRIVATE ukf::double)
+target_compile_definitions(attitude_benchmark PRIVATE EIGEN_NO_MALLOC)
 ukf_project_warnings(attitude_benchmark)
-
-add_executable(robust_geometry_test test_robust_geometry.cpp)
-target_link_libraries(robust_geometry_test PRIVATE ukf::double)
-ukf_project_warnings(robust_geometry_test)
-add_dependencies(attitude_benchmark robust_geometry_test)

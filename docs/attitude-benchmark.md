@@ -1,21 +1,17 @@
 # Attitude benchmark: BROAD and Sassari
 
-The [benchmark example](../examples/attitude_benchmark) compares two baseline
-estimators and three robust variants built with this library against three
-published reference algorithms.
-It measures attitude accuracy, not the general superiority of a Kalman-filter
-implementation. Motion models, bias estimation, disturbance handling, and tuning
-all affect the result.
+The [benchmark example](../examples/attitude_benchmark) runs one attitude
+estimator, built with this library, on both filter cores and compares it with
+three published reference algorithms. It measures attitude accuracy, not the
+general superiority of a Kalman-filter implementation. Motion models, bias
+estimation, disturbance handling, and tuning all affect the result.
 
 ## Estimators
 
 | Label | Implementation | Configuration |
 |---|---|---|
-| `ukf` | `UKF::Core` | Quaternion + three gyro-bias states, double precision |
-| `srukf` | `UKF::SquareRootCore` | Identical state, model, initialization and noise to `ukf` |
-| `robust-rest` | Two `UKF::SquareRootCore` instances | Separate attitude and rest-only gyro-bias estimation; raw gravity direction; isolated magnetic heading |
-| `robust-acc` | Same architecture | Adds causal acceleration filtering in a gyro-propagated frame |
-| `robust` | Same architecture | Adds magnetic disturbance rejection and sensor-validity guards |
+| `ukf` | `UKF::Core` | Quaternion, velocity and gyro-bias states; separate one-state magnetic heading filter; double precision |
+| `srukf` | `UKF::SquareRootCore` | Identical model, initialization and noise to `ukf` |
 | `madgwick` | AHRS 0.4.0 | Fixed gain 0.05 in both modes |
 | `mahony` | AHRS 0.4.0 | Fixed proportional gain 1.0, integral gain 0.3 |
 | `vqf` | VQF 2.0.1 | Full online defaults, including bias estimation and magnetic disturbance rejection |
@@ -26,102 +22,74 @@ and current gyro readings over the interval ending at the current sample. VQF's
 offline forward/backward algorithm is not used. The adapters preserve reference
 implementation behavior, including AHRS's zero-gyro early return.
 
-The baseline `ukf` and `srukf` examples propagate a body-to-world quaternion using the exponential of
-the bias-corrected angular increment. Bias follows a random walk. Measurement
-updates compare normalized acceleration with world +Z and, in nine-axis mode,
-normalized magnetometer readings with a fixed world magnetic direction. That
-direction, including dip, is initialized from the first sensor sample. These
-are deliberately simple fixed-noise estimators: there is no acceleration or
-magnetic disturbance rejection. They are not the more elaborate dual-filter
-model in `examples/ahrs`.
+### UKF estimator
 
-Both baselines initialize attitude from the first accelerometer/magnetometer sample
-and gyro bias to zero. Their initial attitude and bias standard deviations are
-0.1 rad and 0.01 rad/s. Unit-vector measurement standard deviations are 0.1.
-Gyro noise density is 0.02 rad/√s and bias random-walk density is
-0.0002 (rad/s)/√s. The first-order discrete process covariance is
-`diag(density²) * dt`; the SR-UKF receives its square root. Unscented parameters
-are `alpha²=1`, `beta=2`, and `kappa=0`. These settings are fixed across datasets,
-axes and trials; no trial-specific optimization or test-set tuning is performed.
-The references use their corresponding sensor-only initialization, including
-VQF's native initialization procedure.
+[`attitude_estimator.h`](../examples/attitude_benchmark/attitude_estimator.h)
+is written once and instantiated for both cores. It uses the library as the
+other examples do: a state vector, a dynamic measurement vector, a process
+model integrated with `UKF::IntegratorRK4`, per-field measurement models, and
+the cores' own `a_priori_step`, `innovation_step` and `a_posteriori_step`.
 
-### Robust estimator
+The attitude filter is a small strapdown inertial navigator. Its state is a
+body-to-world quaternion, the velocity in the world frame, and the gyroscope
+bias. The gyroscope reading, less the bias, turns the attitude; the
+accelerometer reading, rotated into the world frame with gravity added, changes
+the velocity. Both are process model inputs rather than measurements.
 
-[`robust_estimator.cpp`](../examples/attitude_benchmark/robust_estimator.cpp)
-uses this library for a quaternion-only attitude SR-UKF and a separate three-axis
-bias SR-UKF. Separating the bias state prevents translational acceleration or
-magnetic disturbances from being interpreted as gyro bias. The attitude filter
-propagates using the estimated bias; the bias filter receives direct gyro
-observations only during detected rest. This is a different estimator model
-from the baseline, not a change to the generic UKF implementation.
+Tilt becomes observable through a pseudo-measurement that the velocity is zero.
+A hand-held sensor never moves far, so its velocity stays small; a tilt error
+makes gravity leak into the velocity estimate, where the pseudo-measurement
+finds it. Translational accelerations average out within a few seconds, and are
+integrated rather than mistaken for gravity. The gyroscope bias is learned from
+the same velocity errors during motion. No acceleration low-pass filter,
+auxiliary frame or measurement gating is involved; the response is set by the
+process and measurement noise alone.
 
 Rest detection requires stable accelerometer and gyro readings for 1.5 s.
-Deviations are measured against causal 0.5 s low-pass references. Gyro deviation
-and filtered absolute gyro limits are 2°/s; acceleration deviation is limited
-to 0.5 m/s². Applying the absolute limit to the filtered gyro avoids rejecting
-rest whenever measurement noise crosses the bias limit. Slow constant rotation
-below the detection limits can still be ambiguous with gyro bias.
+Deviations are measured against 0.5 s running averages. Gyro deviation and
+average gyro limits are 2°/s; acceleration deviation is limited to 0.5 m/s².
+The accelerometer magnitude must also be between 0.7 g and 1.3 g, because a
+steady reading of nothing (free fall, or a dropout) is not rest. While the
+sensor is at rest, the gyroscope reading is added to the measurement vector as
+a direct measurement of the bias. Slow constant rotation below the detection
+limits can still be ambiguous with gyro bias.
 
-Bias process noise is 0.01 (°/s)/√s. The rest observation variance is chosen
-from a target converged posterior standard deviation of 0.03°/s:
-`R = P_target² / Q_step + P_target`, where `P_target = (0.03°/s)²` and
-`Q_step` is the bias process variance over the observation interval. The
-observation interval is nominally 0.05 s. This specifies the intended smoothing
-behavior across sampling rates rather than treating 0.03°/s as the raw sensor
-measurement noise.
+Magnetometer measurements update a separate filter whose single state is a
+world-yaw correction: `q_9D = q_yaw(offset) * q_6D`. They cannot change
+inclination, velocity, or gyro bias. The magnetic field is rotated into the
+world frame by the six-axis attitude; its horizontal direction is the
+measurement. Field strength and dip angle are compared with an accepted
+reference, and readings are ignored while either has strayed by more than 10%
+or 10°, until the field has matched again for 0.5 s. A persistent new field is
+adopted as the reference after 20 s of rotation above 20°/s. A field change
+preserving strength and dip remains undetectable. The heading filter is
+predicted at every step, so its uncertainty keeps growing while readings are
+rejected, or missing, or have no horizontal component.
 
-`robust-acc` and `robust` rotate unnormalized acceleration into an auxiliary
-frame propagated by the bias-corrected gyro. A causal second-order Butterworth
-filter with a 3 s time constant estimates gravity there. It uses the exact
-zero-order-hold continuous-state transition for each measured `dt`; it does not
-assume a constant sampling rate. Filtering in this frame avoids lagging actual
-body rotations. This design is inspired by the
-[VQF paper](https://doi.org/10.1016/j.inffus.2022.10.014); the implementation is
-independent and does not call VQF.
+A six-axis estimator cannot observe heading, so the attitude filter's
+uncertainty about its own heading would grow without limit. Once that
+uncertainty approaches a radian the sigma points spread towards half a turn,
+where the attitude error representation fails. The estimator therefore scales
+back the heading row of the covariance whenever its standard deviation exceeds
+0.3 rad. The limit changes no result on these recordings; a synthetic test
+covers the case it exists for.
 
-Gravity updates use two tangent-plane components at about 20 Hz. The effective
-measurement noise is inflated for overlapping filtered observations. This is an
-approximation to correlated measurement noise, not a whitening transformation.
-The gravity gain is constrained to world-horizontal attitude corrections, so
-gravity cannot directly correct yaw through covariance correlations. With this
-constrained gain, the posterior covariance uses
-`P - K*Cᵀ - C*Kᵀ + K*S*Kᵀ`, where `C` is the state/measurement cross covariance
-and `S` is the innovation covariance. After applying the quaternion correction,
-the covariance is transported into the new local attitude chart. Tests check
-this transport against finite differences and the constrained update against
-independent error samples.
-The attitude covariance is conditional on the separately estimated bias;
-diagnostic covariance values are filter-health information, not a claim of
-fully calibrated joint attitude/bias confidence.
+Noise is specified as densities and scaled to each measured time step, so the
+tuning is independent of sample rate. The initial tilt, velocity and bias
+standard deviations are 0.05 rad, 0.1 m/s and 0.5°/s. Gyro noise density is
+0.003 rad/√s, combined in quadrature with 0.002 rad/√s per rad/s of rotation
+rate; accelerometer noise is 0.05 m/s/√s; bias random walk is 0.001 (°/s)/√s. The zero-velocity
+pseudo-measurement noise is 0.09 m/s·√s, and the rest gyroscope noise
+0.012 (°/s)·√s. The heading offset has a random walk of 0.17°/√s and the
+magnetic heading a noise of 3°·√s. The unscented transform uses the library's
+default parameters. These settings are fixed across datasets, axes and trials.
+The complete configuration is available from
+`attitude_benchmark --describe-filter srukf` and captured in every report's
+`cpp_parameters`.
 
-The final stage skips gravity and rest-bias updates when acceleration norm is
-outside 0.7–1.3 g, and skips gravity corrections above 60° innovation. All
-nonzero physical acceleration samples still enter the linear low-pass filter:
-discarding large samples before filtering can bias cancellation over a motion
-cycle. Zero acceleration holds the previous filter input while gyro propagation
-continues. Invalid startup acceleration postpones gravity initialization until
-a plausible reading arrives. These guards cannot distinguish every sustained
-translation from gravity.
-
-Magnetometer measurements update a separate scalar world-yaw correction:
-`q_9D = q_yaw(delta) * q_6D`. They cannot change inclination, the acceleration
-filter, or gyro bias. The final stage checks magnetic field norm and dip against
-an accepted reference, requires an undisturbed dwell before resuming correction,
-and can accept a persistent new field after sufficient rotation. This preserves
-field magnitude for disturbance detection instead of normalizing it away.
-A field change preserving norm and dip can remain undetectable. Rejection can
-persist until the accepted field returns or a new reference passes the rotation
-test; this implementation does not add VQF's prolonged-disturbance fallback.
-Bias learning also requires rest, so recordings without rest and changing gyro
-bias remain a limitation compared with VQF's additional motion-bias estimator.
-
-The complete fixed configuration is available from
-`attitude_benchmark --describe-filter robust` and captured in every report's
-`cpp_parameters`. The first robust stage changes bias and heading architecture
-as well as adding rest detection, so its difference from the baseline is not a
-single-feature rest ablation. The three robust stages are replayable cumulative
-variants.
+The first accelerometer sample sets the initial tilt, and the first usable
+magnetometer sample the initial heading. The references use their corresponding
+sensor-only initialization, including VQF's native initialization procedure.
 
 ## Datasets and coordinates
 
@@ -181,40 +149,41 @@ heading scores also describe stability relative to initial alignment rather
 than absolute magnetic-north calibration. This protocol is explicit and
 reproducible but is not a reproduction of either publication's leaderboard.
 
-New-estimator iteration uses a fixed development subset: BROAD 01, 08, 10, 24
-and 28, plus Sassari slow at all six sensors. The remaining 34 BROAD and 12
-Sassari recordings form the validation subset. All sensors from the same
-Sassari motion stay together. Baseline results on all recordings were already
-known when this split was established; validation means reserved from iteration
-of the new estimator. Parameters are frozen before its first validation run.
-Use `--split development` or `--split validation` to replay these subsets.
+The UKF estimator's model and tuning were chosen on a fixed development subset:
+BROAD 01, 08, 10, 24 and 28, plus Sassari slow at all six sensors. The remaining
+34 BROAD and 12 Sassari recordings form the validation subset. All sensors from
+the same Sassari motion stay together. The tuning was frozen before the
+estimator's first validation run and has not been changed since. The magnetic
+disturbance thresholds were carried over unchanged from the previous estimator.
+The heading uncertainty limit was added after that run.
+Reference-algorithm results on all recordings were already known. Use
+`--split development` or `--split validation` to replay these subsets.
 
 ## Recorded comparison
 
 The complete measured tables and provenance are in
 [the recorded comparison](benchmarks/attitude-comparison.md). Values are results
-of this particular model and fixed parameter configuration. UKF and SR-UKF share
-the model and settings, and their nine-axis aggregates match at the displayed
-precision. Their six-axis BROAD results differ on several recordings; these
-differences are retained rather than requiring equality under large heading
-drift. The synthetic equivalence test covers benign motion. The robust variants
-test the effect of a disturbance-aware estimator model while retaining these
-baselines for comparison.
+of this particular model and fixed parameter configuration. `ukf` and `srukf`
+share the model and settings, and agree at the displayed precision on every
+aggregate.
 
-The 2026-11-11 frozen run completed all 912 evaluations and reproduced every
-original baseline/reference error metric exactly. The final robust model's
-full-dataset total RMSE is 6.376° versus VQF's 6.448° on BROAD six-axis, and
-4.440° versus 4.323° on Sassari six-axis. Nine-axis totals are 3.051° versus
-2.593° on BROAD and 4.415° versus 4.235° on Sassari. These results demonstrate
-near parity in several conditions, not universal parity with VQF.
+The 2026-11-12 run completed all 570 evaluations. `ukf` and `srukf` differ by
+less than 10⁻¹¹ degrees on every recording. Over the full datasets the UKF
+estimator's total RMSE is 6.404° versus VQF's 6.448° on BROAD six-axis and
+2.472° versus 2.593° on BROAD nine-axis. On Sassari it is 4.423° versus 4.323°
+six-axis and 4.199° versus 4.235° nine-axis. On the validation recordings
+alone, which played no part in tuning, the totals are 6.374° versus 6.277°
+(BROAD six-axis), 2.486° versus 2.589° (BROAD nine-axis), 4.514° versus 4.343°
+(Sassari six-axis) and 4.511° versus 4.580° (Sassari nine-axis). These results
+demonstrate near parity with VQF, not superiority.
 
-The remaining gap is concentrated in undisturbed nine-axis BROAD recordings
-(2.985° versus 2.181°) and fast nine-axis Sassari recordings (5.932° versus
-5.184°). On disturbed nine-axis BROAD, protection improves `robust-acc` from
-4.574° to 3.146°, compared with VQF's 3.185°. The validation tables retain the
-34 BROAD and 12 Sassari recordings reserved from new-estimator iteration;
-parameters were not revised after seeing these results. Rest-free bias learning
-and heading initialization/recovery remain candidates for future experiments.
+The differences are not uniform. The UKF estimator's inclination error is
+higher than VQF's on BROAD (0.936° versus 0.857°) and lower on Sassari (1.861°
+versus 2.095°), most clearly in the fast recordings (2.294° versus 2.820°). Its
+six-axis heading drifts more on Sassari (3.862° versus 3.637°). On disturbed
+nine-axis BROAD recordings its total error is 2.689° versus VQF's 3.185°; on
+undisturbed ones it is 2.322° versus 2.181°. Madgwick and Mahony, run with
+fixed gains, are well behind both.
 
 To refresh the checked-in snapshot after running the two datasets separately:
 
@@ -232,12 +201,12 @@ Follow the [example commands](../examples/attitude_benchmark/README.md) to build
 and replay locally. `--smoke` runs complete BROAD 01 and Sassari slow/XS1
 recordings, not truncated excerpts. It checks the integration and is not a
 representative accuracy benchmark. Full replay comprises 57 recordings ×
-2 modes × 8 algorithms/variants = **912 evaluations**.
+2 modes × 5 algorithms = **570 evaluations**.
 
 The [GitHub Actions workflow](../.github/workflows/attitude-benchmark.yml) runs
 smoke comparisons on relevant pull requests and full comparisons on relevant
 pushes to `master`. Manual dispatch supports either scope. Separate BROAD and
-Sassari jobs build the C++ example in Release mode, run synthetic/data/geometry
+Sassari jobs build the C++ example in Release mode, run the synthetic and data
 tests, cache verified downloads, and publish Markdown, JSON, and CSV artifacts
 plus a job-summary table. Dataset files and reports generated locally are
 ignored by Git; the recorded documentation snapshot is updated deliberately.
@@ -246,11 +215,11 @@ CI fails on invalid input, non-finite/non-unit filter output, failed synthetic
 checks, missing scored reference data, or checksum mismatch. It does not assert
 that one algorithm must win or impose an arbitrary error threshold. Review
 accuracy changes through the per-trial artifacts, especially disturbance trials.
-The geometry tests cover signs, coordinate frames, optical gaps and yaw drift;
-executable tests cover tilted rest, multi-axis rotation, bias convergence,
-UKF/SR equivalence and malformed input. Robust-estimator tests also exercise
-prefix causality, irregular sampling, rest discrimination, acceleration
-filtering, magnetic isolation/recovery and covariance geometry.
+The metric tests cover signs, coordinate frames, optical gaps and yaw drift.
+Executable tests on synthetic recordings cover tilted rest, multi-axis rotation,
+bias convergence, agreement between the two cores, malformed input, prefix
+causality, irregular sampling, rest discrimination, translation, accelerometer
+dropout, magnetic isolation, outage and recovery, and unobservable heading.
 
 Timing is diagnostic only: the C++ measurement normally excludes CSV I/O;
 `--diagnostics` includes state-trace writes in the measured loop. The Python

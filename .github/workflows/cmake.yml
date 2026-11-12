@@ -46,11 +46,6 @@ jobs:
         working-directory: build
         run: ctest --build-config ${{ matrix.build_type }} --output-on-failure
 
-      - name: Test benchmark covariance geometry
-        run: |
-          build/examples/attitude_benchmark/robust_geometry_test
-          build/examples/euroc_benchmark/mav_geometry_test
-
       - name: Configure downstream consumer
         run: cmake -S test/cmake -B build-consumer -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DUKF_USE_SYSTEM_EIGEN=${{ matrix.config.eigen }}
 

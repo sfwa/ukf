@@ -51,12 +51,13 @@ class MAVCommandLineTests(unittest.TestCase):
         changed[changed.index("--axes")+1] = "9"
         self.rejects(changed)
 
-    def test_parameter_descriptions_reject_nonfinite_partial_and_nonpositive_values(self):
-        for option, value in (("--drag-rate", "nan"), ("--thrust-tilt", "inf"),
-                              ("--gyro-noise", "0.002junk"), ("--drag-rate", "0"),
-                              ("--velocity-noise", "-1")):
-            with self.subTest(option=option, value=value):
-                self.rejects([str(EXECUTABLE), "--describe-filter", "mav-srukf", option, value])
+    def test_unknown_options_filters_and_missing_values_are_rejected(self):
+        # The tuning is fixed in mav_estimator.h; it cannot be changed here.
+        for extra in (("--drag-rate", "0.3"), ("--unknown", "1"), ("--diagnostics",)):
+            with self.subTest(extra=extra):
+                self.rejects(self.command(extra))
+        self.rejects(self.command(algorithm="srukf"))
+        self.rejects([str(EXECUTABLE), "--describe-filter", "srukf"])
 
     def test_output_and_diagnostic_paths_cannot_overwrite_inputs(self):
         same_output = self.command()

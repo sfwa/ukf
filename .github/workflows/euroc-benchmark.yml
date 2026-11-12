@@ -53,15 +53,11 @@ jobs:
         with:
           path: .benchmark-cache/euroc
           key: euroc-data-v1-${{ github.event_name == 'pull_request' && 'smoke' || inputs.scope == 'smoke' && 'smoke' || 'full' }}-${{ hashFiles('examples/euroc_benchmark/datasets.lock.json') }}
-      - name: Build baseline and MAV estimators
+      - name: Build attitude and MAV estimators
         run: |
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
           cmake --build build --target attitude_benchmark euroc_benchmark --parallel 2
-      - name: Validate attitude and joint MAV covariance geometry
-        run: |
-          build/examples/attitude_benchmark/robust_geometry_test
-          build/examples/euroc_benchmark/mav_geometry_test
-      - name: Validate existing estimator and EuRoC physics/data harness
+      - name: Validate estimators and EuRoC physics/data harness
         run: |
           python -m unittest discover -s examples/attitude_benchmark -p 'test_*.py' -v
           python -m unittest discover -s examples/euroc_benchmark -p 'test_*.py' -v

@@ -7,8 +7,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-ALGORITHMS = {'ukf', 'srukf', 'robust-rest', 'robust-acc', 'robust',
-              'mav-srukf-gravity', 'mav-srukf', 'madgwick', 'mahony', 'vqf', 'vqf-mav'}
+ALGORITHMS = {'ukf', 'srukf', 'mav-srukf-gravity', 'mav-srukf', 'madgwick', 'mahony', 'vqf', 'vqf-mav'}
 
 
 def validate(report):
@@ -18,7 +17,7 @@ def validate(report):
             or report['sequence_patterns'] or report['axes'] != [6]
             or set(report['algorithms']) != ALGORITHMS
             or set(report['selected_sequences']) != sequences):
-        raise ValueError('Only a complete, six-axis, eleven-algorithm EuRoC replay can replace the snapshot')
+        raise ValueError(f'Only a complete, six-axis, {len(ALGORITHMS)}-algorithm EuRoC replay can replace the snapshot')
     rows = report['per_sequence']
     wanted = {(name, algorithm) for name in sequences for algorithm in ALGORITHMS}
     actual = {(row['sequence'], row['algorithm']) for row in rows}
@@ -57,12 +56,13 @@ def main():
         writer.writerows(rows)
     lines = ['# Recorded EuRoC MAV attitude comparison', '',
              f'Recorded {datetime.date.today().isoformat()}. **{len(rows)} evaluations**: all eleven sequences, '
-             'eleven algorithms/variants, six-axis IMU input only.', '',
+             f'{len(ALGORITHMS)} algorithms/variants, six-axis IMU input only.', '',
              'Values are arithmetic means of per-sequence RMSEs in degrees. Heading and total error use '
              'one fixed initial yaw alignment; absolute heading is unobservable. The primary process-model '
              'target is inclination accuracy.', '',
              '## Primary validation: externally constrained Vicon attitude', '',
-             'V1_03_difficult and V2_01_easy, V2_02_medium, V2_03_difficult were reserved from model iteration. '
+             'V1_03_difficult and V2_01_easy, V2_02_medium, V2_03_difficult were not used for tuning; the '
+             'methodology records two structural choices made after validation results had been seen. '
              'The reference combines Vicon poses and IMU in an offline batch estimate; it is not wholly '
              'independent of the input IMU.', '']
     lines += table(report['summary_primary_validation'])
@@ -74,8 +74,8 @@ def main():
               'and V1_01_easy with its documented canonical-reference orientation issue.', '']
     lines += table(report['summary'])
     lines += ['', '## Per-sequence model comparison', '',
-              'Inclination RMSE in degrees. The gravity control shares the MAV estimator configuration; '
-              'the default and adapted VQF configurations remain separately visible.', '',
+              'Inclination RMSE in degrees. The gravity control is the MAV estimator with its rotor model '
+              'switched off; the default and adapted VQF configurations remain separately visible.', '',
               '| Sequence | Split | Gravity control | MAV SR-UKF | VQF | Adapted VQF |',
               '|---|---|---:|---:|---:|---:|']
     for sequence in report['selected_sequences']:
