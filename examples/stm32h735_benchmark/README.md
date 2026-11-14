@@ -13,41 +13,62 @@ using the shared synthetic sensor fixture; they are not simulated timings or
 a replay of a real sensor recording. The estimator uses float32, hardware
 floating point, `-O2`, and enabled instruction/data caches.
 
-The measured build used library headers from `b75b6a6` (source base
-`878c1dc` plus this platform port), before the SR-UKF optimizations in
-[#92](https://github.com/sfwa/ukf/pull/92). These recorded timings do not
-describe that newer core revision; rebuild and rerun to measure it.
+The latest measured build uses library headers from `ee2f69c`, including the
+SR-UKF optimizations in [#92](https://github.com/sfwa/ukf/pull/92). It was built
+from clean merge commit `1176a8f`, which incorporates that `master` revision
+into the benchmark branch. The original measurements with `b75b6a6` are
+retained below as a comparison and in separate raw result files.
 
 | Filter | Pass | Updates | Mean (µs) | p95 (µs) | p99 (µs) | Maximum (µs) | Updates >2 ms |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| UKF | 1 | 6,000 | 161.621 | 187 | 188 | 188 | 0 |
-| SR-UKF | 1 | 6,000 | 190.616 | 226 | 227 | 228 | 0 |
-| SR-UKF | 2 | 6,000 | 190.624 | 226 | 227 | 228 | 0 |
-| UKF | 2 | 6,000 | 161.625 | 187 | 188 | 189 | 0 |
+| UKF | 1 | 6,000 | 161.831 | 187 | 188 | 189 | 0 |
+| SR-UKF | 1 | 6,000 | 169.393 | 199 | 199 | 200 | 0 |
+| SR-UKF | 2 | 6,000 | 169.411 | 199 | 199 | 200 | 0 |
+| UKF | 2 | 6,000 | 161.814 | 187 | 188 | 189 | 0 |
 
-Across the two equal-length replays, mean time was **161.623 µs for UKF**
-and **190.620 µs for SR-UKF**: SR-UKF took approximately **17.9% longer**.
+Across the two equal-length replays, mean time was **161.823 µs for UKF**
+and **169.402 µs for SR-UKF**: SR-UKF took approximately **4.7% longer**.
 Percentiles above are per replay, not combined. Both completed all 12,000
 measured updates per filter without exceeding 2 ms. The largest observed
 UKF update consumed **9.45%** of the budget, leaving **1,811 µs**; SR-UKF
-consumed **11.40%**, leaving **1,772 µs**. This supports a 500 Hz estimator
+consumed **10.00%**, leaving **1,800 µs**. This supports a 500 Hz estimator
 computation rate under this workload; it is not a complete system deadline
 or worst-case timing guarantee.
 
-All four replays passed numerical checks. Minimum free stack was 53,664 of
+The before/after comparison uses the same board, clock, compiler, build flags,
+fixture and shared harness. Platform and input JSON records are identical.
+Each mean combines two 6,000-update replays:
+
+| Filter | Before #92 mean (µs) | After #92 mean (µs) | Mean-time change | Maximum before → after (µs) |
+|---|---:|---:|---:|---:|
+| UKF | 161.623 | 161.823 | +0.12% | 189 → 189 |
+| SR-UKF | 190.620 | 169.402 | **−11.13%** | 228 → 200 |
+
+SR-UKF now takes **11.1% less time** on this workload. UKF timing was nearly
+unchanged, and its final attitude/checksum were identical to the baseline.
+Both filters reproduced their final attitude and checksum across the two
+new replays. The SR-UKF final quaternion changed slightly with the optimized
+arithmetic; these timing runs are not an accuracy benchmark.
+
+All four replays passed numerical checks. Minimum free stack was 56,312 of
 65,536 bytes, with no capture overflow or recorded CPU fault. The 5,005-byte
 UART capture matched the retained DTCM output byte for byte after completion.
 The original 1 MiB internal flash was backed up twice with matching hashes
 before programming; the backup is under `SFWA/toolchains/board-backups`.
 The board is left with the benchmark application in internal flash.
 
-Raw evidence: [UART JSONL](results/stm32h735-550mhz.jsonl) and
-[build/run manifest](results/stm32h735-550mhz-manifest.json), including firmware
-and source hashes. Reproduce the report from the repository root with:
+Raw evidence: [post-#92 UART JSONL](results/stm32h735-550mhz-post-pr92.jsonl)
+and [build/run manifest](results/stm32h735-550mhz-post-pr92-manifest.json),
+including firmware and source hashes. The original
+[pre-#92 UART JSONL](results/stm32h735-550mhz.jsonl) and
+[baseline manifest](results/stm32h735-550mhz-manifest.json) remain unchanged.
+The merged source also passed all 20 embedded host/export/reporting tests
+and 107 core tests in the double-precision Release configuration.
+Reproduce the latest report from the repository root with:
 
 ```sh
 python examples/esp32s31_benchmark/summarize.py \
-  examples/stm32h735_benchmark/results/stm32h735-550mhz.jsonl
+  examples/stm32h735_benchmark/results/stm32h735-550mhz-post-pr92.jsonl
 ```
 
 ## Toolchain and build

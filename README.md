@@ -485,7 +485,8 @@ validation target; hardware timings must be measured on the board.
 
 The [STM32H735 timing benchmark](examples/stm32h735_benchmark/) reuses the
 same float32 estimator and workload on the STM32H735G-DK. Its physical
-550 MHz measurements averaged 161.6 µs for UKF and 190.6 µs for SR-UKF,
+550 MHz measurements with the SR-UKF optimizations from #92 averaged
+161.8 µs for UKF and 169.4 µs for SR-UKF,
 with no update exceeding 2 ms across 24,000 measured updates. See the
 benchmark README for raw results, build instructions, and timing limitations.
 
