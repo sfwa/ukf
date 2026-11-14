@@ -65,6 +65,7 @@ jobs:
         run: |
           python -m unittest discover -s examples/attitude_benchmark -p 'test_*.py' -v
           python -m unittest discover -s examples/esp32s31_benchmark -p 'test_*.py' -v
+          python -m unittest discover -s examples/embedded_code_size -p 'test_*.py' -v
       - name: Compare UKF estimators and reference algorithms
         env:
           EVENT_NAME: ${{ github.event_name }}

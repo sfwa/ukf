@@ -71,6 +71,36 @@ python examples/esp32s31_benchmark/summarize.py \
   examples/stm32h735_benchmark/results/stm32h735-550mhz-post-pr92.jsonl
 ```
 
+## Estimator code size
+
+Separate cross-linked probes on 2026-11-14 measure the float32 implementation
+with the #92 core optimizations. **Code and read-only columns include only
+the attitude/heading estimator, sensor checks, instantiated Eigen operations
+and thin API wrappers**, excluding the timing harness and platform runtime.
+
+| Optimization | Filter | Code (bytes) | Read-only data (bytes) | Added linked flash (bytes) |
+|---|---|---:|---:|---:|
+| `-O2` | UKF | 54,048 | 56 | 63,796 |
+| `-O2` | SR-UKF | 42,572 | 56 | 52,320 |
+| `-Os` | UKF | 45,054 | 56 | 54,802 |
+| `-Os` | SR-UKF | 36,086 | 56 | 45,834 |
+
+Added linked flash subtracts an empty adapter and includes required math,
+compiler and C runtime helpers and initialized-data payload. It is not total
+firmware size or a guaranteed marginal cost in an application sharing helpers.
+The full post-#92 timing firmware is separately 125,564 bytes.
+
+Settings: Arm GNU Toolchain 14.3.Rel1 / GCC 14.3.1, patched Eigen 3.2.8,
+`-mcpu=cortex-m7 -mthumb -mfpu=fpv5-d16 -mfloat-abi=hard`, C++17, float32,
+`-DNDEBUG`, no exceptions/RTTI, no fast-math or LTO, function/data sections and
+linker garbage collection. The timing firmware uses `-O2`; **`-Os` was measured
+for size only**. These standalone API probes can inline differently from the
+combined benchmark application.
+
+See the [measurement method and reproduction commands](../embedded_code_size/),
+plus the source/command/section manifests for
+[`-O2`](results/code-size-O2.json) and [`-Os`](results/code-size-Os.json).
+
 ## Toolchain and build
 
 The tools are installed in `SFWA/toolchains`, alongside the `SFWA/ukf` checkout

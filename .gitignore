@@ -16,6 +16,7 @@ a.out
 dist
 build
 /build-stm32h735/
+/build-code-size/
 eggs
 parts
 var

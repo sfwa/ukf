@@ -121,6 +121,40 @@ With this ESP-IDF version, `idf.py --preview merge-bin -o merged_flash.bin`
 writes `build/merged_flash.bin`, because the output path is relative to the
 build directory.
 
+## Estimator code size
+
+Separate RISC-V cross-linked probes on 2026-11-14 measure the float32
+implementation **including the #92 optimizations**. These are actual compiled
+byte counts, not simulated sizes. The older emulator timing capture above
+remains a separate measurement of the pre-#92 implementation.
+
+| Optimization | Filter | Code (bytes) | Read-only data (bytes) | Added linked flash (bytes) |
+|---|---|---:|---:|---:|
+| `-O2` | UKF | 54,120 | 208 | 82,956 |
+| `-O2` | SR-UKF | 42,806 | 224 | 71,658 |
+| `-Os` | UKF | 47,738 | 208 | 76,574 |
+| `-Os` | SR-UKF | 37,930 | 224 | 66,782 |
+
+Code/read-only bytes cover the attitude and heading filters, sensor checks,
+instantiated Eigen code and thin API wrappers, excluding the timing harness
+and SDK. Added linked flash subtracts the empty adapter and includes needed
+Picolibc, math, compiler and C++ allocation/error helpers. It is a standalone
+link cost, not the marginal addition to an ESP-IDF application that shares
+helpers or uses ROM bindings; it is not the 449,776-byte emulator application.
+
+Settings: Espressif GCC 15.2.0 (`esp-15.2.0_20251204`), patched Eigen 3.2.8,
+`-march=rv32imafc_zicsr_zifencei_zaamo_zalrsc_xesploop_xespv`, `-mabi=ilp32f`,
+`-mtune=esp-base`, Picolibc, C++17, float32, `-DNDEBUG`, no exceptions/RTTI,
+no fast-math or LTO, function/data sections and linker garbage collection.
+The size probes normalize C++17 and disabled assertions on both MCUs; they
+do not inherit IDF's GNU C++26/enabled-assertion defaults. Their API boundary
+also changes inlining, so they are not exact attribution inside the timing
+ELF. **No `-Os` performance measurement is implied.**
+
+See the [measurement method and reproduction commands](../embedded_code_size/),
+plus the source/command/section manifests for
+[`-O2`](results/code-size-O2.json) and [`-Os`](results/code-size-Os.json).
+
 ## What is measured
 
 Each sample is prepared before timing. The timed interval contains:
