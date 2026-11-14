@@ -1,5 +1,9 @@
 # Recorded-data attitude benchmark
 
+For single-precision runtime measurements on hardware, see the
+[ESP32-S31 benchmark](../esp32s31_benchmark/), which compares both filter
+cores against a 2 ms update budget using this same estimator.
+
 This example estimates attitude from recorded gyroscope, accelerometer and
 magnetometer data, and scores the result against optical ground truth. One
 estimator model is run on both filter cores, `UKF::Core` (`ukf`) and

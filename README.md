@@ -477,6 +477,12 @@ with a rotor-drag model of a Firefly hexrotor, and compares six-axis attitude
 estimates with the same references. See its
 [model, evaluation protocol and results](docs/euroc-benchmark.md).
 
+The [ESP32-S31 timing benchmark](examples/esp32s31_benchmark/) runs the
+recorded-data attitude estimator with both UKF cores in single precision,
+reporting update-time percentiles and overruns against a 2 ms budget. It
+includes an ESP-IDF application, optional recorded CSV replay, and a host
+validation target; hardware timings must be measured on the board.
+
 ## References
 
 <a name="ref1">[1]</a> "A New Extension of the Kalman Filter to Nonlinear Systems:,

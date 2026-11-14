@@ -34,7 +34,7 @@ magnetic field can spoil the heading, but never the tilt.
 #include "UKF/StateVector.h"
 #include "UKF/MeasurementVector.h"
 #include "UKF/Core.h"
-#include "imu_csv.h"
+#include "imu_sample.h"
 #include "sensor_checks.h"
 
 /* Value of g in m/s^2. */
@@ -110,7 +110,7 @@ inline Attitude_StateVector Attitude_StateVector::derivative<Attitude_Input>(
 
     /* Calculate change in attitude from the bias-corrected angular velocity. */
     UKF::Quaternion omega_q;
-    omega_q.vec() = (input.gyroscope - get_field<GyroBias>()) * 0.5;
+    omega_q.vec() = (input.gyroscope - get_field<GyroBias>()) * real_t(0.5);
     omega_q.w() = 0;
     output.set_field<Attitude>(get_field<Attitude>() * omega_q);
 
@@ -330,7 +330,7 @@ public:
     Returns false if the accelerometer reading is zero.
     */
     bool initialise(const ImuSample& sample, bool with_magnetometer) {
-        if (sample.accelerometer.norm() < 1e-6) {
+        if (sample.accelerometer.norm() < real_t(1e-6)) {
             return false;
         }
         use_magnetometer = with_magnetometer;
@@ -364,8 +364,8 @@ public:
 
         /* Integrate the average of the two IMU readings over the step. */
         Attitude_Input input;
-        input.gyroscope = (previous.gyroscope + sample.gyroscope) * 0.5;
-        input.accelerometer = (previous.accelerometer + sample.accelerometer) * 0.5;
+        input.gyroscope = (previous.gyroscope + sample.gyroscope) * real_t(0.5);
+        input.accelerometer = (previous.accelerometer + sample.accelerometer) * real_t(0.5);
         angular_velocity = (input.gyroscope - state.get_field<GyroBias>()).norm();
 
         /*
@@ -458,7 +458,7 @@ private:
         disturbed one must not be believed.
         */
         UKF::Vector<3> field = state.get_field<Attitude>() * sample.magnetometer;
-        bool usable = field.head<2>().norm() > 1e-6 * field.norm();
+        bool usable = field.head<2>().norm() > real_t(1e-6) * field.norm();
         field_rejected = !usable || field_check.update(field, dt, angular_velocity);
         real_t measured_offset = -std::atan2(field.y(), field.x());
 

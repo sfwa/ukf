@@ -22,15 +22,7 @@ examples, like the library, do not use exceptions.
 #include <sstream>
 #include <string>
 #include <vector>
-#include "UKF/Types.h"
-
-/* One row of sensor readings, all in the sensor's own (body) frame. */
-struct ImuSample {
-    double time;                    /* Seconds; must increase from row to row. */
-    UKF::Vector<3> gyroscope;       /* Angular velocity (rad/s). */
-    UKF::Vector<3> accelerometer;   /* Specific force (m/s^2): +g along "up" at rest. */
-    UKF::Vector<3> magnetometer;    /* Magnetic field, in any consistent unit. */
-};
+#include "imu_sample.h"
 
 /* Parse a complete, finite decimal number. */
 inline bool parse_number(const std::string& text, double& value) {
