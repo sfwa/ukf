@@ -3,12 +3,50 @@
 
 #include <Eigen/Cholesky>
 #include <Eigen/Eigenvalues>
-#include <Eigen/QR>
+#include <Eigen/Householder>
 #include <algorithm>
 #include <limits>
 
 namespace UKF {
 namespace Detail {
+
+/*
+Return the lower triangular factor L, with a nonnegative diagonal, of the sum
+of the outer products of the rows of A: L L^T = A^T A. Its transpose is the
+triangular factor of the QR decomposition of A.
+
+Each column of A in turn is reflected onto its diagonal entry by a
+Householder reflection I - tau v v^T, where v is one followed by the
+essential part which is left below the diagonal. The reflection is applied
+to one column at a time, which for matrices as small as a filter's takes
+about half as long as Eigen's HouseholderQR. Any non-finite entry of A
+reaches L.
+*/
+template <typename Derived>
+auto lower_factor(const Eigen::MatrixBase<Derived>& vectors) {
+    using Scalar = typename Derived::Scalar;
+    using Index = typename Derived::Index;
+    Eigen::Matrix<Scalar, Derived::RowsAtCompileTime, Derived::ColsAtCompileTime, Eigen::ColMajor,
+        Derived::MaxRowsAtCompileTime, Derived::MaxColsAtCompileTime> a = vectors;
+    Eigen::Matrix<Scalar, Derived::ColsAtCompileTime, Derived::ColsAtCompileTime, Eigen::ColMajor,
+        Derived::MaxColsAtCompileTime, Derived::MaxColsAtCompileTime> factor;
+    factor.setZero(a.cols(), a.cols());
+    for (Index k = 0; k < std::min(a.rows(), a.cols()); ++k) {
+        const Index rows = a.rows() - k;
+        Scalar tau = 0, pivot = 0;
+        a.col(k).tail(rows).makeHouseholderInPlace(tau, pivot);
+        a(k, k) = Scalar(1);
+        for (Index j = k + 1; j < a.cols(); ++j) {
+            a.col(j).tail(rows) -= (tau * a.col(k).tail(rows).dot(a.col(j).tail(rows))) * a.col(k).tail(rows);
+        }
+
+        /* Row k of the triangular factor is column k of L, up to its sign. */
+        a(k, k) = pivot;
+        factor.col(k).tail(a.cols() - k) = (pivot < Scalar(0) ? Scalar(-1) : Scalar(1)) *
+            a.row(k).tail(a.cols() - k).transpose();
+    }
+    return factor;
+}
 
 /*
 Compute a lower triangular factor of a positive semidefinite covariance.
@@ -41,14 +79,7 @@ bool covariance_root(const MatrixType& covariance, MatrixType& root,
         return false;
     }
     const MatrixType factor = eig.eigenvectors() * eig.eigenvalues().cwiseMax(Scalar(0)).cwiseSqrt().asDiagonal();
-    MatrixType triangular = factor.transpose().householderQr().matrixQR().template triangularView<Eigen::Upper>();
-    triangular.transposeInPlace();
-    /* QR may supply negative diagonals; return canonical nonnegative pivots. */
-    for (typename MatrixType::Index k = 0; k < triangular.cols(); ++k) {
-        if (triangular(k, k) < Scalar(0)) {
-            triangular.col(k) = -triangular.col(k);
-        }
-    }
+    const MatrixType triangular = lower_factor(factor.transpose());
     if (!triangular.allFinite()) {
         return false;
     }

@@ -1,7 +1,7 @@
 {
   "scope": "full EuRoC dataset",
-  "revision": "3d89b54261ff36bd1ce2431c83f3e51c2ae3d81d",
-  "dirty": true,
+  "revision": "4faf4ca7a026462a786546cff2ce180c015eb825",
+  "dirty": false,
   "source_sha256": {
     "CMakeLists.txt": "52e051eff179c2eb3876ab2a76b30c4523b5a7af0772f06048cdca01f421684d",
     "examples/CMakeLists.txt": "21daad0389ad45c19a102145dc29127d881aa69964dddf7f5bc67db1cebfc577",
@@ -25,17 +25,17 @@
     "examples/euroc_benchmark/rotor_vibration.h": "c48a73a9f9d81590719eca2fdc9eb637755433b6e323d968f485a8e47bb0a4f6",
     "examples/euroc_benchmark/run.py": "53cb75da03c2eba0ef6a3340d74928bf506cb9118f6a4690e27fe57cd7bfff36",
     "include/UKF/Config.h": "cb7ecbc40d15a5689d07dd649ceb52c61d8a6d43119ca4a3d910ff58aedf11a5",
-    "include/UKF/Core.h": "e7ad669c3f4629dbefba79531f6c0da0f25b6fe9f9530eab8cd2d9cfcfd5aa96",
-    "include/UKF/Covariance.h": "732da5fcd733af33fac63cb171ffb4d8d726624b029229cb235b3d472820c601",
+    "include/UKF/Core.h": "5823a50222894043d9ef78fb326a252b613dc8fa5ad1cfacea8e5ff3554d977f",
+    "include/UKF/Covariance.h": "adb762d09bdf9b1bcae0edd26cd87a5ef13e97c291e36f128a9d4effc8f0323a",
     "include/UKF/Integrator.h": "239361c00080b3fb451b8a7e8ece39ae35c3444eb0e41a73ae64cc7cdc946549",
     "include/UKF/MeasurementVector.h": "29226c3ac359848a2adc19cbf3af2c2a5d03ed1154d2889a1c4058b8d0a7bd76",
-    "include/UKF/RankUpdate.h": "e087c14cc81553afc87690f697bbf7bfac6bddb00d2ca8e6335439b3074056d7",
+    "include/UKF/RankUpdate.h": "9986ba29a46de9cae694c4c8df748b32ef4b8623532bc32c5cb16d0ce52e22c8",
     "include/UKF/StateVector.h": "3c54b0442492974420c0b774571704de4152b3abb80b81f066a2e480311a09ff",
     "include/UKF/Types.h": "8d6299373fe92651f3b6742f460e4520bb5c6fe6b082756078dbbd328f21dfa7"
   },
   "binary_sha256": {
-    "attitude_benchmark": "6b6ae2de24c7ae8c4e7a623fe1159cbc79aba377717f410d7c3a1e145aff661a",
-    "euroc_benchmark": "cd7a59b80fef1fca70d2f771e8ca22e5e1298cee07038a61b34c7bc18b15a205"
+    "attitude_benchmark": "0671d66ab91e180f7acd21ae8015c0098396188d80b1976e22d6de66a2b7e2c7",
+    "euroc_benchmark": "5fddd7fd439efc8143db5267d6bc281134dd248c7488532f32b96863ddab4b02"
   },
   "platform": "macOS-27.2-arm64-arm-64bit",
   "machine": "arm64",
@@ -525,27 +525,27 @@
       "axes": 6,
       "algorithm": "srukf",
       "sequences": 11,
-      "inclination_rmse_deg": 1.7169956049179043,
-      "heading_rmse_deg": 66.8610912959909,
-      "total_rmse_deg": 66.88642096410666
+      "inclination_rmse_deg": 1.716995604917915,
+      "heading_rmse_deg": 66.86109129598789,
+      "total_rmse_deg": 66.88642096410365
     },
     {
       "dataset": "euroc",
       "axes": 6,
       "algorithm": "mav-srukf",
       "sequences": 11,
-      "inclination_rmse_deg": 1.2277549417452804,
-      "heading_rmse_deg": 3.46128738842377,
-      "total_rmse_deg": 3.709993389196242
+      "inclination_rmse_deg": 1.2277549417452982,
+      "heading_rmse_deg": 3.4612873884239552,
+      "total_rmse_deg": 3.7099933891964154
     },
     {
       "dataset": "euroc",
       "axes": 6,
       "algorithm": "mav-srukf-gravity",
       "sequences": 11,
-      "inclination_rmse_deg": 1.8008467493834899,
-      "heading_rmse_deg": 8.116248404244907,
-      "total_rmse_deg": 8.432846005194794
+      "inclination_rmse_deg": 1.8008467493834999,
+      "heading_rmse_deg": 8.116248404244063,
+      "total_rmse_deg": 8.432846005194081
     },
     {
       "dataset": "euroc",
@@ -600,27 +600,27 @@
         "axes": 6,
         "algorithm": "srukf",
         "sequences": 2,
-        "inclination_rmse_deg": 1.5169850152444804,
-        "heading_rmse_deg": 32.41381233152218,
-        "total_rmse_deg": 32.45153916892384
+        "inclination_rmse_deg": 1.516985015244528,
+        "heading_rmse_deg": 32.41381233152316,
+        "total_rmse_deg": 32.45153916892481
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf",
         "sequences": 2,
-        "inclination_rmse_deg": 0.9702385113917225,
-        "heading_rmse_deg": 2.293389698529144,
-        "total_rmse_deg": 2.4952374285921395
+        "inclination_rmse_deg": 0.9702385113917402,
+        "heading_rmse_deg": 2.2933896985295092,
+        "total_rmse_deg": 2.4952374285924126
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf-gravity",
         "sequences": 2,
-        "inclination_rmse_deg": 1.5525665288546135,
-        "heading_rmse_deg": 5.696989227093726,
-        "total_rmse_deg": 5.910768634641784
+        "inclination_rmse_deg": 1.5525665288546273,
+        "heading_rmse_deg": 5.696989227091079,
+        "total_rmse_deg": 5.9107686346391315
       },
       {
         "dataset": "euroc",
@@ -674,27 +674,27 @@
         "axes": 6,
         "algorithm": "srukf",
         "sequences": 9,
-        "inclination_rmse_deg": 1.7614424026231095,
-        "heading_rmse_deg": 74.51604217698396,
-        "total_rmse_deg": 74.53861691859173
+        "inclination_rmse_deg": 1.7614424026231124,
+        "heading_rmse_deg": 74.51604217698008,
+        "total_rmse_deg": 74.53861691858782
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf",
         "sequences": 9,
-        "inclination_rmse_deg": 1.284980815157182,
-        "heading_rmse_deg": 3.7208202084003537,
-        "total_rmse_deg": 3.9799391582193753
+        "inclination_rmse_deg": 1.2849808151572,
+        "heading_rmse_deg": 3.720820208400499,
+        "total_rmse_deg": 3.9799391582195267
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf-gravity",
         "sequences": 9,
-        "inclination_rmse_deg": 1.85602013172324,
-        "heading_rmse_deg": 8.653861554722946,
-        "total_rmse_deg": 8.993307643095463
+        "inclination_rmse_deg": 1.8560201317232494,
+        "heading_rmse_deg": 8.653861554722504,
+        "total_rmse_deg": 8.993307643095182
       },
       {
         "dataset": "euroc",
@@ -757,27 +757,27 @@
       "axes": 6,
       "algorithm": "srukf",
       "sequences": 5,
-      "inclination_rmse_deg": 1.586229931470992,
-      "heading_rmse_deg": 67.50063505226635,
-      "total_rmse_deg": 67.52794878317995
+      "inclination_rmse_deg": 1.5862299314709916,
+      "heading_rmse_deg": 67.5006350522619,
+      "total_rmse_deg": 67.5279487831755
     },
     {
       "dataset": "euroc",
       "axes": 6,
       "algorithm": "mav-srukf",
       "sequences": 5,
-      "inclination_rmse_deg": 1.1086407488449368,
-      "heading_rmse_deg": 2.6464997277387057,
-      "total_rmse_deg": 2.893583946201926
+      "inclination_rmse_deg": 1.1086407488449344,
+      "heading_rmse_deg": 2.646499727738692,
+      "total_rmse_deg": 2.893583946201919
     },
     {
       "dataset": "euroc",
       "axes": 6,
       "algorithm": "mav-srukf-gravity",
       "sequences": 5,
-      "inclination_rmse_deg": 1.6094973495720928,
-      "heading_rmse_deg": 5.671416555218908,
-      "total_rmse_deg": 5.932228237463527
+      "inclination_rmse_deg": 1.6094973495721028,
+      "heading_rmse_deg": 5.6714165552167515,
+      "total_rmse_deg": 5.932228237461542
     },
     {
       "dataset": "euroc",
@@ -831,27 +831,27 @@
       "axes": 6,
       "algorithm": "srukf",
       "sequences": 4,
-      "inclination_rmse_deg": 1.5113536627463589,
-      "heading_rmse_deg": 76.69764795661484,
-      "total_rmse_deg": 76.71760621255888
+      "inclination_rmse_deg": 1.5113536627463469,
+      "heading_rmse_deg": 76.69764795660859,
+      "total_rmse_deg": 76.71760621255264
     },
     {
       "dataset": "euroc",
       "axes": 6,
       "algorithm": "mav-srukf",
       "sequences": 4,
-      "inclination_rmse_deg": 1.1717680832694604,
-      "heading_rmse_deg": 2.9012075843226746,
-      "total_rmse_deg": 3.1572092688705906
+      "inclination_rmse_deg": 1.1717680832694508,
+      "heading_rmse_deg": 2.9012075843225356,
+      "total_rmse_deg": 3.15720926887047
     },
     {
       "dataset": "euroc",
       "axes": 6,
       "algorithm": "mav-srukf-gravity",
       "sequences": 4,
-      "inclination_rmse_deg": 1.5432299327170238,
-      "heading_rmse_deg": 5.129353348607701,
-      "total_rmse_deg": 5.400194064843152
+      "inclination_rmse_deg": 1.5432299327170322,
+      "heading_rmse_deg": 5.129353348606816,
+      "total_rmse_deg": 5.400194064842433
     },
     {
       "dataset": "euroc",
@@ -906,27 +906,27 @@
         "axes": 6,
         "algorithm": "srukf",
         "sequences": 5,
-        "inclination_rmse_deg": 1.5556482960463263,
-        "heading_rmse_deg": 55.29012611499782,
-        "total_rmse_deg": 55.313822296318655
+        "inclination_rmse_deg": 1.5556482960463396,
+        "heading_rmse_deg": 55.29012611499538,
+        "total_rmse_deg": 55.3138222963162
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf",
         "sequences": 5,
-        "inclination_rmse_deg": 0.9873216017525165,
-        "heading_rmse_deg": 3.7603973302697407,
-        "total_rmse_deg": 3.9175056493919187
+        "inclination_rmse_deg": 0.9873216017525479,
+        "heading_rmse_deg": 3.760397330269793,
+        "total_rmse_deg": 3.9175056493919733
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf-gravity",
         "sequences": 5,
-        "inclination_rmse_deg": 1.7046158245146905,
-        "heading_rmse_deg": 11.045059695480088,
-        "total_rmse_deg": 11.3096201920336
+        "inclination_rmse_deg": 1.704615824514697,
+        "heading_rmse_deg": 11.04505969548195,
+        "total_rmse_deg": 11.309620192035368
       },
       {
         "dataset": "euroc",
@@ -980,27 +980,27 @@
         "axes": 6,
         "algorithm": "srukf",
         "sequences": 3,
-        "inclination_rmse_deg": 2.234727460333577,
-        "heading_rmse_deg": 64.06329060686524,
-        "total_rmse_deg": 64.10086012388801
+        "inclination_rmse_deg": 2.2347274603336165,
+        "heading_rmse_deg": 64.06329060686103,
+        "total_rmse_deg": 64.10086012388382
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf",
         "sequences": 3,
-        "inclination_rmse_deg": 1.6495724781440353,
-        "heading_rmse_deg": 2.952690023352181,
-        "total_rmse_deg": 3.3974872203489284
+        "inclination_rmse_deg": 1.6495724781440477,
+        "heading_rmse_deg": 2.9526900233528903,
+        "total_rmse_deg": 3.3974872203495745
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf-gravity",
         "sequences": 3,
-        "inclination_rmse_deg": 2.2572491234854897,
-        "heading_rmse_deg": 6.0332009787488685,
-        "total_rmse_deg": 6.489285811768725
+        "inclination_rmse_deg": 2.2572491234855128,
+        "heading_rmse_deg": 6.033200978745051,
+        "total_rmse_deg": 6.489285811765252
       },
       {
         "dataset": "euroc",
@@ -1054,9 +1054,9 @@
         "axes": 6,
         "algorithm": "srukf",
         "sequences": 3,
-        "inclination_rmse_deg": 1.4681759309548612,
-        "heading_rmse_deg": 88.94383395343841,
-        "total_rmse_deg": 88.95964625063863
+        "inclination_rmse_deg": 1.468175930954839,
+        "heading_rmse_deg": 88.94383395343566,
+        "total_rmse_deg": 88.95964625063588
       },
       {
         "dataset": "euroc",
@@ -1064,17 +1064,17 @@
         "algorithm": "mav-srukf",
         "sequences": 3,
         "inclination_rmse_deg": 1.2066596386677988,
-        "heading_rmse_deg": 3.4713681837520767,
-        "total_rmse_deg": 3.6766457910507615
+        "heading_rmse_deg": 3.471368183751957,
+        "total_rmse_deg": 3.676645791050659
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf-gravity",
         "sequences": 3,
-        "inclination_rmse_deg": 1.5048292500628229,
-        "heading_rmse_deg": 5.3179436776823055,
-        "total_rmse_deg": 5.5817825538895205
+        "inclination_rmse_deg": 1.5048292500628258,
+        "heading_rmse_deg": 5.317943677679929,
+        "total_rmse_deg": 5.581782553887432
       },
       {
         "dataset": "euroc",
@@ -1130,27 +1130,27 @@
         "axes": 6,
         "algorithm": "srukf",
         "sequences": 4,
-        "inclination_rmse_deg": 1.6093457162992102,
-        "heading_rmse_deg": 60.48867895427792,
-        "total_rmse_deg": 60.51213107807007
+        "inclination_rmse_deg": 1.609345716299201,
+        "heading_rmse_deg": 60.48867895426964,
+        "total_rmse_deg": 60.51213107806178
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf",
         "sequences": 4,
-        "inclination_rmse_deg": 0.9894382785892202,
-        "heading_rmse_deg": 2.206686460358193,
-        "total_rmse_deg": 2.4583881075482346
+        "inclination_rmse_deg": 0.9894382785892553,
+        "heading_rmse_deg": 2.2066864603572203,
+        "total_rmse_deg": 2.4583881075473553
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf-gravity",
         "sequences": 4,
-        "inclination_rmse_deg": 1.7142928996596543,
-        "heading_rmse_deg": 3.9372989120566535,
-        "total_rmse_deg": 4.331100991116249
+        "inclination_rmse_deg": 1.7142928996596518,
+        "heading_rmse_deg": 3.937298912054898,
+        "total_rmse_deg": 4.331100991114543
       },
       {
         "dataset": "euroc",
@@ -1204,27 +1204,27 @@
         "axes": 6,
         "algorithm": "srukf",
         "sequences": 4,
-        "inclination_rmse_deg": 1.635497228575974,
-        "heading_rmse_deg": 73.31988505558228,
-        "total_rmse_deg": 73.33710178006108
+        "inclination_rmse_deg": 1.6354972285759928,
+        "heading_rmse_deg": 73.31988505558465,
+        "total_rmse_deg": 73.33710178006345
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf",
         "sequences": 4,
-        "inclination_rmse_deg": 1.6150537415062198,
-        "heading_rmse_deg": 4.598272175228548,
-        "total_rmse_deg": 4.907269181546503
+        "inclination_rmse_deg": 1.615053741506235,
+        "heading_rmse_deg": 4.598272175229275,
+        "total_rmse_deg": 4.907269181547136
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf-gravity",
         "sequences": 4,
-        "inclination_rmse_deg": 1.7091826970309099,
-        "heading_rmse_deg": 4.367168255626816,
-        "total_rmse_deg": 4.7341985170752405
+        "inclination_rmse_deg": 1.709182697030931,
+        "heading_rmse_deg": 4.367168255625076,
+        "total_rmse_deg": 4.73419851707377
       },
       {
         "dataset": "euroc",
@@ -1278,27 +1278,27 @@
         "axes": 6,
         "algorithm": "srukf",
         "sequences": 3,
-        "inclination_rmse_deg": 1.9691932915320693,
-        "heading_rmse_deg": 66.74591607215307,
-        "total_rmse_deg": 66.78456639088286
+        "inclination_rmse_deg": 1.9691932915320962,
+        "heading_rmse_deg": 66.74591607214994,
+        "total_rmse_deg": 66.78456639087975
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf",
         "sequences": 3,
-        "inclination_rmse_deg": 1.0291120929387745,
-        "heading_rmse_deg": 3.6181089101048385,
-        "total_rmse_deg": 3.7824327082599054
+        "inclination_rmse_deg": 1.029112092938773,
+        "heading_rmse_deg": 3.6181089101058426,
+        "total_rmse_deg": 3.782432708260868
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf-gravity",
         "sequences": 3,
-        "inclination_rmse_deg": 2.0384706188187107,
-        "heading_rmse_deg": 18.686954591986694,
-        "total_rmse_deg": 18.833369341458926
+        "inclination_rmse_deg": 2.038470618818723,
+        "heading_rmse_deg": 18.686954591988265,
+        "total_rmse_deg": 18.83336934146055
       },
       {
         "dataset": "euroc",
@@ -1343,18 +1343,18 @@
     "reference": "vqf",
     "sequences": 11,
     "inclination": {
-      "mean_difference_deg": -3.878412736243435,
-      "ratio_of_means": 0.24044548067580973,
+      "mean_difference_deg": -3.878412736243419,
+      "ratio_of_means": 0.2404454806758132,
       "candidate_wins": 10
     },
     "heading": {
-      "mean_difference_deg": -106.26373863844425,
-      "ratio_of_means": 0.03154510428255643,
+      "mean_difference_deg": -106.2637386384441,
+      "ratio_of_means": 0.03154510428255811,
       "candidate_wins": 11
     },
     "total": {
-      "mean_difference_deg": -106.10211458395794,
-      "ratio_of_means": 0.03378492096794304,
+      "mean_difference_deg": -106.10211458395776,
+      "ratio_of_means": 0.033784920967944616,
       "candidate_wins": 11
     }
   },
@@ -1364,18 +1364,18 @@
       "reference": "vqf",
       "sequences": 5,
       "inclination": {
-        "mean_difference_deg": -4.354902786110758,
-        "ratio_of_means": 0.20291606386072789,
+        "mean_difference_deg": -4.35490278611076,
+        "ratio_of_means": 0.20291606386072744,
         "candidate_wins": 5
       },
       "heading": {
-        "mean_difference_deg": -104.60501909785523,
-        "ratio_of_means": 0.024675638692280774,
+        "mean_difference_deg": -104.60501909785526,
+        "ratio_of_means": 0.024675638692280646,
         "candidate_wins": 5
       },
       "total": {
         "mean_difference_deg": -104.4637027113323,
-        "ratio_of_means": 0.026952841640198604,
+        "ratio_of_means": 0.026952841640198538,
         "candidate_wins": 5
       }
     },
@@ -1384,18 +1384,18 @@
       "reference": "vqf-mav",
       "sequences": 5,
       "inclination": {
-        "mean_difference_deg": -0.46154234452266485,
-        "ratio_of_means": 0.7060582638596712,
+        "mean_difference_deg": -0.4615423445226673,
+        "ratio_of_means": 0.7060582638596696,
         "candidate_wins": 5
       },
       "heading": {
-        "mean_difference_deg": -72.47237443183204,
-        "ratio_of_means": 0.03523082257751756,
+        "mean_difference_deg": -72.47237443183205,
+        "ratio_of_means": 0.035230822577517376,
         "candidate_wins": 4
       },
       "total": {
         "mean_difference_deg": -72.43966820606855,
-        "ratio_of_means": 0.038410447757560626,
+        "ratio_of_means": 0.038410447757560535,
         "candidate_wins": 4
       }
     }
@@ -1406,18 +1406,18 @@
       "reference": "vqf",
       "sequences": 4,
       "inclination": {
-        "mean_difference_deg": -4.3116420596965455,
-        "ratio_of_means": 0.21369331359839605,
+        "mean_difference_deg": -4.3116420596965535,
+        "ratio_of_means": 0.21369331359839433,
         "candidate_wins": 4
       },
       "heading": {
-        "mean_difference_deg": -108.63852496473731,
-        "ratio_of_means": 0.026010530221117382,
+        "mean_difference_deg": -108.63852496473744,
+        "ratio_of_means": 0.026010530221116136,
         "candidate_wins": 4
       },
       "total": {
-        "mean_difference_deg": -108.48184592865596,
-        "ratio_of_means": 0.028280508673997996,
+        "mean_difference_deg": -108.48184592865607,
+        "ratio_of_means": 0.028280508673996913,
         "candidate_wins": 4
       }
     },
@@ -1426,18 +1426,18 @@
       "reference": "vqf-mav",
       "sequences": 4,
       "inclination": {
-        "mean_difference_deg": -0.44322800051468086,
-        "ratio_of_means": 0.7255547521352862,
+        "mean_difference_deg": -0.4432280005146903,
+        "ratio_of_means": 0.7255547521352803,
         "candidate_wins": 4
       },
       "heading": {
-        "mean_difference_deg": -85.62719287799388,
-        "ratio_of_means": 0.03277148993059711,
+        "mean_difference_deg": -85.627192877994,
+        "ratio_of_means": 0.03277148993059553,
         "candidate_wins": 3
       },
       "total": {
-        "mean_difference_deg": -85.62801691657381,
-        "ratio_of_means": 0.03556007462633674,
+        "mean_difference_deg": -85.62801691657393,
+        "ratio_of_means": 0.03556007462633538,
         "candidate_wins": 3
       }
     }
@@ -1447,18 +1447,18 @@
     "reference": "mav-srukf-gravity",
     "sequences": 5,
     "inclination": {
-      "mean_difference_deg": -0.5008566007271561,
-      "ratio_of_means": 0.6888117890592889,
+      "mean_difference_deg": -0.5008566007271684,
+      "ratio_of_means": 0.688811789059283,
       "candidate_wins": 4
     },
     "heading": {
-      "mean_difference_deg": -3.0249168274802023,
-      "ratio_of_means": 0.4666382202702716,
+      "mean_difference_deg": -3.0249168274780596,
+      "ratio_of_means": 0.4666382202704466,
       "candidate_wins": 4
     },
     "total": {
-      "mean_difference_deg": -3.038644291261601,
-      "ratio_of_means": 0.48777353641389065,
+      "mean_difference_deg": -3.0386442912596237,
+      "ratio_of_means": 0.4877735364140527,
       "candidate_wins": 4
     }
   },
@@ -1467,18 +1467,18 @@
     "reference": "mav-srukf-gravity",
     "sequences": 4,
     "inclination": {
-      "mean_difference_deg": -0.37146184944756344,
-      "ratio_of_means": 0.759295849845548,
+      "mean_difference_deg": -0.37146184944758154,
+      "ratio_of_means": 0.7592958498455376,
       "candidate_wins": 3
     },
     "heading": {
-      "mean_difference_deg": -2.228145764285026,
-      "ratio_of_means": 0.5656088374395519,
+      "mean_difference_deg": -2.2281457642842804,
+      "ratio_of_means": 0.5656088374396224,
       "candidate_wins": 3
     },
     "total": {
-      "mean_difference_deg": -2.242984795972562,
-      "ratio_of_means": 0.58464737210556,
+      "mean_difference_deg": -2.242984795971963,
+      "ratio_of_means": 0.5846473721056155,
       "candidate_wins": 3
     }
   },
@@ -1488,18 +1488,18 @@
       "reference": "vqf",
       "sequences": 2,
       "inclination": {
-        "mean_difference_deg": -4.331512372595241,
-        "ratio_of_means": 0.1830034138952403,
+        "mean_difference_deg": -4.331512372595224,
+        "ratio_of_means": 0.18300341389524366,
         "candidate_wins": 2
       },
       "heading": {
-        "mean_difference_deg": -95.61945903478922,
-        "ratio_of_means": 0.023422765532801173,
+        "mean_difference_deg": -95.61945903478886,
+        "ratio_of_means": 0.023422765532804903,
         "candidate_wins": 2
       },
       "total": {
-        "mean_difference_deg": -95.52716762561775,
-        "ratio_of_means": 0.025455786635842942,
+        "mean_difference_deg": -95.52716762561747,
+        "ratio_of_means": 0.025455786635845728,
         "candidate_wins": 2
       }
     },
@@ -1508,18 +1508,18 @@
       "reference": "vqf",
       "sequences": 9,
       "inclination": {
-        "mean_difference_deg": -3.7777239281652575,
-        "ratio_of_means": 0.2538131058999706,
+        "mean_difference_deg": -3.77772392816524,
+        "ratio_of_means": 0.25381310589997413,
         "candidate_wins": 8
       },
       "heading": {
-        "mean_difference_deg": -108.62913410592316,
-        "ratio_of_means": 0.03311812836158836,
+        "mean_difference_deg": -108.62913410592303,
+        "ratio_of_means": 0.03311812836158965,
         "candidate_wins": 9
       },
       "total": {
-        "mean_difference_deg": -108.45210279692245,
-        "ratio_of_means": 0.03539862025993705,
+        "mean_difference_deg": -108.45210279692229,
+        "ratio_of_means": 0.035398620259938396,
         "candidate_wins": 9
       }
     }
