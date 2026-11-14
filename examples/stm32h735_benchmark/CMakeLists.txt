@@ -12,6 +12,11 @@ get_filename_component(SFWA_ROOT "${UKF_ROOT}/.." ABSOLUTE)
 set(STM32CUBE_ROOT "${SFWA_ROOT}/toolchains/STM32CubeH7" CACHE PATH "Pinned STM32CubeH7 checkout")
 set(UKF_EIGEN_DIR "${UKF_ROOT}/build/src/eigen3" CACHE PATH "Repository-patched Eigen 3.2.8 headers")
 set(UKF_BENCHMARK_RECORDING_HEADER "" CACHE FILEPATH "Optional generated IMU recording header")
+set(UKF_BENCHMARK_OPTIMIZATION "O2" CACHE STRING "Benchmark compiler optimization: O2 or Os")
+set_property(CACHE UKF_BENCHMARK_OPTIMIZATION PROPERTY STRINGS O2 Os)
+if(NOT UKF_BENCHMARK_OPTIMIZATION MATCHES "^(O2|Os)$")
+    message(FATAL_ERROR "UKF_BENCHMARK_OPTIMIZATION must be O2 or Os")
+endif()
 set(CMSIS "${STM32CUBE_ROOT}/Drivers/CMSIS")
 set(DEVICE "${CMSIS}/Device/ST/STM32H7xx")
 set(HAL "${STM32CUBE_ROOT}/Drivers/STM32H7xx_HAL_Driver")
@@ -40,7 +45,8 @@ target_include_directories(ukf_stm32h735_benchmark SYSTEM PRIVATE
 target_compile_definitions(ukf_stm32h735_benchmark PRIVATE
     STM32H735xx USE_HAL_DRIVER USE_PWR_DIRECT_SMPS_SUPPLY USER_VECT_TAB_ADDRESS
     HSE_VALUE=25000000U UKF_SINGLE_PRECISION EIGEN_NO_MALLOC
-    STM32CUBE_VERSION="1.13.0")
+    STM32CUBE_VERSION="1.13.0"
+    UKF_BENCHMARK_OPTIMIZATION="${UKF_BENCHMARK_OPTIMIZATION}")
 if(UKF_BENCHMARK_RECORDING_HEADER)
     get_filename_component(recording "${UKF_BENCHMARK_RECORDING_HEADER}" ABSOLUTE)
     if(NOT EXISTS "${recording}")
@@ -49,7 +55,7 @@ if(UKF_BENCHMARK_RECORDING_HEADER)
     target_compile_definitions(ukf_stm32h735_benchmark PRIVATE UKF_BENCHMARK_RECORDING_HEADER="${recording}")
 endif()
 set(ARCH_FLAGS -mcpu=cortex-m7 -mthumb -mfpu=fpv5-d16 -mfloat-abi=hard)
-target_compile_options(ukf_stm32h735_benchmark PRIVATE ${ARCH_FLAGS} -O2 -g3
+target_compile_options(ukf_stm32h735_benchmark PRIVATE ${ARCH_FLAGS} -${UKF_BENCHMARK_OPTIMIZATION} -g3
     -ffunction-sections -fdata-sections -Wall -Wextra
     $<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-rtti;-fno-threadsafe-statics;-fno-use-cxa-atexit;-include${UKF_ROOT}/cmake/EigenGccWarnings.h>)
 target_link_options(ukf_stm32h735_benchmark PRIVATE ${ARCH_FLAGS} -nostartfiles

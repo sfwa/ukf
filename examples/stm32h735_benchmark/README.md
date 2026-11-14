@@ -5,7 +5,62 @@ and workload** as the [ESP32-S31 benchmark](../esp32s31_benchmark/), by includin
 its shared `benchmark.h` directly. It compares `update()` plus `attitude()`
 against a **2,000 µs computation budget** on the STM32H735G-DK Discovery kit.
 
-## Measured STM32H735 hardware results
+## Optimization comparison on hardware
+
+On 2026-11-14, a fresh `-O2` control and then `-Os` ran on the same physical
+**STM32H735IGK6 revision Z at 550 MHz**, with GCC 14.3.1, float32, hardware
+floating point, enabled caches and the #92 core optimizations (`ee2f69c`).
+The workload is the same synthetic 500 Hz fixture, not a sensor recording.
+All C/C++ firmware sources, including the HAL, use the selected optimization;
+the platform JSON reports that same CMake setting. Library headers, input,
+clock, memory layout and timing method are otherwise unchanged.
+
+Each row combines two fresh 6,000-update replays. Means are rounded to three
+decimal places; p95/p99 were identical in both individual passes and are not
+pooled percentiles. Maxima cover both passes.
+
+| Optimization | Filter | Mean (µs) | p95 (µs) | p99 (µs) | Maximum (µs) | Updates >2 ms |
+|---|---|---:|---:|---:|---:|---:|
+| `-O2` | UKF | 161.828 | 187 | 188 | 189 | 0 / 12,000 |
+| `-O2` | SR-UKF | 169.404 | 199 | 199 | 200 | 0 / 12,000 |
+| `-Os` | UKF | 390.713 | 443 | 444 | 445 | 0 / 12,000 |
+| `-Os` | SR-UKF | 378.759 | 429 | 429 | 430 | 0 / 12,000 |
+
+`-Os` takes **2.414× as long for UKF (+141.44%)** and **2.236× as long for
+SR-UKF (+123.58%)** on this workload. At `-Os`, SR-UKF takes 3.06% less time
+than UKF; at `-O2`, it takes 4.68% longer. The complete firmware binary shrinks
+from **125,564 to 107,468 bytes**, saving **18,096 bytes (14.41%)**. These full
+firmware sizes include the harness and runtime; the isolated implementation
+sizes are reported separately below.
+
+All **48,000 measured updates** stayed within 2 ms. The slowest `-Os` updates
+leave **1,555 µs for UKF** and **1,570 µs for SR-UKF**, before sensor I/O and
+other application work. These are observed compute times, including timer
+overhead and SysTick interrupts, not an end-to-end or worst-case guarantee.
+
+Both suites passed numerical checks and repeated-pass checksum/quaternion
+checks. Sensor branch counts match across optimizations. SR-UKF output is
+identical across them; UKF's final quaternion differs slightly (Euclidean
+distance about `1.04e-6`). Minimum free stack was 56,312 bytes with `-O2`
+and 57,136 with `-Os`, out of 65,536. Both UART logs matched the corresponding
+retained DTCM output byte for byte, with no overflow or recorded CPU fault.
+The board is left with the `-Os` benchmark in internal flash.
+
+The `-O2` control binary is byte-for-byte identical to the earlier post-#92
+binary. New source/provenance is `c3fe9c2` plus the optimization-selection
+change, with source/binary hashes and compile commands recorded in the manifests:
+
+- [`-O2` UART log](results/stm32h735-550mhz-O2.jsonl) and
+  [build/run manifest](results/stm32h735-550mhz-O2-manifest.json).
+- [`-Os` UART log](results/stm32h735-550mhz-Os.jsonl) and
+  [build/run manifest](results/stm32h735-550mhz-Os-manifest.json).
+
+```sh
+python examples/esp32s31_benchmark/summarize.py \
+  examples/stm32h735_benchmark/results/stm32h735-550mhz-Os.jsonl
+```
+
+## Earlier -O2 measurements before and after #92
 
 On 2026-11-14, the cross-compiled application completed on a physical
 **STM32H735IGK6, revision Z, at 550 MHz**. These are **hardware measurements**,
@@ -13,7 +68,7 @@ using the shared synthetic sensor fixture; they are not simulated timings or
 a replay of a real sensor recording. The estimator uses float32, hardware
 floating point, `-O2`, and enabled instruction/data caches.
 
-The latest measured build uses library headers from `ee2f69c`, including the
+This earlier measured build uses library headers from `ee2f69c`, including the
 SR-UKF optimizations in [#92](https://github.com/sfwa/ukf/pull/92). It was built
 from clean merge commit `1176a8f`, which incorporates that `master` revision
 into the benchmark branch. The original measurements with `b75b6a6` are
@@ -64,7 +119,7 @@ including firmware and source hashes. The original
 [baseline manifest](results/stm32h735-550mhz-manifest.json) remain unchanged.
 The merged source also passed all 20 embedded host/export/reporting tests
 and 107 core tests in the double-precision Release configuration.
-Reproduce the latest report from the repository root with:
+Reproduce that earlier report from the repository root with:
 
 ```sh
 python examples/esp32s31_benchmark/summarize.py \
@@ -88,14 +143,15 @@ and thin API wrappers**, excluding the timing harness and platform runtime.
 Added linked flash subtracts an empty adapter and includes required math,
 compiler and C runtime helpers and initialized-data payload. It is not total
 firmware size or a guaranteed marginal cost in an application sharing helpers.
-The full post-#92 timing firmware is separately 125,564 bytes.
+The full post-#92 timing firmware is separately 125,564 bytes at `-O2` and
+107,468 bytes at `-Os`.
 
 Settings: Arm GNU Toolchain 14.3.Rel1 / GCC 14.3.1, patched Eigen 3.2.8,
 `-mcpu=cortex-m7 -mthumb -mfpu=fpv5-d16 -mfloat-abi=hard`, C++17, float32,
 `-DNDEBUG`, no exceptions/RTTI, no fast-math or LTO, function/data sections and
-linker garbage collection. The timing firmware uses `-O2`; **`-Os` was measured
-for size only**. These standalone API probes can inline differently from the
-combined benchmark application.
+linker garbage collection. These standalone API probes can inline differently
+from the combined benchmark application; the physical `-O2`/`-Os` timing
+comparison above measures the whole firmware's update path separately.
 
 See the [measurement method and reproduction commands](../embedded_code_size/),
 plus the source/command/section manifests for
@@ -141,8 +197,19 @@ cross-compile. In this workspace, `.venv/bin/cmake` is the installed CMake:
 .venv/bin/cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 .venv/bin/cmake --build build --target eigen3
 .venv/bin/cmake -S examples/stm32h735_benchmark -B build-stm32h735 \
-  -DCMAKE_TOOLCHAIN_FILE=toolchain.cmake -DCMAKE_BUILD_TYPE=Release
+  -DCMAKE_TOOLCHAIN_FILE=toolchain.cmake -DCMAKE_BUILD_TYPE=Release \
+  -DUKF_BENCHMARK_OPTIMIZATION=O2
 .venv/bin/cmake --build build-stm32h735 --parallel 2
+```
+
+`UKF_BENCHMARK_OPTIMIZATION` accepts `O2` (the default) or `Os`; other values
+are rejected. Build `-Os` in a separate directory to preserve the control:
+
+```sh
+.venv/bin/cmake -S examples/stm32h735_benchmark -B build-stm32h735/Os \
+  -DCMAKE_TOOLCHAIN_FILE=toolchain.cmake -DCMAKE_BUILD_TYPE=Release \
+  -DUKF_BENCHMARK_OPTIMIZATION=Os
+.venv/bin/cmake --build build-stm32h735/Os --parallel 2
 ```
 
 The build emits `ukf_stm32h735_benchmark.elf`, `.bin`, `.map`, and
@@ -179,6 +246,10 @@ root, after the ST-LINK is accessible:
   --download build-stm32h735/ukf_stm32h735_benchmark.elf --verify -hardRst
 ```
 
+For the separate `-Os` build, use
+`build-stm32h735/Os/ukf_stm32h735_benchmark.elf` instead. Check the captured
+platform record's `optimization` value before comparing runs.
+
 Capture the ST-LINK virtual COM port at **115200 baud, 8N1**, starting the
 capture before the programmer's `-hardRst` or a subsequent board reset. The
 device appears as `/dev/cu.usbmodem...` on macOS; select the connected board's
@@ -213,7 +284,8 @@ uninterrupted during measurement; halt only after completion to collect data.
   Vendor startup selects this before RAM initialization; the application
   verifies the resulting CPU/bus clock configuration. `USER_VECT_TAB_ADDRESS`
   explicitly places the interrupt vector table at `0x08000000`.
-- `-O2`, `-mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard`, float32 estimator
+- `-O2` by default or selectable `-Os`,
+  `-mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard`, float32 estimator
   math, `EIGEN_NO_MALLOC`, and no fast-math option. Full newlib preserves the
   shared harness's size and 64-bit integer JSON formatting.
 - Instruction/data caches enabled; code in internal flash, data and the

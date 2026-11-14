@@ -489,6 +489,7 @@ same float32 estimator and workload on the STM32H735G-DK. Its physical
 161.8 µs for UKF and 169.4 µs for SR-UKF,
 with no update exceeding 2 ms across 24,000 measured updates. See the
 benchmark README for raw results, build instructions, and timing limitations.
+It also compares physical `-O2`/`-Os` timings and isolated implementation code size.
 
 ## References
 

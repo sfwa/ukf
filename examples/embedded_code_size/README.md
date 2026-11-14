@@ -105,7 +105,9 @@ disabled. It does not inherit ESP-IDF's sdkconfig: that IDF revision defaults
 to GNU C++26 and enabled assertions, unlike these size probes. Consequently
 these results are not exact symbol attribution inside the ESP timing ELF.
 The standalone API boundary can also change inlining relative to either
-combined timing firmware. **No `-Os` timings have been measured.**
+combined timing firmware. These probes measure size only. A separate
+[STM32H735 hardware comparison](../stm32h735_benchmark/README.md#optimization-comparison-on-hardware)
+now measures both `-O2` and `-Os` timing; ESP32-S31 `-Os` timing remains unmeasured.
 
 ## Reproduce
 

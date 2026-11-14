@@ -219,7 +219,7 @@ int main() {
     std::printf("{\"type\":\"platform\",\"platform\":\"stm32h735\","
         "\"board\":\"STM32H735G-DK\",\"compiler\":\"%s\",\"stm32cube\":\"%s\","
         "\"device_id\":%lu,\"chip_revision\":%lu,\"cpu_mhz\":%lu,\"hclk_mhz\":%.1f,"
-        "\"optimization\":\"O2\",\"float_abi\":\"hard\",\"fpu\":\"fpv5-d16\","
+        "\"optimization\":\"" UKF_BENCHMARK_OPTIMIZATION "\",\"float_abi\":\"hard\",\"fpu\":\"fpv5-d16\","
         "\"icache\":true,\"dcache\":true,\"supply\":\"direct_smps\","
         "\"stack_bytes\":%u,\"stack_memory\":\"DTCM\",\"data_memory\":\"AXI_SRAM\","
         "\"timer\":\"DWT_CYCCNT_extended\",\"timer_resolution_us\":1,"
