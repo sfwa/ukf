@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Summarize one complete ESP32-S31 or host benchmark log.
+"""Summarize one complete ESP32-S31, STM32H735, or host benchmark log.
 
 Exit 0: complete valid replay (and within the compute budget on hardware).
 Exit 1: numerical replay failure or hardware compute-budget failure.
@@ -19,6 +19,7 @@ RECORD_TYPES = {"benchmark_input", "attitude_benchmark", "platform", "platform_c
 MARKER = re.compile(r'"type"\s*:\s*"(' + "|".join(sorted(RECORD_TYPES)) + r')"')
 ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 EXPECTED = {("ukf", 1), ("srukf", 1), ("ukf", 2), ("srukf", 2)}
+FIRMWARE_PLATFORMS = {"esp32s31": "ESP32-S31", "stm32h735": "STM32H735"}
 
 
 def integer(value, name, minimum=0):
@@ -47,7 +48,7 @@ def parse_log(text):
     records = {kind: [] for kind in RECORD_TYPES}
     for line_number, line in enumerate(text.splitlines(), 1):
         line = ANSI.sub("", line)
-        # IDF boot/monitor messages and unrelated JSON are not benchmark data.
+        # Boot/monitor messages and unrelated JSON are not benchmark data.
         if not MARKER.search(line):
             continue
         start = line.find("{")
@@ -66,16 +67,16 @@ def parse_log(text):
         raise ValueError("Expected exactly one benchmark_input record; capture one complete suite per log")
     source = records["benchmark_input"][0]
     platform = source.get("platform")
-    if platform not in ("host", "esp32s31"):
+    if platform != "host" and platform not in FIRMWARE_PLATFORMS:
         raise ValueError("Unsupported benchmark platform")
     if len(records["platform"]) > 1 or len(records["platform_complete"]) > 1:
         raise ValueError("Multiple platform records; capture one complete suite per log")
     for record in records["platform"] + records["attitude_benchmark"]:
         if record.get("platform") != platform:
             raise ValueError("Mixed benchmark platforms")
-    if platform == "esp32s31" and (len(records["platform"]) != 1 or
-                                   len(records["platform_complete"]) != 1):
-        raise ValueError("ESP32-S31 log requires platform and platform_complete records")
+    if platform in FIRMWARE_PLATFORMS and (len(records["platform"]) != 1 or
+                                           len(records["platform_complete"]) != 1):
+        raise ValueError(f"{FIRMWARE_PLATFORMS[platform]} log requires platform and platform_complete records")
 
     samples = integer(source.get("samples"), "samples", 2)
     if source.get("passes") != 2:
@@ -124,9 +125,9 @@ def summarize(text, *, emulated=False):
     source, runs, complete = parse_log(text)
     if emulated and source["platform"] != "esp32s31":
         raise ValueError("--emulated requires an ESP32-S31 firmware log")
-    hardware = source["platform"] == "esp32s31" and not emulated
+    hardware = source["platform"] in FIRMWARE_PLATFORMS and not emulated
     lines = ["**SIMULATED ESP32-S31 firmware timings — NOT physical silicon measurements.**" if emulated else
-             "ESP32-S31 on-device **compute-only** measurements." if hardware else
+             f"{FIRMWARE_PLATFORMS[source['platform']]} on-device **compute-only** measurements." if hardware else
              "**HOST functional check — NOT ESP32-S31 target performance.**", "",
              f"Input: {markdown(source['source'])}; {source['samples']} samples, "
              f"mean input interval {source['dt_mean_s'] * 1000:.6g} ms. "

@@ -15,6 +15,7 @@ a.out
 *.egg-info
 dist
 build
+/build-stm32h735/
 eggs
 parts
 var

@@ -483,6 +483,12 @@ reporting update-time percentiles and overruns against a 2 ms budget. It
 includes an ESP-IDF application, optional recorded CSV replay, and a host
 validation target; hardware timings must be measured on the board.
 
+The [STM32H735 timing benchmark](examples/stm32h735_benchmark/) reuses the
+same float32 estimator and workload on the STM32H735G-DK. Its physical
+550 MHz measurements averaged 161.6 µs for UKF and 190.6 µs for SR-UKF,
+with no update exceeding 2 ms across 24,000 measured updates. See the
+benchmark README for raw results, build instructions, and timing limitations.
+
 ## References
 
 <a name="ref1">[1]</a> "A New Extension of the Kalman Filter to Nonlinear Systems:,

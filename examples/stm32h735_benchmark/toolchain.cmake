@@ -1,0 +1,11 @@
+set(CMAKE_SYSTEM_NAME Generic)
+set(CMAKE_SYSTEM_PROCESSOR arm)
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+get_filename_component(SFWA_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
+set(ARM_TOOLCHAIN_ROOT "${SFWA_ROOT}/toolchains/arm-gnu-toolchain-14.3.rel1-darwin-arm64-arm-none-eabi"
+    CACHE PATH "Arm GNU Toolchain installation")
+set(CMAKE_C_COMPILER "${ARM_TOOLCHAIN_ROOT}/bin/arm-none-eabi-gcc")
+set(CMAKE_CXX_COMPILER "${ARM_TOOLCHAIN_ROOT}/bin/arm-none-eabi-g++")
+set(CMAKE_ASM_COMPILER "${CMAKE_C_COMPILER}")
+set(CMAKE_OBJCOPY "${ARM_TOOLCHAIN_ROOT}/bin/arm-none-eabi-objcopy")
+set(CMAKE_SIZE "${ARM_TOOLCHAIN_ROOT}/bin/arm-none-eabi-size")

@@ -85,6 +85,9 @@ physical performance and end-to-end scheduling still require board measurements.
 The source was base commit `e826de4dc65212035f1c6a938f03c6afc95f74cd` plus the
 benchmark snapshot, whose gzip SHA-256 was
 `9079714c13585a277dbc6b3a8055105db48102447cd7e25dc30b441c1984cf75`.
+Its library headers match `b75b6a6`, before the SR-UKF optimizations in
+[#92](https://github.com/sfwa/ukf/pull/92); these simulated timings do not
+describe that newer core revision.
 The verified build configuration was ESP-IDF **v6.1** at commit
 `fff9895c82d744c7237be8847347bdd1b07c6643`, GCC **15.2.0** from
 `esp-15.2.0_20251204`, `UKF_SINGLE_PRECISION`, `EIGEN_NO_MALLOC`, `-mabi=ilp32f`
