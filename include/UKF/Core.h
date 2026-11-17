@@ -240,8 +240,27 @@ public:
     InnovationVectorType innovation;
     typename MeasurementVectorType::CovarianceMatrix innovation_covariance;
 
+    /*
+    The sigma points of the most recent successful a priori step, one per
+    column, laid out as the state vector is (a quaternion field as x, y, z,
+    w). They are drawn from the predicted state and covariance, including the
+    process noise, and are the points that the innovation step passes through
+    the measurement model; an a posteriori step updates the state but not
+    these points. They are zero before the first a priori step, and
+    unspecified after a step that fails.
+    */
+    const typename StateVectorType::SigmaPointDistribution& get_sigma_points() const {
+        return sigma_points;
+    }
+
     Core() {
-        /* Give fixed-size innovation values a defined state before any step. */
+        /*
+        Give the fixed-size values which the steps fill in a defined state
+        before any step, so that a filter can be copied or inspected at any
+        time.
+        */
+        sigma_points.setZero();
+        w_prime.setZero();
         if constexpr (MeasurementVectorType::RowsAtCompileTime != Eigen::Dynamic) {
             innovation.setZero();
             innovation_covariance.setZero();
@@ -560,6 +579,19 @@ public:
     InnovationVectorType innovation;
     typename MeasurementVectorType::CovarianceMatrix innovation_root_covariance;
 
+    /*
+    The sigma points of the most recent successful a priori step, one per
+    column, laid out as the state vector is (a quaternion field as x, y, z,
+    w). They are drawn from the predicted state and covariance, including the
+    process noise, and are the points that the innovation step passes through
+    the measurement model; an a posteriori step updates the state but not
+    these points. They are zero before the first a priori step, and
+    unspecified after a step that fails.
+    */
+    const typename StateVectorType::SigmaPointDistribution& get_sigma_points() const {
+        return sigma_points;
+    }
+
     SquareRootCore() {
         /*
         Give the fixed-size values which the steps fill in a defined state
@@ -850,6 +882,19 @@ public:
     */
     InnovationVectorType innovation;
     typename MeasurementVectorType::CovarianceMatrix innovation_root_covariance;
+
+    /*
+    The sigma points of the most recent successful a priori step, one per
+    column, laid out as the state vector is (a quaternion field as x, y, z,
+    w). They are drawn from the predicted state and covariance, including the
+    process noise, and are the points that the innovation step passes through
+    the measurement model; an a posteriori step updates the state but not
+    these points. They are zero before the first a priori step, and
+    unspecified after a step that fails.
+    */
+    const typename StateVectorType::SigmaPointDistribution& get_sigma_points() const {
+        return sigma_points;
+    }
 
     SquareRootParameterEstimationCore() {
         /*

@@ -175,7 +175,7 @@ six-axis and 4.199° versus 4.235° nine-axis. On the validation recordings
 alone, which played no part in tuning, the totals are 6.374° versus 6.277°
 (BROAD six-axis), 2.486° versus 2.589° (BROAD nine-axis), 4.514° versus 4.343°
 (Sassari six-axis) and 4.511° versus 4.580° (Sassari nine-axis). These results
-demonstrate near parity with VQF, not superiority.
+demonstrate rough parity with VQF when unaided by a significant process model.
 
 The differences are not uniform. The UKF estimator's inclination error is
 higher than VQF's on BROAD (0.936° versus 0.857°) and lower on Sassari (1.861°

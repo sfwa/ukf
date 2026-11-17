@@ -209,8 +209,13 @@ if (filter.a_priori_step(dt)) {           // state and uncertainty are now predi
 }
 ```
 
-Forward the same model inputs to the first two calls when using inputs. To
-apply a gate, use `step_with_gate(...)` or the gated posterior overload described
+Forward the same model inputs to the first two calls when using inputs.
+After a successful `a_priori_step`, `filter.get_sigma_points()` returns a const
+reference to its sigma points, one per column in the state vector's layout:
+the points drawn from the predicted state and uncertainty, process noise
+included, which the innovation step passes through the measurement model. The
+a posteriori step leaves them unchanged, and they are unspecified after a step
+that fails. To apply a gate, use `step_with_gate(...)` or the gated posterior overload described
 in the gating guide. Do not apply both the gated and ungated posterior to the
 same innovation.
 
