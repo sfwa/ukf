@@ -1,0 +1,13 @@
+﻿# hoist-double
+elf: build-rank-hoist/hoist-double/ukf_stm32h735_benchmark.elf
+elf sha256: 9909899bbae770b7eec8a147e283c29bc91fb76ac6e95252430295f600da0c72
+bin sha256: 52e24f387295ce45405190332a21449aa675bb434196809cd3b2977816baa68e
+bin bytes: 130560
+
+arm-none-eabi-size:
+   text	   data	    bss	    dec	    hex	filename
+ 128316	   2188	 146888	 277392	  43b90	hoist-double\ukf_stm32h735_benchmark.elf
+
+arm-none-eabi-objdump -d (whole ELF) instruction counts:
+vdiv.f32: 16
+vdiv.f64: 149

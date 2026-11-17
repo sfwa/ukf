@@ -1,0 +1,13 @@
+﻿# base-float
+elf: build-rank-hoist/base-float/ukf_stm32h735_benchmark.elf
+elf sha256: 15826e44a9498cbd743a174d357c1bad8d340e44bc9b15132ffaecf206bdb20a
+bin sha256: 766868982cd3fa1f495bf593ec29abdacd4794802a948cc6918ccf6358afc34e
+bin bytes: 125384
+
+arm-none-eabi-size:
+   text	   data	    bss	    dec	    hex	filename
+ 123140	   2188	 146888	 272216	  42758	base-float\ukf_stm32h735_benchmark.elf
+
+arm-none-eabi-objdump -d (whole ELF) instruction counts:
+vdiv.f32: 143
+vdiv.f64: 25

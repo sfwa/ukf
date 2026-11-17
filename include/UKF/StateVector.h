@@ -240,6 +240,13 @@ namespace UKF {
     alpha^2), but the parameters suggested in "Gaussian Processes for State
     Space Models and Change Point Detection" by Ryan Tuner (2011) provide a
     more stable filter.
+
+    In single precision keep alpha^2 well above 1e-6. The outer weight is
+    1 / (2 alpha^2 (n + kappa)), and it multiplies the rounding of every
+    sigma point, which is stored to within epsilon of its value: with
+    alpha^2 = 1e-6 and n = 9, a mean is good to only a few tenths of a
+    percent of the value, and the central weight of about -7.5e5 leaves the predicted
+    covariance about one significant digit.
     */
     template <typename T> constexpr real_t AlphaSquared = 1.0;
     template <typename T> constexpr real_t Beta = 0.0;
@@ -568,10 +575,20 @@ private:
     Calculate the quaternion barycentric mean with renormalisation. Note that
     this is not an ad-hoc renormalisation of an appoximation; see the paper
     mentioned above for details.
+
+    q and -q are the same rotation, and a process model may return either
+    (one which keeps w >= 0 flips a sigma point that crosses 180 degrees).
+    Each sigma point is taken in the hemisphere of the central one before
+    averaging, so the mean depends only on the rotations.
     */
     static Vector<4> sigma_point_mean(const Matrix<4, num_sigma()>& sigma, [[maybe_unused]] const Quaternion& field) {
+        Array<1, num_sigma()-1> signs;
+        for(std::size_t i = 0; i < num_sigma()-1; i++) {
+            signs(i) = sigma.col(i+1).dot(sigma.col(0)) < real_t(0) ? real_t(-1) : real_t(1);
+        }
         Vector<4> temp = sigma.col(0) + Parameters::Sigma_WMI<StateVector> *
-            (sigma.template rightCols<num_sigma()-1>().colwise() - sigma.col(0)).rowwise().sum();
+            ((sigma.template rightCols<num_sigma()-1>().array().rowwise() * signs).matrix().colwise() -
+                sigma.col(0)).rowwise().sum();
         Quaternion temp_q = Quaternion(temp).normalized();
         return Vector<4>(temp_q.x(), temp_q.y(), temp_q.z(), temp_q.w());
     }
@@ -592,19 +609,23 @@ private:
 
     /*
     Private functions for calculating the delta vectors between each sigma
-    point and the mean.
+    point and the mean. They take the field's rows of the sigma points as
+    an Eigen expression, so that the block is read in place rather than
+    copied into a temporary matrix.
     */
-    template <typename T>
+    template <typename T, typename Derived>
     static Matrix<Detail::CovarianceDimension<T>, num_sigma()> sigma_point_deltas(
-            const T& mean, const Matrix<Detail::StateVectorDimension<T>, num_sigma()>& X) {
+            const T& mean, const Eigen::MatrixBase<Derived>& X) {
         return X.colwise() - mean;
     }
 
-    static Matrix<1, num_sigma()> sigma_point_deltas(real_t mean, const Matrix<1, num_sigma()>& X) {
+    template <typename Derived>
+    static Matrix<1, num_sigma()> sigma_point_deltas(real_t mean, const Eigen::MatrixBase<Derived>& X) {
         return X.array() - mean;
     }
 
-    static Matrix<3, num_sigma()> sigma_point_deltas(const Quaternion& mean, const Matrix<4, num_sigma()>& X) {
+    template <typename Derived>
+    static Matrix<3, num_sigma()> sigma_point_deltas(const Quaternion& mean, const Eigen::MatrixBase<Derived>& X) {
         Matrix<3, num_sigma()> temp;
 
         /*
@@ -613,6 +634,14 @@ private:
         */
         for(std::size_t i = 0; i < num_sigma(); i++) {
             Quaternion delta_q = Quaternion(X.col(i)) * mean.conjugate();
+
+            /*
+            Take the shorter of the two rotations, whichever sign the sigma
+            point has. Gibbs vectors (MRP_A = 0) do not depend on the sign.
+            */
+            if (delta_q.w() < real_t(0)) {
+                delta_q.coeffs() = -delta_q.coeffs();
+            }
             temp.col(i) = Parameters::MRP_F<StateVector> * delta_q.vec() /
                 (std::abs(Parameters::MRP_A<StateVector> + delta_q.w()) > std::numeric_limits<real_t>::epsilon() ?
                     Parameters::MRP_A<StateVector> + delta_q.w() : std::numeric_limits<real_t>::epsilon());
@@ -651,9 +680,13 @@ private:
     static Quaternion update_field(const Quaternion& state, const Vector<3>& delta) {
         /*
         Update the attitude quaternion from the MRP vector, equation 45 from
-        the Markley paper.
+        the Markley paper. The product is renormalised: the error quaternion
+        is unit length only up to roundoff, and a core which does not take a
+        mean between updates (the parameter estimation core) would otherwise
+        let the norm drift (by 0.2 to 0.3 % over 1e5 noisy single precision
+        updates).
         */
-        return Detail::rotation_vector_to_quaternion<StateVector>(delta) * state;
+        return (Detail::rotation_vector_to_quaternion<StateVector>(delta) * state).normalized();
     }
 
     template <typename T>

@@ -1,0 +1,33 @@
+{
+  "experiment": "Reciprocal hoisting in UKF::Detail::rank_update_lower (include/UKF/RankUpdate.h): one reciprocal plus two multiplies instead of two divisions in the positive (update) branch; one reciprocal before the loop instead of a per-row division by cosine in the downdate branch",
+  "date": "2026-11-17",
+  "base_commit": "d0e10a953e7ce4fb1f33662601db088cfa452913",
+  "hoist_tree": "d0e10a9 plus the RankUpdate.h patch, applied in a separate git worktree; the patch is not committed",
+  "rank_update_h_sha256": {
+    "base": "9986ba29a46de9cae694c4c8df748b32ef4b8623532bc32c5cb16d0ce52e22c8",
+    "hoist": "c772a5e4c28bba8af1243121c1dcadb7616eb95d3ee5039676c3c9c7bd937dbf"
+  },
+  "compiler": "Arm GNU Toolchain 14.3.Rel1 (Build arm-14.174), arm-none-eabi-g++ 14.3.1 20250623, Windows x64 host",
+  "cmake_options": "-G Ninja -DCMAKE_BUILD_TYPE=Release -DUKF_BENCHMARK_OPTIMIZATION=O2 -DUKF_BENCHMARK_PRECISION=SINGLE|DOUBLE, all else default (UKF_EIGEN_UNROLLING_LIMIT empty, no recording header)",
+  "compile_flags": "-DNDEBUG -std=c++17 -mcpu=cortex-m7 -mthumb -mfpu=fpv5-d16 -mfloat-abi=hard -O2 -g3 -ffunction-sections -fdata-sections -Wall -Wextra -fno-exceptions -fno-rtti -fno-threadsafe-statics -fno-use-cxa-atexit; defines STM32H735xx USE_HAL_DRIVER USE_PWR_DIRECT_SMPS_SUPPLY USER_VECT_TAB_ADDRESS HSE_VALUE=25000000U UKF_SINGLE_PRECISION|UKF_DOUBLE_PRECISION EIGEN_NO_MALLOC",
+  "build_warnings": 0,
+  "eigen": "Eigen 3.2.8 (eigen-3.2.8.tar.gz sha256 64c54781cfe9eefef2792003ab04b271d4b2ec32eda6e9cdf120d7aad4ebb282) with the repository's patch/eigen-3.2.8-no-malloc-in-llt.patch and patch/eigen-3.2.8-cxx17.patch, passed as UKF_EIGEN_DIR. A base-float build against the earlier session's copy (which lacked only the cxx17 guard in Functors.h) produced a byte-identical .bin.",
+  "stm32cube": "STM32CubeH7 v1.13.0 5abb9764b32e11a6557b90bf39531528019b5761, HAL a1996eed9172b59887bafaaa0ea1816ea14d48b5, CMSIS device 8f922cdc7cc6de2344e75ddd657889f4ff761790",
+  "board": "STM32H735G-DK, STM32H735IGK6, DBGMCU_IDCODE 0x10016483 (DEV_ID 0x483, REV_ID 0x1001 = revision Z), 550 MHz, ST-LINK V3E VCP at 115200 8N1, SW1 (BOOT0) = 0",
+  "programming": "pyOCD 0.46.1 over ST-LINK SWD (builtin stm32h723xx target, reset_and_halt then sector erase/program at 0x08000000, full read-back compare of the image); STM32_Programmer_CLI is not installed on this host",
+  "capture": "COM3 opened before reset; the same output was also read from the DTCM benchmark_log after benchmark_complete=1. UART and DTCM logs were byte-identical in all 8 runs; no log overflow",
+  "flash_backup": {
+    "file": "C:\\Claude\\nmpc-review\\board-backup\\stm32h735_flash_0x08000000_1MiB.bin (original factory image, made 2026-11-14, not committed)",
+    "sha256": "fe7e25cc94f723411491eca08f7e1c6c7de0ab1a6d82afb1529b46512cc56430",
+    "pre_run_snapshot_sha256": "f8f8c338e981d863ac70bbb1dc3cd1903d856f6118161366d21185d2330fd1e6 (flash contents left by an earlier session immediately before these runs; snapshot kept locally, not committed)"
+  },
+  "run_order": ["base-float", "hoist-float", "base-float", "hoist-float", "base-double", "hoist-double", "base-double", "hoist-double"],
+  "firmware": {
+    "base-float": {"bin_sha256": "766868982cd3fa1f495bf593ec29abdacd4794802a948cc6918ccf6358afc34e", "bin_bytes": 125384},
+    "hoist-float": {"bin_sha256": "379e5e8c1708fdcaf25ff71d3c53653657ed608b23b90314710f07844f5cba6c", "bin_bytes": 125384},
+    "base-double": {"bin_sha256": "808d716c5d48711de75bbd3b781a2577464ecfce4ebcae56e2acf887042fdb1a", "bin_bytes": 130560},
+    "hoist-double": {"bin_sha256": "52e24f387295ce45405190332a21449aa675bb434196809cd3b2977816baa68e", "bin_bytes": 130560}
+  },
+  "summarize": "python examples/esp32s31_benchmark/summarize.py <log> (from d0e10a9); exit 0 for all 8 logs",
+  "board_left_with": "base-float O2 (bin sha256 766868982cd3fa1f495bf593ec29abdacd4794802a948cc6918ccf6358afc34e), run once more after programming with suite_ok true"
+}

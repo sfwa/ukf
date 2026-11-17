@@ -332,7 +332,8 @@ public:
         typename StateVectorType::CovarianceMatrix predicted_covariance =
             StateVectorType::calculate_sigma_point_covariance(w_prime);
         predicted_covariance += process_noise_covariance;
-        if (!predicted_state.allFinite() || !Detail::covariance_root(predicted_covariance, root)) {
+        if (!predicted_state.allFinite() ||
+                !Detail::covariance_root(predicted_covariance, root, real_t(0), &predicted_covariance)) {
             return false;
         }
 
@@ -417,6 +418,15 @@ public:
         }
 
         /*
+        An innovation covariance that is exactly zero, as after exact
+        observations with no noise, leaves nothing to learn; Eigen's QR would
+        take its zero pivots as nonzero and give a gain that is not finite.
+        */
+        if (innovation_covariance.cwiseAbs().maxCoeff() == real_t(0)) {
+            return true;
+        }
+
+        /*
         Calculate the cross-correlation matrix described in equations 70 and
         71 from from the Kraft paper.
         */
@@ -446,10 +456,15 @@ public:
         /* Update the covariance using equation 75 from the Kraft paper. */
         typename StateVectorType::CovarianceMatrix updated_covariance = covariance;
         updated_covariance.noalias() -= (kalman_gain * innovation_covariance * kalman_gain.transpose());
-        /* Reject an indefinite posterior, allowing for roundoff in the update. */
+        /*
+        Reject an indefinite posterior, allowing for roundoff in the update
+        against the prior's scale. A posterior that is semidefinite within
+        that roundoff is stored as repaired, so that the next prediction can
+        take its root.
+        */
         typename StateVectorType::CovarianceMatrix posterior_root;
-        if (!updated_state.allFinite() || !Detail::covariance_root(
-                updated_covariance, posterior_root, covariance.cwiseAbs().maxCoeff())) {
+        if (!updated_state.allFinite() || !Detail::covariance_root(updated_covariance, posterior_root,
+                covariance.cwiseAbs().maxCoeff(), &updated_covariance)) {
             return false;
         }
 

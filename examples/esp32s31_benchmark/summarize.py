@@ -93,11 +93,14 @@ def parse_log(text):
     keys = [(run.get("filter"), run.get("pass")) for run in runs]
     if len(keys) != 4 or set(keys) != EXPECTED:
         raise ValueError("Expected exactly UKF and SR-UKF passes 1 and 2; missing or duplicate results")
+    precisions = {run.get("precision") for run in runs}
+    if len(precisions) != 1 or not precisions <= {"float32", "float64"}:
+        raise ValueError("Runs must all use float32 or all use float64")
     for run in runs:
-        if (run.get("precision") != "float32" or run.get("axes") != 9 or
+        if (run.get("axes") != 9 or
                 run.get("timed_scope") != "update_and_attitude" or run.get("budget_us") != 2000 or
                 run.get("expected_updates") != samples - 1):
-            raise ValueError("Run metadata does not match the float32, nine-axis, 2000 us benchmark input")
+            raise ValueError("Run metadata does not match the nine-axis, 2000 us benchmark input")
         boolean(run.get("replay_valid"), "replay_valid")
         boolean(run.get("observed_compute_within_budget"), "observed_compute_within_budget")
         timing = run.get("timing")
@@ -130,7 +133,7 @@ def summarize(text, *, emulated=False):
              f"{FIRMWARE_PLATFORMS[source['platform']]} on-device **compute-only** measurements." if hardware else
              "**HOST functional check — NOT ESP32-S31 target performance.**", "",
              f"Input: {markdown(source['source'])}; {source['samples']} samples, "
-             f"mean input interval {source['dt_mean_s'] * 1000:.6g} ms. "
+             f"mean input interval {source['dt_mean_s'] * 1000:.6g} ms; {runs[0]['precision']} filters. "
              "The comparison budget is 2 ms per update; input timestamps are not retimed.", "",
              "| Filter | Pass | Mean µs | P95 µs | P99 µs | Max µs | Max / 2 ms | Updates > 2 ms | Replay valid |",
              "|---|---:|---:|---:|---:|---:|---:|---:|---|"]

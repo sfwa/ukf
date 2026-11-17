@@ -24,6 +24,13 @@ add_executable(consumer_manual main.cpp)
 target_link_libraries(consumer_manual PRIVATE ukf::ukf)
 target_compile_definitions(consumer_manual PRIVATE UKF_SINGLE_PRECISION)
 
+# The unrolling limit, when given, must reach every consumer.
+if(NOT UKF_EIGEN_UNROLLING_LIMIT STREQUAL "")
+    foreach(target consumer_double consumer_single consumer_manual)
+        target_compile_definitions(${target} PRIVATE EXPECT_EIGEN_UNROLLING_LIMIT=${UKF_EIGEN_UNROLLING_LIMIT})
+    endforeach()
+endif()
+
 # Consumers may build the filters with exceptions disabled.
 add_executable(consumer_no_exceptions no_exceptions.cpp)
 target_link_libraries(consumer_no_exceptions PRIVATE ukf::double)

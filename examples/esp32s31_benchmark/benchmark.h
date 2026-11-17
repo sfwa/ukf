@@ -17,7 +17,9 @@
 
 namespace AttitudeBenchmark {
 
-static_assert(std::is_same<real_t, float>::value, "Benchmark requires UKF_SINGLE_PRECISION");
+static_assert(std::is_same<real_t, float>::value || std::is_same<real_t, double>::value,
+    "Benchmark requires UKF_SINGLE_PRECISION or UKF_DOUBLE_PRECISION");
+inline constexpr const char* precision = std::is_same<real_t, double>::value ? "float64" : "float32";
 static_assert(Attitude_StateVector::covariance_size() == 9, "Update benchmark metadata for a changed model");
 static_assert(Attitude_StateVector::num_sigma() == 19, "Update benchmark metadata for a changed model");
 
@@ -196,12 +198,12 @@ bool run_one(const Source& source, const char* platform, const char* filter,
     std::sort(durations, durations + all.count);
     std::printf("{\"type\":\"attitude_benchmark\",\"platform\":");
     json_string(platform);
-    std::printf(",\"filter\":\"%s\",\"pass\":%u,\"precision\":\"float32\",\"axes\":9,"
+    std::printf(",\"filter\":\"%s\",\"pass\":%u,\"precision\":\"%s\",\"axes\":9,"
         "\"timed_scope\":\"update_and_attitude\",\"budget_us\":%" PRIu64
         ",\"expected_updates\":%zu,\"warmup_updates\":%zu,\"warmup_valid\":%s,\"warmup_failed_sample\":%zu,"
         "\"initialised\":%s,\"initialise_us\":%" PRIu64
         ",\"replay_valid\":%s,\"failed_sample\":%zu,\"timing\":",
-        filter, pass, budget_us, Source::size - 1, warmup.updates,
+        filter, pass, precision, budget_us, Source::size - 1, warmup.updates,
         warmup.valid ? "true" : "false", warmup.failed_sample, initialised ? "true" : "false",
         init_us, valid ? "true" : "false", failed_sample);
     print_timing(all);

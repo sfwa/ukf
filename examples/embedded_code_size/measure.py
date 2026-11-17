@@ -92,7 +92,8 @@ def measure(args):
     target = TARGETS[args.target]
     compiler = (args.compiler or ROOT.parent / "toolchains" / target["compiler"]).resolve()
     eigen = args.eigen.resolve()
-    output = (args.output or ROOT / "build-code-size" / f"{args.target}-{args.optimization}").resolve()
+    unrolling = "" if args.eigen_unrolling_limit is None else f"-unroll{args.eigen_unrolling_limit}"
+    output = (args.output or ROOT / "build-code-size" / f"{args.target}-{args.optimization}{unrolling}").resolve()
     if not compiler.is_file() or not (eigen / "Eigen/Core").is_file():
         raise ValueError("Compiler or Eigen headers missing; pass --compiler/--eigen")
     output.mkdir(parents=True, exist_ok=True)
@@ -118,6 +119,8 @@ def measure(args):
               "-fno-exceptions", "-fno-rtti", "-fno-threadsafe-statics", "-fno-use-cxa-atexit",
               "-I", str(ROOT / "include"), "-isystem", str(eigen),
               "-include", str(ROOT / "cmake/EigenGccWarnings.h"), "-Wall", "-Wextra"]
+    if args.eigen_unrolling_limit is not None:
+        common.append(f"-DEIGEN_UNROLLING_LIMIT={args.eigen_unrolling_limit}")
     version = run([compiler, "--version"], record=False).splitlines()[0]
     records = []
     library_paths = set()
@@ -179,7 +182,8 @@ def measure(args):
               "eigen": {"version": "3.2.8 with repository patches", "headers_sha256": eigen_hash.hexdigest()},
               "configuration": {"optimization": args.optimization, "precision": "float32", "standard": "c++17",
                                 "assertions": False, "lto": False, "fast_math": False,
-                                "section_garbage_collection": True, "target_flags": arch},
+                                "section_garbage_collection": True, "target_flags": arch,
+                                "eigen_unrolling_limit": args.eigen_unrolling_limit},
               "libraries": libraries, "commands": commands, "measurements": records,
               "scope": "Isolated attitude estimator plus Eigen and thin API wrappers; no benchmark, startup, HAL, RTOS, logging or sensor I/O. Incremental flash includes required linked math/runtime helpers. Not a bootable firmware or a timing measurement."}
     (output / "results.json").write_text(json.dumps(report, indent=2) + "\n")
@@ -197,8 +201,14 @@ if __name__ == "__main__":
     parser.add_argument("--compiler", type=Path, help="Target g++ executable; defaults to the SFWA toolchain installation")
     parser.add_argument("--eigen", type=Path, default=ROOT / "build/src/eigen3", help="Patched Eigen 3.2.8 headers")
     parser.add_argument("--optimization", choices=("O2", "Os"), default="O2")
-    parser.add_argument("--output", type=Path, help="Build/report directory; default: build-code-size/TARGET-OPT")
+    parser.add_argument("--eigen-unrolling-limit", type=int, metavar="N",
+                        help="Define EIGEN_UNROLLING_LIMIT=N (Eigen's default is 100); see UKF_EIGEN_UNROLLING_LIMIT")
+    parser.add_argument("--output", type=Path,
+                        help="Build/report directory; default: build-code-size/TARGET-OPT[-unrollN]")
+    arguments = parser.parse_args()
+    if arguments.eigen_unrolling_limit is not None and arguments.eigen_unrolling_limit < 0:
+        parser.error("--eigen-unrolling-limit must be zero or more")
     try:
-        measure(parser.parse_args())
+        measure(arguments)
     except (ValueError, OSError, subprocess.CalledProcessError) as error:
         parser.exit(1, f"{error}\n{getattr(error, 'stdout', '') or ''}{getattr(error, 'stderr', '') or ''}")

@@ -58,10 +58,18 @@ The optional reference scale accounts for cancellation in covariance updates.
 Return false, leaving root unchanged, if the covariance is not finite or is
 indefinite beyond roundoff. The library reports failures through return
 values and never throws, so it can be built with exceptions disabled.
+
+A covariance which is about to be stored should be given as
+repaired_covariance as well: if it is semidefinite only within roundoff, it
+is replaced with the product of its repaired root. Its roundoff-negative
+eigenvalues are tolerated here against the reference scale, but the next
+step judges them against the covariance's own, possibly much smaller,
+scale, and would fail. A positive definite covariance is left exactly as it
+is.
 */
 template <typename MatrixType>
 bool covariance_root(const MatrixType& covariance, MatrixType& root,
-        typename MatrixType::Scalar reference_scale = 0) {
+        typename MatrixType::Scalar reference_scale = 0, MatrixType* repaired_covariance = nullptr) {
     using Scalar = typename MatrixType::Scalar;
     if (!covariance.allFinite()) {
         return false;
@@ -84,6 +92,10 @@ bool covariance_root(const MatrixType& covariance, MatrixType& root,
         return false;
     }
     root = triangular;
+    if (repaired_covariance) {
+        /* Coefficient by coefficient: a general product would need its blocking workspace on the stack. */
+        *repaired_covariance = triangular.lazyProduct(triangular.transpose());
+    }
     return true;
 }
 

@@ -1,0 +1,13 @@
+﻿# base-double
+elf: build-rank-hoist/base-double/ukf_stm32h735_benchmark.elf
+elf sha256: 1651306663d7d1d37b168d9ec2a4df33539e5f32057bea35dbe1aebc71dd25ff
+bin sha256: 808d716c5d48711de75bbd3b781a2577464ecfce4ebcae56e2acf887042fdb1a
+bin bytes: 130560
+
+arm-none-eabi-size:
+   text	   data	    bss	    dec	    hex	filename
+ 128316	   2188	 146888	 277392	  43b90	base-double\ukf_stm32h735_benchmark.elf
+
+arm-none-eabi-objdump -d (whole ELF) instruction counts:
+vdiv.f32: 16
+vdiv.f64: 151
