@@ -1,0 +1,13 @@
+# CMake package for an installed UKF. It provides the targets ukf::ukf,
+# ukf::single and ukf::double, as add_subdirectory does.
+@PACKAGE_INIT@
+
+# UKF was installed against an installed Eigen, which the targets link;
+# otherwise the Eigen headers it was built with were installed alongside it.
+if(@UKF_USE_SYSTEM_EIGEN@)
+    include(CMakeFindDependencyMacro)
+    find_dependency(Eigen3 NO_MODULE)
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/ukfTargets.cmake")
+check_required_components(ukf)

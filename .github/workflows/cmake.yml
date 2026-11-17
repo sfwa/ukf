@@ -28,12 +28,16 @@ jobs:
           - { name: Linux Clang (bundled Eigen), os: ubuntu-24.04, CC: clang, CXX: clang++, eigen: 'OFF' }
           - { name: macOS Clang (bundled Eigen), os: macos-latest, CC: clang, CXX: clang++, eigen: 'OFF' }
           - { name: Linux GCC (system Eigen), os: ubuntu-24.04, CC: gcc, CXX: g++, eigen: 'ON' }
+          # Newer Eigen releases, downloaded and used unpatched.
+          - { name: Linux GCC (Eigen 3.4.0), os: ubuntu-24.04, CC: gcc, CXX: g++, eigen: 'OFF', eigen_version: '3.4.0' }
+          - { name: Linux Clang (Eigen 5.0.0), os: ubuntu-24.04, CC: clang, CXX: clang++, eigen: 'OFF', eigen_version: '5.0.0' }
           # The newest compilers, which diagnose more than the runner's defaults.
           - { name: Linux GCC 15 (bundled Eigen), os: ubuntu-24.04, container: 'gcc:15', CC: gcc, CXX: g++, eigen: 'OFF' }
           - { name: Linux Clang 22 (bundled Eigen), os: ubuntu-24.04, CC: clang-22, CXX: clang++-22, eigen: 'OFF', llvm: '22' }
     env:
       CC: ${{ matrix.config.CC }}
       CXX: ${{ matrix.config.CXX }}
+      EIGEN_ARGS: -DUKF_USE_SYSTEM_EIGEN=${{ matrix.config.eigen }} -DUKF_EIGEN_VERSION=${{ matrix.config.eigen_version || '3.2.8' }}
     steps:
       - name: Install build tools in the container
         if: matrix.config.container != ''
@@ -53,7 +57,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libeigen3-dev
 
       - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DUKF_USE_SYSTEM_EIGEN=${{ matrix.config.eigen }}
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} $EIGEN_ARGS -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/install
 
       - name: Build tests, benchmarks and examples with warnings as errors
         run: cmake --build build --target unittest unittest_single benchmark ukf_examples attitude_benchmark euroc_benchmark --config ${{ matrix.build_type }} --parallel 2
@@ -70,7 +74,7 @@ jobs:
           ctest --test-dir build-unroll -R '^unittest' --output-on-failure
 
       - name: Configure downstream consumer
-        run: cmake -S test/cmake -B build-consumer -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DUKF_USE_SYSTEM_EIGEN=${{ matrix.config.eigen }}
+        run: cmake -S test/cmake -B build-consumer -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} $EIGEN_ARGS
 
       - name: Build downstream consumer
         run: cmake --build build-consumer --config ${{ matrix.build_type }} --parallel 2
@@ -84,3 +88,10 @@ jobs:
         run: |
           cmake -S test/cmake -B build-consumer-unroll -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DUKF_EIGEN_UNROLLING_LIMIT=0
           cmake --build build-consumer-unroll --target consumer_double consumer_single consumer_manual --parallel 2
+
+      - name: Install and use the CMake package
+        run: |
+          cmake --install build --config ${{ matrix.build_type }}
+          cmake -S test/cmake/installed -B build-installed -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/install
+          cmake --build build-installed --config ${{ matrix.build_type }} --parallel 2
+          ctest --test-dir build-installed --build-config ${{ matrix.build_type }} --output-on-failure
