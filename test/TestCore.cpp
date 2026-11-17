@@ -916,7 +916,7 @@ TEST(SigmaPointAccessTest, AllCoresExposeTheirLastSigmaPoints) {
     ASSERT_TRUE(filter.innovation_step(z) && filter.a_posteriori_step());
     ASSERT_TRUE(sr.innovation_step(z) && sr.a_posteriori_step());
     ASSERT_TRUE(parameter.innovation_step(z) && parameter.a_posteriori_step());
-    EXPECT_EQ(before, filter.get_sigma_points());
+    EXPECT_TRUE(before == filter.get_sigma_points());
     check_sigma_points(filter, predicted, true);
     check_sigma_points(sr, sr_predicted, true);
     check_sigma_points(parameter, parameter_predicted, true);
