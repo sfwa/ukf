@@ -61,10 +61,10 @@ typename MatrixType::Index rank_update_lower(MatrixType& factor,
                     continue;
                 }
                 // QR may supply negative diagonals; return a canonical positive pivot.
-                const Scalar updated = magnitude;
-                const Scalar cosine = diagonal / updated;
-                const Scalar sine = entry / updated;
-                factor(k, k) = updated;
+                const Scalar inverse = Scalar(1) / magnitude;
+                const Scalar cosine = diagonal * inverse;
+                const Scalar sine = entry * inverse;
+                factor(k, k) = magnitude;
                 for (Index j = k + 1; j < factor.rows(); ++j) {
                     const Scalar old_factor = factor(j, k);
                     const Scalar old_work = work(j, i);
@@ -94,9 +94,11 @@ typename MatrixType::Index rank_update_lower(MatrixType& factor,
                     return k;
                 }
                 const Scalar cosine = std::copysign(magnitude, diagonal);
+                // One division for the whole column; the divisor is fixed.
+                const Scalar inverse_cosine = Scalar(1) / cosine;
                 factor(k, k) = diagonal * cosine;
                 for (Index j = k + 1; j < factor.rows(); ++j) {
-                    factor(j, k) = (factor(j, k) - sine * work(j, i)) / cosine;
+                    factor(j, k) = (factor(j, k) - sine * work(j, i)) * inverse_cosine;
                     work(j, i) = cosine * work(j, i) - sine * factor(j, k);
                 }
             }

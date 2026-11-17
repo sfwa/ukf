@@ -50,6 +50,21 @@ class SummarizeTests(unittest.TestCase):
                 self.assertEqual(report.count("| SR-UKF |"), 2)
                 self.assertIn("percentiles are not combined", report)
 
+    def test_precision_is_reported_and_must_not_be_mixed(self):
+        records = suite("stm32h735")
+        for record in records:
+            if record["type"] == "attitude_benchmark":
+                record["precision"] = "float64"
+        report, status = SUMMARY.summarize(log(records))
+        self.assertEqual(status, 0)
+        self.assertIn("float64 filters", report)
+        records[2]["precision"] = "float32"
+        with self.assertRaisesRegex(ValueError, "all use float32 or all use float64"):
+            SUMMARY.summarize(log(records))
+        records[2]["precision"] = "float16"
+        with self.assertRaisesRegex(ValueError, "all use float32 or all use float64"):
+            SUMMARY.summarize(log(records))
+
     def test_emulated_overrun_is_simulated_and_not_a_silicon_failure(self):
         records = suite()
         records[2]["timing"].update(max_us=12000, over_budget=1)

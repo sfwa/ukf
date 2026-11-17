@@ -75,6 +75,9 @@ For a description of what the scaling parameters do, see [[2]](#ref2) or read
 the comments in the [code](include/UKF/StateVector.h). The weights and sigma
 point spread are derived from `AlphaSquared`, `Kappa` and `Beta` (via
 `ScaledDimension`, which is n + lambda), so adjust those rather than `Lambda`.
+In single precision keep `AlphaSquared` well above 1e-6: the outer weights,
+1 / (2 alpha^2 (n + kappa)), multiply the rounding of every sigma point, so
+with 1e-6 a mean is good to only a few tenths of a percent of its value.
 
 ### Measurement vector
 
@@ -423,10 +426,34 @@ the project files retain a CMake 3.10 minimum.
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
-cmake --build build --target unittest benchmark ahrs sfwa_ukf --parallel 2
+cmake --build build --target unittest unittest_single benchmark ahrs sfwa_ukf --parallel 2
 ctest --test-dir build --output-on-failure
 ./build/benchmark/benchmark
 ```
+
+`unittest` runs the tests in double precision and `unittest_single` runs the
+same tests in single precision, with tolerances for each.
+
+### Eigen unrolling and flash size
+
+Eigen unrolls fixed-size expressions up to `EIGEN_UNROLLING_LIMIT` (100 by
+default). A flash-limited application can lower it with
+`-DUKF_EIGEN_UNROLLING_LIMIT=N`, which defines `EIGEN_UNROLLING_LIMIT=N` for
+every target that links `ukf`; `0` disables unrolling. Without CMake, define
+`EIGEN_UNROLLING_LIMIT` on the command line. Either way it must be the same in
+every translation unit of the program that includes Eigen, so set it for the
+whole build rather than in a source file.
+
+It is a trade between flash and time. For the float attitude estimator
+(`examples/attitude_benchmark`) on a Cortex-M7 at `-O2` with GCC 13.2, `0`
+saved 12.9 KB of text (63 KB rather than 76 KB for the whole program) and took
+15 % more instructions an update for the UKF and 13 % more for the SR-UKF,
+counted under QEMU; cycles on hardware may differ. Results change only by
+roundoff, because sums are accumulated in a different order. For comparison,
+`-Os` on the STM32H735 made updates 2.2 to 2.4 times as long. To measure an
+application's own estimator, `examples/embedded_code_size/measure.py
+--eigen-unrolling-limit N` and the STM32H735 benchmark's
+`UKF_EIGEN_UNROLLING_LIMIT` cache variable apply the same setting.
 
 These commands assume a single-configuration generator. For multi-configuration
 generators, add `--config Debug` when building and `-C Debug` when running CTest;

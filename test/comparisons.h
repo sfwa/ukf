@@ -1,4 +1,37 @@
 #include <cmath>
+#include <limits>
+#include <Eigen/Eigenvalues>
+
+/*
+A bound for each precision. The tests build in double precision (unittest)
+and in single precision (unittest_single), which rounds about 5e8 times as
+coarsely, so a check that is tight in double needs its own bound in single.
+*/
+constexpr real_t precision_tolerance(double double_tolerance, double single_tolerance) {
+    return real_t(sizeof(real_t) == sizeof(float) ? single_tolerance : double_tolerance);
+}
+
+/*
+A symmetric matrix is positive semidefinite to within roundoff: no
+eigenvalue is below -16 n epsilon times its largest entry, the bound the
+cores use. A determinant cannot show this for a singular covariance, whose
+roundoff-sized eigenvalue takes either sign.
+*/
+template <typename MatrixType>
+inline ::testing::AssertionResult CmpHelperPositiveSemidefinite(const char* expression, const MatrixType& m) {
+    using Scalar = typename MatrixType::Scalar;
+    const Eigen::SelfAdjointEigenSolver<MatrixType> eig(m);
+    const Scalar tolerance = Scalar(16) * std::numeric_limits<Scalar>::epsilon() * Scalar(m.rows()) *
+        m.cwiseAbs().maxCoeff();
+    if (eig.info() == Eigen::Success && eig.eigenvalues().minCoeff() >= -tolerance) {
+        return ::testing::AssertionSuccess();
+    }
+    return ::testing::AssertionFailure() << expression << " has eigenvalue " << eig.eigenvalues().minCoeff() <<
+        ", below -" << tolerance;
+}
+
+#define EXPECT_POSITIVE_SEMIDEFINITE(matrix)\
+    EXPECT_PRED_FORMAT1(CmpHelperPositiveSemidefinite, matrix)
 
 template <typename Q1, typename Q2>
 inline ::testing::AssertionResult CmpHelperQuaternionEq(

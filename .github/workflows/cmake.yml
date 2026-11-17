@@ -40,11 +40,18 @@ jobs:
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DUKF_USE_SYSTEM_EIGEN=${{ matrix.config.eigen }}
 
       - name: Build tests, benchmarks and examples with warnings as errors
-        run: cmake --build build --target unittest benchmark ahrs sfwa_ukf attitude_benchmark euroc_benchmark --config ${{ matrix.build_type }} --parallel 2
+        run: cmake --build build --target unittest unittest_single benchmark ahrs sfwa_ukf attitude_benchmark euroc_benchmark --config ${{ matrix.build_type }} --parallel 2
 
       - name: Test
         working-directory: build
         run: ctest --build-config ${{ matrix.build_type }} --output-on-failure
+
+      - name: Test with Eigen unrolling disabled
+        if: matrix.config.name == 'Linux GCC (bundled Eigen)'
+        run: |
+          cmake -S . -B build-unroll -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DUKF_EIGEN_UNROLLING_LIMIT=0
+          cmake --build build-unroll --target unittest unittest_single --parallel 2
+          ctest --test-dir build-unroll --output-on-failure
 
       - name: Configure downstream consumer
         run: cmake -S test/cmake -B build-consumer -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DUKF_USE_SYSTEM_EIGEN=${{ matrix.config.eigen }}
@@ -55,3 +62,9 @@ jobs:
       - name: Test downstream consumer
         working-directory: build-consumer
         run: ctest --build-config ${{ matrix.build_type }} --output-on-failure
+
+      - name: Check the unrolling limit reaches consumers
+        if: matrix.config.name == 'Linux GCC (bundled Eigen)'
+        run: |
+          cmake -S test/cmake -B build-consumer-unroll -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DUKF_EIGEN_UNROLLING_LIMIT=0
+          cmake --build build-consumer-unroll --target consumer_double consumer_single consumer_manual --parallel 2

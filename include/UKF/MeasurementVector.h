@@ -45,18 +45,44 @@ namespace UKF {
         return Vector<3>(0, -v(2), v(1)).normalized();
     }
 
-    /* Calculate the smallest rotation vector which transforms v1 into v2. */
+    /*
+    Scale a field vector to unit length, returning its length, or zero for a
+    zero vector. Dividing by the largest component first keeps the squared
+    norm clear of underflow and overflow at any physical scale.
+    */
+    inline real_t unit_direction(const Vector<3>& v, Vector<3>& direction) {
+        const real_t scale = v.cwiseAbs().maxCoeff();
+        if (scale == real_t(0)) {
+            direction = v;
+            return real_t(0);
+        }
+        direction = v / scale;
+        const real_t length = direction.norm();
+        direction /= length;
+        return scale * length;
+    }
+
+    /*
+    Calculate the smallest rotation vector which transforms v1 into v2. The
+    rotation depends only on the directions of the two vectors, so the
+    calculation is done on unit vectors: its tolerances are then relative,
+    and a field given in teslas (about 5e-5) is handled like one in gauss. A
+    zero vector has no direction, and gives no rotation.
+    */
     template <typename T>
     inline Vector<3> calculate_rotation_vector(const Vector<3>& v2, const Vector<3>& v1) {
-        Vector<3> axis = Vector<3>::Zero();
-        real_t norm = std::sqrt(v1.squaredNorm() * v2.squaredNorm());
-        real_t q_w = norm + v1.dot(v2);
+        Vector<3> u1, u2;
+        if (unit_direction(v1, u1) == real_t(0) || unit_direction(v2, u2) == real_t(0)) {
+            return Vector<3>::Zero();
+        }
+        const real_t q_w = real_t(1) + u1.dot(u2);
 
-        /* Check whether the vectors are antiparallel or too small. */
+        /* Check whether the vectors are antiparallel. */
+        Vector<3> axis;
         if(q_w > std::numeric_limits<real_t>::epsilon()) {
-            axis = v1.cross(v2);
-        } else if(norm > std::numeric_limits<real_t>::epsilon()) {
-            axis = antiparallel_axis(v1);
+            axis = u1.cross(u2);
+        } else {
+            axis = antiparallel_axis(u1);
         }
 
         /* The cross/dot quaternion is not unit length. Multiplying the
@@ -80,7 +106,7 @@ namespace UKF {
     the same deterministic axis convention as calculate_rotation_vector.
     */
     template <typename T>
-    inline Matrix<3, 3> calculate_rotation_vector_jacobian(const Vector<3>& v2, const Vector<3>& v1) {
+    inline Matrix<3, 3> rotation_vector_jacobian_of(const Vector<3>& v2, const Vector<3>& v1) {
         const real_t norm = std::sqrt(v1.squaredNorm() * v2.squaredNorm());
         const real_t w = norm + v1.dot(v2);
         Vector<3> c = Vector<3>::Zero();
@@ -110,6 +136,23 @@ namespace UKF {
         }
         return Parameters::MRP_F<T> * (dc / denominator -
             c * denominator_gradient.transpose() / (denominator * denominator));
+    }
+
+    /*
+    The rotation vector does not change when either field vector is scaled,
+    so its Jacobian at v2 is the Jacobian at the unit vectors divided by
+    |v2|: the scale of the field noise carries through to the rotation. The
+    unit vectors keep the tolerances above relative. A zero vector, which
+    has no direction, is passed through as it is.
+    */
+    template <typename T>
+    inline Matrix<3, 3> calculate_rotation_vector_jacobian(const Vector<3>& v2, const Vector<3>& v1) {
+        Vector<3> u1, u2;
+        const real_t length = unit_direction(v2, u2);
+        if (unit_direction(v1, u1) == real_t(0) || length == real_t(0)) {
+            return rotation_vector_jacobian_of<T>(v2, v1);
+        }
+        return rotation_vector_jacobian_of<T>(u2, u1) / length;
     }
 
     /*

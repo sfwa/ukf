@@ -4,6 +4,8 @@
 #include <cmath>
 #include <initializer_list>
 #include <limits>
+#include <random>
+#include <algorithm>
 #include "UKF/Types.h"
 #include "UKF/Integrator.h"
 #include "UKF/StateVector.h"
@@ -32,7 +34,13 @@ using MyStateVector = UKF::StateVector<
 namespace UKF {
 namespace Parameters {
 
-template <> constexpr real_t AlphaSquared<MyStateVector> = 1e-6;
+/*
+A small alpha, as much of the literature uses. Single precision cannot carry
+alpha^2 = 1e-6 (see AlphaSquared), so its build uses 1e-2, whose central
+weight is still negative.
+*/
+template <> constexpr real_t AlphaSquared<MyStateVector> =
+    sizeof(real_t) == sizeof(double) ? real_t(1e-6) : real_t(1e-2);
 }
 
 /*
@@ -256,7 +264,7 @@ within 2-sigma.
 TEST(SquareRootCoreTest, APrioriStep) {
     MyCore test_filter = create_initialised_sr_test_filter();
 
-    test_filter.a_priori_step(0.01);
+    ASSERT_TRUE(test_filter.a_priori_step(0.01));
 
     EXPECT_GT(test_filter.root_covariance.determinant(), std::numeric_limits<real_t>::epsilon());
     EXPECT_LT((UKF::Vector<3>(100, 10, -50) - test_filter.state.get_field<Position>()).norm(),
@@ -272,7 +280,7 @@ TEST(SquareRootCoreTest, APrioriStep) {
 TEST(SquareRootCoreTest, APrioriStepWithInputs) {
     MyCore test_filter = create_initialised_sr_test_filter();
 
-    test_filter.a_priori_step(0.01, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0));
+    ASSERT_TRUE(test_filter.a_priori_step(0.01, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0)));
 
     EXPECT_GT(test_filter.root_covariance.determinant(), std::numeric_limits<real_t>::epsilon());
     EXPECT_LT((UKF::Vector<3>(100, 10, -50) - test_filter.state.get_field<Position>()).norm(),
@@ -295,8 +303,8 @@ TEST(SquareRootCoreTest, InnovationStep) {
     m.set_field<Magnetometer>(UKF::FieldVector(0, -1, 0));
     m.set_field<Gyroscope>(UKF::Vector<3>(0.5, 0, 0));
 
-    test_filter.a_priori_step(0.01);
-    test_filter.innovation_step(m);
+    ASSERT_TRUE(test_filter.a_priori_step(0.01));
+    ASSERT_TRUE(test_filter.innovation_step(m));
 
     /*
     With the field vector, we expect the determinant to be approximately zero,
@@ -304,7 +312,7 @@ TEST(SquareRootCoreTest, InnovationStep) {
     */
     EXPECT_GE(test_filter.innovation_root_covariance.determinant(), -std::numeric_limits<real_t>::epsilon());
 
-    test_filter.a_posteriori_step();
+    ASSERT_TRUE(test_filter.a_posteriori_step());
 
     EXPECT_GT(test_filter.root_covariance.determinant(), std::numeric_limits<real_t>::epsilon());
     EXPECT_LT((UKF::Vector<3>(100, 10, -50) - test_filter.state.get_field<Position>()).norm(),
@@ -325,12 +333,12 @@ TEST(SquareRootCoreTest, InnovationStepPartialMeasurement) {
     m.set_field<Magnetometer>(UKF::FieldVector(0, -1, 0));
     m.set_field<Gyroscope>(UKF::Vector<3>(0.5, 0, 0));
 
-    test_filter.a_priori_step(0.01);
-    test_filter.innovation_step(m);
+    ASSERT_TRUE(test_filter.a_priori_step(0.01));
+    ASSERT_TRUE(test_filter.innovation_step(m));
 
     EXPECT_GE(test_filter.innovation_root_covariance.determinant(), -std::numeric_limits<real_t>::epsilon());
 
-    test_filter.a_posteriori_step();
+    ASSERT_TRUE(test_filter.a_posteriori_step());
 
     EXPECT_GT(test_filter.root_covariance.determinant(), std::numeric_limits<real_t>::epsilon());
     EXPECT_LT((UKF::Vector<3>(100, 10, -50) - test_filter.state.get_field<Position>()).norm(),
@@ -353,12 +361,12 @@ TEST(SquareRootCoreTest, InnovationStepWithInputs) {
     m.set_field<Magnetometer>(UKF::FieldVector(0, -1, 0));
     m.set_field<Gyroscope>(UKF::Vector<3>(0.5, 0, 0));
 
-    test_filter.a_priori_step(0.01, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0));
-    test_filter.innovation_step(m, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0));
+    ASSERT_TRUE(test_filter.a_priori_step(0.01, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0)));
+    ASSERT_TRUE(test_filter.innovation_step(m, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0)));
 
     EXPECT_GE(test_filter.innovation_root_covariance.determinant(), -std::numeric_limits<real_t>::epsilon());
 
-    test_filter.a_posteriori_step();
+    ASSERT_TRUE(test_filter.a_posteriori_step());
 
     EXPECT_GT(test_filter.root_covariance.determinant(), std::numeric_limits<real_t>::epsilon());
     EXPECT_LT((UKF::Vector<3>(100, 10, -50) - test_filter.state.get_field<Position>()).norm(),
@@ -379,12 +387,12 @@ TEST(SquareRootCoreTest, InnovationStepPartialMeasurementWithInputs) {
     m.set_field<Magnetometer>(UKF::FieldVector(0, -1, 0));
     m.set_field<Gyroscope>(UKF::Vector<3>(0.5, 0, 0));
 
-    test_filter.a_priori_step(0.01, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0));
-    test_filter.innovation_step(m, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0));
+    ASSERT_TRUE(test_filter.a_priori_step(0.01, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0)));
+    ASSERT_TRUE(test_filter.innovation_step(m, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0)));
 
     EXPECT_GE(test_filter.innovation_root_covariance.determinant(), -std::numeric_limits<real_t>::epsilon());
 
-    test_filter.a_posteriori_step();
+    ASSERT_TRUE(test_filter.a_posteriori_step());
 
     EXPECT_GT(test_filter.root_covariance.determinant(), std::numeric_limits<real_t>::epsilon());
     EXPECT_LT((UKF::Vector<3>(100, 10, -50) - test_filter.state.get_field<Position>()).norm(),
@@ -407,9 +415,9 @@ TEST(SquareRootCoreTest, APosterioriStep) {
     m.set_field<Magnetometer>(UKF::FieldVector(0, -1, 0));
     m.set_field<Gyroscope>(UKF::Vector<3>(0.5, 0, 0));
 
-    test_filter.a_priori_step(0.01);
-    test_filter.innovation_step(m);
-    test_filter.a_posteriori_step();
+    ASSERT_TRUE(test_filter.a_priori_step(0.01));
+    ASSERT_TRUE(test_filter.innovation_step(m));
+    ASSERT_TRUE(test_filter.a_posteriori_step());
 
     EXPECT_GT(test_filter.root_covariance.determinant(), std::numeric_limits<real_t>::epsilon());
     EXPECT_LT((UKF::Vector<3>(100, 10, -50) - test_filter.state.get_field<Position>()).norm(),
@@ -432,7 +440,7 @@ TEST(SquareRootCoreTest, FullStep) {
     m.set_field<Magnetometer>(UKF::FieldVector(0, -1, 0));
     m.set_field<Gyroscope>(UKF::Vector<3>(0.5, 0, 0));
 
-    test_filter.step(0.01, m, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0));
+    ASSERT_TRUE(test_filter.step(0.01, m, UKF::Vector<3>(0, 0, -5), UKF::Vector<3>(1, 0, 0)));
 
     EXPECT_GT(test_filter.root_covariance.determinant(), std::numeric_limits<real_t>::epsilon());
     EXPECT_LT((UKF::Vector<3>(100, 10, -50) - test_filter.state.get_field<Position>()).norm(),
@@ -718,11 +726,12 @@ TEST(SquareRootDirectModelTest, PredictsWithDirectProcessModel) {
     filter.root_covariance.setIdentity();
     filter.process_noise_root_covariance.setZero();
     ASSERT_TRUE(filter.a_priori_step(real_t(0.5)));
-    EXPECT_LT((filter.state - UKF::Vector<2>(2, 2)).norm(), real_t(1e-9));
+    const real_t tolerance = precision_tolerance(1e-9, 1e-5);
+    EXPECT_LT((filter.state - UKF::Vector<2>(2, 2)).norm(), tolerance);
     UKF::Matrix<2, 2> transition, expected;
     transition << 1, 0.5, 0, 1;
     expected = transition * transition.transpose();
-    EXPECT_LT((filter.root_covariance * filter.root_covariance.transpose() - expected).norm(), real_t(1e-9));
+    EXPECT_LT((filter.root_covariance * filter.root_covariance.transpose() - expected).norm(), tolerance);
 }
 
 TEST(SquareRootDirectModelTest, EmptyMeasurementPredictsOnly) {
@@ -780,9 +789,9 @@ TEST(SquareRootDowndateTest, SemidefinitePosteriorKeepsCorrecting) {
     for (int i = 0; i < 3; ++i) {
         ASSERT_TRUE(filter.step(real_t(0), z));
         const UKF::Matrix<2, 2> covariance = filter.root_covariance * filter.root_covariance.transpose();
-        EXPECT_NEAR(real_t(2), filter.state(0), real_t(1e-9));
-        EXPECT_LT(std::abs(covariance(0, 0)), real_t(1e-12));
-        EXPECT_NEAR(real_t(1) / real_t(i + 2), covariance(1, 1), real_t(1e-9));
+        EXPECT_NEAR(real_t(2), filter.state(0), precision_tolerance(1e-9, 1e-6));
+        EXPECT_LT(std::abs(covariance(0, 0)), precision_tolerance(1e-12, 1e-12));
+        EXPECT_NEAR(real_t(1) / real_t(i + 2), covariance(1, 1), precision_tolerance(1e-9, 1e-6));
     }
 }
 
@@ -1046,6 +1055,7 @@ central sigma point meet the negligible pivot as well.
 TEST(SquareRootCoreTest, FieldVectorCorrectionMatchesStandardCore) {
     ASSERT_LT(UKF::Parameters::Sigma_WC0<MyStateVector>, real_t(0));
     const UKF::Quaternion attitude = UKF::Quaternion(0.8, 0.3, -0.4, 0.2).normalized();
+    const real_t tolerance = precision_tolerance(1e-6, 1e-3);
     MyCore root_filter = create_initialised_sr_test_filter();
     root_filter.state.set_field<Attitude>(attitude);
     root_filter.root_covariance.diagonal().segment<3>(6).setConstant(real_t(0.1));
@@ -1071,15 +1081,15 @@ TEST(SquareRootCoreTest, FieldVectorCorrectionMatchesStandardCore) {
         ASSERT_TRUE(root_filter.step(0.01, m));
 
         const MyStateVector::StateVectorDelta sigma = filter.covariance.diagonal().cwiseSqrt();
-        EXPECT_LT(covariance_difference(root_filter, filter), real_t(1e-6));
+        EXPECT_LT(covariance_difference(root_filter, filter), tolerance);
         EXPECT_LT((root_filter.state.get_field<Position>() - filter.state.get_field<Position>()).norm(),
-            real_t(1e-6) * sigma.segment<3>(0).norm());
+            tolerance * sigma.segment<3>(0).norm());
         EXPECT_LT((root_filter.state.get_field<Velocity>() - filter.state.get_field<Velocity>()).norm(),
-            real_t(1e-6) * sigma.segment<3>(3).norm());
+            tolerance * sigma.segment<3>(3).norm());
         EXPECT_LT(attitude_difference(root_filter.state.get_field<Attitude>(), filter.state.get_field<Attitude>()),
-            real_t(1e-6) * sigma.segment<3>(6).norm());
+            tolerance * sigma.segment<3>(6).norm());
         EXPECT_LT((root_filter.state.get_field<AngularVelocity>() -
-            filter.state.get_field<AngularVelocity>()).norm(), real_t(1e-6) * sigma.segment<3>(9).norm());
+            filter.state.get_field<AngularVelocity>()).norm(), tolerance * sigma.segment<3>(9).norm());
     }
 }
 
@@ -1129,12 +1139,124 @@ TEST(SquareRootCoreTest, FieldVectorCorrectionMatchesStandardCoreWithPositiveCen
     for (int i = 0; i < 8; ++i) {
         ASSERT_TRUE(filter.step(real_t(0.01), z));
         ASSERT_TRUE(root_filter.step(real_t(0.01), z));
-        EXPECT_LT(covariance_difference(root_filter, filter), real_t(1e-9));
+        EXPECT_LT(covariance_difference(root_filter, filter), precision_tolerance(1e-9, 1e-4));
         EXPECT_LT(attitude_difference(root_filter.state.get_field<195>(), filter.state.get_field<195>()),
-            real_t(1e-9));
+            precision_tolerance(1e-9, 1e-5));
     }
 
     /* Both filters have turned most of the way to the measured attitude. */
     EXPECT_LT(attitude_difference(root_filter.state.get_field<195>(), attitude),
         real_t(0.5) * attitude_difference(UKF::Quaternion(1, 0, 0, 0), attitude));
+}
+
+/*
+The same attitude filters with the field in teslas, about 5e-5, and its
+noise in the same units, must make the same estimates: the field vector's
+rotation and its noise Jacobian depend on the field's direction alone.
+*/
+using TeslaRootMeasurement = UKF::FixedMeasurementVector<
+    UKF::Field<223, UKF::FieldVector>,
+    UKF::Field<224, UKF::Vector<3>>>;
+namespace UKF {
+template <> template <>
+UKF::FieldVector TeslaRootMeasurement::expected_measurement<FieldRootState, 223>(const FieldRootState& state) {
+    return state.get_field<195>() * UKF::FieldVector(real_t(5e-5) * UKF::Vector<3>(0.4, -0.2, 0.9));
+}
+template <> template <>
+UKF::Vector<3> TeslaRootMeasurement::expected_measurement<FieldRootState, 224>(const FieldRootState& state) {
+    return state.get_field<195>() * UKF::Vector<3>(0, 0, -9.8);
+}
+}
+
+TEST(SquareRootCoreTest, FieldVectorInTeslas) {
+    const UKF::Quaternion attitude = UKF::Quaternion(0.8, 0.3, -0.4, 0.2).normalized();
+    UKF::SquareRootCore<FieldRootState, FieldRootMeasurement> root_filter;
+    root_filter.state.set_field<195>(UKF::Quaternion(1, 0, 0, 0));
+    root_filter.root_covariance = UKF::Vector<3>(0.3, 0.2, 0.4).asDiagonal();
+    root_filter.process_noise_root_covariance = UKF::Vector<3>(0.01, 0.01, 0.02).asDiagonal();
+    root_filter.measurement_root_covariance << 0.05, 0.05, 0.05, 0.5, 0.5, 0.5;
+    UKF::SquareRootCore<FieldRootState, TeslaRootMeasurement> tesla_root_filter;
+    tesla_root_filter.state = root_filter.state;
+    tesla_root_filter.root_covariance = root_filter.root_covariance;
+    tesla_root_filter.process_noise_root_covariance = root_filter.process_noise_root_covariance;
+    tesla_root_filter.measurement_root_covariance << real_t(5e-5) * real_t(0.05), real_t(5e-5) * real_t(0.05),
+        real_t(5e-5) * real_t(0.05), 0.5, 0.5, 0.5;
+
+    UKF::Core<FieldRootState, FieldRootMeasurement> filter;
+    UKF::Core<FieldRootState, TeslaRootMeasurement> tesla_filter;
+    filter.state = tesla_filter.state = root_filter.state;
+    filter.covariance = tesla_filter.covariance = root_filter.root_covariance * root_filter.root_covariance.transpose();
+    filter.process_noise_covariance = tesla_filter.process_noise_covariance =
+        root_filter.process_noise_root_covariance * root_filter.process_noise_root_covariance.transpose();
+    filter.measurement_covariance = root_filter.measurement_root_covariance.cwiseAbs2();
+    tesla_filter.measurement_covariance = tesla_root_filter.measurement_root_covariance.cwiseAbs2();
+
+    const UKF::Vector<3> field = attitude * UKF::Vector<3>(0.4, -0.2, 0.9);
+    FieldRootMeasurement z;
+    z.set_field<196>(UKF::FieldVector(field));
+    z.set_field<197>(attitude * UKF::Vector<3>(0, 0, -9.8));
+    TeslaRootMeasurement tesla_z;
+    tesla_z.set_field<223>(UKF::FieldVector(real_t(5e-5) * field));
+    tesla_z.set_field<224>(z.get_field<197>());
+    const real_t tolerance = precision_tolerance(1e-9, 1e-4);
+    for (int i = 0; i < 8; ++i) {
+        ASSERT_TRUE(root_filter.step(real_t(0.01), z));
+        ASSERT_TRUE(tesla_root_filter.step(real_t(0.01), tesla_z));
+        ASSERT_TRUE(filter.step(real_t(0.01), z));
+        ASSERT_TRUE(tesla_filter.step(real_t(0.01), tesla_z));
+        EXPECT_LT(covariance_difference(tesla_root_filter, filter), tolerance);
+        EXPECT_LT((tesla_filter.covariance - filter.covariance).norm(), tolerance * filter.covariance.norm());
+        EXPECT_LT(attitude_difference(tesla_root_filter.state.get_field<195>(), root_filter.state.get_field<195>()),
+            tolerance);
+        EXPECT_LT(attitude_difference(tesla_filter.state.get_field<195>(), filter.state.get_field<195>()),
+            tolerance);
+    }
+    EXPECT_LT(attitude_difference(tesla_root_filter.state.get_field<195>(), attitude),
+        real_t(0.5) * attitude_difference(UKF::Quaternion(1, 0, 0, 0), attitude));
+}
+
+/*
+The parameter estimation core applies each correction to the last estimate,
+without a mean to renormalise the quaternion in between, so the update must
+keep it unit length: otherwise its norm drifts by a few tenths of a percent
+in 1e5 noisy single precision updates, and q * v stops being a rotation.
+*/
+using AttitudeParameterState = UKF::StateVector<UKF::Field<225, UKF::Quaternion>>;
+using AxesMeasurement = UKF::FixedMeasurementVector<
+    UKF::Field<226, UKF::Vector<3>>,
+    UKF::Field<227, UKF::Vector<3>>>;
+namespace UKF {
+template <> template <>
+UKF::Vector<3> AxesMeasurement::expected_measurement<AttitudeParameterState, 226>(const AttitudeParameterState& state) {
+    return state.get_field<225>() * UKF::Vector<3>(1, 0, 0);
+}
+template <> template <>
+UKF::Vector<3> AxesMeasurement::expected_measurement<AttitudeParameterState, 227>(const AttitudeParameterState& state) {
+    return state.get_field<225>() * UKF::Vector<3>(0, 1, 0);
+}
+}
+
+TEST(SquareRootParameterEstimationTest, QuaternionStaysUnitLength) {
+    const real_t noise = 0.01;
+    UKF::SquareRootParameterEstimationCore<AttitudeParameterState, AxesMeasurement> filter;
+    filter.state.set_field<225>(UKF::Quaternion::Identity());
+    filter.root_covariance = UKF::Matrix<3, 3>::Identity() * real_t(0.5);
+    filter.process_noise_root_covariance = UKF::Matrix<3, 3>::Identity() * real_t(1e-3);
+    filter.measurement_root_covariance.setConstant(noise);
+    const UKF::Quaternion truth(Eigen::AngleAxis<real_t>(real_t(0.7), UKF::Vector<3>(1, 2, 3).normalized()));
+
+    /* mt19937 is the same everywhere; a uniform noise of the same deviation. */
+    std::mt19937 random(1);
+    real_t worst = 0;
+    for (int i = 0; i < 10000; ++i) {
+        AxesMeasurement z;
+        z << truth * UKF::Vector<3>(1, 0, 0), truth * UKF::Vector<3>(0, 1, 0);
+        for (int k = 0; k < 6; ++k) {
+            z(k) += noise * real_t(std::sqrt(12.0) * (double(random()) / 4294967296.0 - 0.5));
+        }
+        ASSERT_TRUE(filter.step(z)) << i;
+        worst = std::max(worst, std::abs(filter.state.get_field<225>().norm() - real_t(1)));
+    }
+    EXPECT_LE(worst, real_t(4) * std::numeric_limits<real_t>::epsilon());
+    EXPECT_LT(attitude_difference(filter.state.get_field<225>(), truth), real_t(0.01));
 }

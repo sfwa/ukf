@@ -16,6 +16,11 @@ static_assert(std::is_same_v<real_t, double>, "Expected double precision");
 static_assert(std::is_same_v<real_t, float>, "Expected single precision");
 #endif
 
+#ifdef EXPECT_EIGEN_UNROLLING_LIMIT
+static_assert(EIGEN_UNROLLING_LIMIT == EXPECT_EIGEN_UNROLLING_LIMIT,
+    "UKF_EIGEN_UNROLLING_LIMIT must reach consumers");
+#endif
+
 // Deliberately unused: the library must not export its warning policy.
 int main(int argc, char**) {
     const UKF::Quaternion orientation = UKF::Quaternion::Identity();

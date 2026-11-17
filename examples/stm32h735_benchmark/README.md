@@ -212,6 +212,12 @@ are rejected. Build `-Os` in a separate directory to preserve the control:
 .venv/bin/cmake --build build-stm32h735/Os --parallel 2
 ```
 
+`UKF_BENCHMARK_PRECISION` selects `SINGLE` (the default, float32) or `DOUBLE`
+(float64) filter arithmetic; the H735's FPU does both in hardware. Each replay
+record reports its `precision`. `UKF_EIGEN_UNROLLING_LIMIT` sets Eigen's
+unrolling limit, as in the repository build. Use a separate build directory
+for each combination.
+
 The build emits `ukf_stm32h735_benchmark.elf`, `.bin`, `.map`, and
 `compile_commands.json` in `build-stm32h735`. Override `STM32CUBE_ROOT` or
 `UKF_EIGEN_DIR` to use equivalent pinned dependencies elsewhere. The ordinary

@@ -258,8 +258,12 @@ TEST(StateVectorTest, SmallAlphaSigmaPoints) {
     AlternateStateVector::CovarianceMatrix covariance = MyStateVector::CovarianceMatrix::Zero();
     covariance.diagonal() << 1000.0, 1000.0, 1000.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
 
+    /*
+    Scale by ScaledDimension, as the cores do: n + Lambda cancels most of
+    alpha^2 when alpha is small, by 3 % in single precision.
+    */
     AlternateStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution((covariance *
-        (AlternateStateVector::covariance_size() + UKF::Parameters::Lambda<AlternateStateVector>)).llt().matrixL());
+        UKF::Parameters::ScaledDimension<AlternateStateVector>).llt().matrixL());
     AlternateStateVector test_mean = AlternateStateVector::calculate_sigma_point_mean(sigma_points);
     AlternateStateVector::SigmaPointDeltas sigma_point_deltas = test_mean.calculate_sigma_point_deltas(sigma_points);
     AlternateStateVector::CovarianceMatrix calculated_covariance = AlternateStateVector::calculate_sigma_point_covariance(sigma_point_deltas);
@@ -274,9 +278,18 @@ TEST(StateVectorTest, SmallAlphaSigmaPoints) {
     EXPECT_VECTOR_EQ(covariance.col(7),  calculated_covariance.col(7));
     EXPECT_VECTOR_EQ(covariance.col(8),  calculated_covariance.col(8));
 
+    /*
+    Each sigma point is stored to within epsilon of its value, 2 here, and
+    the mean multiplies those roundings by the outer weight, 1 / (2 alpha^2
+    (n + kappa)) = 4e4: in single precision the mean is good to only a few
+    parts in a thousand.
+    */
+    const real_t mean_tolerance = precision_tolerance(1e-4, 1e-2);
     EXPECT_QUATERNION_EQ(test_state.get_field<Attitude>(), test_mean.get_field<Attitude>());
-    EXPECT_VECTOR_EQ(test_state.get_field<AngularVelocity>(), test_mean.get_field<AngularVelocity>());
-    EXPECT_VECTOR_EQ(test_state.get_field<Acceleration>(), test_mean.get_field<Acceleration>());
+    EXPECT_LT((test_state.get_field<AngularVelocity>() - test_mean.get_field<AngularVelocity>()).norm(),
+        mean_tolerance * test_state.get_field<AngularVelocity>().norm());
+    EXPECT_LT((test_state.get_field<Acceleration>() - test_mean.get_field<Acceleration>()).norm(),
+        mean_tolerance * test_state.get_field<Acceleration>().norm());
 }
 
 /*
@@ -409,4 +422,62 @@ TEST(StateVectorTest, CoreDispatchesDirectProcessModel) {
     filter.step(real_t(0.5), z, real_t(3));
     EXPECT_VECTOR_EQ(UKF::Vector<2>(4, -1), filter.state);
     EXPECT_VECTOR_EQ(UKF::Vector<2>::Constant(real_t(1.0/3.0)), filter.covariance.diagonal());
+}
+
+/*
+q and -q are the same rotation. A process model which keeps w >= 0 flips the
+sigma points that cross 180 degrees, which must change neither the mean nor
+the covariance. Gibbs vectors (the default MRP_A = 0) do not depend on the
+sign of a delta; with MRP_A = 1 the shorter rotation must be taken.
+*/
+using SignTestState = UKF::StateVector<UKF::Field<210, UKF::Quaternion>>;
+using SignTestMrpState = UKF::StateVector<UKF::Field<211, UKF::Quaternion>>;
+namespace UKF {
+namespace Parameters {
+template <> constexpr real_t MRP_A<SignTestMrpState> = 1.0;
+}
+}
+
+template <typename S, int Key>
+void check_quaternion_sign_invariance() {
+    const real_t epsilon = std::numeric_limits<real_t>::epsilon();
+    S state;
+    state.template set_field<Key>(UKF::Quaternion(Eigen::AngleAxis<real_t>(real_t(3.13), UKF::Vector<3>::UnitZ())));
+    const typename S::CovarianceMatrix root = S::CovarianceMatrix::Identity() * real_t(0.3);
+    const typename S::SigmaPointDistribution sigma_points = state.calculate_sigma_point_distribution(
+        root * std::sqrt(UKF::Parameters::ScaledDimension<S>));
+    const S mean = S::calculate_sigma_point_mean(sigma_points);
+    const typename S::CovarianceMatrix covariance =
+        S::calculate_sigma_point_covariance(mean.calculate_sigma_point_deltas(sigma_points));
+
+    /* Canonicalise each sigma point, then also flip the whole set. */
+    typename S::SigmaPointDistribution canonical = sigma_points;
+    int flipped = 0;
+    for (int i = 0; i < canonical.cols(); ++i) {
+        if (canonical(3, i) < 0) {
+            canonical.col(i) = -canonical.col(i);
+            ++flipped;
+        }
+    }
+    ASSERT_GT(flipped, 0);
+    for (const typename S::SigmaPointDistribution& points : {canonical,
+            typename S::SigmaPointDistribution(-canonical)}) {
+        const S other_mean = S::calculate_sigma_point_mean(points);
+        const UKF::Quaternion a = mean.template get_field<Key>(), b = other_mean.template get_field<Key>();
+        EXPECT_LT(real_t(2) * (a * b.conjugate()).vec().norm(), real_t(8) * epsilon);
+        const typename S::CovarianceMatrix other_covariance =
+            S::calculate_sigma_point_covariance(other_mean.calculate_sigma_point_deltas(points));
+        EXPECT_LT((other_covariance - covariance).norm(), real_t(16) * epsilon * covariance.norm());
+    }
+
+    /* The spread is that of the root: the deltas are the short rotations. */
+    EXPECT_LT((covariance - root * root.transpose()).norm(), real_t(0.1) * covariance.norm());
+}
+
+TEST(StateVectorTest, QuaternionMeanIsSignInvariant) {
+    check_quaternion_sign_invariance<SignTestState, 210>();
+}
+
+TEST(StateVectorTest, QuaternionMeanIsSignInvariantWithMrp) {
+    check_quaternion_sign_invariance<SignTestMrpState, 211>();
 }

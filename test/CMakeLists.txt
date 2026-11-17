@@ -24,8 +24,10 @@ LOG_BUILD ON)
 ExternalProject_Get_Property(googletest source_dir)
 SET(googletest_dir ${source_dir})
 
-# Add test executable target
-ADD_EXECUTABLE(unittest
+# The same tests build in double precision (unittest) and in single
+# precision (unittest_single), with tolerances for each precision; single
+# precision is what most embedded targets run.
+SET(unittest_sources
     TestStateVector.cpp
     TestFixedMeasurementVector.cpp
     TestDynamicMeasurementVector.cpp
@@ -33,22 +35,30 @@ ADD_EXECUTABLE(unittest
     TestCore.cpp
     TestSquareRootCore.cpp
     TestInnovationGating.cpp)
-
-TARGET_COMPILE_DEFINITIONS(unittest PRIVATE EIGEN_NO_MALLOC)
-TARGET_INCLUDE_DIRECTORIES(unittest SYSTEM PRIVATE ${googletest_dir}/include)
-ukf_project_warnings(unittest)
-
-# Create dependency of test on googletest
-ADD_DEPENDENCIES(unittest googletest)
-
-# Specify test's link libraries
 ExternalProject_Get_Property(googletest binary_dir)
 FIND_PACKAGE(Threads REQUIRED)
-TARGET_LINK_LIBRARIES(unittest PRIVATE
-    ukf::double
-    ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}gtest.a
-    ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}gtest_main.a
-    Threads::Threads)
 
-ADD_TEST(unittest unittest)
-ADD_CUSTOM_TARGET(check COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS unittest)
+FOREACH(precision double single)
+    IF(precision STREQUAL "double")
+        SET(target unittest)
+    ELSE()
+        SET(target unittest_${precision})
+    ENDIF()
+    ADD_EXECUTABLE(${target} ${unittest_sources})
+    TARGET_COMPILE_DEFINITIONS(${target} PRIVATE EIGEN_NO_MALLOC)
+    TARGET_INCLUDE_DIRECTORIES(${target} SYSTEM PRIVATE ${googletest_dir}/include)
+    ukf_project_warnings(${target})
+
+    # Create dependency of test on googletest
+    ADD_DEPENDENCIES(${target} googletest)
+
+    # Specify test's link libraries
+    TARGET_LINK_LIBRARIES(${target} PRIVATE
+        ukf::${precision}
+        ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}gtest.a
+        ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}gtest_main.a
+        Threads::Threads)
+
+    ADD_TEST(${target} ${target})
+ENDFOREACH()
+ADD_CUSTOM_TARGET(check COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS unittest unittest_single)

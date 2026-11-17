@@ -43,6 +43,21 @@ else()
     add_dependencies(ukf eigen3)
 endif()
 
+# Eigen unrolls fixed-size expressions up to EIGEN_UNROLLING_LIMIT (100 by
+# default). A lower limit trades speed for flash: for the float attitude
+# estimator on a Cortex-M7, 0 saves about 13 KB but takes 13 to 15 % more
+# instructions an update. Leave it empty for Eigen's default. It is defined
+# for every target that links ukf, which must agree with any other code in the
+# program that includes Eigen.
+set(UKF_EIGEN_UNROLLING_LIMIT "" CACHE STRING
+    "EIGEN_UNROLLING_LIMIT for targets that use UKF (empty: Eigen's default of 100; 0 disables unrolling)")
+if(NOT UKF_EIGEN_UNROLLING_LIMIT STREQUAL "")
+    if(NOT UKF_EIGEN_UNROLLING_LIMIT MATCHES "^[0-9]+$")
+        message(FATAL_ERROR "UKF_EIGEN_UNROLLING_LIMIT must be empty or a nonnegative integer")
+    endif()
+    target_compile_definitions(ukf INTERFACE EIGEN_UNROLLING_LIMIT=${UKF_EIGEN_UNROLLING_LIMIT})
+endif()
+
 # Keep ukf precision-neutral for applications that already define a precision.
 add_library(ukf_single INTERFACE)
 add_library(ukf::single ALIAS ukf_single)
