@@ -17,6 +17,22 @@ sets, optional [dense measurement noise](docs/dense-measurement-covariance.md),
 and [innovation gating](docs/innovation-gating.md). Each can be compiled in
 single or double precision.
 
+## Releases
+
+[![Latest release](https://img.shields.io/github/v/release/sfwa/ukf?include_prereleases&sort=semver)](https://github.com/sfwa/ukf/releases)
+
+UKF uses [Semantic Versioning](https://semver.org). The first release will be
+`1.0.0`, after a release candidate `1.0.0-rc.1`; until then master is the
+only version. Use the [latest release](https://github.com/sfwa/ukf/releases/latest)
+and [pin it by its tag](RELEASING.md#using-a-release).
+
+- [RELEASING.md](RELEASING.md): the compatibility contract (which interfaces,
+  conventions, build options and configurations a release supports, and
+  which are experimental), what patch, minor and major releases may change,
+  how numerical changes are reported, and how releases are made.
+- [CHANGELOG.md](CHANGELOG.md): what has changed in each release.
+- [CONTRIBUTING.md](CONTRIBUTING.md): what a pull request needs.
+
 ## Build and run
 
 Use a C++17 compiler, CMake and `patch`. The commands below assume CMake 3.20
@@ -80,9 +96,17 @@ cmake --install build-ukf
 ```
 
 ```cmake
-find_package(ukf REQUIRED CONFIG) # With CMAKE_PREFIX_PATH including /opt/ukf.
+find_package(ukf 1.0 REQUIRED CONFIG) # With CMAKE_PREFIX_PATH including /opt/ukf.
 target_link_libraries(my_model PRIVATE ukf::double)
 ```
+
+The package accepts a request for any earlier version with the same major
+version, and sets `ukf_VERSION` and `ukf_VERSION_PRERELEASE`. In code,
+`UKF/Version.h` defines `UKF_VERSION_STRING` and `UKF_VERSION` (10000 times
+the major version, plus 100 times the minor, plus the patch). To build
+against a release rather than master, check out or fetch its tag, such as
+`v1.0.0`; [RELEASING.md](RELEASING.md#using-a-release) has a FetchContent
+example.
 
 The package provides the same `ukf::ukf`, `ukf::single` and `ukf::double`
 targets, carrying the unrolling limit the installed copy was configured with.

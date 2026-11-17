@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
-project(ukf LANGUAGES CXX)
+
+# The version is written once, in include/UKF/Version.h.
+include(${CMAKE_CURRENT_LIST_DIR}/cmake/ReadVersion.cmake)
+read_version(${CMAKE_CURRENT_LIST_DIR}/include/UKF/Version.h UKF ukf_version ukf_version_prerelease)
+project(ukf VERSION ${ukf_version} LANGUAGES CXX)
 
 option(UKF_USE_SYSTEM_EIGEN "Use an installed Eigen3 package instead of patched Eigen 3.2.8" OFF)
 option(UKF_WARNINGS_AS_ERRORS "Treat warnings in UKF's own targets as errors" ON)
@@ -134,7 +138,18 @@ if(UKF_INSTALL)
     configure_package_config_file(cmake/ukfConfig.cmake.in
         ${CMAKE_CURRENT_BINARY_DIR}/ukfConfig.cmake
         INSTALL_DESTINATION ${ukf_cmake_dir})
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/ukfConfig.cmake DESTINATION ${ukf_cmake_dir})
+    # Within a major version, later releases are source compatible
+    # (RELEASING.md). The package is header-only, so any architecture will do.
+    set(ukf_version_file_options COMPATIBILITY SameMajorVersion)
+    if(NOT CMAKE_VERSION VERSION_LESS 3.14)
+        list(APPEND ukf_version_file_options ARCH_INDEPENDENT)
+    endif()
+    write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/ukfConfigVersion.cmake
+        VERSION ${PROJECT_VERSION} ${ukf_version_file_options})
+    install(FILES
+        ${CMAKE_CURRENT_BINARY_DIR}/ukfConfig.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/ukfConfigVersion.cmake
+        DESTINATION ${ukf_cmake_dir})
 endif()
 
 # Warning policy is private to project executables/libraries, never consumers.

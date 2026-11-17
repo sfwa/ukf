@@ -8,7 +8,14 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 enable_testing()
-find_package(ukf REQUIRED CONFIG)
+# A request for this major version must be met; the package is source
+# compatible within a major version.
+find_package(ukf 1.0 REQUIRED CONFIG)
+set(ukf_version_string ${ukf_VERSION})
+if(NOT ukf_VERSION_PRERELEASE STREQUAL "")
+    set(ukf_version_string ${ukf_VERSION}-${ukf_VERSION_PRERELEASE})
+endif()
+message(STATUS "Found ukf ${ukf_version_string} at ${ukf_DIR}")
 
 foreach(target ukf::ukf ukf::single ukf::double)
     if(NOT TARGET ${target})
@@ -31,6 +38,10 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 elseif(MSVC)
     target_compile_definitions(installed_no_exceptions PRIVATE _HAS_EXCEPTIONS=0)
 endif()
+
+foreach(target installed_double installed_single installed_manual)
+    target_compile_definitions(${target} PRIVATE "EXPECT_VERSION_STRING=\"${ukf_version_string}\"")
+endforeach()
 
 foreach(target installed_double installed_single installed_manual installed_no_exceptions)
     add_test(NAME ${target} COMMAND ${target})

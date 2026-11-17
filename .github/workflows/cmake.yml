@@ -3,6 +3,8 @@ name: CMake
 on:
   push:
     branches: [master]
+    # A release tag runs the whole matrix again, and checks the tag against the version header.
+    tags: ['v*']
   pull_request:
 
 permissions:
@@ -99,3 +101,23 @@ jobs:
           cmake -S test/cmake/installed -B build-installed -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/install
           cmake --build build-installed --config ${{ matrix.build_type }} --parallel 2
           ctest --test-dir build-installed --build-config ${{ matrix.build_type }} --output-on-failure
+
+  version:
+    name: Version header, CMake package and release tag agree
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Read the version as CMake does, and check a release tag against it
+        run: |
+          cmake -S . -B build -DUKF_BUILD_TESTS=OFF -DUKF_BUILD_BENCHMARKS=OFF -DUKF_BUILD_EXAMPLES=OFF
+          version=$(sed -n 's/^#define UKF_VERSION_STRING "\(.*\)"$/\1/p' include/UKF/Version.h)
+          echo "Version header: $version"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            if [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
+              echo "::error::Tag ${GITHUB_REF_NAME} does not match UKF_VERSION_STRING ${version}"
+              exit 1
+            fi
+            grep -q "^## \[${version}\]" CHANGELOG.md || { echo "::error::CHANGELOG.md has no section for ${version}"; exit 1; }
+          fi

@@ -383,6 +383,9 @@ public:
     Diagonal sensor noise, and the innovation, have one entry for each
     component of a field's uncertainty: three, the rotation, for a
     quaternion. Without quaternion fields these are this vector type.
+    Experimental: quaternion measurement fields, and these types where they
+    differ from the measurement type, may change in a minor release (see
+    RELEASING.md).
     */
     using CovarianceVector = FixedMeasurementVector<Field<Fields::key, Detail::CovarianceFieldType<typename Fields::type>>...>;
     using InnovationVector = CovarianceVector;
@@ -711,7 +714,9 @@ public:
     Diagonal sensor noise covers every declared field, and the innovation
     the fields that are set, with one entry for each component of a field's
     uncertainty: three, the rotation, for a quaternion. Without quaternion
-    fields the innovation is this vector type.
+    fields the innovation is this vector type. Experimental: quaternion
+    measurement fields, and these types where they differ from the
+    measurement type, may change in a minor release (see RELEASING.md).
     */
     using CovarianceVector = FixedMeasurementVector<Field<Fields::key, Detail::CovarianceFieldType<typename Fields::type>>...>;
     using InnovationVector = DynamicMeasurementVector<Field<Fields::key, Detail::CovarianceFieldType<typename Fields::type>>...>;

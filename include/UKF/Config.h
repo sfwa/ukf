@@ -1,3 +1,6 @@
+/* The library version. */
+#include "UKF/Version.h"
+
 /* Selects the floating-point precision to use. */
 #if defined(UKF_DOUBLE_PRECISION)
   typedef double real_t;
