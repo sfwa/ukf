@@ -1,0 +1,13 @@
+﻿# hoist-float
+elf: build-rank-hoist/hoist-float/ukf_stm32h735_benchmark.elf
+elf sha256: 0ffe8e0f6f3d201b6a5902995aff80ff1b1aad5f5421381ec6daafad38d43489
+bin sha256: 379e5e8c1708fdcaf25ff71d3c53653657ed608b23b90314710f07844f5cba6c
+bin bytes: 125384
+
+arm-none-eabi-size:
+   text	   data	    bss	    dec	    hex	filename
+ 123140	   2188	 146888	 272216	  42758	hoist-float\ukf_stm32h735_benchmark.elf
+
+arm-none-eabi-objdump -d (whole ELF) instruction counts:
+vdiv.f32: 141
+vdiv.f64: 25

@@ -1,0 +1,159 @@
+#!/usr/bin/env python3
+"""Embed an attitude-benchmark sensor CSV for ESP32-S31 replay.
+
+The exporter rebases timestamps but never resamples or changes elapsed time.
+Only sensor values are rounded to float; timestamps remain double precision.
+"""
+
+import argparse
+import csv
+from decimal import Decimal, InvalidOperation, localcontext
+import hashlib
+import io
+import json
+import math
+from pathlib import Path
+import re
+import struct
+import sys
+
+
+HEADER = "time,gx,gy,gz,ax,ay,az,mx,my,mz".split(",")
+MAX_SAMPLES = 8193
+DECIMAL = re.compile(r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?\Z")
+
+
+def float32(value, where):
+    """Round exactly as a float sensor input, rejecting overflow."""
+    try:
+        rounded = struct.unpack("<f", struct.pack("<f", value))[0]
+    except (OverflowError, struct.error):
+        raise ValueError(f"Value is outside the finite float range {where}") from None
+    if not math.isfinite(rounded):
+        raise ValueError(f"Value is outside the finite float range {where}")
+    return rounded
+
+
+def cpp_number(value, suffix=""):
+    number = format(value, ".9g" if suffix == "f" else ".17g")
+    if "." not in number and "e" not in number:
+        number += ".0"
+    return number + suffix
+
+
+def cpp_string(value):
+    """ASCII C++ literal containing the original UTF-8 bytes.
+
+    JSON supplies quote/backslash escaping; octal byte escapes replace its
+    Unicode escapes, including characters C++ forbids in universal escapes.
+    """
+    encoded = json.dumps(value.encode("utf-8").decode("latin1"), ensure_ascii=True)
+    return re.sub(r'\\(?:u[0-9a-fA-F]{4}|.)',
+                  lambda match: ("\\%03o" % int(match[0][2:], 16))
+                  if match[0].startswith("\\u") else match[0], encoded)
+
+
+def load_recording(path, start=0, count=None):
+    if start < 0:
+        raise ValueError("--start must be non-negative")
+    if count is not None and not 2 <= count <= MAX_SAMPLES:
+        raise ValueError(f"--count must be between 2 and {MAX_SAMPLES}")
+
+    content = path.read_bytes()
+    try:
+        reader = csv.reader(io.StringIO(content.decode("utf-8")), strict=True)
+        if next(reader, None) != HEADER:
+            raise ValueError("Expected header " + ",".join(HEADER))
+
+        selected = []
+        previous_time = None
+        total = 0
+        for index, row in enumerate(reader):
+            where = f"at CSV row {index + 2}"
+            if len(row) != 10 or any(not DECIMAL.fullmatch(item) for item in row):
+                raise ValueError(f"Expected ten finite decimal numbers {where}")
+            values = [float(item) for item in row]
+            if not all(math.isfinite(item) for item in values):
+                raise ValueError(f"Expected ten finite decimal numbers {where}")
+            timestamp = Decimal(row[0])
+            if previous_time is not None and timestamp <= previous_time:
+                raise ValueError(f"Time must increase {where}")
+            previous_time = timestamp
+            sensors = [float32(value, where) for value in values[1:]]
+            if index >= start and (count is None or len(selected) < count):
+                selected.append((timestamp, sensors))
+                if len(selected) > MAX_SAMPLES:
+                    raise ValueError(f"Selection exceeds {MAX_SAMPLES} samples; use --start/--count explicitly")
+            total += 1
+    except (UnicodeDecodeError, csv.Error, InvalidOperation) as error:
+        raise ValueError(f"Invalid sensor CSV: {error}") from None
+
+    if len(selected) < 2:
+        raise ValueError("Selection must contain at least two samples")
+    if count is not None and len(selected) != count:
+        raise ValueError(f"Requested {count} samples starting at {start}, but input has {total} rows")
+
+    # Subtract decimal source timestamps before converting to double. This
+    # avoids losing fine sample spacing merely because timestamps are epochs.
+    with localcontext() as context:
+        context.prec = max(50, max(time.adjusted() for time, _ in selected) -
+                           min(time.as_tuple().exponent for time, _ in selected) + 2)
+        origin = selected[0][0]
+        rows = [(float(time - origin), sensors) for time, sensors in selected]
+    if not all(math.isfinite(time) for time, _ in rows):
+        raise ValueError("Rebased timestamps exceed the finite double range")
+    intervals = [rows[i][0] - rows[i - 1][0] for i in range(1, len(rows))]
+    for dt in intervals:
+        if dt <= 0 or float32(dt, "in the sample interval") <= 0:
+            raise ValueError("Sample intervals must remain positive in single precision")
+    return rows, intervals, hashlib.sha256(content).hexdigest()
+
+
+def export_recording(source, destination, start=0, count=None):
+    rows, intervals, digest = load_recording(source, start, count)
+    dt_min, dt_max = min(intervals), max(intervals)
+    dt_mean = (rows[-1][0] - rows[0][0]) / len(intervals)
+    lines = [
+        "// Generated by export_recording.py. Do not edit.",
+        "// Original elapsed time is preserved; no resampling or retiming.",
+        "// The 2000 us compute budget does not imply a 500 Hz input recording.",
+        "#pragma once", "", "namespace AttitudeBenchmark::Recording {",
+        "struct Row {", "    double time;", "    float gyroscope[3];",
+        "    float accelerometer[3];", "    float magnetometer[3];", "};",
+        f"inline constexpr const char* name = {cpp_string(source.name)};",
+        f"inline constexpr const char* sha256 = {cpp_string(digest)};",
+        f"inline constexpr unsigned source_start_row = {start};",
+        f"inline constexpr double dt_min_seconds = {cpp_number(dt_min)};",
+        f"inline constexpr double dt_max_seconds = {cpp_number(dt_max)};",
+        f"inline constexpr double dt_mean_seconds = {cpp_number(dt_mean)};",
+        "inline constexpr Row samples[] = {",
+    ]
+    for time, values in rows:
+        groups = ["{" + ", ".join(cpp_number(value, "f") for value in values[i:i + 3]) + "}"
+                  for i in (0, 3, 6)]
+        lines.append("    {" + cpp_number(time) + ", " + ", ".join(groups) + "},")
+    lines += ["};", "} // namespace AttitudeBenchmark::Recording", ""]
+    destination.write_text("\n".join(lines), encoding="ascii")
+    return len(rows), dt_min, dt_max, dt_mean
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("input", type=Path, help="Sensor CSV from the recorded-data attitude benchmark")
+    parser.add_argument("output", type=Path, help="Generated C++ recording header")
+    parser.add_argument("--start", type=int, default=0, help="First data row, zero-based (default: 0)")
+    parser.add_argument("--count", type=int, help=f"Exact number of samples to include (maximum: {MAX_SAMPLES})")
+    args = parser.parse_args(argv)
+    if args.input.resolve() == args.output.resolve():
+        parser.error("Input and output must be different files")
+    try:
+        size, minimum, maximum, mean = export_recording(args.input, args.output, args.start, args.count)
+    except (OSError, ValueError) as error:
+        parser.error(str(error))
+    print(f"Exported {size} samples: dt min={minimum:.9g}s, max={maximum:.9g}s, mean={mean:.9g}s")
+    print("Timestamps preserved. The 2 ms compute budget does not imply that the input was sampled at 500 Hz.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

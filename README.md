@@ -3,7 +3,8 @@
 A C++17 Unscented Kalman Filter library for state and parameter estimation,
 using [Eigen](https://eigen.tuxfamily.org) for linear algebra. Fixed-size and
 bounded measurement storage support embedded applications without Eigen heap
-allocation during filter updates.
+allocation during filter updates. The library does not use C++ exceptions and
+builds with them disabled: every filter step returns whether it succeeded.
 
 | Filter | Purpose | State uncertainty |
 | --- | --- | --- |
@@ -13,21 +14,24 @@ allocation during filter updates.
 
 All three support scalar/vector measurements, fixed or dynamic measurement
 sets, optional [dense measurement noise](docs/dense-measurement-covariance.md),
-and [innovation gating](docs/innovation-gating.md).
+and [innovation gating](docs/innovation-gating.md). Each can be compiled in
+single or double precision.
 
 ## Build and run
 
 Use a C++17 compiler, CMake and `patch`. The commands below assume CMake 3.20
-or newer; the project files retain a CMake 3.10 minimum. The supplied build
-fetches pinned Eigen, Google Test and Google Benchmark sources as their targets
-are built. CMake 4 is supported. Visual Studio 2015 does not provide the required
-C++17 support; the current CI checks GCC and Clang on Linux and Clang on macOS.
+or newer; the project files retain a CMake 3.10 minimum. The default build
+fetches pinned Eigen 3.2.8 (with the repository's allocation and C++17
+patches), Google Test and Google Benchmark sources as their targets are built.
+CMake 4 is supported. Visual Studio 2015 does not provide the required C++17
+support; CI checks GCC and Clang on Linux and Clang on macOS, in Debug and
+Release.
 
 ```sh
 git clone https://github.com/sfwa/ukf.git
 cd ukf
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
-cmake --build build --target unittest ukf_examples --parallel 2
+cmake --build build --target unittest unittest_single ukf_examples --parallel 2
 ctest --test-dir build --output-on-failure
 ./build/examples/tracking/ukf_tracking_example
 ./build/examples/attitude/ukf_attitude_example
@@ -38,22 +42,85 @@ or Ninja. For a multi-configuration generator, also pass `--config Debug` to
 `cmake --build` and `-C Debug` to `ctest`; executable locations include the
 configuration directory. Always use a separate build directory.
 
-The `ukf_examples` target builds both runnable examples and the larger `ahrs`
-and `sfwa_ukf` C++ libraries. The unit tests and examples enable
-`EIGEN_NO_MALLOC`; use Debug to retain Eigen's allocation assertions. Build the
-benchmark separately if needed:
+`unittest` runs the tests in double precision and `unittest_single` runs the
+same tests in single precision, with tolerances for each. The `ukf_examples`
+target builds both runnable examples and the larger `ahrs` and `sfwa_ukf` C++
+libraries. Tests, benchmarks and examples enable `EIGEN_NO_MALLOC`; use Debug
+to retain Eigen's allocation assertions. Build the micro-benchmark separately
+if needed:
 
 ```sh
 cmake --build build --target benchmark --parallel 2
 ./build/benchmark/benchmark
 ```
 
-For an application, add `include/` and the selected Eigen headers to its include
-path, compile as C++17, and define exactly one of `UKF_SINGLE_PRECISION` or
-`UKF_DOUBLE_PRECISION` consistently across its translation units. Set the macro
-before including UKF headers, or supply it as a compiler definition. The example
-CMake targets set it themselves. The current build does not provide an installed
-CMake package or a system-Eigen selection option.
+## Using UKF in a CMake project
+
+```cmake
+add_subdirectory(path/to/ukf)
+add_executable(my_model src/my_model.cpp)
+target_link_libraries(my_model PRIVATE ukf::double)
+```
+
+`ukf::double` selects `UKF_DOUBLE_PRECISION`; use `ukf::single` for
+`UKF_SINGLE_PRECISION`. Both targets propagate the UKF/Eigen include paths,
+the C++17 requirement and any Eigen download dependency. If your application
+already defines its precision, link `ukf::ukf` (also available as `ukf`)
+instead: this target does not define either precision macro. Choose exactly one
+precision consistently across interacting translation units; adding the
+opposite macro does not override a precision target. An installed
+`find_package(ukf)` package is not provided.
+
+Without CMake, add `include/` and the Eigen headers to the include path,
+compile as C++17, and define exactly one of `UKF_SINGLE_PRECISION` or
+`UKF_DOUBLE_PRECISION` for every translation unit, before including UKF
+headers.
+
+| CMake option | Default | Purpose |
+| --- | --- | --- |
+| `UKF_USE_SYSTEM_EIGEN` | `OFF` | Use an installed Eigen 3.3+ package (`Eigen3::Eigen`) instead of patched Eigen 3.2.8 |
+| `UKF_EIGEN_UNROLLING_LIMIT` | empty (Eigen's 100) | Set `EIGEN_UNROLLING_LIMIT` for every target that links `ukf`; see below |
+| `UKF_WARNINGS_AS_ERRORS` | `ON` | Treat warnings in UKF's own targets as errors |
+| `UKF_BUILD_TESTS` | `ON` standalone, `OFF` as a subdirectory | Configure the unit tests and `check` target |
+| `UKF_BUILD_BENCHMARKS` | `ON` standalone, `OFF` as a subdirectory | Configure the benchmark target |
+| `UKF_BUILD_EXAMPLES` | `ON` standalone, `OFF` as a subdirectory | Configure the examples and benchmark executables |
+
+An installed Eigen package is used as installed; the bundled patches are not
+applied to it. Square-root rank updates use UKF-owned bounded workspace, so
+`EIGEN_NO_MALLOC` checks also apply with an unpatched Eigen. Warnings are
+enabled privately on UKF's own targets and are not imposed on downstream
+consumers. CI builds a [downstream consumer fixture](test/cmake/) that checks
+both precision targets, manual precision, C++17 propagation, the unrolling
+option and isolation from parent project settings.
+
+### Single precision
+
+Single precision is what most embedded targets run, and the full test suite
+runs in both precisions. In single precision keep the sigma-point parameter
+`AlphaSquared` well above 1e-6 (the tests use 1e-2): the outer weights,
+1 / (2 alpha² (n + kappa)), multiply the rounding of every sigma point, so
+with 1e-6 a mean is good to only a few tenths of a percent of its value. See
+[sigma-point scaling](docs/usage-guide.md#process-models-and-inputs).
+
+### Eigen unrolling and flash size
+
+Eigen unrolls fixed-size expressions up to `EIGEN_UNROLLING_LIMIT` (100 by
+default). A flash-limited application can lower it with
+`-DUKF_EIGEN_UNROLLING_LIMIT=N`; `0` disables unrolling. Without CMake, define
+`EIGEN_UNROLLING_LIMIT` on the command line. Either way it must be the same in
+every translation unit of the program that includes Eigen, so set it for the
+whole build rather than in a source file.
+
+It is a trade between flash and time. For the float attitude estimator
+(`examples/attitude_benchmark`) on a Cortex-M7 at `-O2` with GCC 13.2, `0`
+saved 12.9 KB of text (63 KB rather than 76 KB for the whole program) and took
+15 % more instructions an update for the UKF and 13 % more for the SR-UKF,
+counted under QEMU; cycles on hardware may differ. Results change only by
+roundoff. For comparison, `-Os` on the STM32H735 made updates 2.2 to 2.4 times
+as long. To measure an application's own estimator,
+`examples/embedded_code_size/measure.py --eigen-unrolling-limit N` and the
+STM32H735 benchmark's `UKF_EIGEN_UNROLLING_LIMIT` cache variable apply the same
+setting.
 
 ## Quick start
 
@@ -98,15 +165,17 @@ int main() {
     filter.measurement_covariance.set_field<PositionSensor>(real_t(0.25)); // Variance.
     Measurement measurement;
     measurement.set_field<PositionSensor>(real_t(0.9));
-    filter.step(real_t(1), measurement);
+    if (!filter.step(real_t(1), measurement)) {
+        return 1; // The filter is unchanged.
+    }
     std::cout << filter.state.get_field<Position>() << '\n'; // Estimated position.
 }
 ```
 
 Include Eigen geometry before UKF headers that use quaternions, as above. The
 [usage guide](docs/usage-guide.md) explains continuous-time models, covariance
-initialisation, prediction, confidence, missing measurements and quaternion
-conventions.
+initialisation, error handling, prediction, confidence, missing measurements
+and quaternion conventions.
 
 ## Runnable examples
 
@@ -114,13 +183,18 @@ conventions.
 | --- | --- |
 | [Tracking](examples/tracking/) | Direct constant-velocity model; distinct state/sensor keys; dynamic correlated observations; calibrated synthetic confidence; outlier gating; raw versus estimated error; forecasting on a copy |
 | [Attitude](examples/attitude/) | Quaternion state and angular velocity; user-defined kinematics and measurement mapping; directional observations and gyroscope measurements; square-root uncertainty |
+| [Attitude benchmark](examples/attitude_benchmark/) | A complete gyroscope/accelerometer/magnetometer attitude estimator written once for both state cores, compared with Madgwick, Mahony and VQF on recorded data ([results](docs/attitude-benchmark.md)) |
+| [EuRoC MAV benchmark](examples/euroc_benchmark/) | That estimator with a rotor-drag model of a hexrotor ([results](docs/euroc-benchmark.md)) |
+| [ESP32-S31](examples/esp32s31_benchmark/) and [STM32H735](examples/stm32h735_benchmark/) timing | The attitude estimator on microcontrollers, with update-time percentiles against a 2 ms budget, code size, and float or double precision on the STM32H735 |
 | [AHRS](examples/ahrs/) | A larger attitude filter and parameter estimator with C and Python wrappers |
 | [SFWA UKF](examples/sfwa_ukf/) | A larger navigation filter with C and Python wrappers |
 
-The two small examples are deterministic and return a failure status if their
-consistency checks fail. Start with them before adapting the larger wrappers.
+The tracking and attitude examples are deterministic and return a failure
+status if their consistency checks fail; CTest runs them. Start with them, or
+with the attitude benchmark's estimator, before adapting the larger wrappers.
 CI builds the C++ targets; the Python wrappers are not part of the automated
 tests.
+
 Filtering estimates the current state from observations so far; the library does
 not currently implement an RTS or fixed-lag smoother that revises past estimates
 using later observations.

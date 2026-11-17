@@ -283,19 +283,19 @@ UKF::Vector<3> MyMeasurementVector::expected_measurement
 
 template <> template <>
 UKF::Vector<3> MyMeasurementVector::expected_measurement
-<MyStateVector, Gyroscope, UKF::Vector<3>>(const MyStateVector& state, const UKF::Vector<3>& input) {
+<MyStateVector, Gyroscope, UKF::Vector<3>>(const MyStateVector& state, [[maybe_unused]] const UKF::Vector<3>& input) {
     return state.get_field<AngularVelocity>();
 }
 
 template <> template <>
 real_t MyMeasurementVector::expected_measurement
-<MyStateVector, StaticPressure, UKF::Vector<3>>(const MyStateVector& state, const UKF::Vector<3>& input) {
+<MyStateVector, StaticPressure, UKF::Vector<3>>(const MyStateVector& state, [[maybe_unused]] const UKF::Vector<3>& input) {
     return 101.3 - 1.2*(state.get_field<Altitude>() / 100.0);
 }
 
 template <> template <>
 real_t MyMeasurementVector::expected_measurement
-<MyStateVector, DynamicPressure, UKF::Vector<3>>(const MyStateVector& state, const UKF::Vector<3>& input) {
+<MyStateVector, DynamicPressure, UKF::Vector<3>>(const MyStateVector& state, [[maybe_unused]] const UKF::Vector<3>& input) {
     return 0.5 * 1.225 * state.get_field<Velocity>().squaredNorm();
 }
 
@@ -865,3 +865,48 @@ void check_normalized_mrp_rotation() {
 
 TEST(MRPRotationTest, UnitA) { check_normalized_mrp_rotation<UnitMRPMeasurement>(); }
 TEST(MRPRotationTest, HalfA) { check_normalized_mrp_rotation<HalfMRPMeasurement>(); }
+
+/*
+A field vector's rotation depends only on the directions of the two vectors,
+whatever their units: a magnetic field in teslas is about 5e-5, which is
+below single precision epsilon, and its squared norm is below double
+precision epsilon. The noise Jacobian scales as 1/|z|, so a noise given in
+the same units as the field gives the same rotation covariance.
+*/
+TEST(FixedMeasurementVectorTest, FieldVectorRotationIsScaleInvariant) {
+    const UKF::Vector<3> pairs[][2] = {
+        {UKF::Vector<3>(1, 0, 0), UKF::Vector<3>(0, 1, 0)},
+        {UKF::Vector<3>(0.4, -0.2, 0.9), UKF::Vector<3>(-0.1, 0.5, 0.8)},
+        {UKF::Vector<3>(0.2, 0.1, -0.4), UKF::Vector<3>(0.21, 0.09, -0.41)}
+    };
+    const real_t epsilon = std::numeric_limits<real_t>::epsilon();
+    for (const auto& pair : pairs) {
+        const UKF::Vector<3>& predicted = pair[0];
+        const UKF::Vector<3>& measured = pair[1];
+        const UKF::Vector<3> rotation =
+            UKF::Detail::calculate_rotation_vector<MyMeasurementVector>(measured, predicted);
+        const UKF::Matrix<3, 3> jacobian =
+            UKF::Detail::calculate_rotation_vector_jacobian<MyMeasurementVector>(measured, predicted);
+        ASSERT_GT(rotation.norm(), real_t(0.01));
+        for (real_t scale : {real_t(1e20), real_t(1e6), real_t(5e-5), real_t(1e-9), real_t(1e-20)}) {
+            const UKF::Vector<3> scaled_rotation =
+                UKF::Detail::calculate_rotation_vector<MyMeasurementVector>(scale * measured, scale * predicted);
+            EXPECT_LT((scaled_rotation - rotation).norm(), real_t(16) * epsilon * rotation.norm()) << scale;
+            const UKF::Matrix<3, 3> scaled_jacobian = UKF::Detail::calculate_rotation_vector_jacobian<
+                MyMeasurementVector>(scale * measured, scale * predicted);
+            EXPECT_LT((scale * scaled_jacobian - jacobian).norm(), real_t(16) * epsilon * jacobian.norm()) << scale;
+        }
+    }
+
+    /* The perpendicular unit axes of the first pair turn by 90 degrees. */
+    MyMeasurementVector z_pred, z;
+    z_pred.set_field<Magnetometer>(UKF::FieldVector(5e-5, 0, 0));
+    z.set_field<Magnetometer>(UKF::FieldVector(0, 5e-5, 0));
+    for (MyMeasurementVector* v : {&z_pred, &z}) {
+        v->set_field<Accelerometer>(UKF::Vector<3>::Zero());
+        v->set_field<Gyroscope>(UKF::Vector<3>::Zero());
+        v->set_field<StaticPressure>(real_t(0));
+        v->set_field<DynamicPressure>(real_t(0));
+    }
+    EXPECT_VECTOR_EQ(UKF::Vector<3>(0, 0, 2), z_pred.calculate_innovation(z).get_field<Magnetometer>());
+}

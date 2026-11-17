@@ -19,6 +19,12 @@ specialisations. To use a direct process model with `DenseCore`, select
 `UKF::NotUsedIntegrator` in place of `UKF::IntegratorRK4`. The
 [tracking example](../examples/tracking/) is a complete implementation.
 
+The status-returning interface is the same for diagonal and dense noise:
+`step(...)` and the split steps return `bool`. Check that result before using
+an update. A failed full step restores the public state, uncertainty and
+innovation diagnostics; it does not throw. Supply finite noise and a valid
+covariance (or factor), as for the diagonal interface.
+
 ## Covariance versus root factor
 
 For a two-component measurement with correlated noise:

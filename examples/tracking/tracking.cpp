@@ -1,6 +1,5 @@
 #include <array>
 #include <cmath>
-#include <exception>
 #include <iomanip>
 #include <iostream>
 #include <limits>
@@ -136,7 +135,10 @@ int run_example() {
         TrackingState::CovarianceMatrix predicted_covariance = filter.covariance;
         if (outlier) {
             TrackingFilter predicted = filter;
-            predicted.a_priori_step(dt);
+            if (!predicted.a_priori_step(dt)) {
+                std::cerr << "Prediction failed\n";
+                return 1;
+            }
             predicted_state = predicted.state;
             predicted_covariance = predicted.covariance;
         }
@@ -171,7 +173,11 @@ int run_example() {
     TrackingFilter forecast = filter;
     const real_t horizon = real_t(2);
     forecast.process_noise_covariance = process_noise(horizon);
-    forecast.a_priori_step(horizon);
+    // Steps report numerical failure by returning false; nothing is thrown.
+    if (!forecast.a_priori_step(horizon)) {
+        std::cerr << "Forecast failed\n";
+        return 1;
+    }
     const real_t expected_forecast = saved_state.get_field<Position>() +
         horizon * saved_state.get_field<Velocity>();
     const real_t raw_rmse = std::sqrt(raw_squared_error / real_t(measured));
@@ -202,10 +208,5 @@ int run_example() {
 }
 
 int main() {
-    try {
-        return run_example();
-    } catch (const std::exception& error) {
-        std::cerr << "Tracking failed: " << error.what() << '\n';
-        return 1;
-    }
+    return run_example();
 }

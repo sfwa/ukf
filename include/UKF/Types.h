@@ -23,8 +23,9 @@ SOFTWARE.
 #ifndef TYPES_H
 #define TYPES_H
 
-#include <Eigen/Core>
 #include "UKF/Config.h"
+#include <Eigen/Core>
+#include <Eigen/Geometry>
 
 namespace UKF {
 

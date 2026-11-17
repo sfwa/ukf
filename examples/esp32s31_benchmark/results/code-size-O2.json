@@ -1,0 +1,554 @@
+{
+  "schema_version": 1,
+  "measured_at_utc": "2026-11-14T07:50:16.097296+00:00",
+  "target": "esp32s31",
+  "compiler": "riscv32-esp-elf-g++ (crosstool-NG esp-15.2.0_20251204) 15.2.0",
+  "compiler_sha256": "a7c67e5bb0cf320df7f0f78d1b32a9a53763a11f884bf150df5e6bd7043d0566",
+  "source_commit": "a02631e55933d4619bbe8f4cbf1b6b66a2fb0785",
+  "source_tree_dirty": true,
+  "source_sha256": {
+    "examples/embedded_code_size/probe.cpp": "8a965d27fbfafdd238c014585298ae63664ca303083192593291442417604de5",
+    "examples/embedded_code_size/probe.ld": "502b61187302e5d314e395e97f3f03f7fdb6ab65cb1d29662b1521895dc6995d",
+    "examples/embedded_code_size/measure.py": "2bf696e8529219ae42e85fd038c07f12a6d53e0642f08be387e37d2bc798803a",
+    "cmake/EigenGccWarnings.h": "0b93648f546f212f9b33c0b90c82079cf0a7b326a728e436af08d06333ad1c90",
+    "include/UKF/Config.h": "cb7ecbc40d15a5689d07dd649ceb52c61d8a6d43119ca4a3d910ff58aedf11a5",
+    "include/UKF/Core.h": "5823a50222894043d9ef78fb326a252b613dc8fa5ad1cfacea8e5ff3554d977f",
+    "include/UKF/Covariance.h": "adb762d09bdf9b1bcae0edd26cd87a5ef13e97c291e36f128a9d4effc8f0323a",
+    "include/UKF/Integrator.h": "239361c00080b3fb451b8a7e8ece39ae35c3444eb0e41a73ae64cc7cdc946549",
+    "include/UKF/MeasurementVector.h": "29226c3ac359848a2adc19cbf3af2c2a5d03ed1154d2889a1c4058b8d0a7bd76",
+    "include/UKF/RankUpdate.h": "9986ba29a46de9cae694c4c8df748b32ef4b8623532bc32c5cb16d0ce52e22c8",
+    "include/UKF/StateVector.h": "3c54b0442492974420c0b774571704de4152b3abb80b81f066a2e480311a09ff",
+    "include/UKF/Types.h": "8d6299373fe92651f3b6742f460e4520bb5c6fe6b082756078dbbd328f21dfa7",
+    "examples/attitude_benchmark/attitude_estimator.h": "6d469dd74043cfc1584a273b2030cc6362fe834cee75610aed50fa507e2e943c",
+    "examples/attitude_benchmark/imu_sample.h": "73f2ce3878e02ce44b4f92e89965bdde435a04a4c029f7b70f4ec93bde099580",
+    "examples/attitude_benchmark/sensor_checks.h": "d5e7f4ad5f66f856de51de26c5aae41e7bbb5e362bdc09891853546ead894395"
+  },
+  "eigen": {
+    "version": "3.2.8 with repository patches",
+    "headers_sha256": "4adae4373ed6872c3e430d373a4bf546334f2040eed94941785c3908d0b95e4a"
+  },
+  "configuration": {
+    "optimization": "O2",
+    "precision": "float32",
+    "standard": "c++17",
+    "assertions": false,
+    "lto": false,
+    "fast_math": false,
+    "section_garbage_collection": true,
+    "target_flags": [
+      "-march=rv32imafc_zicsr_zifencei_zaamo_zalrsc_xesploop_xespv",
+      "-mabi=ilp32f",
+      "-mtune=esp-base"
+    ]
+  },
+  "libraries": [
+    {
+      "path": "{toolchain}/picolibc/lib/gcc/riscv32-esp-elf/15.2.0/rv32imafc_zicsr_zifencei_zaamo_zalrsc/ilp32f/no-rtti/libgcc.a",
+      "sha256": "7d20ce9e410c91555d7efeb30654d252d75b6814def79d73e9bed36305dd0a1a"
+    },
+    {
+      "path": "{toolchain}/picolibc/riscv32-esp-elf/lib/rv32imafc_zicsr_zifencei_zaamo_zalrsc/ilp32f/no-rtti/libc.a",
+      "sha256": "ee30d3b6fe3ca03689670b30ef260aa1a4f4d69dd0f9dd1c9ad6614b80cd2a81"
+    },
+    {
+      "path": "{toolchain}/picolibc/riscv32-esp-elf/lib/rv32imafc_zicsr_zifencei_zaamo_zalrsc/ilp32f/no-rtti/libm.a",
+      "sha256": "62d521210a67cdfc1a367590225f0d75c8e574bb717674cd94e37f496c5a0c87"
+    },
+    {
+      "path": "{toolchain}/picolibc/riscv32-esp-elf/lib/rv32imafc_zicsr_zifencei_zaamo_zalrsc/ilp32f/no-rtti/libstdc++.a",
+      "sha256": "07f06226a92104f5dab062c15a0bc908e9bb097aeeb39e655095b00c24c11128"
+    }
+  ],
+  "commands": [
+    {
+      "cwd": "{output}/empty",
+      "argv": [
+        "{toolchain}/bin/riscv32-esp-elf-g++",
+        "-march=rv32imafc_zicsr_zifencei_zaamo_zalrsc_xesploop_xespv",
+        "-mabi=ilp32f",
+        "-mtune=esp-base",
+        "--specs=picolibc.specs",
+        "-D__STDC_WANT_LIB_EXT1__=0",
+        "-fstrict-volatile-bitfields",
+        "-fno-jump-tables",
+        "-fno-tree-switch-conversion",
+        "-O2",
+        "-std=c++17",
+        "-DNDEBUG",
+        "-DUKF_SINGLE_PRECISION",
+        "-DEIGEN_NO_MALLOC",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-lto",
+        "-fno-exceptions",
+        "-fno-rtti",
+        "-fno-threadsafe-statics",
+        "-fno-use-cxa-atexit",
+        "-I",
+        "{repo}/include",
+        "-isystem",
+        "{eigen}",
+        "-include",
+        "{repo}/cmake/EigenGccWarnings.h",
+        "-Wall",
+        "-Wextra",
+        "-DUKF_SIZE_VARIANT=0",
+        "-c",
+        "{repo}/examples/embedded_code_size/probe.cpp",
+        "-o",
+        "probe.o"
+      ]
+    },
+    {
+      "cwd": "{output}/empty",
+      "argv": [
+        "{toolchain}/bin/riscv32-esp-elf-g++",
+        "-march=rv32imafc_zicsr_zifencei_zaamo_zalrsc_xesploop_xespv",
+        "-mabi=ilp32f",
+        "-mtune=esp-base",
+        "--specs=picolibc.specs",
+        "-fno-rtti",
+        "-fno-lto",
+        "-nostdlib",
+        "-T",
+        "{repo}/examples/embedded_code_size/probe.ld",
+        "probe.o",
+        "-Wl,--gc-sections",
+        "-Wl,--no-undefined",
+        "-Wl,-Map=probe.map",
+        "-Wl,--undefined=ukf_size_initialise",
+        "-Wl,--undefined=ukf_size_update",
+        "-Wl,--undefined=ukf_size_attitude",
+        "-Wl,--start-group",
+        "-lstdc++",
+        "-lm",
+        "-lc",
+        "-lgcc",
+        "-Wl,--end-group",
+        "-o",
+        "probe.elf"
+      ]
+    },
+    {
+      "cwd": "{output}/empty",
+      "argv": [
+        "{toolchain}/bin/riscv32-esp-elf-nm",
+        "-u",
+        "probe.elf"
+      ]
+    },
+    {
+      "cwd": "{output}/empty",
+      "argv": [
+        "{toolchain}/bin/riscv32-esp-elf-nm",
+        "--defined-only",
+        "probe.elf"
+      ]
+    },
+    {
+      "cwd": "{output}/ukf",
+      "argv": [
+        "{toolchain}/bin/riscv32-esp-elf-g++",
+        "-march=rv32imafc_zicsr_zifencei_zaamo_zalrsc_xesploop_xespv",
+        "-mabi=ilp32f",
+        "-mtune=esp-base",
+        "--specs=picolibc.specs",
+        "-D__STDC_WANT_LIB_EXT1__=0",
+        "-fstrict-volatile-bitfields",
+        "-fno-jump-tables",
+        "-fno-tree-switch-conversion",
+        "-O2",
+        "-std=c++17",
+        "-DNDEBUG",
+        "-DUKF_SINGLE_PRECISION",
+        "-DEIGEN_NO_MALLOC",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-lto",
+        "-fno-exceptions",
+        "-fno-rtti",
+        "-fno-threadsafe-statics",
+        "-fno-use-cxa-atexit",
+        "-I",
+        "{repo}/include",
+        "-isystem",
+        "{eigen}",
+        "-include",
+        "{repo}/cmake/EigenGccWarnings.h",
+        "-Wall",
+        "-Wextra",
+        "-DUKF_SIZE_VARIANT=1",
+        "-c",
+        "{repo}/examples/embedded_code_size/probe.cpp",
+        "-o",
+        "probe.o"
+      ]
+    },
+    {
+      "cwd": "{output}/ukf",
+      "argv": [
+        "{toolchain}/bin/riscv32-esp-elf-g++",
+        "-march=rv32imafc_zicsr_zifencei_zaamo_zalrsc_xesploop_xespv",
+        "-mabi=ilp32f",
+        "-mtune=esp-base",
+        "--specs=picolibc.specs",
+        "-fno-rtti",
+        "-fno-lto",
+        "-nostdlib",
+        "-T",
+        "{repo}/examples/embedded_code_size/probe.ld",
+        "probe.o",
+        "-Wl,--gc-sections",
+        "-Wl,--no-undefined",
+        "-Wl,-Map=probe.map",
+        "-Wl,--undefined=ukf_size_initialise",
+        "-Wl,--undefined=ukf_size_update",
+        "-Wl,--undefined=ukf_size_attitude",
+        "-Wl,--start-group",
+        "-lstdc++",
+        "-lm",
+        "-lc",
+        "-lgcc",
+        "-Wl,--end-group",
+        "-o",
+        "probe.elf"
+      ]
+    },
+    {
+      "cwd": "{output}/ukf",
+      "argv": [
+        "{toolchain}/bin/riscv32-esp-elf-nm",
+        "-u",
+        "probe.elf"
+      ]
+    },
+    {
+      "cwd": "{output}/ukf",
+      "argv": [
+        "{toolchain}/bin/riscv32-esp-elf-nm",
+        "--defined-only",
+        "probe.elf"
+      ]
+    },
+    {
+      "cwd": "{output}/srukf",
+      "argv": [
+        "{toolchain}/bin/riscv32-esp-elf-g++",
+        "-march=rv32imafc_zicsr_zifencei_zaamo_zalrsc_xesploop_xespv",
+        "-mabi=ilp32f",
+        "-mtune=esp-base",
+        "--specs=picolibc.specs",
+        "-D__STDC_WANT_LIB_EXT1__=0",
+        "-fstrict-volatile-bitfields",
+        "-fno-jump-tables",
+        "-fno-tree-switch-conversion",
+        "-O2",
+        "-std=c++17",
+        "-DNDEBUG",
+        "-DUKF_SINGLE_PRECISION",
+        "-DEIGEN_NO_MALLOC",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-lto",
+        "-fno-exceptions",
+        "-fno-rtti",
+        "-fno-threadsafe-statics",
+        "-fno-use-cxa-atexit",
+        "-I",
+        "{repo}/include",
+        "-isystem",
+        "{eigen}",
+        "-include",
+        "{repo}/cmake/EigenGccWarnings.h",
+        "-Wall",
+        "-Wextra",
+        "-DUKF_SIZE_VARIANT=2",
+        "-c",
+        "{repo}/examples/embedded_code_size/probe.cpp",
+        "-o",
+        "probe.o"
+      ]
+    },
+    {
+      "cwd": "{output}/srukf",
+      "argv": [
+        "{toolchain}/bin/riscv32-esp-elf-g++",
+        "-march=rv32imafc_zicsr_zifencei_zaamo_zalrsc_xesploop_xespv",
+        "-mabi=ilp32f",
+        "-mtune=esp-base",
+        "--specs=picolibc.specs",
+        "-fno-rtti",
+        "-fno-lto",
+        "-nostdlib",
+        "-T",
+        "{repo}/examples/embedded_code_size/probe.ld",
+        "probe.o",
+        "-Wl,--gc-sections",
+        "-Wl,--no-undefined",
+        "-Wl,-Map=probe.map",
+        "-Wl,--undefined=ukf_size_initialise",
+        "-Wl,--undefined=ukf_size_update",
+        "-Wl,--undefined=ukf_size_attitude",
+        "-Wl,--start-group",
+        "-lstdc++",
+        "-lm",
+        "-lc",
+        "-lgcc",
+        "-Wl,--end-group",
+        "-o",
+        "probe.elf"
+      ]
+    },
+    {
+      "cwd": "{output}/srukf",
+      "argv": [
+        "{toolchain}/bin/riscv32-esp-elf-nm",
+        "-u",
+        "probe.elf"
+      ]
+    },
+    {
+      "cwd": "{output}/srukf",
+      "argv": [
+        "{toolchain}/bin/riscv32-esp-elf-nm",
+        "--defined-only",
+        "probe.elf"
+      ]
+    }
+  ],
+  "measurements": [
+    {
+      "variant": "empty",
+      "estimator_code_bytes": 32,
+      "estimator_rodata_bytes": 4,
+      "estimator_code_and_rodata_bytes": 36,
+      "runtime_code_bytes": 0,
+      "runtime_rodata_bytes": 0,
+      "total_flash_payload_bytes": 44,
+      "writable_allocated_payload_bytes": 0,
+      "zero_fill_bytes_including_tls": 0,
+      "instance_storage_bytes": 0,
+      "instance_alignment_bytes": 1,
+      "elf_sha256": "cbd057f14874916a05a82538b0b21e92045400420d6c778d2ff2eda97e8f7f3b",
+      "object_sha256": "ea99cc302a5355def1845e70f2477bcff8a5ea0118c33310c81645c7365c938e",
+      "allocated_sections": [
+        {
+          "name": ".ukf_text",
+          "type": 1,
+          "flags": 6,
+          "address": 268435456,
+          "bytes": 32
+        },
+        {
+          "name": ".ukf_rodata",
+          "type": 1,
+          "flags": 18,
+          "address": 268435488,
+          "bytes": 4
+        },
+        {
+          "name": ".probe_metadata",
+          "type": 1,
+          "flags": 2,
+          "address": 268435492,
+          "bytes": 8
+        }
+      ],
+      "incremental_flash_bytes": 0,
+      "estimator_incremental_bytes": 0
+    },
+    {
+      "variant": "ukf",
+      "estimator_code_bytes": 54120,
+      "estimator_rodata_bytes": 208,
+      "estimator_code_and_rodata_bytes": 54328,
+      "runtime_code_bytes": 25376,
+      "runtime_rodata_bytes": 3128,
+      "total_flash_payload_bytes": 83000,
+      "writable_allocated_payload_bytes": 44,
+      "zero_fill_bytes_including_tls": 288,
+      "instance_storage_bytes": 3116,
+      "instance_alignment_bytes": 4,
+      "elf_sha256": "d3c66d22e0bea8b173ce310cf572aa04e6493bf08c54b440db387a6a93a72896",
+      "object_sha256": "c5b1a740ab89f47ca12494ab036d0c952564a1709f01df443726d15edd081596",
+      "allocated_sections": [
+        {
+          "name": ".ukf_text",
+          "type": 1,
+          "flags": 6,
+          "address": 268435456,
+          "bytes": 54120
+        },
+        {
+          "name": ".ukf_rodata",
+          "type": 1,
+          "flags": 2,
+          "address": 268489576,
+          "bytes": 208
+        },
+        {
+          "name": ".runtime_text",
+          "type": 1,
+          "flags": 6,
+          "address": 268489784,
+          "bytes": 25376
+        },
+        {
+          "name": ".runtime_rodata",
+          "type": 1,
+          "flags": 2,
+          "address": 268515160,
+          "bytes": 3128
+        },
+        {
+          "name": ".probe_metadata",
+          "type": 1,
+          "flags": 2,
+          "address": 268518288,
+          "bytes": 8
+        },
+        {
+          "name": ".gcc_except_table",
+          "type": 1,
+          "flags": 2,
+          "address": 268518296,
+          "bytes": 116
+        },
+        {
+          "name": ".init_array",
+          "type": 14,
+          "flags": 3,
+          "address": 268518412,
+          "bytes": 8
+        },
+        {
+          "name": ".fini_array",
+          "type": 15,
+          "flags": 3,
+          "address": 268518420,
+          "bytes": 8
+        },
+        {
+          "name": ".data",
+          "type": 1,
+          "flags": 3,
+          "address": 536870912,
+          "bytes": 28
+        },
+        {
+          "name": ".tbss",
+          "type": 8,
+          "flags": 1027,
+          "address": 536870940,
+          "bytes": 4
+        },
+        {
+          "name": ".bss",
+          "type": 8,
+          "flags": 3,
+          "address": 536870940,
+          "bytes": 284
+        }
+      ],
+      "incremental_flash_bytes": 82956,
+      "estimator_incremental_bytes": 54292
+    },
+    {
+      "variant": "srukf",
+      "estimator_code_bytes": 42806,
+      "estimator_rodata_bytes": 224,
+      "estimator_code_and_rodata_bytes": 43030,
+      "runtime_code_bytes": 25376,
+      "runtime_rodata_bytes": 3128,
+      "total_flash_payload_bytes": 71702,
+      "writable_allocated_payload_bytes": 44,
+      "zero_fill_bytes_including_tls": 280,
+      "instance_storage_bytes": 3116,
+      "instance_alignment_bytes": 4,
+      "elf_sha256": "c14093ef485f49aa5d13f1b208e8f8daf8ee726a814e0f69444710f938c9c9ac",
+      "object_sha256": "9bb0d5979fe833d2dfb47629975153f91175e5c80c500e252b2e9bd67f5b9d73",
+      "allocated_sections": [
+        {
+          "name": ".ukf_text",
+          "type": 1,
+          "flags": 6,
+          "address": 268435456,
+          "bytes": 42806
+        },
+        {
+          "name": ".ukf_rodata",
+          "type": 1,
+          "flags": 2,
+          "address": 268478264,
+          "bytes": 224
+        },
+        {
+          "name": ".runtime_text",
+          "type": 1,
+          "flags": 6,
+          "address": 268478488,
+          "bytes": 25376
+        },
+        {
+          "name": ".runtime_rodata",
+          "type": 1,
+          "flags": 2,
+          "address": 268503864,
+          "bytes": 3128
+        },
+        {
+          "name": ".probe_metadata",
+          "type": 1,
+          "flags": 2,
+          "address": 268506992,
+          "bytes": 8
+        },
+        {
+          "name": ".gcc_except_table",
+          "type": 1,
+          "flags": 2,
+          "address": 268507000,
+          "bytes": 116
+        },
+        {
+          "name": ".init_array",
+          "type": 14,
+          "flags": 3,
+          "address": 268507116,
+          "bytes": 8
+        },
+        {
+          "name": ".fini_array",
+          "type": 15,
+          "flags": 3,
+          "address": 268507124,
+          "bytes": 8
+        },
+        {
+          "name": ".data",
+          "type": 1,
+          "flags": 3,
+          "address": 536870912,
+          "bytes": 28
+        },
+        {
+          "name": ".tbss",
+          "type": 8,
+          "flags": 1027,
+          "address": 536870940,
+          "bytes": 4
+        },
+        {
+          "name": ".bss",
+          "type": 8,
+          "flags": 3,
+          "address": 536870940,
+          "bytes": 276
+        }
+      ],
+      "incremental_flash_bytes": 71658,
+      "estimator_incremental_bytes": 42994
+    }
+  ],
+  "scope": "Isolated attitude estimator plus Eigen and thin API wrappers; no benchmark, startup, HAL, RTOS, logging or sensor I/O. Incremental flash includes required linked math/runtime helpers. Not a bootable firmware or a timing measurement."
+}

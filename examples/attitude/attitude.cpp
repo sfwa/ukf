@@ -125,7 +125,11 @@ int main() {
         measurement.set_field<MagneticDirection>(truth * UKF::Vector<3>(1, 0, 0) +
             real_t(0.01) * disturbance(time, real_t(2)));
 
-        filter.step(dt, measurement);
+        // A failed step returns false and leaves the filter as it was.
+        if (!filter.step(dt, measurement)) {
+            std::cerr << "Filter step failed\n";
+            return 1;
+        }
         const UKF::Quaternion estimate = filter.state.get_field<Orientation>();
         if (!filter.state.allFinite() || !filter.root_covariance.allFinite() ||
                 std::abs(estimate.norm() - real_t(1)) > real_t(1e-8)) {

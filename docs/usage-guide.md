@@ -26,7 +26,10 @@ as independent linear measurements.
 `UKF::FieldVector` is a directional measurement such as gravity or a magnetic
 field. Its innovation uses a rotation vector, and the noise Jacobian maps raw
 Cartesian sensor uncertainty into those rotation coordinates. Rotation and
-Jacobian calculations use the same normalized MRP convention. At exactly
+Jacobian calculations use the same normalized MRP convention. The rotation is
+taken between unit vectors, so it does not depend on the field's magnitude or
+units: a magnetometer in teslas behaves as one in gauss, in single precision
+too. The noise Jacobian accounts for the measured magnitude. At exactly
 opposite directions there is no unique rotation axis; the implementation chooses
 a deterministic perpendicular axis. That convention does not create additional
 physical information or make the antiparallel derivative unique.
@@ -52,12 +55,12 @@ using IntegratedFilter = UKF::Core<State, Measurement, UKF::IntegratorRK4>;
 using RootFilter = UKF::SquareRootCore<State, Measurement, UKF::IntegratorRK4>;
 ```
 
-The square-root state filter requires an explicit integrator. Its ordinary
-integration path calls `process_model<IntegratorType>`; do not assume that
-omitting the integrator or selecting `NotUsedIntegrator` enables the direct
-model dispatch used by `Core`. `SquareRootParameterEstimationCore<State,
-Measurement>` has no state-transition model or time-step argument: prediction
-adds the configured parameter process noise.
+If the integrator is omitted (or is `UKF::NotUsedIntegrator`), both `Core`
+and `SquareRootCore` call the direct `process_model<>(dt, inputs...)`
+specialisation; with an integrator they integrate `derivative<>(inputs...)`.
+`SquareRootParameterEstimationCore<State, Measurement>` has no
+state-transition model or time-step argument: prediction adds the configured
+parameter process noise.
 
 Pass optional process/measurement inputs after the measurement:
 `filter.step(dt, measurement, input1, input2)`. Both models receive the same
@@ -76,7 +79,14 @@ Sigma-point scaling is configured through specialisations in `UKF::Parameters`,
 for example `AlphaSquared<State>`, as described in the
 [state-vector header](../include/UKF/StateVector.h) and the
 [algorithm references](../README.md#references). Set these before using the
-corresponding filter type. Parameters such as `MRP_A<Measurement>` and
+corresponding filter type. The weights and spread derive from `AlphaSquared`,
+`Kappa` and `Beta` (through `ScaledDimension`, which is n + lambda), so adjust
+those rather than `Lambda`. A small `AlphaSquared` makes the central weight
+negative, which a strongly nonlinear model can turn into an indefinite
+predicted covariance (the step then fails, as described below). In single
+precision keep `AlphaSquared` well above 1e-6: the outer weights,
+1 / (2 alpha² (n + kappa)), multiply the rounding of every sigma point, so with
+1e-6 a mean is good to only a few tenths of a percent of its value. Parameters such as `MRP_A<Measurement>` and
 `MRP_F<Measurement>` determine the directional-measurement rotation coordinates;
 the same convention is used for their innovations and noise Jacobians.
 
@@ -128,16 +138,32 @@ Choose the discretisation that matches the physical assumptions of the model.
 
 Covariances must be finite, symmetric and positive semidefinite. The standard
 filter can generate sigma points from singular or zero state covariance; it
-uses a checked factorisation and tolerates roundoff-sized negative eigenvalues.
-Genuinely indefinite or nonfinite state covariance raises `std::domain_error`
-when factorisation is required. Supply valid measurement noise as well; these
-checks do not validate every user input.
+uses a checked factorisation, tolerates roundoff-sized negative eigenvalues and
+stores the repaired covariance. Square-root correction supports semidefinite
+posteriors, including exact observations. Supply valid measurement noise as
+well; the filters do not validate every user input.
 
-Square-root correction supports semidefinite posteriors, including exact
-observations. If a downdate would produce an indefinite posterior beyond
-roundoff, it throws `std::domain_error` before applying that correction to the
-predicted state or root covariance. An entire `step()` is not a transaction:
-prediction may already have completed when an exception occurs.
+## Error handling
+
+The library does not use C++ exceptions and can be built with them disabled.
+Each of `step()`, `a_priori_step()`, `innovation_step()` and
+`a_posteriori_step()` returns `true` on success. On failure it returns `false`
+and leaves the public state, (root) covariance, innovation and innovation
+(root) covariance exactly as they were. A step fails when a covariance (or a
+square-root downdate) is indefinite beyond roundoff, or when a result is not
+finite. A step that depends on a failed (or missing) earlier step also returns
+`false` until the next successful `a_priori_step()`.
+
+`step()` is all-or-nothing: if its correction fails after a successful
+prediction, the prediction is rolled back too. To keep the prediction when a
+measurement cannot be applied, call the split stages described below and check
+each result. Always check the result before using an update:
+
+```cpp
+if (!filter.step(dt, measurement)) {
+    // The filter is unchanged: skip this measurement or reinitialise.
+}
+```
 
 ## Confidence and outliers
 
@@ -165,9 +191,12 @@ A full state-filter update is `filter.step(dt, measurement, inputs...)`. The
 three stages are also public:
 
 ```cpp
-filter.a_priori_step(dt);       // state and uncertainty are now predictions.
-filter.innovation_step(measurement);
-filter.a_posteriori_step();     // state and uncertainty are now corrected.
+if (filter.a_priori_step(dt)) {           // state and uncertainty are now predictions.
+    if (filter.innovation_step(measurement) &&
+            filter.a_posteriori_step()) {     // state and uncertainty are now corrected.
+        // Corrected.
+    } // Otherwise the prediction is kept.
+}
 ```
 
 Forward the same model inputs to the first two calls when using inputs. To
@@ -176,11 +205,10 @@ in the gating guide. Do not apply both the gated and ungated posterior to the
 same innovation.
 
 When no observation is available, call only `a_priori_step`. An empty dynamic
-measurement also yields prediction-only behaviour with `Core::step`, or with
-`step_with_gate` on any of the three filters. The gated call returns `false`
-without invoking the callback and clears its innovation diagnostics. For
-ordinary square-root `step` calls, use prediction-only explicitly when the
-measurement is empty.
+measurement also yields prediction-only behaviour with `step` on any of the
+three filters (it returns `true`). With `step_with_gate`, an empty measurement
+returns `false` without invoking the callback, retains the prediction and
+clears its innovation diagnostics.
 
 Prediction mutates the filter. To preview a future state without advancing the
 live estimator, copy it and configure process noise for the forecast interval:
@@ -188,8 +216,9 @@ live estimator, copy it and configure process noise for the forecast interval:
 ```cpp
 auto forecast = filter;
 forecast.process_noise_covariance = forecast_Q; // Q for horizon, supplied by the application.
-forecast.a_priori_step(horizon);
-// Read forecast.state; filter is unchanged.
+if (forecast.a_priori_step(horizon)) {
+    // Read forecast.state; filter is unchanged.
+}
 ```
 
 For a square-root filter assign `process_noise_root_covariance` instead. Long

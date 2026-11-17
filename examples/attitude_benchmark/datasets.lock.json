@@ -1,0 +1,356 @@
+{
+  "schema": 1,
+  "sources": {
+    "broad": {
+      "revision": "7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad",
+      "license": "CC-BY-4.0",
+      "citation": "Laidig et al., BROAD\u2014A Benchmark for Robust Inertial Orientation Estimation, Data 6(7), 72, 2021. https://doi.org/10.3390/data6070072",
+      "homepage": "https://github.com/dlaidig/broad"
+    },
+    "sassari": {
+      "revision": "v5.0",
+      "license": "MIT (repository LICENSE.txt)",
+      "citation": "Caruso et al., Orientation Estimation Through Magneto-Inertial Sensor Fusion: A Heuristic Approach for Suboptimal Parameters Tuning, IEEE Sensors Journal 21(3), 3408\u20133419, 2021. https://doi.org/10.1109/JSEN.2020.3024806",
+      "homepage": "https://github.com/marcocaruso/mimu_optical_dataset_caruso_sassari",
+      "description": "https://github.com/marcocaruso/mimu_optical_dataset_caruso_sassari/releases/download/v5.0/dataset_description_v5_readme.pdf"
+    }
+  },
+  "files": [
+    {
+      "dataset": "broad",
+      "name": "01_undisturbed_slow_rotation_A",
+      "path": "broad/01_undisturbed_slow_rotation_A.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/01_undisturbed_slow_rotation_A.hdf5",
+      "sha256": "46b3e75599d9783077d64245ddd1e898e8b3e813443aff13dc50698bc9f89ad0",
+      "bytes": 4255783
+    },
+    {
+      "dataset": "broad",
+      "name": "02_undisturbed_slow_rotation_B",
+      "path": "broad/02_undisturbed_slow_rotation_B.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/02_undisturbed_slow_rotation_B.hdf5",
+      "sha256": "33ed3432ece89cfbd8c5c069a176106a05dad019302759353244c71d70d7e5f5",
+      "bytes": 3926925
+    },
+    {
+      "dataset": "broad",
+      "name": "03_undisturbed_slow_rotation_C",
+      "path": "broad/03_undisturbed_slow_rotation_C.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/03_undisturbed_slow_rotation_C.hdf5",
+      "sha256": "389e1ff9dae1f6f9e2703bf136e12475dcf498be0edc8eae533bd263c7b61e05",
+      "bytes": 4147283
+    },
+    {
+      "dataset": "broad",
+      "name": "04_undisturbed_slow_rotation_with_breaks_A",
+      "path": "broad/04_undisturbed_slow_rotation_with_breaks_A.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/04_undisturbed_slow_rotation_with_breaks_A.hdf5",
+      "sha256": "3344d72a076342a1245aee89c7e3ec90338952440c0a5088d476f5935959e937",
+      "bytes": 4311328
+    },
+    {
+      "dataset": "broad",
+      "name": "05_undisturbed_slow_rotation_with_breaks_B",
+      "path": "broad/05_undisturbed_slow_rotation_with_breaks_B.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/05_undisturbed_slow_rotation_with_breaks_B.hdf5",
+      "sha256": "d74cc90958fc05a9fc1a6d58465a62c75a61f205a75ea2e6207ef37d7b1c89a7",
+      "bytes": 4073405
+    },
+    {
+      "dataset": "broad",
+      "name": "06_undisturbed_fast_rotation_A",
+      "path": "broad/06_undisturbed_fast_rotation_A.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/06_undisturbed_fast_rotation_A.hdf5",
+      "sha256": "064c47668570f1d8234956fe45922af2ec6ef6bbf64fd3bb27d642f745109574",
+      "bytes": 4296083
+    },
+    {
+      "dataset": "broad",
+      "name": "07_undisturbed_fast_rotation_B",
+      "path": "broad/07_undisturbed_fast_rotation_B.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/07_undisturbed_fast_rotation_B.hdf5",
+      "sha256": "bff6444d38b836482040a328d6060741816ed0150cf2640db94550c6a796b3d8",
+      "bytes": 4080123
+    },
+    {
+      "dataset": "broad",
+      "name": "08_undisturbed_fast_rotation_with_breaks_A",
+      "path": "broad/08_undisturbed_fast_rotation_with_breaks_A.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/08_undisturbed_fast_rotation_with_breaks_A.hdf5",
+      "sha256": "434003d6e1bcd95bd24cbad1d4157b999c8be5063918d81f7f489e47fe3f0306",
+      "bytes": 4311746
+    },
+    {
+      "dataset": "broad",
+      "name": "09_undisturbed_fast_rotation_with_breaks_B",
+      "path": "broad/09_undisturbed_fast_rotation_with_breaks_B.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/09_undisturbed_fast_rotation_with_breaks_B.hdf5",
+      "sha256": "40a6e3e69805ba056a53362ca17e75199cc8873aa167b8cf783bb9f71d133f55",
+      "bytes": 4075108
+    },
+    {
+      "dataset": "broad",
+      "name": "10_undisturbed_slow_translation_A",
+      "path": "broad/10_undisturbed_slow_translation_A.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/10_undisturbed_slow_translation_A.hdf5",
+      "sha256": "bbe80427429f27d0adfffa6720d0b1371a42138290999d1992066e1b9c64ef30",
+      "bytes": 3818653
+    },
+    {
+      "dataset": "broad",
+      "name": "11_undisturbed_slow_translation_B",
+      "path": "broad/11_undisturbed_slow_translation_B.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/11_undisturbed_slow_translation_B.hdf5",
+      "sha256": "ea4ecb8a27d040cecdfb97cdee45023ea461e065bfc402ce7fe6a7c9a0f325e0",
+      "bytes": 3710735
+    },
+    {
+      "dataset": "broad",
+      "name": "12_undisturbed_slow_translation_C",
+      "path": "broad/12_undisturbed_slow_translation_C.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/12_undisturbed_slow_translation_C.hdf5",
+      "sha256": "c44a879cbc7a8e3816132b0d71f4b86a05c417df70e3c1bbc0310d71e1d00942",
+      "bytes": 3684594
+    },
+    {
+      "dataset": "broad",
+      "name": "13_undisturbed_slow_translation_with_breaks_A",
+      "path": "broad/13_undisturbed_slow_translation_with_breaks_A.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/13_undisturbed_slow_translation_with_breaks_A.hdf5",
+      "sha256": "85d0e3236ec3c49ffc66d6cdb307a318f36cacd9834e75a7064090c66661c959",
+      "bytes": 4636555
+    },
+    {
+      "dataset": "broad",
+      "name": "14_undisturbed_slow_translation_with_breaks_B",
+      "path": "broad/14_undisturbed_slow_translation_with_breaks_B.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/14_undisturbed_slow_translation_with_breaks_B.hdf5",
+      "sha256": "a4e6d406a64350e4ea7f7352e39db794b7327d89dc4cd4e7c9caf10bb9c22ebe",
+      "bytes": 3559034
+    },
+    {
+      "dataset": "broad",
+      "name": "15_undisturbed_fast_translation_A",
+      "path": "broad/15_undisturbed_fast_translation_A.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/15_undisturbed_fast_translation_A.hdf5",
+      "sha256": "77112d2218c27331ca41eb615450ad9cd67e8385cb0e46e5eda5b5a6d0dd2daf",
+      "bytes": 3890420
+    },
+    {
+      "dataset": "broad",
+      "name": "16_undisturbed_fast_translation_B",
+      "path": "broad/16_undisturbed_fast_translation_B.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/16_undisturbed_fast_translation_B.hdf5",
+      "sha256": "eebc009755c4fc53c49369a19bae942cf093342a13a51a1ca0eeb23b2cc74abc",
+      "bytes": 3994996
+    },
+    {
+      "dataset": "broad",
+      "name": "17_undisturbed_fast_translation_with_breaks_A",
+      "path": "broad/17_undisturbed_fast_translation_with_breaks_A.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/17_undisturbed_fast_translation_with_breaks_A.hdf5",
+      "sha256": "18f221e0ae4fef22ee7194ee8057fc25023e0b0ff9dfc898199c83d2c1f423e0",
+      "bytes": 4476739
+    },
+    {
+      "dataset": "broad",
+      "name": "18_undisturbed_fast_translation_with_breaks_B",
+      "path": "broad/18_undisturbed_fast_translation_with_breaks_B.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/18_undisturbed_fast_translation_with_breaks_B.hdf5",
+      "sha256": "1b81785ff4310cc33bb0ee24620f502ede7ca0c79f7f08ebcc9f240d26f7ac6e",
+      "bytes": 3944680
+    },
+    {
+      "dataset": "broad",
+      "name": "19_undisturbed_slow_combined_240s",
+      "path": "broad/19_undisturbed_slow_combined_240s.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/19_undisturbed_slow_combined_240s.hdf5",
+      "sha256": "cbd66c71dafed82b0daa93cdd3f1238e06aa2ca9270affce6c1cd651a15708f0",
+      "bytes": 7052567
+    },
+    {
+      "dataset": "broad",
+      "name": "20_undisturbed_slow_combined_360s",
+      "path": "broad/20_undisturbed_slow_combined_360s.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/20_undisturbed_slow_combined_360s.hdf5",
+      "sha256": "8a2b5a270d791fa19b40e7557c8240485a87ff1d7b1b77eef569c491dcb17ac0",
+      "bytes": 9896460
+    },
+    {
+      "dataset": "broad",
+      "name": "21_undisturbed_fast_combined",
+      "path": "broad/21_undisturbed_fast_combined.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/21_undisturbed_fast_combined.hdf5",
+      "sha256": "cb8d8d5cf8ddc78d25d53c32ed65e76e26a1394b53e41b04000d54fe69becd99",
+      "bytes": 4371348
+    },
+    {
+      "dataset": "broad",
+      "name": "22_undisturbed_fast_combined_240s",
+      "path": "broad/22_undisturbed_fast_combined_240s.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/22_undisturbed_fast_combined_240s.hdf5",
+      "sha256": "fcc248cb8473bef7781e1738c0e650172dcea5747e229daa8889f2b24184f8f8",
+      "bytes": 7487969
+    },
+    {
+      "dataset": "broad",
+      "name": "23_undisturbed_fast_combined_360s",
+      "path": "broad/23_undisturbed_fast_combined_360s.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/23_undisturbed_fast_combined_360s.hdf5",
+      "sha256": "d992abc385271842c8ee386a52bfa83b3dbbd775e24fedc2742866a9806e5359",
+      "bytes": 10555919
+    },
+    {
+      "dataset": "broad",
+      "name": "24_disturbed_tapping_A",
+      "path": "broad/24_disturbed_tapping_A.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/24_disturbed_tapping_A.hdf5",
+      "sha256": "6ede0072e95814b561e2c86f8f10fe9f6c79a68a0880d4ca32578fd646ae3bfd",
+      "bytes": 4179383
+    },
+    {
+      "dataset": "broad",
+      "name": "25_disturbed_tapping_B",
+      "path": "broad/25_disturbed_tapping_B.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/25_disturbed_tapping_B.hdf5",
+      "sha256": "d6d9b55c5c84821eaaae96d93cc857b852af24fcb7c93a5fa98b7e6c1e9cae5d",
+      "bytes": 3651796
+    },
+    {
+      "dataset": "broad",
+      "name": "26_disturbed_phone_vibration_A",
+      "path": "broad/26_disturbed_phone_vibration_A.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/26_disturbed_phone_vibration_A.hdf5",
+      "sha256": "01e950a1d2c16558567f76a9cebf407bb79f65af8883a35265c79d3f3dc56c99",
+      "bytes": 4230591
+    },
+    {
+      "dataset": "broad",
+      "name": "27_disturbed_phone_vibration_B",
+      "path": "broad/27_disturbed_phone_vibration_B.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/27_disturbed_phone_vibration_B.hdf5",
+      "sha256": "9041093636cd2c2e992651f4cd7f7f25c4b585971fd5d4821b020ca3c5d15dff",
+      "bytes": 3684968
+    },
+    {
+      "dataset": "broad",
+      "name": "28_disturbed_stationary_magnet_A",
+      "path": "broad/28_disturbed_stationary_magnet_A.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/28_disturbed_stationary_magnet_A.hdf5",
+      "sha256": "0ff68165dd5838372acbab329bfb9115b38eff038b9bb8030e1e0b02fe1b22ac",
+      "bytes": 4222971
+    },
+    {
+      "dataset": "broad",
+      "name": "29_disturbed_stationary_magnet_B",
+      "path": "broad/29_disturbed_stationary_magnet_B.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/29_disturbed_stationary_magnet_B.hdf5",
+      "sha256": "bb2c50b127b8a2e86aaec804f41feb5a2efb7d60165902c43799fb85d8fba3ea",
+      "bytes": 4318143
+    },
+    {
+      "dataset": "broad",
+      "name": "30_disturbed_stationary_magnet_C",
+      "path": "broad/30_disturbed_stationary_magnet_C.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/30_disturbed_stationary_magnet_C.hdf5",
+      "sha256": "a4e14a8671c7d0a38c4d41c1883ea2ea471937dfe61ad1bdbee042cea3040808",
+      "bytes": 3962196
+    },
+    {
+      "dataset": "broad",
+      "name": "31_disturbed_stationary_magnet_D",
+      "path": "broad/31_disturbed_stationary_magnet_D.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/31_disturbed_stationary_magnet_D.hdf5",
+      "sha256": "b65d5da814f8fdd9e7a1ecea502888d1ffef472bd3e3605767293bdc65285ae1",
+      "bytes": 3925668
+    },
+    {
+      "dataset": "broad",
+      "name": "32_disturbed_attached_magnet_1cm",
+      "path": "broad/32_disturbed_attached_magnet_1cm.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/32_disturbed_attached_magnet_1cm.hdf5",
+      "sha256": "7520dbf2c9844cff6f80e0b7ef1ed93afec08964042ee3d2ee055144379af363",
+      "bytes": 3335265
+    },
+    {
+      "dataset": "broad",
+      "name": "33_disturbed_attached_magnet_2cm",
+      "path": "broad/33_disturbed_attached_magnet_2cm.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/33_disturbed_attached_magnet_2cm.hdf5",
+      "sha256": "b81855b453629e023635d966f77c87cd17b195c919888d725b57b1cca037962d",
+      "bytes": 3316402
+    },
+    {
+      "dataset": "broad",
+      "name": "34_disturbed_attached_magnet_3cm",
+      "path": "broad/34_disturbed_attached_magnet_3cm.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/34_disturbed_attached_magnet_3cm.hdf5",
+      "sha256": "f1cc33cf184d06cdbaef3e21ee2bb7ad36d7b1e3ed1098434c22e2c6a3f17f91",
+      "bytes": 3379630
+    },
+    {
+      "dataset": "broad",
+      "name": "35_disturbed_attached_magnet_4cm",
+      "path": "broad/35_disturbed_attached_magnet_4cm.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/35_disturbed_attached_magnet_4cm.hdf5",
+      "sha256": "cf31711ca5a917965b22e9e1141fdce7de1725c984e1f10048c33b2d121709f9",
+      "bytes": 3236560
+    },
+    {
+      "dataset": "broad",
+      "name": "36_disturbed_attached_magnet_5cm",
+      "path": "broad/36_disturbed_attached_magnet_5cm.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/36_disturbed_attached_magnet_5cm.hdf5",
+      "sha256": "6939dd3131ee9173b139fbb1264ec054cb6eed04293baf2359f4e7c007d96b52",
+      "bytes": 3287452
+    },
+    {
+      "dataset": "broad",
+      "name": "37_disturbed_office_A",
+      "path": "broad/37_disturbed_office_A.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/37_disturbed_office_A.hdf5",
+      "sha256": "3531bd23b50bc8e3ad1b12ed05da7ca39fdca6b9036a3ec606bc6db70c665c49",
+      "bytes": 4821358
+    },
+    {
+      "dataset": "broad",
+      "name": "38_disturbed_office_B",
+      "path": "broad/38_disturbed_office_B.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/38_disturbed_office_B.hdf5",
+      "sha256": "62f241227ebbabe619ea6bdf57072886b4fa3c8a2829ef197d5e69708cf1e515",
+      "bytes": 6086557
+    },
+    {
+      "dataset": "broad",
+      "name": "39_disturbed_mixed",
+      "path": "broad/39_disturbed_mixed.hdf5",
+      "url": "https://raw.githubusercontent.com/dlaidig/broad/7e2f8189bb4a3ac91eae32c69b6bc87f08a6e2ad/data_hdf5/39_disturbed_mixed.hdf5",
+      "sha256": "cbda4b1e184845fb15988a7df208bff9faef947fa21d3fd414e82e67c36e36a0",
+      "bytes": 7690948
+    },
+    {
+      "dataset": "sassari",
+      "name": "slow",
+      "path": "sassari/slow_v5.mat",
+      "url": "https://github.com/marcocaruso/mimu_optical_dataset_caruso_sassari/releases/download/v5.0/slow_v5.mat",
+      "sha256": "beb654b51b6becc75a5d5d39f94a55dbfd6da4a7ff704a25893d8657975e28a0",
+      "bytes": 17485800
+    },
+    {
+      "dataset": "sassari",
+      "name": "medium",
+      "path": "sassari/medium_v5.mat",
+      "url": "https://github.com/marcocaruso/mimu_optical_dataset_caruso_sassari/releases/download/v5.0/medium_v5.mat",
+      "sha256": "733b92230f3980a6b8d4ad3b4a57510d800ff6b28be3ee3244b751bb1ed38cdd",
+      "bytes": 14047170
+    },
+    {
+      "dataset": "sassari",
+      "name": "fast",
+      "path": "sassari/fast_v5.mat",
+      "url": "https://github.com/marcocaruso/mimu_optical_dataset_caruso_sassari/releases/download/v5.0/fast_v5.mat",
+      "sha256": "72744b44589b2a22cca3c5b857de8581875ede8d1976f6ac850681f44bab0b97",
+      "bytes": 13255954
+    }
+  ]
+}

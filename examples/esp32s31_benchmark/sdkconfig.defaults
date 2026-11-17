@@ -1,0 +1,8 @@
+# Repeatable compute-only baseline. Sensor drivers and radios are not started.
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_320=y
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+# CONFIG_PM_ENABLE is not set
+# CONFIG_SPIRAM is not set
+# CONFIG_FREERTOS_UNICORE is not set
+CONFIG_LOG_DEFAULT_LEVEL_WARN=y
+CONFIG_ESP_SYSTEM_PANIC_PRINT_HALT=y

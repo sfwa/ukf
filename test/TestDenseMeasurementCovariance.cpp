@@ -3,6 +3,7 @@
 #include <Eigen/Geometry>
 #include <Eigen/Cholesky>
 #include <Eigen/LU>
+#include <limits>
 #include "UKF/Types.h"
 #include "UKF/StateVector.h"
 #include "UKF/MeasurementVector.h"
@@ -206,7 +207,7 @@ void check_linear_filter(const Measurement& z, const typename Measurement::Dense
     standard.covariance = prior_covariance;
     standard.process_noise_covariance.setZero();
     standard.measurement_covariance = noise_root * noise_root.transpose();
-    standard.step(real_t(1), z);
+    ASSERT_TRUE(standard.step(real_t(1), z));
     expect_matrix_near(standard.innovation_covariance, innovation_covariance);
     expect_matrix_near(standard.state, expected_mean);
     expect_matrix_near(standard.covariance, expected_covariance);
@@ -216,7 +217,7 @@ void check_linear_filter(const Measurement& z, const typename Measurement::Dense
     square_root.root_covariance.setIdentity();
     square_root.process_noise_root_covariance.setZero();
     square_root.measurement_root_covariance = noise_root;
-    square_root.step(real_t(1), z);
+    ASSERT_TRUE(square_root.step(real_t(1), z));
     expect_matrix_near(square_root.innovation_root_covariance * square_root.innovation_root_covariance.transpose(),
         innovation_covariance);
     expect_matrix_near(square_root.state, expected_mean);
@@ -227,7 +228,7 @@ void check_linear_filter(const Measurement& z, const typename Measurement::Dense
     parameter.root_covariance.setIdentity();
     parameter.process_noise_root_covariance.setZero();
     parameter.measurement_root_covariance = noise_root;
-    parameter.step(z);
+    ASSERT_TRUE(parameter.step(z));
     expect_matrix_near(parameter.innovation_root_covariance * parameter.innovation_root_covariance.transpose(),
         innovation_covariance);
     expect_matrix_near(parameter.state, expected_mean);
@@ -262,4 +263,191 @@ TEST(DenseMeasurementCovarianceTest, AllFilterVariantsUseEveryColumnOfDynamicNoi
     const UKF::Matrix<3, 3> covariance = root * root.transpose();
     const UKF::Matrix<2, 2> active_noise = covariance.block<2, 2>(1, 1);
     check_linear_filter(z, root, active_noise);
+}
+
+TEST(DenseMeasurementCovarianceTest, ScalarSubsetRetainsLatentColumnsInOptimizedRoots) {
+    using Measurement = DenseNoiseSubsetMeasurement;
+    using Noise = Measurement::DenseCovarianceMatrix;
+    using Standard = UKF::Core<DenseNoiseTestState, Measurement, UKF::IntegratorEuler, Noise>;
+    using SquareRoot = UKF::SquareRootCore<DenseNoiseTestState, Measurement, UKF::IntegratorEuler, Noise>;
+    using Parameter = UKF::SquareRootParameterEstimationCore<DenseNoiseTestState, Measurement, Noise>;
+    Measurement z;
+    z.set_field<212>(real_t(2));
+    Noise noise_root = Noise::Identity();
+    noise_root.row(0) << real_t(1), real_t(0.5), real_t(-0.3);
+    const real_t innovation_variance = real_t(1) + noise_root.row(0).squaredNorm();
+    const UKF::Vector<2> prior_mean(1, -2);
+    const UKF::Vector<2> expected_mean(real_t(1) + real_t(1) / innovation_variance, -2);
+    UKF::Matrix<2, 2> expected_covariance = UKF::Matrix<2, 2>::Identity();
+    expected_covariance(0, 0) -= real_t(1) / innovation_variance;
+
+    Standard standard;
+    standard.state = prior_mean;
+    standard.covariance.setIdentity();
+    standard.process_noise_covariance.setZero();
+    standard.measurement_covariance = noise_root * noise_root.transpose();
+    ASSERT_TRUE(standard.step(real_t(1), z));
+    expect_matrix_near(standard.state, expected_mean);
+    expect_matrix_near(standard.covariance, expected_covariance);
+    EXPECT_NEAR(innovation_variance, standard.innovation_covariance(0, 0), real_t(1e-5));
+
+    SquareRoot square_root;
+    square_root.state = prior_mean;
+    square_root.root_covariance.setIdentity();
+    square_root.process_noise_root_covariance.setZero();
+    square_root.measurement_root_covariance = noise_root;
+    ASSERT_TRUE(square_root.step(real_t(1), z));
+    expect_matrix_near(square_root.state, expected_mean);
+    expect_matrix_near(square_root.root_covariance * square_root.root_covariance.transpose(), expected_covariance);
+    EXPECT_NEAR(innovation_variance, square_root.innovation_root_covariance.squaredNorm(), real_t(1e-5));
+
+    Parameter parameter;
+    parameter.state = prior_mean;
+    parameter.root_covariance.setIdentity();
+    parameter.process_noise_root_covariance.setZero();
+    parameter.measurement_root_covariance = noise_root;
+    ASSERT_TRUE(parameter.step(z));
+    expect_matrix_near(parameter.state, expected_mean);
+    expect_matrix_near(parameter.root_covariance * parameter.root_covariance.transpose(), expected_covariance);
+    EXPECT_NEAR(innovation_variance, parameter.innovation_root_covariance.squaredNorm(), real_t(1e-5));
+}
+
+TEST(DenseMeasurementCovarianceTest, InvalidDenseNoiseReportsFailureAndRestoresPublicValues) {
+    using Measurement = DenseNoiseTestMeasurement;
+    using Noise = Measurement::DenseCovarianceMatrix;
+    using Standard = UKF::Core<DenseNoiseTestState, Measurement, UKF::IntegratorEuler, Noise>;
+    using SquareRoot = UKF::SquareRootCore<DenseNoiseTestState, Measurement, UKF::IntegratorEuler, Noise>;
+    using Parameter = UKF::SquareRootParameterEstimationCore<DenseNoiseTestState, Measurement, Noise>;
+    Measurement z;
+    z << 2, 1;
+    const real_t invalid = std::numeric_limits<real_t>::quiet_NaN();
+
+    Standard standard;
+    standard.state << 1, -2;
+    standard.covariance.setIdentity();
+    standard.process_noise_covariance.setIdentity();
+    standard.measurement_covariance.setIdentity();
+    ASSERT_TRUE(standard.step(real_t(1), z));
+    const Standard previous_standard = standard;
+    standard.measurement_covariance(0, 1) = invalid;
+    EXPECT_FALSE(standard.step(real_t(1), z));
+    expect_matrix_near(standard.state, previous_standard.state);
+    expect_matrix_near(standard.covariance, previous_standard.covariance);
+    expect_matrix_near(standard.innovation, previous_standard.innovation);
+    expect_matrix_near(standard.innovation_covariance, previous_standard.innovation_covariance);
+    EXPECT_FALSE(standard.a_posteriori_step());
+    standard.measurement_covariance.setIdentity();
+    EXPECT_TRUE(standard.step(real_t(1), z));
+
+    SquareRoot square_root;
+    square_root.state << 1, -2;
+    square_root.root_covariance.setIdentity();
+    square_root.process_noise_root_covariance.setIdentity();
+    square_root.measurement_root_covariance.setIdentity();
+    ASSERT_TRUE(square_root.step(real_t(1), z));
+    const SquareRoot previous_square_root = square_root;
+    square_root.measurement_root_covariance(0, 1) = invalid;
+    EXPECT_FALSE(square_root.step(real_t(1), z));
+    expect_matrix_near(square_root.state, previous_square_root.state);
+    expect_matrix_near(square_root.root_covariance, previous_square_root.root_covariance);
+    expect_matrix_near(square_root.innovation, previous_square_root.innovation);
+    expect_matrix_near(square_root.innovation_root_covariance, previous_square_root.innovation_root_covariance);
+    EXPECT_FALSE(square_root.a_posteriori_step());
+    square_root.measurement_root_covariance.setIdentity();
+    EXPECT_TRUE(square_root.step(real_t(1), z));
+
+    Parameter parameter;
+    parameter.state << 1, -2;
+    parameter.root_covariance.setIdentity();
+    parameter.process_noise_root_covariance.setIdentity();
+    parameter.measurement_root_covariance.setIdentity();
+    ASSERT_TRUE(parameter.step(z));
+    const Parameter previous_parameter = parameter;
+    parameter.measurement_root_covariance(0, 1) = invalid;
+    EXPECT_FALSE(parameter.step(z));
+    expect_matrix_near(parameter.state, previous_parameter.state);
+    expect_matrix_near(parameter.root_covariance, previous_parameter.root_covariance);
+    expect_matrix_near(parameter.innovation, previous_parameter.innovation);
+    expect_matrix_near(parameter.innovation_root_covariance, previous_parameter.innovation_root_covariance);
+    EXPECT_FALSE(parameter.a_posteriori_step());
+    parameter.measurement_root_covariance.setIdentity();
+    EXPECT_TRUE(parameter.step(z));
+}
+
+namespace {
+
+template <typename Measurement>
+void check_noise_expressions(const Measurement& z, const Measurement& predicted) {
+    typename Measurement::CovarianceVector diagonal;
+    diagonal << 1, 2, 3, 4, 5, 6;
+    const typename Measurement::CovarianceVector doubled_diagonal = real_t(2) * diagonal;
+    const auto expected_diagonal_covariance = z.calculate_measurement_covariance(doubled_diagonal, predicted);
+    const auto expected_diagonal_root = z.calculate_measurement_root_covariance(doubled_diagonal, predicted);
+    expect_matrix_near(z.calculate_measurement_covariance(real_t(2) * diagonal, predicted),
+        expected_diagonal_covariance);
+    expect_matrix_near(z.calculate_measurement_root_covariance(real_t(2) * diagonal, predicted),
+        expected_diagonal_root);
+
+    // Ordinary Eigen vectors retain the diagonal interpretation too.
+    const UKF::Vector<6> vector = doubled_diagonal;
+    expect_matrix_near(z.calculate_measurement_covariance(vector, predicted), expected_diagonal_covariance);
+    expect_matrix_near(z.calculate_measurement_root_covariance(vector, predicted), expected_diagonal_root);
+
+    const typename Measurement::DenseCovarianceMatrix root = correlated_noise_root();
+    const typename Measurement::DenseCovarianceMatrix covariance = root * root.transpose();
+    const typename Measurement::DenseCovarianceMatrix doubled_root = real_t(2) * root;
+    const auto expected_dense_covariance = z.calculate_measurement_covariance(covariance, predicted);
+    const auto expected_dense_root = z.calculate_measurement_root_covariance(doubled_root, predicted);
+    expect_matrix_near(z.calculate_measurement_covariance(root * root.transpose(), predicted),
+        expected_dense_covariance);
+    expect_matrix_near(z.calculate_measurement_root_covariance(real_t(2) * root, predicted), expected_dense_root);
+
+    // Both dimensions are runtime values, with stack storage for no-malloc builds.
+    UKF::MatrixDynamic<6, 6> runtime_noise(6, 1);
+    runtime_noise = diagonal;
+    expect_matrix_near(z.calculate_measurement_covariance(real_t(2) * runtime_noise, predicted),
+        expected_diagonal_covariance);
+    expect_matrix_near(z.calculate_measurement_root_covariance(real_t(2) * runtime_noise, predicted),
+        expected_diagonal_root);
+    runtime_noise = root;
+    expect_matrix_near(z.calculate_measurement_covariance(runtime_noise * runtime_noise.transpose(), predicted),
+        expected_dense_covariance);
+    expect_matrix_near(z.calculate_measurement_root_covariance(real_t(2) * runtime_noise, predicted),
+        expected_dense_root);
+}
+
+}
+
+TEST(DenseMeasurementCovarianceTest, FixedNoiseExpressionsPreserveVectorAndMatrixShapes) {
+    MixedDenseMeasurement z, predicted;
+    z.set_field<200>(UKF::Vector<2>(2, -1));
+    z.set_field<201>(UKF::FieldVector(1, 2, 3));
+    z.set_field<202>(4);
+    predicted = z;
+    predicted.set_field<201>(UKF::FieldVector(2, 1, 3));
+    check_noise_expressions(z, predicted);
+}
+
+TEST(DenseMeasurementCovarianceTest, DynamicNoiseExpressionsPreserveVectorAndMatrixShapes) {
+    DynamicDenseMeasurement z, predicted;
+    z.set_field<202>(4);
+    z.set_field<201>(UKF::FieldVector(1, 2, 3));
+    predicted.set_field<201>(UKF::FieldVector(2, 1, 3));
+    predicted.set_field<202>(4);
+    check_noise_expressions(z, predicted);
+}
+
+TEST(DenseMeasurementCovarianceTest, ScalarNoiseExpressionsHaveUnambiguousSemantics) {
+    using Fixed = UKF::FixedMeasurementVector<UKF::Field<220, real_t>>;
+    using Dynamic = UKF::DynamicMeasurementVector<UKF::Field<220, real_t>>;
+    Fixed fixed;
+    fixed.set_field<220>(real_t(3));
+    Dynamic dynamic;
+    dynamic.set_field<220>(real_t(3));
+    Fixed::DenseCovarianceMatrix noise;
+    noise(0, 0) = real_t(2);
+    EXPECT_EQ(real_t(4), fixed.calculate_measurement_covariance(real_t(2) * noise, fixed)(0, 0));
+    EXPECT_EQ(real_t(4), fixed.calculate_measurement_root_covariance(real_t(2) * noise, fixed)(0, 0));
+    EXPECT_EQ(real_t(4), dynamic.calculate_measurement_covariance(real_t(2) * noise, dynamic)(0, 0));
+    EXPECT_EQ(real_t(4), dynamic.calculate_measurement_root_covariance(real_t(2) * noise, dynamic)(0, 0));
 }

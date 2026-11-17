@@ -1,4 +1,7 @@
 *.py[cod]
+.benchmark-cache/
+benchmark-results/
+.venv/
 .DS_Store
 
 # C extensions
@@ -12,6 +15,8 @@ a.out
 *.egg-info
 dist
 build
+/build-stm32h735/
+/build-code-size/
 eggs
 parts
 var

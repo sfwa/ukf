@@ -45,18 +45,44 @@ namespace UKF {
         return Vector<3>(0, -v(2), v(1)).normalized();
     }
 
-    /* Calculate the smallest rotation vector which transforms v1 into v2. */
+    /*
+    Scale a field vector to unit length, returning its length, or zero for a
+    zero vector. Dividing by the largest component first keeps the squared
+    norm clear of underflow and overflow at any physical scale.
+    */
+    inline real_t unit_direction(const Vector<3>& v, Vector<3>& direction) {
+        const real_t scale = v.cwiseAbs().maxCoeff();
+        if (scale == real_t(0)) {
+            direction = v;
+            return real_t(0);
+        }
+        direction = v / scale;
+        const real_t length = direction.norm();
+        direction /= length;
+        return scale * length;
+    }
+
+    /*
+    Calculate the smallest rotation vector which transforms v1 into v2. The
+    rotation depends only on the directions of the two vectors, so the
+    calculation is done on unit vectors: its tolerances are then relative,
+    and a field given in teslas (about 5e-5) is handled like one in gauss. A
+    zero vector has no direction, and gives no rotation.
+    */
     template <typename T>
     inline Vector<3> calculate_rotation_vector(const Vector<3>& v2, const Vector<3>& v1) {
-        Vector<3> axis = Vector<3>::Zero();
-        real_t norm = std::sqrt(v1.squaredNorm() * v2.squaredNorm());
-        real_t q_w = norm + v1.dot(v2);
+        Vector<3> u1, u2;
+        if (unit_direction(v1, u1) == real_t(0) || unit_direction(v2, u2) == real_t(0)) {
+            return Vector<3>::Zero();
+        }
+        const real_t q_w = real_t(1) + u1.dot(u2);
 
-        /* Check whether the vectors are antiparallel or too small. */
+        /* Check whether the vectors are antiparallel. */
+        Vector<3> axis;
         if(q_w > std::numeric_limits<real_t>::epsilon()) {
-            axis = v1.cross(v2);
-        } else if(norm > std::numeric_limits<real_t>::epsilon()) {
-            axis = antiparallel_axis(v1);
+            axis = u1.cross(u2);
+        } else {
+            axis = antiparallel_axis(u1);
         }
 
         /* The cross/dot quaternion is not unit length. Multiplying the
@@ -80,7 +106,7 @@ namespace UKF {
     the same deterministic axis convention as calculate_rotation_vector.
     */
     template <typename T>
-    inline Matrix<3, 3> calculate_rotation_vector_jacobian(const Vector<3>& v2, const Vector<3>& v1) {
+    inline Matrix<3, 3> rotation_vector_jacobian_of(const Vector<3>& v2, const Vector<3>& v1) {
         const real_t norm = std::sqrt(v1.squaredNorm() * v2.squaredNorm());
         const real_t w = norm + v1.dot(v2);
         Vector<3> c = Vector<3>::Zero();
@@ -113,6 +139,23 @@ namespace UKF {
     }
 
     /*
+    The rotation vector does not change when either field vector is scaled,
+    so its Jacobian at v2 is the Jacobian at the unit vectors divided by
+    |v2|: the scale of the field noise carries through to the rotation. The
+    unit vectors keep the tolerances above relative. A zero vector, which
+    has no direction, is passed through as it is.
+    */
+    template <typename T>
+    inline Matrix<3, 3> calculate_rotation_vector_jacobian(const Vector<3>& v2, const Vector<3>& v1) {
+        Vector<3> u1, u2;
+        const real_t length = unit_direction(v2, u2);
+        if (unit_direction(v1, u1) == real_t(0) || length == real_t(0)) {
+            return rotation_vector_jacobian_of<T>(v2, v1);
+        }
+        return rotation_vector_jacobian_of<T>(u2, u1) / length;
+    }
+
+    /*
     This helper class links a MeasurementVector type and a StateVector type
     in order to allow function overloading without ambiguity. These functions
     are also shared between the FixedMeasurementVector and
@@ -124,7 +167,7 @@ namespace UKF {
         /* Map sensor noise into the corresponding innovation coordinates. */
         template <typename T>
         static Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> noise_jacobian(
-                const T& z_pred, const T& z) {
+                [[maybe_unused]] const T& z_pred, [[maybe_unused]] const T& z) {
             return Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>>::Identity();
         }
 
@@ -138,7 +181,7 @@ namespace UKF {
         */
         template <typename T>
         static Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> field_covariance(
-                const T& p, const T& z_pred, const T& z) {
+                const T& p, [[maybe_unused]] const T& z_pred, [[maybe_unused]] const T& z) {
             Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> temp =
                 Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>>::Zero();
             if constexpr (std::is_arithmetic_v<T>) {
@@ -164,7 +207,7 @@ namespace UKF {
 
         template <typename T>
         static Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> field_root_covariance(
-                const T& p, const T& z_pred, const T& z) {
+                const T& p, [[maybe_unused]] const T& z_pred, [[maybe_unused]] const T& z) {
             Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> temp =
                 Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>>::Zero();
             if constexpr (std::is_arithmetic_v<T>) {
@@ -199,14 +242,15 @@ namespace UKF {
         */
         template <typename T>
         static T sigma_point_mean(
-                const Matrix<Detail::StateVectorDimension<T>, S::num_sigma()>& sigma, const T& field) {
-            return Parameters::Sigma_WMI<S>*sigma.template block<Detail::StateVectorDimension<T>, S::num_sigma()-1>(
-                0, 1).rowwise().sum() + Parameters::Sigma_WM0<S>*sigma.col(0);
+                const Matrix<Detail::StateVectorDimension<T>, S::num_sigma()>& sigma, [[maybe_unused]] const T& field) {
+            /* Accumulate offsets from the central point; see StateVector. */
+            return sigma.col(0) + Parameters::Sigma_WMI<S> *
+                (sigma.template rightCols<S::num_sigma()-1>().colwise() - sigma.col(0)).rowwise().sum();
         }
 
-        static real_t sigma_point_mean(const Matrix<1, S::num_sigma()>& sigma, const real_t& field) {
-            return Parameters::Sigma_WMI<S>*sigma.template segment<S::num_sigma()-1>(1).sum()
-                + Parameters::Sigma_WM0<S>*sigma(0);
+        static real_t sigma_point_mean(const Matrix<1, S::num_sigma()>& sigma, [[maybe_unused]] const real_t& field) {
+            return sigma(0) + Parameters::Sigma_WMI<S> *
+                (sigma.template segment<S::num_sigma()-1>(1).array() - sigma(0)).sum();
         }
 
         /*
@@ -215,7 +259,7 @@ namespace UKF {
         set of sigma points. Then, calculate the mean of these rotations and
         apply it to the central sigma point.
         */
-        static FieldVector sigma_point_mean(const Matrix<3, S::num_sigma()>& sigma, const FieldVector& field) {
+        static FieldVector sigma_point_mean(const Matrix<3, S::num_sigma()>& sigma, [[maybe_unused]] const FieldVector& field) {
             Vector<3> temp = Vector<3>::Zero();
 
             for(std::size_t i = 0; i < S::num_sigma()-1; i++) {
@@ -359,11 +403,9 @@ public:
         CovarianceMatrix cov;
 
         /* Calculate the covariance using equation 64 from the Kraft paper. */
-        cov = CovarianceMatrix::Zero();
-        for(std::size_t i = 1; i < S::num_sigma(); i++) {
-            cov.noalias() += Parameters::Sigma_WCI<S> * (z_prime.col(i) * z_prime.col(i).transpose());
-        }
-        cov.noalias() += Parameters::Sigma_WC0<S> * (z_prime.col(0) * z_prime.col(0).transpose());
+        cov.noalias() = (Parameters::Sigma_WCI<S> * z_prime.template rightCols<S::num_sigma() - 1>()) *
+            z_prime.template rightCols<S::num_sigma() - 1>().transpose();
+        cov.noalias() += (Parameters::Sigma_WC0<S> * z_prime.col(0)) * z_prime.col(0).transpose();
 
         return cov;
     }
@@ -376,9 +418,11 @@ public:
             const typename S::SigmaPointDistribution& X, const U&... input) const {
         SigmaPointDistribution<S> Z(size(), S::num_sigma());
 
+        /* Reference the inputs once rather than copying them per sigma point. */
+        const std::tuple<const U&...> inputs{input...};
         for(std::size_t i = 0; i < S::num_sigma(); i++) {
             FixedMeasurementVector temp;
-            calculate_field_measurements<S, std::tuple<U...>, Fields...>(temp, X.col(i), std::make_tuple(input...));
+            calculate_field_measurements<S, const std::tuple<const U&...>&, Fields...>(temp, X.col(i), inputs);
             Z.col(i) = temp;
         }
 
@@ -423,6 +467,37 @@ public:
         DenseCovarianceMatrix transform = DenseCovarianceMatrix::Zero();
         (calculate_field_noise_transform<Fields>(transform, z_pred), ...);
         return transform * measurement_root_covariance;
+    }
+
+    /* Resolve Eigen expressions before conversion can match both noise types. */
+    template <typename Derived>
+    CovarianceMatrix calculate_measurement_covariance(const Eigen::MatrixBase<Derived>& measurement_covariance,
+            const FixedMeasurementVector& z_pred) const {
+        if constexpr (Derived::ColsAtCompileTime == 1) {
+            return calculate_measurement_covariance(CovarianceVector(measurement_covariance), z_pred);
+        } else {
+            if constexpr (Derived::ColsAtCompileTime == Eigen::Dynamic) {
+                if (measurement_covariance.cols() == 1) {
+                    return calculate_measurement_covariance(CovarianceVector(measurement_covariance), z_pred);
+                }
+            }
+            return calculate_measurement_covariance(DenseCovarianceMatrix(measurement_covariance), z_pred);
+        }
+    }
+
+    template <typename Derived>
+    CovarianceMatrix calculate_measurement_root_covariance(const Eigen::MatrixBase<Derived>& measurement_root_covariance,
+            const FixedMeasurementVector& z_pred) const {
+        if constexpr (Derived::ColsAtCompileTime == 1) {
+            return calculate_measurement_root_covariance(CovarianceVector(measurement_root_covariance), z_pred);
+        } else {
+            if constexpr (Derived::ColsAtCompileTime == Eigen::Dynamic) {
+                if (measurement_root_covariance.cols() == 1) {
+                    return calculate_measurement_root_covariance(CovarianceVector(measurement_root_covariance), z_pred);
+                }
+            }
+            return calculate_measurement_root_covariance(DenseCovarianceMatrix(measurement_root_covariance), z_pred);
+        }
     }
 
     /* Return the innovation using the supplied measurement vector. */
@@ -643,7 +718,7 @@ public:
         std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(Key)>(field_offsets);
 
         /* Check if this field has already been set. If so, replace it. */
-        if(offset < Base::size()) {
+        if(offset < static_cast<std::size_t>(Base::size())) {
             Base::template segment<Detail::get_field_size<Fields...>(Key)>(offset) << in;
         } else {
             /*
@@ -701,11 +776,9 @@ public:
         CovarianceMatrix cov(Base::size(), Base::size());
 
         /* Calculate the covariance using equation 64 from the Kraft paper. */
-        cov = CovarianceMatrix::Zero(Base::size(), Base::size());
-        for(std::size_t i = 1; i < S::num_sigma(); i++) {
-            cov.noalias() += Parameters::Sigma_WCI<S> * (z_prime.col(i) * z_prime.col(i).transpose());
-        }
-        cov.noalias() += Parameters::Sigma_WC0<S> * (z_prime.col(0) * z_prime.col(0).transpose());
+        cov.noalias() = (Parameters::Sigma_WCI<S> * z_prime.template rightCols<S::num_sigma() - 1>()) *
+            z_prime.template rightCols<S::num_sigma() - 1>().transpose();
+        cov.noalias() += (Parameters::Sigma_WC0<S> * z_prime.col(0)) * z_prime.col(0).transpose();
 
         return cov;
     }
@@ -718,9 +791,11 @@ public:
             const typename S::SigmaPointDistribution& X, const U&... input) const {
         SigmaPointDistribution<S> Z(Base::size(), S::num_sigma());
 
+        /* Reference the inputs once rather than copying them per sigma point. */
+        const std::tuple<const U&...> inputs{input...};
         for(std::size_t i = 0; i < S::num_sigma(); i++) {
             DynamicMeasurementVector temp(Base::size());
-            calculate_field_measurements<S, std::tuple<U...>, Fields...>(temp, X.col(i), std::make_tuple(input...));
+            calculate_field_measurements<S, const std::tuple<const U&...>&, Fields...>(temp, X.col(i), inputs);
             Z.col(i) = temp;
         }
 
@@ -765,6 +840,38 @@ public:
         DenseNoiseRootMatrix transform = DenseNoiseRootMatrix::Zero(Base::size(), max_covariance_size());
         (calculate_field_noise_transform<Fields>(transform, z_pred), ...);
         return transform * measurement_root_covariance;
+    }
+
+    /* Resolve Eigen expressions before conversion can match both noise types. */
+    template <typename Derived>
+    CovarianceMatrix calculate_measurement_covariance(const Eigen::MatrixBase<Derived>& measurement_covariance,
+            const DynamicMeasurementVector& z_pred) const {
+        if constexpr (Derived::ColsAtCompileTime == 1) {
+            return calculate_measurement_covariance(CovarianceVector(measurement_covariance), z_pred);
+        } else {
+            if constexpr (Derived::ColsAtCompileTime == Eigen::Dynamic) {
+                if (measurement_covariance.cols() == 1) {
+                    return calculate_measurement_covariance(CovarianceVector(measurement_covariance), z_pred);
+                }
+            }
+            return calculate_measurement_covariance(DenseCovarianceMatrix(measurement_covariance), z_pred);
+        }
+    }
+
+    /* Bounded dynamic columns accommodate both diagonal and dense root shapes. */
+    template <typename Derived>
+    CovarianceMatrix calculate_measurement_root_covariance(const Eigen::MatrixBase<Derived>& measurement_root_covariance,
+            const DynamicMeasurementVector& z_pred) const {
+        if constexpr (Derived::ColsAtCompileTime == 1) {
+            return calculate_measurement_root_covariance(CovarianceVector(measurement_root_covariance), z_pred);
+        } else {
+            if constexpr (Derived::ColsAtCompileTime == Eigen::Dynamic) {
+                if (measurement_root_covariance.cols() == 1) {
+                    return calculate_measurement_root_covariance(CovarianceVector(measurement_root_covariance), z_pred);
+                }
+            }
+            return calculate_measurement_root_covariance(DenseCovarianceMatrix(measurement_root_covariance), z_pred);
+        }
     }
 
     /* Return the innovation using the supplied measurement vector. */

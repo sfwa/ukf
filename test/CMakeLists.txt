@@ -20,34 +20,45 @@ LOG_DOWNLOAD ON
 LOG_CONFIGURE ON
 LOG_BUILD ON)
 
-# Disable dynamic memory allocation in Eigen
-ADD_DEFINITIONS(-DEIGEN_NO_MALLOC -DUKF_DOUBLE_PRECISION)
-
 # Specify include dir
 ExternalProject_Get_Property(googletest source_dir)
 SET(googletest_dir ${source_dir})
 
-INCLUDE_DIRECTORIES(${googletest_dir}/include ../include ${eigen_dir})
-
-# Add test executable target
-ADD_EXECUTABLE(unittest
+# The same tests build in double precision (unittest) and in single
+# precision (unittest_single), with tolerances for each precision; single
+# precision is what most embedded targets run.
+SET(unittest_sources
     TestStateVector.cpp
     TestFixedMeasurementVector.cpp
     TestDynamicMeasurementVector.cpp
     TestDenseMeasurementCovariance.cpp
     TestCore.cpp
-    TestInnovationGating.cpp
-    TestSquareRootCore.cpp)
-
-# Create dependency of test on googletest
-ADD_DEPENDENCIES(unittest googletest eigen3)
-
-# Specify test's link libraries
+    TestSquareRootCore.cpp
+    TestInnovationGating.cpp)
 ExternalProject_Get_Property(googletest binary_dir)
-TARGET_LINK_LIBRARIES(unittest
-    ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}gtest.a
-    ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}gtest_main.a
-    pthread)
+FIND_PACKAGE(Threads REQUIRED)
 
-ADD_TEST(unittest unittest)
-ADD_CUSTOM_TARGET(check COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS unittest)
+FOREACH(precision double single)
+    IF(precision STREQUAL "double")
+        SET(target unittest)
+    ELSE()
+        SET(target unittest_${precision})
+    ENDIF()
+    ADD_EXECUTABLE(${target} ${unittest_sources})
+    TARGET_COMPILE_DEFINITIONS(${target} PRIVATE EIGEN_NO_MALLOC)
+    TARGET_INCLUDE_DIRECTORIES(${target} SYSTEM PRIVATE ${googletest_dir}/include)
+    ukf_project_warnings(${target})
+
+    # Create dependency of test on googletest
+    ADD_DEPENDENCIES(${target} googletest)
+
+    # Specify test's link libraries
+    TARGET_LINK_LIBRARIES(${target} PRIVATE
+        ukf::${precision}
+        ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}gtest.a
+        ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}gtest_main.a
+        Threads::Threads)
+
+    ADD_TEST(${target} ${target})
+ENDFOREACH()
+ADD_CUSTOM_TARGET(check COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS unittest unittest_single)
