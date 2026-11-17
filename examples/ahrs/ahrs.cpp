@@ -395,7 +395,7 @@ void ukf_iterate(float dt) {
       ahrs_errors.a_priori_step();
       ahrs_errors.innovation_step(meas, ahrs.state);
       break;
-    case 1:
+    case 1: {
       ahrs_errors.a_posteriori_step();
 
       /* Clip parameters to physically reasonable values. */
@@ -419,6 +419,10 @@ void ukf_iterate(float dt) {
       temp[2] = std::max(real_t(0.5f), std::min(2.0f, temp[2]));
       ahrs_errors.state.set_field<MagnetometerScaleFactor>(temp);
 
+      step = 0;
+      break;
+    }
+    default:
       step = 0;
       break;
   }

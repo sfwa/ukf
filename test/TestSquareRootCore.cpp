@@ -223,8 +223,8 @@ MyCore create_initialised_sr_test_filter() {
 
   real_t a, b;
   real_t dt = 0.01;
-  a = std::sqrt(0.1 * dt * dt);
-  b = std::sqrt(0.1 * dt);
+  a = real_t(std::sqrt(0.1 * dt * dt));
+  b = real_t(std::sqrt(0.1 * dt));
   test_filter.process_noise_root_covariance << a, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
       0, 0, a, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, a, 0, 0, 0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, b, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, b, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -253,7 +253,7 @@ TEST(ParameterNoiseTest, CorrelatedPriorAndDiagonalNoise) {
   for (int i = 1; i <= 3; ++i) {
     filter.a_priori_step();
     UKF::Matrix<2, 2> expected;
-    expected << 1 + i, 1, 1, 2 + i;
+    expected << real_t(1 + i), 1, 1, real_t(2 + i);
     EXPECT_LT(
         (filter.root_covariance * filter.root_covariance.transpose() - expected)
             .norm(),
@@ -1244,7 +1244,7 @@ TEST(SquareRootCoreTest, FieldVectorCorrectionMatchesStandardCore) {
 
   for (int i = 0; i < 6; ++i) {
     MyMeasurementVector m;
-    m.set_field<GPS_Position>(UKF::Vector<3>(1 + i, -2, 0.5));
+    m.set_field<GPS_Position>(UKF::Vector<3>(real_t(1 + i), -2, 0.5));
     m.set_field<GPS_Velocity>(UKF::Vector<3>(0.3, 0, -0.1));
     m.set_field<Accelerometer>(attitude * UKF::Vector<3>(0, 0, -9.8) +
                                UKF::Vector<3>(0.05, -0.02, 0.01));

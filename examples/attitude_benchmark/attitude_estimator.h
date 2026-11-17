@@ -358,7 +358,7 @@ class Attitude_Estimator {
   */
   bool update(const ImuSample& previous, const ImuSample& sample) {
     const Attitude_StateVector& state = attitude_filter.state;
-    real_t dt = sample.time - previous.time;
+    real_t dt = real_t(sample.time - previous.time);
 
     /* Integrate the average of the two IMU readings over the step. */
     Attitude_Input input;

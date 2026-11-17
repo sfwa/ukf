@@ -311,7 +311,7 @@ template <>
 template <>
 real_t MyMeasurementVector::expected_measurement<MyStateVector, StaticPressure>(
     const MyStateVector& state) {
-  return 101.3 - 1.2 * (state.get_field<Altitude>() / 100.0);
+  return real_t(101.3 - 1.2 * (state.get_field<Altitude>() / 100.0));
 }
 
 template <>
@@ -319,7 +319,7 @@ template <>
 real_t
 MyMeasurementVector::expected_measurement<MyStateVector, DynamicPressure>(
     const MyStateVector& state) {
-  return 0.5 * 1.225 * state.get_field<Velocity>().squaredNorm();
+  return real_t(0.5 * 1.225 * state.get_field<Velocity>().squaredNorm());
 }
 
 template <>
@@ -356,7 +356,7 @@ template <>
 real_t MyMeasurementVector::expected_measurement<MyStateVector, StaticPressure,
                                                  UKF::Vector<3>>(
     const MyStateVector& state, [[maybe_unused]] const UKF::Vector<3>& input) {
-  return 101.3 - 1.2 * (state.get_field<Altitude>() / 100.0);
+  return real_t(101.3 - 1.2 * (state.get_field<Altitude>() / 100.0));
 }
 
 template <>
@@ -364,7 +364,7 @@ template <>
 real_t MyMeasurementVector::expected_measurement<MyStateVector, DynamicPressure,
                                                  UKF::Vector<3>>(
     const MyStateVector& state, [[maybe_unused]] const UKF::Vector<3>& input) {
-  return 0.5 * 1.225 * state.get_field<Velocity>().squaredNorm();
+  return real_t(0.5 * 1.225 * state.get_field<Velocity>().squaredNorm());
 }
 
 template <>

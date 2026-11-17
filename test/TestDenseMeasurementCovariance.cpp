@@ -471,7 +471,7 @@ void check_noise_expressions(const Measurement& z,
       expected_diagonal_root);
 
   // Ordinary Eigen vectors retain the diagonal interpretation too.
-  const UKF::Vector<6> vector = doubled_diagonal;
+  const UKF::Vector<6>& vector = doubled_diagonal;
   expect_matrix_near(z.calculate_measurement_covariance(vector, predicted),
                      expected_diagonal_covariance);
   expect_matrix_near(z.calculate_measurement_root_covariance(vector, predicted),

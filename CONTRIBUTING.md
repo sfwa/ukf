@@ -35,6 +35,19 @@ with warnings as errors, and checks the consumer fixtures in
 [test/cmake](test/cmake). It is fine to open a pull request and let CI find
 what your machine did not.
 
+## Formatting and lint
+
+Code is formatted with clang-format 18 in Google style (`.clang-format`), and
+clang-tidy 18 checks it for bugs and performance problems (`.clang-tidy`). CI
+runs both. Before pushing, format with:
+
+```sh
+git ls-files '*.h' '*.cpp' '*.c' | xargs clang-format-18 -i
+```
+
+[AGENTS.md](AGENTS.md) has the clang-tidy command, and the repository's
+conventions for anyone, person or coding agent, making a change.
+
 ## Changes that move numbers
 
 If your change can move a filter's estimates, covariance or innovation, say

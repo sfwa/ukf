@@ -24,7 +24,9 @@ struct Timing {
     over_budget += elapsed_us > budget_us;
   }
 
-  double mean_us() const { return count ? double(total_us) / count : 0.0; }
+  double mean_us() const {
+    return count ? double(total_us) / double(count) : 0.0;
+  }
 };
 
 /* Nearest-rank percentile of an already sorted, nonempty timing array. */

@@ -45,7 +45,7 @@ inline ::testing::AssertionResult CmpHelperQuaternionEq(
   a.normalize();
   b.normalize();
 
-  real_t angle = (real_t)2.0 * acos(std::abs(a.dot(b)));
+  real_t angle = (real_t)2.0 * std::acos(std::abs(a.dot(b)));
 
   if (angle < tol) {
     return ::testing::AssertionSuccess();

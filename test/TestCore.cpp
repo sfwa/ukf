@@ -3,6 +3,7 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <cmath>
+#include <cstddef>
 #include <limits>
 #include <type_traits>
 
@@ -207,8 +208,8 @@ MyCore create_initialised_test_filter() {
 
   real_t a, b;
   real_t dt = 0.01;
-  a = std::sqrt(0.1 * dt * dt);
-  b = std::sqrt(0.1 * dt);
+  a = real_t(std::sqrt(0.1 * dt * dt));
+  b = real_t(std::sqrt(0.1 * dt));
   test_filter.process_noise_covariance << a, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
       a, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, a, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
       0, b, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, b, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -762,7 +763,8 @@ TEST(CoreTest, SigmaPointMeanIsExactForConstantComponents) {
   state.set_field<Attitude>(UKF::Quaternion(0.5, -0.5, 0.5, 0.5));
   state.set_field<AngularVelocity>(UKF::Vector<3>(0.3, 0.2, 0.1));
   MyStateVector::SigmaPointDistribution sigma_points;
-  for (std::size_t i = 0; i < MyStateVector::num_sigma(); ++i) {
+  for (std::ptrdiff_t i = 0; i < std::ptrdiff_t(MyStateVector::num_sigma());
+       ++i) {
     sigma_points.col(i) = state;
   }
   const MyStateVector mean =
@@ -1072,7 +1074,8 @@ void check_sigma_points(Filter& filter, const UKF::Matrix<2, 2>& covariance,
     EXPECT_LT((centre - filter.state).norm(), real_t(1e-5));
   }
   UKF::Matrix<2, 2> spread = UKF::Matrix<2, 2>::Zero();
-  for (std::size_t i = 1; i < AdditiveNoiseState::num_sigma(); ++i) {
+  for (std::ptrdiff_t i = 1;
+       i < std::ptrdiff_t(AdditiveNoiseState::num_sigma()); ++i) {
     spread += (points.col(i) - centre) * (points.col(i) - centre).transpose();
   }
   spread /= real_t(2) * UKF::Parameters::ScaledDimension<AdditiveNoiseState>;
