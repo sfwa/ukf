@@ -3,6 +3,7 @@
 #include <Eigen/Geometry>
 #include <cmath>
 #include <limits>
+#include <type_traits>
 #include "UKF/Types.h"
 #include "UKF/Integrator.h"
 #include "UKF/StateVector.h"
@@ -852,4 +853,71 @@ TEST(CoreTest, CanonicalQuaternionProcessModel) {
 
 TEST(CoreTest, CanonicalQuaternionProcessModelSquareRoot) {
     check_canonical_process_model<UKF::SquareRootCore>();
+}
+
+/*
+The sigma points of the last a priori step are readable through a const
+reference: the central point is the predicted state, and the outer points
+reproduce the predicted covariance, process noise included. An a posteriori
+step leaves them as the points the measurement update used.
+*/
+template <typename Filter>
+void check_sigma_points(Filter& filter, const UKF::Matrix<2, 2>& covariance, bool after_update) {
+    using Points = typename AdditiveNoiseState::SigmaPointDistribution;
+    static_assert(std::is_same<decltype(filter.get_sigma_points()), const Points&>::value,
+        "Sigma points must be exposed by const reference");
+    const Points& points = filter.get_sigma_points();
+    const UKF::Vector<2> centre = points.col(0);
+    if (!after_update) {
+        EXPECT_LT((centre - filter.state).norm(), real_t(1e-5));
+    }
+    UKF::Matrix<2, 2> spread = UKF::Matrix<2, 2>::Zero();
+    for (std::size_t i = 1; i < AdditiveNoiseState::num_sigma(); ++i) {
+        spread += (points.col(i) - centre) * (points.col(i) - centre).transpose();
+    }
+    spread /= real_t(2) * UKF::Parameters::ScaledDimension<AdditiveNoiseState>;
+    EXPECT_LT((spread - covariance).norm(), real_t(1e-4));
+}
+
+TEST(SigmaPointAccessTest, AllCoresExposeTheirLastSigmaPoints) {
+    UKF::Core<AdditiveNoiseState, AdditiveNoiseMeasurement> filter;
+    UKF::SquareRootCore<AdditiveNoiseState, AdditiveNoiseMeasurement, AdditiveNoiseIntegrator> sr;
+    UKF::SquareRootParameterEstimationCore<AdditiveNoiseState, AdditiveNoiseMeasurement> parameter;
+    EXPECT_TRUE(filter.get_sigma_points().isZero());
+    EXPECT_TRUE(sr.get_sigma_points().isZero());
+    EXPECT_TRUE(parameter.get_sigma_points().isZero());
+
+    filter.state << 2, -1;
+    filter.covariance << 2, 0.4, 0.4, 1;
+    filter.process_noise_covariance << 0.5, 0.1, 0.1, 0.3;
+    filter.measurement_covariance << 0.7, 0.9;
+    sr.state = filter.state;
+    sr.root_covariance = filter.covariance.llt().matrixL();
+    sr.process_noise_root_covariance = filter.process_noise_covariance.llt().matrixL();
+    sr.measurement_root_covariance = filter.measurement_covariance.array().sqrt();
+    parameter.state = filter.state;
+    parameter.root_covariance = sr.root_covariance;
+    parameter.process_noise_root_covariance = sr.process_noise_root_covariance;
+    parameter.measurement_root_covariance = sr.measurement_root_covariance;
+    AdditiveNoiseMeasurement z;
+    z << 1, -2;
+
+    ASSERT_TRUE(filter.a_priori_step(real_t(0.5)));
+    ASSERT_TRUE(sr.a_priori_step(real_t(0.5)));
+    ASSERT_TRUE(parameter.a_priori_step());
+    const UKF::Matrix<2, 2> predicted = filter.covariance;
+    const UKF::Matrix<2, 2> sr_predicted = sr.root_covariance * sr.root_covariance.transpose();
+    const UKF::Matrix<2, 2> parameter_predicted = parameter.root_covariance * parameter.root_covariance.transpose();
+    check_sigma_points(filter, predicted, false);
+    check_sigma_points(sr, sr_predicted, false);
+    check_sigma_points(parameter, parameter_predicted, false);
+
+    const auto before = filter.get_sigma_points();
+    ASSERT_TRUE(filter.innovation_step(z) && filter.a_posteriori_step());
+    ASSERT_TRUE(sr.innovation_step(z) && sr.a_posteriori_step());
+    ASSERT_TRUE(parameter.innovation_step(z) && parameter.a_posteriori_step());
+    EXPECT_TRUE(before == filter.get_sigma_points());
+    check_sigma_points(filter, predicted, true);
+    check_sigma_points(sr, sr_predicted, true);
+    check_sigma_points(parameter, parameter_predicted, true);
 }
