@@ -26,6 +26,7 @@ SOFTWARE.
 #include <limits>
 #include <tuple>
 #include <cstddef>
+#include <type_traits>
 #include <utility>
 #include <Eigen/Core>
 #include "UKF/Types.h"
@@ -475,54 +476,50 @@ public:
     }
 
 private:
-    /* Private functions for creating a sigma point distribution. */
-    template <typename T>
-    static Matrix<Detail::StateVectorDimension<T>, num_sigma()> perturb_state(
-            const T& state, const Matrix<Detail::CovarianceDimension<T>, covariance_size()>& cov) {
-        Matrix<Detail::StateVectorDimension<T>, num_sigma()> temp;
-        temp.col(0) = state;
-        temp.template block<Detail::StateVectorDimension<T>, covariance_size()>(0, 1) = cov.colwise() + state;
-        temp.template block<Detail::StateVectorDimension<T>, covariance_size()>(0, covariance_size()+1) =
-            -(cov.colwise() - state);
-
-        return temp;
-    }
-
-    static Matrix<1, num_sigma()> perturb_state(real_t state, const Matrix<1, covariance_size()>& cov) {
-        Matrix<1, num_sigma()> temp;
-        temp(0) = state;
-        temp.template segment<covariance_size()>(1) = cov.array() + state;
-        temp.template segment<covariance_size()>(covariance_size()+1) = -(cov.array() - state);
-
-        return temp;
-    }
-
     /*
-    Construct error quaternions using the MRP method, equation 34 from the
-    Markley paper.
+    Private functions for creating a sigma point distribution. The field's
+    rows of the covariance root are an Eigen expression, read in place, and
+    the field type selects the perturbation, so that no overload has to be
+    deduced from a block converted to a matrix.
+
+    Quaternion fields construct error quaternions using the MRP method,
+    equation 34 from the Markley paper.
     */
-    static Matrix<4, num_sigma()> perturb_state(const Quaternion& state, const Matrix<3, covariance_size()>& cov) {
-        Matrix<4, num_sigma()> temp;
-        temp.col(0) << state.vec(), state.w();
+    template <typename T, typename Derived>
+    static Matrix<Detail::StateVectorDimension<T>, num_sigma()> perturb_state(
+            const T& state, const Eigen::MatrixBase<Derived>& cov) {
+        Matrix<Detail::StateVectorDimension<T>, num_sigma()> temp;
+        if constexpr (std::is_same<T, Quaternion>::value) {
+            temp.col(0) << state.vec(), state.w();
 
-        Array<1, covariance_size()> x_2 = cov.colwise().squaredNorm();
-        Array<1, covariance_size()> err_w =
-            (-Parameters::MRP_A<StateVector> * x_2 + Parameters::MRP_F<StateVector>
-                * (x_2 * (real_t(1.0) - Parameters::MRP_A<StateVector>*Parameters::MRP_A<StateVector>)
-                + Parameters::MRP_F<StateVector> * Parameters::MRP_F<StateVector>).sqrt())
-            / (Parameters::MRP_F<StateVector> * Parameters::MRP_F<StateVector> + x_2);
-        Array<3, covariance_size()> err_xyz = cov.array().rowwise() * (err_w + Parameters::MRP_A<StateVector>)
-            * (real_t(1.0) / Parameters::MRP_F<StateVector>);
+            Array<1, covariance_size()> x_2 = cov.colwise().squaredNorm();
+            Array<1, covariance_size()> err_w =
+                (-Parameters::MRP_A<StateVector> * x_2 + Parameters::MRP_F<StateVector>
+                    * (x_2 * (real_t(1.0) - Parameters::MRP_A<StateVector>*Parameters::MRP_A<StateVector>)
+                    + Parameters::MRP_F<StateVector> * Parameters::MRP_F<StateVector>).sqrt())
+                / (Parameters::MRP_F<StateVector> * Parameters::MRP_F<StateVector> + x_2);
+            Array<3, covariance_size()> err_xyz = cov.array().rowwise() * (err_w + Parameters::MRP_A<StateVector>)
+                * (real_t(1.0) / Parameters::MRP_F<StateVector>);
 
-        Quaternion temp_q;
-        for(std::size_t i = 0; i < covariance_size(); i++) {
-            temp_q = Quaternion(err_w(i), err_xyz(0, i), err_xyz(1, i), err_xyz(2, i)) * state;
-            temp.col(i+1) << temp_q.vec(), temp_q.w();
-        }
+            Quaternion temp_q;
+            for(std::size_t i = 0; i < covariance_size(); i++) {
+                temp_q = Quaternion(err_w(i), err_xyz(0, i), err_xyz(1, i), err_xyz(2, i)) * state;
+                temp.col(i+1) << temp_q.vec(), temp_q.w();
+            }
 
-        for(std::size_t i = 0; i < covariance_size(); i++) {
-            temp_q = Quaternion(err_w(i), err_xyz(0, i), err_xyz(1, i), err_xyz(2, i)).conjugate() * state;
-            temp.col(i+covariance_size()+1) << temp_q.vec(), temp_q.w();
+            for(std::size_t i = 0; i < covariance_size(); i++) {
+                temp_q = Quaternion(err_w(i), err_xyz(0, i), err_xyz(1, i), err_xyz(2, i)).conjugate() * state;
+                temp.col(i+covariance_size()+1) << temp_q.vec(), temp_q.w();
+            }
+        } else if constexpr (std::is_arithmetic<T>::value) {
+            temp(0) = state;
+            temp.template segment<covariance_size()>(1) = cov.array() + state;
+            temp.template segment<covariance_size()>(covariance_size()+1) = -(cov.array() - state);
+        } else {
+            temp.col(0) = state;
+            temp.template block<Detail::StateVectorDimension<T>, covariance_size()>(0, 1) = cov.colwise() + state;
+            temp.template block<Detail::StateVectorDimension<T>, covariance_size()>(0, covariance_size()+1) =
+                -(cov.colwise() - state);
         }
 
         return temp;
@@ -544,8 +541,10 @@ private:
 
     /*
     Private functions for calculating the mean of each field in a sigma point
-    distribution. Note that sigma_point_mean takes a dummy argument so that
-    the overrides work properly.
+    distribution. The field type is an explicit template argument and the
+    rows of the sigma points are an Eigen expression, so no overload has to
+    be chosen from a converted block or a dummy field value; every field
+    mean is a vector of the field's stored dimension.
 
     Calculate the mean as described in section 3.4 of the Kraft paper, using
     the weights from the scaled unscented transform.
@@ -559,46 +558,39 @@ private:
     and WMI are large and of opposite sign, so the equivalent W0*X0 +
     WMI*sum(Xi) cancels catastrophically (in single precision with alpha^2 =
     1e-6, a component of 100 can be off by more than 10).
+
+    For a quaternion, the mean is the barycentric mean with renormalisation.
+    This is not an ad-hoc renormalisation of an appoximation; see the paper
+    mentioned above for details. q and -q are the same rotation, and a
+    process model may return either (one which keeps w >= 0 flips a sigma
+    point that crosses 180 degrees). Each sigma point is taken in the
+    hemisphere of the central one before averaging, so the mean depends only
+    on the rotations.
     */
-    template <typename T>
-    static T sigma_point_mean(const Matrix<Detail::StateVectorDimension<T>, num_sigma()>& sigma, [[maybe_unused]] const T& field) {
-        return sigma.col(0) + Parameters::Sigma_WMI<StateVector> *
-            (sigma.template rightCols<num_sigma()-1>().colwise() - sigma.col(0)).rowwise().sum();
-    }
-
-    static real_t sigma_point_mean(const Matrix<1, num_sigma()>& sigma, [[maybe_unused]] const real_t& field) {
-        return sigma(0) + Parameters::Sigma_WMI<StateVector> *
-            (sigma.template segment<num_sigma()-1>(1).array() - sigma(0)).sum();
-    }
-
-    /*
-    Calculate the quaternion barycentric mean with renormalisation. Note that
-    this is not an ad-hoc renormalisation of an appoximation; see the paper
-    mentioned above for details.
-
-    q and -q are the same rotation, and a process model may return either
-    (one which keeps w >= 0 flips a sigma point that crosses 180 degrees).
-    Each sigma point is taken in the hemisphere of the central one before
-    averaging, so the mean depends only on the rotations.
-    */
-    static Vector<4> sigma_point_mean(const Matrix<4, num_sigma()>& sigma, [[maybe_unused]] const Quaternion& field) {
-        Array<1, num_sigma()-1> signs;
-        for(std::size_t i = 0; i < num_sigma()-1; i++) {
-            signs(i) = sigma.col(i+1).dot(sigma.col(0)) < real_t(0) ? real_t(-1) : real_t(1);
+    template <typename T, typename Derived>
+    static Vector<Detail::StateVectorDimension<T>> sigma_point_mean(const Eigen::MatrixBase<Derived>& sigma) {
+        if constexpr (std::is_same<T, Quaternion>::value) {
+            Array<1, num_sigma()-1> signs;
+            for(std::size_t i = 0; i < num_sigma()-1; i++) {
+                signs(i) = sigma.col(i+1).dot(sigma.col(0)) < real_t(0) ? real_t(-1) : real_t(1);
+            }
+            const Vector<4> temp = sigma.col(0) + Parameters::Sigma_WMI<StateVector> *
+                ((sigma.template rightCols<num_sigma()-1>().array().rowwise() * signs).matrix().colwise() -
+                    sigma.col(0)).rowwise().sum();
+            const Quaternion temp_q = Quaternion(temp).normalized();
+            return Vector<4>(temp_q.x(), temp_q.y(), temp_q.z(), temp_q.w());
+        } else {
+            return sigma.col(0) + Parameters::Sigma_WMI<StateVector> *
+                (sigma.template rightCols<num_sigma()-1>().colwise() - sigma.col(0)).rowwise().sum();
         }
-        Vector<4> temp = sigma.col(0) + Parameters::Sigma_WMI<StateVector> *
-            ((sigma.template rightCols<num_sigma()-1>().array().rowwise() * signs).matrix().colwise() -
-                sigma.col(0)).rowwise().sum();
-        Quaternion temp_q = Quaternion(temp).normalized();
-        return Vector<4>(temp_q.x(), temp_q.y(), temp_q.z(), temp_q.w());
     }
 
     template <typename T>
     static void calculate_field_mean(const SigmaPointDistribution& X, StateVector& mean) {
         mean.template segment<Detail::StateVectorDimension<typename T::type>>(
-            Detail::get_field_offset<0, Fields...>(T::key)) << sigma_point_mean(
+            Detail::get_field_offset<0, Fields...>(T::key)) = sigma_point_mean<typename T::type>(
                 X.template block<Detail::StateVectorDimension<typename T::type>, num_sigma()>(
-                    Detail::get_field_offset<0, Fields...>(T::key), 0), typename T::type());
+                    Detail::get_field_offset<0, Fields...>(T::key), 0));
     }
 
     template <typename T1, typename T2, typename... Tail>
@@ -616,38 +608,35 @@ private:
     template <typename T, typename Derived>
     static Matrix<Detail::CovarianceDimension<T>, num_sigma()> sigma_point_deltas(
             const T& mean, const Eigen::MatrixBase<Derived>& X) {
-        return X.colwise() - mean;
-    }
-
-    template <typename Derived>
-    static Matrix<1, num_sigma()> sigma_point_deltas(real_t mean, const Eigen::MatrixBase<Derived>& X) {
-        return X.array() - mean;
-    }
-
-    template <typename Derived>
-    static Matrix<3, num_sigma()> sigma_point_deltas(const Quaternion& mean, const Eigen::MatrixBase<Derived>& X) {
-        Matrix<3, num_sigma()> temp;
-
-        /*
-        The attitude part of this set of vectors is calculated using equation
-        45 from the Kraft paper.
-        */
-        for(std::size_t i = 0; i < num_sigma(); i++) {
-            Quaternion delta_q = Quaternion(X.col(i)) * mean.conjugate();
+        if constexpr (std::is_same<T, Quaternion>::value) {
+            Matrix<3, num_sigma()> temp;
 
             /*
-            Take the shorter of the two rotations, whichever sign the sigma
-            point has. Gibbs vectors (MRP_A = 0) do not depend on the sign.
+            The attitude part of this set of vectors is calculated using
+            equation 45 from the Kraft paper.
             */
-            if (delta_q.w() < real_t(0)) {
-                delta_q.coeffs() = -delta_q.coeffs();
-            }
-            temp.col(i) = Parameters::MRP_F<StateVector> * delta_q.vec() /
-                (std::abs(Parameters::MRP_A<StateVector> + delta_q.w()) > std::numeric_limits<real_t>::epsilon() ?
-                    Parameters::MRP_A<StateVector> + delta_q.w() : std::numeric_limits<real_t>::epsilon());
-        }
+            for(std::size_t i = 0; i < num_sigma(); i++) {
+                Quaternion delta_q = Quaternion(X.col(i)) * mean.conjugate();
 
-        return temp;
+                /*
+                Take the shorter of the two rotations, whichever sign the
+                sigma point has. Gibbs vectors (MRP_A = 0) do not depend on
+                the sign.
+                */
+                if (delta_q.w() < real_t(0)) {
+                    delta_q.coeffs() = -delta_q.coeffs();
+                }
+                temp.col(i) = Parameters::MRP_F<StateVector> * delta_q.vec() /
+                    (std::abs(Parameters::MRP_A<StateVector> + delta_q.w()) > std::numeric_limits<real_t>::epsilon() ?
+                        Parameters::MRP_A<StateVector> + delta_q.w() : std::numeric_limits<real_t>::epsilon());
+            }
+
+            return temp;
+        } else if constexpr (std::is_arithmetic<T>::value) {
+            return X.array() - mean;
+        } else {
+            return X.colwise() - mean;
+        }
     }
 
     template <typename T>
@@ -666,27 +655,24 @@ private:
 
     /*
     Private functions to apply a delta vector to the state vector field by
-    field.
+    field. The field's rows of the delta are an Eigen expression, and the
+    field type selects the update.
+
+    A quaternion is updated from the MRP vector, equation 45 from the
+    Markley paper. The product is renormalised: the error quaternion is unit
+    length only up to roundoff, and a core which does not take a mean
+    between updates (the parameter estimation core) would otherwise let the
+    norm drift (by 0.2 to 0.3 % over 1e5 noisy single precision updates).
     */
-    template <typename T>
-    static T update_field(const T& state, const Vector<Detail::CovarianceDimension<T>>& delta) {
-        return state + delta;
-    }
-
-    static real_t update_field(const real_t& state, const Vector<1>& delta) {
-        return state + delta(0);
-    }
-
-    static Quaternion update_field(const Quaternion& state, const Vector<3>& delta) {
-        /*
-        Update the attitude quaternion from the MRP vector, equation 45 from
-        the Markley paper. The product is renormalised: the error quaternion
-        is unit length only up to roundoff, and a core which does not take a
-        mean between updates (the parameter estimation core) would otherwise
-        let the norm drift (by 0.2 to 0.3 % over 1e5 noisy single precision
-        updates).
-        */
-        return (Detail::rotation_vector_to_quaternion<StateVector>(delta) * state).normalized();
+    template <typename T, typename Derived>
+    static T update_field(const T& state, const Eigen::MatrixBase<Derived>& delta) {
+        if constexpr (std::is_same<T, Quaternion>::value) {
+            return (Detail::rotation_vector_to_quaternion<StateVector>(Vector<3>(delta)) * state).normalized();
+        } else if constexpr (std::is_arithmetic<T>::value) {
+            return state + delta(0);
+        } else {
+            return state + delta;
+        }
     }
 
     template <typename T>

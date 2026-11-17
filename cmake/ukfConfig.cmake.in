@@ -1,0 +1,20 @@
+# CMake package for an installed UKF. It provides the targets ukf::ukf,
+# ukf::single and ukf::double, as add_subdirectory does.
+@PACKAGE_INIT@
+
+# UKF was installed against an installed Eigen, which the targets link;
+# otherwise the Eigen headers it was built with were installed alongside it.
+if(@UKF_USE_SYSTEM_EIGEN@)
+    include(CMakeFindDependencyMacro)
+    find_dependency(Eigen3 NO_MODULE)
+    # As when UKF itself is configured: only the bundled 3.2.8 is patched.
+    if(Eigen3_VERSION VERSION_LESS 3.3)
+        set(ukf_FOUND FALSE)
+        set(ukf_NOT_FOUND_MESSAGE
+            "UKF needs Eigen 3.3 or newer, but found Eigen ${Eigen3_VERSION} at ${Eigen3_DIR}")
+        return()
+    endif()
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/ukfTargets.cmake")
+check_required_components(ukf)

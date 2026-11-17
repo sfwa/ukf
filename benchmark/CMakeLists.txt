@@ -14,9 +14,11 @@ CMAKE_ARGS
     -DCMAKE_BUILD_TYPE:STRING=Release
     -DCMAKE_POLICY_VERSION_MINIMUM:STRING=3.10
     -DBENCHMARK_ENABLE_TESTING:BOOL=OFF
-    # This old dependency enables -Werror in Release independently of UKF.
+    # This old dependency enables -Werror in Release and -pedantic-errors
+    # independently of UKF; Clang 22 reports its __COUNTER__ as an extension.
     # Keep strict warnings on our benchmarks, not the vendored library.
     -DHAVE_CXX_FLAG_WERROR:BOOL=OFF
+    -DHAVE_CXX_FLAG_PEDANTIC_ERRORS:BOOL=OFF
 # Disable install step
 INSTALL_COMMAND ""
 # Wrap download, configure and build steps in a script to log output

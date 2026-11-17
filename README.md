@@ -22,10 +22,11 @@ single or double precision.
 Use a C++17 compiler, CMake and `patch`. The commands below assume CMake 3.20
 or newer; the project files retain a CMake 3.10 minimum. The default build
 fetches pinned Eigen 3.2.8 (with the repository's allocation and C++17
-patches), Google Test and Google Benchmark sources as their targets are built.
-CMake 4 is supported. Visual Studio 2015 does not provide the required C++17
-support; CI checks GCC and Clang on Linux and Clang on macOS, in Debug and
-Release.
+patches), Google Test and Google Benchmark sources as their targets are built;
+[another Eigen](#choosing-an-eigen-version) can be used instead. CMake 4 is
+supported. Visual Studio 2015 does not provide the required C++17 support; CI
+checks GCC (13 and 15) and Clang (18 and 22) on Linux and Clang on macOS, in
+Debug and Release, with Eigen 3.2.8, 3.4.0 and 5.0.0.
 
 ```sh
 git clone https://github.com/sfwa/ukf.git
@@ -68,8 +69,27 @@ the C++17 requirement and any Eigen download dependency. If your application
 already defines its precision, link `ukf::ukf` (also available as `ukf`)
 instead: this target does not define either precision macro. Choose exactly one
 precision consistently across interacting translation units; adding the
-opposite macro does not override a precision target. An installed
-`find_package(ukf)` package is not provided.
+opposite macro does not override a precision target.
+
+To use an installed copy instead, build and install UKF, then find its package:
+
+```sh
+cmake -S path/to/ukf -B build-ukf -DCMAKE_INSTALL_PREFIX=/opt/ukf
+cmake --build build-ukf
+cmake --install build-ukf
+```
+
+```cmake
+find_package(ukf REQUIRED CONFIG) # With CMAKE_PREFIX_PATH including /opt/ukf.
+target_link_libraries(my_model PRIVATE ukf::double)
+```
+
+The package provides the same `ukf::ukf`, `ukf::single` and `ukf::double`
+targets, carrying the unrolling limit the installed copy was configured with.
+With the downloaded Eigen, its headers (patched, for 3.2.8) are installed
+under `include/ukf/eigen3`; with `UKF_USE_SYSTEM_EIGEN`, the package finds
+Eigen again when it is loaded. Install rules are generated when UKF is built
+on its own, or with `UKF_INSTALL=ON` as a subdirectory.
 
 Without CMake, add `include/` and the Eigen headers to the include path,
 compile as C++17, and define exactly one of `UKF_SINGLE_PRECISION` or
@@ -78,12 +98,30 @@ headers.
 
 | CMake option | Default | Purpose |
 | --- | --- | --- |
-| `UKF_USE_SYSTEM_EIGEN` | `OFF` | Use an installed Eigen 3.3+ package (`Eigen3::Eigen`) instead of patched Eigen 3.2.8 |
+| `UKF_USE_SYSTEM_EIGEN` | `OFF` | Use an installed Eigen 3.3 or newer (`Eigen3::Eigen`) instead of downloading one |
+| `UKF_EIGEN_VERSION` | `3.2.8` | Eigen release to download when not using an installed one: 3.2.8 (patched) or 3.3 and newer (unpatched) |
+| `UKF_EIGEN_URL` | empty (GitLab release) | Eigen source archive, as a URL or local file, to download instead; set `UKF_EIGEN_VERSION` to its version |
 | `UKF_EIGEN_UNROLLING_LIMIT` | empty (Eigen's 100) | Set `EIGEN_UNROLLING_LIMIT` for every target that links `ukf`; see below |
 | `UKF_WARNINGS_AS_ERRORS` | `ON` | Treat warnings in UKF's own targets as errors |
 | `UKF_BUILD_TESTS` | `ON` standalone, `OFF` as a subdirectory | Configure the unit tests and `check` target |
 | `UKF_BUILD_BENCHMARKS` | `ON` standalone, `OFF` as a subdirectory | Configure the benchmark target |
 | `UKF_BUILD_EXAMPLES` | `ON` standalone, `OFF` as a subdirectory | Configure the examples and benchmark executables |
+| `UKF_INSTALL` | `ON` standalone, `OFF` as a subdirectory | Generate install rules and the `ukf` CMake package |
+
+### Choosing an Eigen version
+
+By default UKF downloads Eigen 3.2.8 and applies the repository's patches,
+which keep its LLT free of heap allocation and let it compile as C++17; the
+embedded benchmarks and code-size figures use it. To use another Eigen:
+
+- Download another release with `-DUKF_EIGEN_VERSION=3.4.0` (or `5.0.0`, or
+  any release from 3.3). Releases other than 3.2.8 are used unpatched. To
+  build offline or from a mirror, also give `-DUKF_EIGEN_URL=` with the
+  archive's URL or path.
+- Use an installed Eigen 3.3 or newer, including Eigen 5, with
+  `-DUKF_USE_SYSTEM_EIGEN=ON`. Choose between installations with
+  `-DEigen3_DIR=` (the directory holding `Eigen3Config.cmake`) or
+  `CMAKE_PREFIX_PATH`.
 
 An installed Eigen package is used as installed; the bundled patches are not
 applied to it. Square-root rank updates use UKF-owned bounded workspace, so
