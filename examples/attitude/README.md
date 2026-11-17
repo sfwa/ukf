@@ -33,8 +33,9 @@ differentiating observations.
 
 The two reference vectors are normalized, synthetic gravity and magnetic
 directions. Their Cartesian components use ordinary `Vector<3>` measurements,
-as in the larger AHRS example. The quaternion is part of the **state**;
-native quaternion-valued **measurements** are not currently supported.
+as in the larger AHRS example. An orientation measured directly, for example
+by a camera, can be a `UKF::Quaternion` measurement field; see the
+[usage guide](../../docs/usage-guide.md#fields-and-measurement-mapping).
 
 ## Covariance conventions
 

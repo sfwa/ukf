@@ -193,6 +193,14 @@ roundoff. The cores never throw.
 template <typename StateVectorType, typename MeasurementVectorType, typename IntegratorType=NotUsedIntegrator,
     typename MeasurementNoiseType=typename MeasurementVectorType::CovarianceVector>
 class Core {
+public:
+    /*
+    The innovation has one entry for each component of the measurement's
+    uncertainty: a quaternion field's is its three-dimensional rotation.
+    Without quaternion fields it is the measurement vector type.
+    */
+    using InnovationVectorType = typename MeasurementVectorType::InnovationVector;
+
 protected:
     typename StateVectorType::SigmaPointDistribution sigma_points;
     typename StateVectorType::SigmaPointDeltas w_prime;
@@ -206,10 +214,10 @@ protected:
     using CrossCorrelation = Eigen::Matrix<
         real_t,
         StateVectorType::covariance_size(),
-        MeasurementVectorType::RowsAtCompileTime,
+        InnovationVectorType::RowsAtCompileTime,
         StateVectorType::covariance_size() == 1 ? Eigen::RowMajor : Eigen::ColMajor,
         StateVectorType::covariance_size(),
-        MeasurementVectorType::MaxRowsAtCompileTime>;
+        InnovationVectorType::MaxRowsAtCompileTime>;
 
 public:
     /* State and covariance are public for simplicity of initialisation. */
@@ -229,7 +237,7 @@ public:
     Innovation and innovation covariance are public to ease implementation of
     filter health monitoring.
     */
-    MeasurementVectorType innovation;
+    InnovationVectorType innovation;
     typename MeasurementVectorType::CovarianceMatrix innovation_covariance;
 
     Core() {
@@ -250,7 +258,7 @@ public:
     bool step(real_t delta, const MeasurementVectorType& z, const U&... input) {
         const StateVectorType previous_state = state;
         const typename StateVectorType::CovarianceMatrix previous_covariance = covariance;
-        const MeasurementVectorType previous_innovation = innovation;
+        const InnovationVectorType previous_innovation = innovation;
         const typename MeasurementVectorType::CovarianceMatrix previous_innovation_covariance =
             innovation_covariance;
         if (a_priori_step(delta, input...) && innovation_step(z, input...) && a_posteriori_step()) {
@@ -276,7 +284,7 @@ public:
     bool step_with_gate(real_t delta, const MeasurementVectorType& z, Gate&& gate, const U&... input) {
         const StateVectorType previous_state = state;
         const typename StateVectorType::CovarianceMatrix previous_covariance = covariance;
-        const MeasurementVectorType previous_innovation = innovation;
+        const InnovationVectorType previous_innovation = innovation;
         const typename MeasurementVectorType::CovarianceMatrix previous_innovation_covariance =
             innovation_covariance;
         if (a_priori_step(delta, input...) && innovation_step(z, input...)) {
@@ -379,7 +387,7 @@ public:
         Calculate innovation and innovation covariance.
         See equations 44 and 45 from the Kraft paper for details.
         */
-        const MeasurementVectorType predicted_innovation = z_pred.calculate_innovation(z);
+        const InnovationVectorType predicted_innovation = z_pred.calculate_innovation(z);
         typename MeasurementVectorType::CovarianceMatrix predicted_innovation_covariance =
             z_pred.template calculate_sigma_point_covariance<StateVectorType>(z_prime);
         predicted_innovation_covariance += z.calculate_measurement_covariance(measurement_covariance, z_pred);
@@ -502,6 +510,14 @@ same way as Core.
 template <typename StateVectorType, typename MeasurementVectorType, typename IntegratorType=NotUsedIntegrator,
     typename MeasurementNoiseType=typename MeasurementVectorType::CovarianceVector>
 class SquareRootCore {
+public:
+    /*
+    The innovation has one entry for each component of the measurement's
+    uncertainty: a quaternion field's is its three-dimensional rotation.
+    Without quaternion fields it is the measurement vector type.
+    */
+    using InnovationVectorType = typename MeasurementVectorType::InnovationVector;
+
 protected:
     typename StateVectorType::SigmaPointDistribution sigma_points;
     typename StateVectorType::SigmaPointDeltas w_prime;
@@ -515,10 +531,10 @@ protected:
     using CrossCorrelation = Eigen::Matrix<
         real_t,
         StateVectorType::covariance_size(),
-        MeasurementVectorType::RowsAtCompileTime,
+        InnovationVectorType::RowsAtCompileTime,
         StateVectorType::covariance_size() == 1 ? Eigen::RowMajor : Eigen::ColMajor,
         StateVectorType::covariance_size(),
-        MeasurementVectorType::MaxRowsAtCompileTime>;
+        InnovationVectorType::MaxRowsAtCompileTime>;
 
 public:
     /*
@@ -541,7 +557,7 @@ public:
     Innovation covariance is also stored in square-root form as described
     above.
     */
-    MeasurementVectorType innovation;
+    InnovationVectorType innovation;
     typename MeasurementVectorType::CovarianceMatrix innovation_root_covariance;
 
     SquareRootCore() {
@@ -566,7 +582,7 @@ public:
     bool step(real_t delta, const MeasurementVectorType& z, const U&... input) {
         const StateVectorType previous_state = state;
         const typename StateVectorType::CovarianceMatrix previous_root = root_covariance;
-        const MeasurementVectorType previous_innovation = innovation;
+        const InnovationVectorType previous_innovation = innovation;
         const typename MeasurementVectorType::CovarianceMatrix previous_innovation_root =
             innovation_root_covariance;
         if (a_priori_step(delta, input...) && innovation_step(z, input...) && a_posteriori_step()) {
@@ -592,7 +608,7 @@ public:
     bool step_with_gate(real_t delta, const MeasurementVectorType& z, Gate&& gate, const U&... input) {
         const StateVectorType previous_state = state;
         const typename StateVectorType::CovarianceMatrix previous_covariance = root_covariance;
-        const MeasurementVectorType previous_innovation = innovation;
+        const InnovationVectorType previous_innovation = innovation;
         const typename MeasurementVectorType::CovarianceMatrix previous_innovation_covariance =
             innovation_root_covariance;
         if (a_priori_step(delta, input...) && innovation_step(z, input...)) {
@@ -674,7 +690,7 @@ public:
         /* An empty dynamic measurement means prediction only. */
         if constexpr (MeasurementVectorType::RowsAtCompileTime == Eigen::Dynamic) {
             if (z.size() == 0) {
-                innovation = z;
+                innovation = InnovationVectorType();
                 innovation_root_covariance.resize(0, 0);
                 z_prime.resize(0, StateVectorType::num_sigma());
                 innovation_valid = true;
@@ -696,7 +712,7 @@ public:
         Calculate the innovation, and from the innovation deltas and the
         measurement noise the innovation root covariance.
         */
-        const MeasurementVectorType predicted_innovation = z_pred.calculate_innovation(z);
+        const InnovationVectorType predicted_innovation = z_pred.calculate_innovation(z);
         typename MeasurementVectorType::CovarianceMatrix predicted_root;
         if (!predicted_innovation.allFinite() || !Detail::sigma_point_root<StateVectorType>(predicted_root,
                 z_prime, z.calculate_measurement_root_covariance(measurement_root_covariance, z_pred))) {
@@ -736,7 +752,7 @@ public:
         root covariance. Their product is the update delta vector, which is
         applied to a copy of the a priori estimate.
         */
-        MeasurementVectorType whitened_innovation = innovation;
+        InnovationVectorType whitened_innovation = innovation;
         Detail::whiten(cross_correlation, whitened_innovation, innovation_root_covariance);
         StateVectorType updated_state = state;
         updated_state.apply_delta(cross_correlation * whitened_innovation);
@@ -785,6 +801,14 @@ Steps report failure in the same way as Core.
 template <typename StateVectorType, typename MeasurementVectorType,
     typename MeasurementNoiseType=typename MeasurementVectorType::CovarianceVector>
 class SquareRootParameterEstimationCore {
+public:
+    /*
+    The innovation has one entry for each component of the measurement's
+    uncertainty: a quaternion field's is its three-dimensional rotation.
+    Without quaternion fields it is the measurement vector type.
+    */
+    using InnovationVectorType = typename MeasurementVectorType::InnovationVector;
+
 protected:
     typename StateVectorType::SigmaPointDistribution sigma_points;
     typename StateVectorType::SigmaPointDeltas w_prime;
@@ -798,10 +822,10 @@ protected:
     using CrossCorrelation = Eigen::Matrix<
         real_t,
         StateVectorType::covariance_size(),
-        MeasurementVectorType::RowsAtCompileTime,
+        InnovationVectorType::RowsAtCompileTime,
         StateVectorType::covariance_size() == 1 ? Eigen::RowMajor : Eigen::ColMajor,
         StateVectorType::covariance_size(),
-        MeasurementVectorType::MaxRowsAtCompileTime>;
+        InnovationVectorType::MaxRowsAtCompileTime>;
 
 public:
     /*
@@ -824,7 +848,7 @@ public:
     Innovation covariance is also stored in square-root form as described
     above.
     */
-    MeasurementVectorType innovation;
+    InnovationVectorType innovation;
     typename MeasurementVectorType::CovarianceMatrix innovation_root_covariance;
 
     SquareRootParameterEstimationCore() {
@@ -849,7 +873,7 @@ public:
     bool step(const MeasurementVectorType& z, const U&... input) {
         const StateVectorType previous_state = state;
         const typename StateVectorType::CovarianceMatrix previous_root = root_covariance;
-        const MeasurementVectorType previous_innovation = innovation;
+        const InnovationVectorType previous_innovation = innovation;
         const typename MeasurementVectorType::CovarianceMatrix previous_innovation_root =
             innovation_root_covariance;
         if (a_priori_step() && innovation_step(z, input...) && a_posteriori_step()) {
@@ -875,7 +899,7 @@ public:
     bool step_with_gate(const MeasurementVectorType& z, Gate&& gate, const U&... input) {
         const StateVectorType previous_state = state;
         const typename StateVectorType::CovarianceMatrix previous_covariance = root_covariance;
-        const MeasurementVectorType previous_innovation = innovation;
+        const InnovationVectorType previous_innovation = innovation;
         const typename MeasurementVectorType::CovarianceMatrix previous_innovation_covariance =
             innovation_root_covariance;
         if (a_priori_step() && innovation_step(z, input...)) {
@@ -944,7 +968,7 @@ public:
         /* An empty dynamic measurement means no correction. */
         if constexpr (MeasurementVectorType::RowsAtCompileTime == Eigen::Dynamic) {
             if (z.size() == 0) {
-                innovation = z;
+                innovation = InnovationVectorType();
                 innovation_root_covariance.resize(0, 0);
                 z_prime.resize(0, StateVectorType::num_sigma());
                 innovation_valid = true;
@@ -966,7 +990,7 @@ public:
         Calculate the innovation, and from the innovation deltas and the
         measurement noise the innovation root covariance.
         */
-        const MeasurementVectorType predicted_innovation = z_pred.calculate_innovation(z);
+        const InnovationVectorType predicted_innovation = z_pred.calculate_innovation(z);
         typename MeasurementVectorType::CovarianceMatrix predicted_root;
         if (!predicted_innovation.allFinite() || !Detail::sigma_point_root<StateVectorType>(predicted_root,
                 z_prime, z.calculate_measurement_root_covariance(measurement_root_covariance, z_pred))) {
@@ -1006,7 +1030,7 @@ public:
         root covariance. Their product is the update delta vector, which is
         applied to a copy of the a priori estimate.
         */
-        MeasurementVectorType whitened_innovation = innovation;
+        InnovationVectorType whitened_innovation = innovation;
         Detail::whiten(cross_correlation, whitened_innovation, innovation_root_covariance);
         StateVectorType updated_state = state;
         updated_state.apply_delta(cross_correlation * whitened_innovation);

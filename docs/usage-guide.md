@@ -18,10 +18,20 @@ a gyroscope field reads its `AngularVelocity` field.
 Use `real_t` for a scalar and `UKF::Vector<N>` for an ordinary vector. Scalar
 states, scalar observations and multiple observations of a scalar state are
 supported by all three filter variants. State vectors also support
-`UKF::Quaternion`. Native quaternion measurement fields are not currently
-supported: an orientation has four stored coefficients but needs a
-three-dimensional rotation residual. Do not treat four quaternion coefficients
-as independent linear measurements.
+`UKF::Quaternion`, and so do measurement vectors, for an orientation reported
+directly by a sensor such as a camera, motion-capture system or another
+attitude estimator. A quaternion measurement has four stored coefficients but a
+three-dimensional uncertainty. Its innovation is the rotation vector of
+`z * conjugate(z_predicted)`, the shortest rotation from the predicted to the
+measured orientation, in the same normalised MRP convention as quaternion
+states. It does not depend on the sign of either quaternion. Its noise is three
+rotation variances (standard deviations for square-root filters), or a 3 × 3
+block of [dense noise](dense-measurement-covariance.md), in those rotation
+coordinates. A measurement type's `covariance_size()` counts three for each
+quaternion field, and `Measurement::InnovationVector` (also the cores'
+`InnovationVectorType`) holds the innovation in those coordinates: each
+quaternion field becomes a `UKF::Vector<3>` there. For measurements without
+quaternion fields `InnovationVector` is the measurement type itself, as before.
 
 `UKF::FieldVector` is a directional measurement such as gravity or a magnetic
 field. Its innovation uses a rotation vector, and the noise Jacobian maps raw

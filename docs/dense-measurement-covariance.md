@@ -91,6 +91,8 @@ Noise for a `UKF::FieldVector` is supplied in raw Cartesian sensor coordinates.
 The library applies the rotation-vector Jacobian to both sides of `R`, including
 correlations with other fields; for a factor it applies that Jacobian on the
 left. Supply sensor noise, not an already transformed innovation covariance.
+A `UKF::Quaternion` field takes a 3 × 3 block in rotation coordinates, so `R`
+has `covariance_size()` rows rather than one per stored coefficient.
 See the usage guide for [directional and quaternion conventions](usage-guide.md#fields-and-measurement-mapping).
 
 Noise is per filter instance and may change for each observation. Estimate the

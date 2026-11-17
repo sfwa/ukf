@@ -310,6 +310,40 @@ namespace UKF {
 
             return d_q;
         }
+
+        /*
+        Convert an error quaternion into a rotation vector, using equation 45
+        from the Kraft paper. The shorter of the two rotations is taken,
+        whichever sign the quaternion has; Gibbs vectors (MRP_A = 0) do not
+        depend on the sign.
+        */
+        template <typename T>
+        inline Vector<3> quaternion_to_rotation_vector(Quaternion d_q) {
+            if (d_q.w() < real_t(0)) {
+                d_q.coeffs() = -d_q.coeffs();
+            }
+            return UKF::Parameters::MRP_F<T> * d_q.vec() /
+                (std::abs(UKF::Parameters::MRP_A<T> + d_q.w()) > std::numeric_limits<real_t>::epsilon() ?
+                    UKF::Parameters::MRP_A<T> + d_q.w() : std::numeric_limits<real_t>::epsilon());
+        }
+
+        /*
+        The type that holds a field's noise and innovation: its value type,
+        except that a quaternion's uncertainty is a three-dimensional
+        rotation.
+        */
+        template <typename T>
+        struct CovarianceFieldTypeHelper {
+            using type = T;
+        };
+
+        template <>
+        struct CovarianceFieldTypeHelper<Quaternion> {
+            using type = Vector<3>;
+        };
+
+        template <typename T>
+        using CovarianceFieldType = typename CovarianceFieldTypeHelper<T>::type;
     }
 
 /*
@@ -616,19 +650,8 @@ private:
             equation 45 from the Kraft paper.
             */
             for(std::size_t i = 0; i < num_sigma(); i++) {
-                Quaternion delta_q = Quaternion(X.col(i)) * mean.conjugate();
-
-                /*
-                Take the shorter of the two rotations, whichever sign the
-                sigma point has. Gibbs vectors (MRP_A = 0) do not depend on
-                the sign.
-                */
-                if (delta_q.w() < real_t(0)) {
-                    delta_q.coeffs() = -delta_q.coeffs();
-                }
-                temp.col(i) = Parameters::MRP_F<StateVector> * delta_q.vec() /
-                    (std::abs(Parameters::MRP_A<StateVector> + delta_q.w()) > std::numeric_limits<real_t>::epsilon() ?
-                        Parameters::MRP_A<StateVector> + delta_q.w() : std::numeric_limits<real_t>::epsilon());
+                temp.col(i) = Detail::quaternion_to_rotation_vector<StateVector>(
+                    Quaternion(X.col(i)) * mean.conjugate());
             }
 
             return temp;
