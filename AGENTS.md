@@ -68,7 +68,9 @@ Both are standard tools with stock settings, checked in CI by the `lint` job.
   git ls-files '*.h' '*.cpp' '*.c' | xargs clang-format-18 -i
   ```
 
-  Other clang-format versions format a little differently, so use 18. Where
+  Other clang-format versions format a little differently, so use 18. A
+  commit that only reformats goes in `.git-blame-ignore-revs`, so that
+  `git blame` skips it. Where
   include order matters (a vendor header that must come first), wrap the
   block in `// clang-format off` and `// clang-format on`, with a comment
   saying why, as the embedded examples do.
