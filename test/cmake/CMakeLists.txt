@@ -40,8 +40,12 @@ elseif(MSVC)
     target_compile_definitions(consumer_no_exceptions PRIVATE _HAS_EXCEPTIONS=0)
 endif()
 
+# The version header may be used before a precision is chosen.
+add_executable(consumer_version version.cpp)
+target_link_libraries(consumer_version PRIVATE ukf::ukf)
+
 # A sibling that does not use UKF must retain the parent's language and flags.
 add_executable(consumer_sibling sibling.cpp)
-foreach(target consumer_double consumer_single consumer_manual consumer_no_exceptions consumer_sibling)
+foreach(target consumer_double consumer_single consumer_manual consumer_no_exceptions consumer_version consumer_sibling)
     add_test(NAME ${target} COMMAND ${target})
 endforeach()

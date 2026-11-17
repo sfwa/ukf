@@ -1,0 +1,24 @@
+---
+# clang-tidy's bug-finding, performance and static-analyser groups, as
+# errors. CI runs clang-tidy 18 over the tests, benchmarks and examples, and so
+# over every header they include; see AGENTS.md.
+#
+# Four checks are off:
+#   bugprone-easily-swappable-parameters: matrix and vector functions take
+#     several arguments of one type by design.
+#   performance-enum-size: state and measurement keys are unscoped enum
+#     constants by design, and their base type does not matter.
+#   clang-analyzer-optin.*: opt-in analyser checks, outside the default set.
+#   clang-analyzer-cplusplus.NewDeleteLeaks: reports Eigen's own
+#     throw_std_bad_alloc, which allocates on purpose when exceptions are off.
+Checks: >
+  -*,
+  bugprone-*,
+  performance-*,
+  clang-analyzer-*,
+  -bugprone-easily-swappable-parameters,
+  -performance-enum-size,
+  -clang-analyzer-optin.*,
+  -clang-analyzer-cplusplus.NewDeleteLeaks
+WarningsAsErrors: '*'
+HeaderFilterRegex: '.*/(include|test|examples|benchmark)/.*'

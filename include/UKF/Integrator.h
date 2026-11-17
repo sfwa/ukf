@@ -33,44 +33,46 @@ process_model(delta, input...) specialisation instead of integrating its
 derivative. Integrating with this type is a compile-time error.
 */
 class NotUsedIntegrator {
-   public:
-    template <typename S, typename... U>
-    static S integrate(real_t, const S&, const U&...) = delete;
+ public:
+  template <typename S, typename... U>
+  static S integrate(real_t, const S&, const U&...) = delete;
 };
 
 /* Fourth-order integrator. */
 class IntegratorRK4 {
-public:
-    template <typename S, typename... U>
-    static S integrate(real_t delta, const S& state, const U&... input) {
-        S a = state.derivative(input...);
-        S b = S(state + real_t(0.5) * delta * a).derivative(input...);
-        S c = S(state + real_t(0.5) * delta * b).derivative(input...);
-        S d = S(state + delta * c).derivative(input...);
-        return state + (delta / real_t(6.0)) * (a + (b * real_t(2.0)) + (c * real_t(2.0)) + d);
-    }
+ public:
+  template <typename S, typename... U>
+  static S integrate(real_t delta, const S& state, const U&... input) {
+    S a = state.derivative(input...);
+    S b = S(state + real_t(0.5) * delta * a).derivative(input...);
+    S c = S(state + real_t(0.5) * delta * b).derivative(input...);
+    S d = S(state + delta * c).derivative(input...);
+    return state + (delta / real_t(6.0)) *
+                       (a + (b * real_t(2.0)) + (c * real_t(2.0)) + d);
+  }
 };
 
 /* Second-order integrator. */
 class IntegratorHeun {
-public:
-    template <typename S, typename... U>
-    static S integrate(real_t delta, const S& state, const U&... input) {
-        S initial = state.derivative(input...);
-        S predictor = state + delta * initial;
-        return state + (delta * real_t(0.5)) * (initial + predictor.derivative(input...));
-    }
+ public:
+  template <typename S, typename... U>
+  static S integrate(real_t delta, const S& state, const U&... input) {
+    S initial = state.derivative(input...);
+    S predictor = state + delta * initial;
+    return state +
+           (delta * real_t(0.5)) * (initial + predictor.derivative(input...));
+  }
 };
 
 /* First-order integrator. */
 class IntegratorEuler {
-    public:
-    template <typename S, typename... U>
-    static S integrate(real_t delta, const S& state, const U&... input) {
-        return state + delta * state.derivative(input...);
-    }
+ public:
+  template <typename S, typename... U>
+  static S integrate(real_t delta, const S& state, const U&... input) {
+    return state + delta * state.derivative(input...);
+  }
 };
 
-}
+}  // namespace UKF
 
 #endif

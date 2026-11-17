@@ -3,6 +3,8 @@ name: CMake
 on:
   push:
     branches: [master]
+    # A release tag runs the whole matrix again, and checks the tag against the version header.
+    tags: ['v*']
   pull_request:
 
 permissions:
@@ -99,3 +101,46 @@ jobs:
           cmake -S test/cmake/installed -B build-installed -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/install
           cmake --build build-installed --config ${{ matrix.build_type }} --parallel 2
           ctest --test-dir build-installed --build-config ${{ matrix.build_type }} --output-on-failure
+
+  lint:
+    name: Formatting (clang-format) and static analysis (clang-tidy)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install LLVM 18's clang, clang-format and clang-tidy
+        run: sudo apt-get update && sudo apt-get install -y clang-18 clang-format-18 clang-tidy-18
+
+      - name: Every C and C++ file is formatted (Google style, .clang-format)
+        run: |
+          clang-format-18 --version
+          git ls-files '*.h' '*.cpp' '*.c' | xargs clang-format-18 --dry-run -Werror
+
+      - name: Configure with a compilation database, and fetch Eigen, GoogleTest and Google Benchmark
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang-18 -DCMAKE_CXX_COMPILER=clang++-18 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          cmake --build build --target eigen3 googletest googlebenchmark
+
+      - name: clang-tidy over the tests, benchmarks and examples, and the headers they include (.clang-tidy)
+        run: run-clang-tidy-18 -p build -quiet -j 4 "$PWD/(test|benchmark|examples)/"
+
+  version:
+    name: Version header, CMake package and release tag agree
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Read the version as CMake does, and check a release tag against it
+        run: |
+          cmake -S . -B build -DUKF_BUILD_TESTS=OFF -DUKF_BUILD_BENCHMARKS=OFF -DUKF_BUILD_EXAMPLES=OFF
+          version=$(sed -n 's/^#define UKF_VERSION_STRING "\(.*\)"$/\1/p' include/UKF/Version.h)
+          echo "Version header: $version"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            if [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
+              echo "::error::Tag ${GITHUB_REF_NAME} does not match UKF_VERSION_STRING ${version}"
+              exit 1
+            fi
+            awk -v heading="## [${version}]" 'index($0, heading) == 1 { found = 1 } END { exit !found }' CHANGELOG.md || { echo "::error::CHANGELOG.md has no section for ${version}"; exit 1; }
+          fi

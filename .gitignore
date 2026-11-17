@@ -54,6 +54,7 @@ python/ukf/ccs-c66x
 # Cmake junk
 CMakeFiles
 *.cmake
+!cmake/*.cmake
 CMakeCache.txt
 src/googletest
 src/eigen3*

@@ -20,7 +20,8 @@ states, scalar observations and multiple observations of a scalar state are
 supported by all three filter variants. State vectors also support
 `UKF::Quaternion`, and so do measurement vectors, for an orientation reported
 directly by a sensor such as a camera, motion-capture system or another
-attitude estimator. A quaternion measurement has four stored coefficients but a
+attitude estimator (experimental in 1.0: see
+[RELEASING.md](../RELEASING.md#experimental-interfaces)). A quaternion measurement has four stored coefficients but a
 three-dimensional uncertainty. Its innovation is the rotation vector of
 `z * conjugate(z_predicted)`, the shortest rotation from the predicted to the
 measured orientation, in the same normalised MRP convention as quaternion

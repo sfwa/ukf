@@ -1,6 +1,10 @@
 # CMake package for an installed UKF. It provides the targets ukf::ukf,
-# ukf::single and ukf::double, as add_subdirectory does.
+# ukf::single and ukf::double, as add_subdirectory does. ukf_VERSION is
+# MAJOR.MINOR.PATCH, and ukf_VERSION_PRERELEASE names the pre-release ("rc.1",
+# or "dev" for a build of master between releases) and is empty for a release.
 @PACKAGE_INIT@
+
+set(ukf_VERSION_PRERELEASE "@ukf_version_prerelease@")
 
 # UKF was installed against an installed Eigen, which the targets link;
 # otherwise the Eigen headers it was built with were installed alongside it.
