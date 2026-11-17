@@ -30,7 +30,8 @@ ADD_EXECUTABLE(unittest
     TestFixedMeasurementVector.cpp
     TestDynamicMeasurementVector.cpp
     TestCore.cpp
-    TestSquareRootCore.cpp)
+    TestSquareRootCore.cpp
+    TestInnovationGating.cpp)
 
 TARGET_COMPILE_DEFINITIONS(unittest PRIVATE EIGEN_NO_MALLOC)
 TARGET_INCLUDE_DIRECTORIES(unittest SYSTEM PRIVATE ${googletest_dir}/include)
