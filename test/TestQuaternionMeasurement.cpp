@@ -171,6 +171,28 @@ Measurement direct_observation(bool attitude_first) {
 }
 
 /*
+At exactly half a turn the error quaternion's scalar part is +0 or -0
+depending on the measurement's sign; both signs give the same innovation.
+*/
+TEST(QuaternionMeasurementTest, HalfTurnInnovationIgnoresSign) {
+    QFixed z_pred, z, flipped;
+    z_pred.set_field<QAttitudeSensor>(UKF::Quaternion::Identity());
+    z_pred.set_field<QBiasSensor>(real_t(1));
+    for (const UKF::Quaternion& half_turn : {UKF::Quaternion(0, 1, 0, 0), UKF::Quaternion(0, 0, -1, 0),
+            UKF::Quaternion(0, 0, 0, 1)}) {
+        z.set_field<QAttitudeSensor>(half_turn);
+        z.set_field<QBiasSensor>(real_t(1));
+        flipped = z;
+        flipped.set_field<QAttitudeSensor>(UKF::Quaternion(-half_turn.coeffs()));
+        const UKF::Vector<3> a = z_pred.calculate_innovation(z).get_field<QAttitudeSensor>();
+        const UKF::Vector<3> b = z_pred.calculate_innovation(flipped).get_field<QAttitudeSensor>();
+        EXPECT_TRUE(a == b);
+        EXPECT_TRUE(UKF::Detail::quaternion_to_rotation_vector<QFixed>(half_turn) ==
+            UKF::Detail::quaternion_to_rotation_vector<QFixed>(UKF::Quaternion(-half_turn.coeffs())));
+    }
+}
+
+/*
 A direct observation of a small rotation behaves as a linear one: the
 correction and the posterior uncertainty are those of a Kalman filter with
 the prior and noise variances, in each core and with either vector type.

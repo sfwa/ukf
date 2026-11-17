@@ -319,7 +319,15 @@ namespace UKF {
         */
         template <typename T>
         inline Vector<3> quaternion_to_rotation_vector(Quaternion d_q) {
-            if (d_q.w() < real_t(0)) {
+            /*
+            Choose one of the two signs. At exactly half a turn the scalar
+            part is zero (either +0 or -0), so the first nonzero vector
+            component decides instead.
+            */
+            const bool negate = d_q.w() < real_t(0) || (d_q.w() == real_t(0) &&
+                (d_q.x() < real_t(0) || (d_q.x() == real_t(0) &&
+                (d_q.y() < real_t(0) || (d_q.y() == real_t(0) && d_q.z() < real_t(0))))));
+            if (negate) {
                 d_q.coeffs() = -d_q.coeffs();
             }
             return UKF::Parameters::MRP_F<T> * d_q.vec() /
