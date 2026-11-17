@@ -1,0 +1,4 @@
+---
+# Google's C++ style, unmodified: https://google.github.io/styleguide/cppguide.html
+# CI checks every C and C++ file with clang-format 18; see AGENTS.md.
+BasedOnStyle: Google

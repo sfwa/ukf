@@ -23,9 +23,10 @@ SOFTWARE.
 #ifndef TYPES_H
 #define TYPES_H
 
-#include "UKF/Config.h"
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+
+#include "UKF/Config.h"
 
 namespace UKF {
 
@@ -33,8 +34,10 @@ template <int Rows, int Columns>
 using Matrix = Eigen::Matrix<real_t, Rows, Columns>;
 
 template <int Rows, int Columns>
-using MatrixDynamic = Eigen::Matrix<real_t, Eigen::Dynamic, Eigen::Dynamic,
-    Rows == 1 && Columns != 1 ? Eigen::RowMajor : Eigen::ColMajor, Rows, Columns>;
+using MatrixDynamic =
+    Eigen::Matrix<real_t, Eigen::Dynamic, Eigen::Dynamic,
+                  Rows == 1 && Columns != 1 ? Eigen::RowMajor : Eigen::ColMajor,
+                  Rows, Columns>;
 
 template <int Rows, int Columns>
 using Array = Eigen::Array<real_t, Rows, Columns>;
@@ -48,13 +51,13 @@ using VectorDynamic = Eigen::Matrix<real_t, Eigen::Dynamic, 1, 0, Length, 1>;
 using Quaternion = Eigen::Quaternion<real_t>;
 
 class FieldVector : public Vector<3> {
-public:
-	/* Inherit Eigen::Matrix constructors and assignment operators. */
-    using Base = Vector<3>;
-    using Base::Base;
-    using Base::operator=;
+ public:
+  /* Inherit Eigen::Matrix constructors and assignment operators. */
+  using Base = Vector<3>;
+  using Base::Base;
+  using Base::operator=;
 };
 
-}
+}  // namespace UKF
 
 #endif

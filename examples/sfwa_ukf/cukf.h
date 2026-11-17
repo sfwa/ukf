@@ -25,6 +25,9 @@ SOFTWARE.
 
 #include <stdint.h>
 
+/* real_t, as the library was built: single or double precision. */
+#include "UKF/Config.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -35,10 +38,10 @@ extern "C" {
 
 /* Dynamics model types. */
 enum ukf_model_t {
-    UKF_MODEL_NONE = 0,
-    UKF_MODEL_CENTRIPETAL = 1,
-    UKF_MODEL_CUSTOM = 2,
-    UKF_MODEL_X8 = 3
+  UKF_MODEL_NONE = 0,
+  UKF_MODEL_CENTRIPETAL = 1,
+  UKF_MODEL_CUSTOM = 2,
+  UKF_MODEL_X8 = 3
 };
 
 /*
@@ -61,31 +64,31 @@ Members are as follows:
         readings
 */
 struct ukf_ioboard_params_t {
-    real_t accel_orientation[4]; /* x, y, z, W */
-    real_t accel_offset[3]; /* forwards, starboard, down from CoG (m) */
-    real_t gyro_orientation[4]; /* x, y, z, W */
-    real_t mag_orientation[4]; /* x, y, z, W */
-    real_t mag_field[3]; /* North, East, Down (µT) */
+  real_t accel_orientation[4]; /* x, y, z, W */
+  real_t accel_offset[3];      /* forwards, starboard, down from CoG (m) */
+  real_t gyro_orientation[4];  /* x, y, z, W */
+  real_t mag_orientation[4];   /* x, y, z, W */
+  real_t mag_field[3];         /* North, East, Down (µT) */
 
-    real_t accel_covariance[3];
-    real_t gyro_covariance[3];
-    real_t mag_covariance[3];
-    real_t gps_position_covariance[3];
-    real_t gps_velocity_covariance[3];
-    real_t pitot_covariance;
-    real_t barometer_amsl_covariance;
+  real_t accel_covariance[3];
+  real_t gyro_covariance[3];
+  real_t mag_covariance[3];
+  real_t gps_position_covariance[3];
+  real_t gps_velocity_covariance[3];
+  real_t pitot_covariance;
+  real_t barometer_amsl_covariance;
 };
 
 struct ukf_state_t {
-    real_t position[3]; /* lat (rad), lon (rad), alt (m above ellipsoid) */
-    real_t velocity[3]; /* North (m/s), East (m/s), Down (m/s) */
-    real_t acceleration[3]; /* forwards (m/s), starboard (m/s), down (m/s) */
-    real_t attitude[4]; /* x, y, z, W */
-    real_t angular_velocity[3]; /* rolling (rad/s), pitching (rad/s),
+  real_t position[3];     /* lat (rad), lon (rad), alt (m above ellipsoid) */
+  real_t velocity[3];     /* North (m/s), East (m/s), Down (m/s) */
+  real_t acceleration[3]; /* forwards (m/s), starboard (m/s), down (m/s) */
+  real_t attitude[4];     /* x, y, z, W */
+  real_t angular_velocity[3]; /* rolling (rad/s), pitching (rad/s),
                                    yawing (rad/s) */
-    real_t angular_acceleration[3];
-    real_t wind_velocity[3]; /* North (m/s), East (m/s), Down (m/s) */
-    real_t gyro_bias[3]; /* X (rad/s), Y (rad/s), Z (rad/s) */
+  real_t angular_acceleration[3];
+  real_t wind_velocity[3]; /* North (m/s), East (m/s), Down (m/s) */
+  real_t gyro_bias[3];     /* X (rad/s), Y (rad/s), Z (rad/s) */
 };
 
 /*
@@ -94,9 +97,7 @@ be compatible between the C++ and C versions of the UKF, so they take pointers
 to C arrays representing the state vector, the control vector, and the output
 vector.
 */
-typedef void (*ukf_model_function_t)(const real_t *, const real_t *,
-                                     real_t *);
-
+typedef void (*ukf_model_function_t)(const real_t *, const real_t *, real_t *);
 
 void ukf_init(void);
 
@@ -150,10 +151,7 @@ void ukf_iterate(float dt, real_t control_vector[UKF_CONTROL_DIM]);
 /*
 Functions to access the compiled configuration
 */
-enum ukf_precision_t {
-    UKF_PRECISION_FLOAT = 0,
-    UKF_PRECISION_DOUBLE = 1
-};
+enum ukf_precision_t { UKF_PRECISION_FLOAT = 0, UKF_PRECISION_DOUBLE = 1 };
 
 uint32_t ukf_config_get_state_dim(void);
 uint32_t ukf_config_get_measurement_dim(void);

@@ -24,28 +24,35 @@ reaches L.
 */
 template <typename Derived>
 auto lower_factor(const Eigen::MatrixBase<Derived>& vectors) {
-    using Scalar = typename Derived::Scalar;
-    using Index = typename Derived::Index;
-    Eigen::Matrix<Scalar, Derived::RowsAtCompileTime, Derived::ColsAtCompileTime, Eigen::ColMajor,
-        Derived::MaxRowsAtCompileTime, Derived::MaxColsAtCompileTime> a = vectors;
-    Eigen::Matrix<Scalar, Derived::ColsAtCompileTime, Derived::ColsAtCompileTime, Eigen::ColMajor,
-        Derived::MaxColsAtCompileTime, Derived::MaxColsAtCompileTime> factor;
-    factor.setZero(a.cols(), a.cols());
-    for (Index k = 0; k < std::min(a.rows(), a.cols()); ++k) {
-        const Index rows = a.rows() - k;
-        Scalar tau = 0, pivot = 0;
-        a.col(k).tail(rows).makeHouseholderInPlace(tau, pivot);
-        a(k, k) = Scalar(1);
-        for (Index j = k + 1; j < a.cols(); ++j) {
-            a.col(j).tail(rows) -= (tau * a.col(k).tail(rows).dot(a.col(j).tail(rows))) * a.col(k).tail(rows);
-        }
-
-        /* Row k of the triangular factor is column k of L, up to its sign. */
-        a(k, k) = pivot;
-        factor.col(k).tail(a.cols() - k) = (pivot < Scalar(0) ? Scalar(-1) : Scalar(1)) *
-            a.row(k).tail(a.cols() - k).transpose();
+  using Scalar = typename Derived::Scalar;
+  using Index = typename Derived::Index;
+  Eigen::Matrix<Scalar, Derived::RowsAtCompileTime, Derived::ColsAtCompileTime,
+                Eigen::ColMajor, Derived::MaxRowsAtCompileTime,
+                Derived::MaxColsAtCompileTime>
+      a = vectors;
+  Eigen::Matrix<Scalar, Derived::ColsAtCompileTime, Derived::ColsAtCompileTime,
+                Eigen::ColMajor, Derived::MaxColsAtCompileTime,
+                Derived::MaxColsAtCompileTime>
+      factor;
+  factor.setZero(a.cols(), a.cols());
+  for (Index k = 0; k < std::min(a.rows(), a.cols()); ++k) {
+    const Index rows = a.rows() - k;
+    Scalar tau = 0, pivot = 0;
+    a.col(k).tail(rows).makeHouseholderInPlace(tau, pivot);
+    a(k, k) = Scalar(1);
+    for (Index j = k + 1; j < a.cols(); ++j) {
+      a.col(j).tail(rows) -=
+          (tau * a.col(k).tail(rows).dot(a.col(j).tail(rows))) *
+          a.col(k).tail(rows);
     }
-    return factor;
+
+    /* Row k of the triangular factor is column k of L, up to its sign. */
+    a(k, k) = pivot;
+    factor.col(k).tail(a.cols() - k) =
+        (pivot < Scalar(0) ? Scalar(-1) : Scalar(1)) *
+        a.row(k).tail(a.cols() - k).transpose();
+  }
+  return factor;
 }
 
 /*
@@ -69,36 +76,43 @@ is.
 */
 template <typename MatrixType>
 bool covariance_root(const MatrixType& covariance, MatrixType& root,
-        typename MatrixType::Scalar reference_scale = 0, MatrixType* repaired_covariance = nullptr) {
-    using Scalar = typename MatrixType::Scalar;
-    if (!covariance.allFinite()) {
-        return false;
-    }
-    const Eigen::LLT<MatrixType> llt(covariance);
-    if (llt.info() == Eigen::Success) {
-        root = llt.matrixL();
-        return true;
-    }
-
-    const Scalar tolerance = Scalar(16) * std::numeric_limits<Scalar>::epsilon() *
-        Scalar(covariance.rows()) * std::max(reference_scale, covariance.cwiseAbs().maxCoeff());
-    const Eigen::SelfAdjointEigenSolver<MatrixType> eig(covariance);
-    if (eig.info() != Eigen::Success || eig.eigenvalues().minCoeff() < -tolerance) {
-        return false;
-    }
-    const MatrixType factor = eig.eigenvectors() * eig.eigenvalues().cwiseMax(Scalar(0)).cwiseSqrt().asDiagonal();
-    const MatrixType triangular = lower_factor(factor.transpose());
-    if (!triangular.allFinite()) {
-        return false;
-    }
-    root = triangular;
-    if (repaired_covariance) {
-        /* Coefficient by coefficient: a general product would need its blocking workspace on the stack. */
-        *repaired_covariance = triangular.lazyProduct(triangular.transpose());
-    }
+                     typename MatrixType::Scalar reference_scale = 0,
+                     MatrixType* repaired_covariance = nullptr) {
+  using Scalar = typename MatrixType::Scalar;
+  if (!covariance.allFinite()) {
+    return false;
+  }
+  const Eigen::LLT<MatrixType> llt(covariance);
+  if (llt.info() == Eigen::Success) {
+    root = llt.matrixL();
     return true;
+  }
+
+  const Scalar tolerance =
+      Scalar(16) * std::numeric_limits<Scalar>::epsilon() *
+      Scalar(covariance.rows()) *
+      std::max(reference_scale, covariance.cwiseAbs().maxCoeff());
+  const Eigen::SelfAdjointEigenSolver<MatrixType> eig(covariance);
+  if (eig.info() != Eigen::Success ||
+      eig.eigenvalues().minCoeff() < -tolerance) {
+    return false;
+  }
+  const MatrixType factor =
+      eig.eigenvectors() *
+      eig.eigenvalues().cwiseMax(Scalar(0)).cwiseSqrt().asDiagonal();
+  const MatrixType triangular = lower_factor(factor.transpose());
+  if (!triangular.allFinite()) {
+    return false;
+  }
+  root = triangular;
+  if (repaired_covariance) {
+    /* Coefficient by coefficient: a general product would need its blocking
+       workspace on the stack. */
+    *repaired_covariance = triangular.lazyProduct(triangular.transpose());
+  }
+  return true;
 }
 
-}
-}
+}  // namespace Detail
+}  // namespace UKF
 #endif

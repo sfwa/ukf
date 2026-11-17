@@ -23,6 +23,8 @@
 #define USE_RTOS 0U
 #define USE_HAL_UART_REGISTER_CALLBACKS 0U
 
+/* The HAL's own module order: later modules use earlier modules' types. */
+// clang-format off
 #include "stm32h7xx_hal_rcc.h"
 #include "stm32h7xx_hal_gpio.h"
 #include "stm32h7xx_hal_dma.h"
@@ -30,5 +32,6 @@
 #include "stm32h7xx_hal_flash.h"
 #include "stm32h7xx_hal_pwr.h"
 #include "stm32h7xx_hal_uart.h"
+// clang-format on
 #define assert_param(expression) ((void)0U)
 #endif

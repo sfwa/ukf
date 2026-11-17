@@ -25,6 +25,9 @@ SOFTWARE.
 
 #include <stdint.h>
 
+/* real_t, as the library was built: single or double precision. */
+#include "UKF/Config.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -41,37 +44,37 @@ Members are as follows:
     - mag_covariance: covariance of magnetometer readings (XYZ)
 */
 struct ukf_sensor_params_t {
-    real_t accel_covariance[3];
-    real_t gyro_covariance[3];
-    real_t mag_covariance[3];
+  real_t accel_covariance[3];
+  real_t gyro_covariance[3];
+  real_t mag_covariance[3];
 };
 
 struct ukf_state_t {
-    real_t attitude[4]; /* x, y, z, W */
-    real_t angular_velocity[3]; /* rolling (rad/s), pitching (rad/s),
+  real_t attitude[4];         /* x, y, z, W */
+  real_t angular_velocity[3]; /* rolling (rad/s), pitching (rad/s),
                                    yawing (rad/s) */
-    real_t acceleration[3]; /* x, y, z (m/s^2) */
+  real_t acceleration[3];     /* x, y, z (m/s^2) */
 };
 
 struct ukf_state_error_t {
-    real_t attitude[3]; /* roll, pitch, yaw */
-    real_t angular_velocity[3]; /* rolling (rad/s), pitching (rad/s),
+  real_t attitude[3];         /* roll, pitch, yaw */
+  real_t angular_velocity[3]; /* rolling (rad/s), pitching (rad/s),
                                    yawing (rad/s) */
 };
 
 struct ukf_sensor_errors_t {
-    real_t accel_bias[3];
-    real_t gyro_bias[3];
-    real_t mag_bias[3];
-    real_t mag_scale[3];
-    real_t mag_field_norm;
-    real_t mag_field_inclination;
+  real_t accel_bias[3];
+  real_t gyro_bias[3];
+  real_t mag_bias[3];
+  real_t mag_scale[3];
+  real_t mag_field_norm;
+  real_t mag_field_inclination;
 };
 
 struct ukf_innovation_t {
-    real_t accel[3];
-    real_t gyro[3];
-    real_t mag[3];
+  real_t accel[3];
+  real_t gyro[3];
+  real_t mag[3];
 };
 
 void ukf_init(void);
@@ -123,10 +126,7 @@ void ukf_get_parameters_error(struct ukf_sensor_errors_t *in);
 /*
 Functions to access the compiled configuration
 */
-enum ukf_precision_t {
-    UKF_PRECISION_FLOAT = 0,
-    UKF_PRECISION_DOUBLE = 1
-};
+enum ukf_precision_t { UKF_PRECISION_FLOAT = 0, UKF_PRECISION_DOUBLE = 1 };
 
 uint32_t ukf_config_get_state_dim(void);
 uint32_t ukf_config_get_measurement_dim(void);
