@@ -62,6 +62,10 @@ jobs:
       - name: Build tests, benchmarks and examples with warnings as errors
         run: cmake --build build --target unittest unittest_single benchmark ukf_examples attitude_benchmark euroc_benchmark --config ${{ matrix.build_type }} --parallel 2
 
+      - name: Show dependency build logs
+        if: failure()
+        run: find build -path '*-stamp/*.log' -exec sh -c 'echo "== $1"; tail -n 80 "$1"' _ {} \;
+
       - name: Test
         working-directory: build
         run: ctest --build-config ${{ matrix.build_type }} --output-on-failure

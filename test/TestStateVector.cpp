@@ -55,8 +55,6 @@ TEST(StateVectorTest, Arithmetic) {
 }
 
 TEST(StateVectorTest, DefaultParameters) {
-    MyStateVector test_state;
-
     EXPECT_FLOAT_EQ(1.0, UKF::Parameters::AlphaSquared<MyStateVector>);
     EXPECT_FLOAT_EQ(0.0, UKF::Parameters::Beta<MyStateVector>);
     EXPECT_FLOAT_EQ(3.0, UKF::Parameters::Kappa<MyStateVector>);
@@ -83,8 +81,6 @@ template <> constexpr real_t Kappa<AlternateStateVector> = 3.0;
 }}
 
 TEST(StateVectorTest, CustomParameters) {
-    AlternateStateVector test_state;
-
     EXPECT_FLOAT_EQ(1e-6, UKF::Parameters::AlphaSquared<AlternateStateVector>);
     EXPECT_FLOAT_EQ(2.0, UKF::Parameters::Beta<AlternateStateVector>);
     EXPECT_FLOAT_EQ(3.0, UKF::Parameters::Kappa<AlternateStateVector>);
