@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.10)
+
+add_executable(ukf_attitude_example attitude.cpp)
+target_link_libraries(ukf_attitude_example PRIVATE ukf::double)
+target_compile_definitions(ukf_attitude_example PRIVATE EIGEN_NO_MALLOC)
+ukf_project_warnings(ukf_attitude_example)

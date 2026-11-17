@@ -1,10 +1,12 @@
 # Innovation gating
 
 All three filters accept a templated callable that decides whether to apply the
-measurement correction. Existing `step(...)` and `a_posteriori_step()` calls keep
-their behavior; gating is opt-in.
+measurement correction. Gating is opt-in through `step_with_gate` or a posterior
+overload. The [tracking example](../examples/tracking/) runs a complete gate
+with dynamic, correlated measurements and calibrated synthetic noise.
 
-For state estimation, use:
+The call forms below use an already initialised filter, application-defined
+measurement and model inputs. For state estimation, use:
 
 ```cpp
 bool applied = filter.step_with_gate(dt, measurement, gate, model_inputs...);
@@ -66,7 +68,9 @@ auto gate = [threshold](const auto& current, const auto&, const auto&...) {
 bool applied = filter.step_with_gate(dt, measurement, gate, model_inputs...);
 ```
 
-Include `<cmath>` for `std::isfinite`. Choose the threshold for the number of
+Include `<cmath>` for `std::isfinite`. This example assumes the covariance is
+positive definite; applications accepting wider covariance inputs should check
+factorisation success and define their singular-covariance policy. Choose the threshold for the number of
 active innovation components and the application's desired rejection rate;
 `9` is only an example, not a dimension-independent default. For singular
 innovation covariances, define a deliberate policy for residuals in the null
@@ -121,3 +125,13 @@ step, it does not roll back preceding successful split stages.
 Gating selects whether to correct with the entire measurement vector; an
 application needing separate decisions per sensor can perform separate
 measurement updates with its dynamic measurement vector.
+Do not call an ungated posterior after a rejected gated posterior unless you
+intend to override that rejection.
+
+## Confidence is a separate input
+
+Set valid per-observation measurement noise before calling the filter. A gate
+runs after innovation calculation, so invalid confidence values or division by
+zero must be handled earlier. Weighting an observation by its calibrated
+covariance and rejecting an inconsistent residual are complementary choices.
+See [confidence and outliers](usage-guide.md#confidence-and-outliers).

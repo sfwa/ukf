@@ -107,6 +107,8 @@ void ukf_sensor_set_magnetometer(real_t x, real_t y, real_t z);
 UKF-related functions.
 */
 void ukf_set_params(struct ukf_sensor_params_t *in);
+/* Diagonal variances of discrete additive process noise for one filter step.
+   The implementation converts them to standard deviations internally. */
 void ukf_set_process_noise(real_t process_noise_covariance[UKF_STATE_DIM]);
 /* dt is the time delta in seconds */
 void ukf_iterate(float dt);

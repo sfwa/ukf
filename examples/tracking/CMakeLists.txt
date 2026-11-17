@@ -1,0 +1,6 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 3.10 FATAL_ERROR)
+
+ADD_EXECUTABLE(ukf_tracking_example tracking.cpp)
+TARGET_LINK_LIBRARIES(ukf_tracking_example PRIVATE ukf::double)
+TARGET_COMPILE_DEFINITIONS(ukf_tracking_example PRIVATE EIGEN_NO_MALLOC)
+ukf_project_warnings(ukf_tracking_example)

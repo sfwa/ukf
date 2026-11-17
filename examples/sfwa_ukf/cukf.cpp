@@ -9,11 +9,10 @@
 #include "cukf.h"
 
 /*
-This file implements the same UKF as was used for the 2014 UAV Challenge.
-There are a number of efficiency and performance improvements that could be
-made with the new library structure, but the main purpose of this is for
-direct comparison of performance of the new library against the old
-implementation.
+This navigation model comes from the 2014 UAV Challenge implementation.
+It is a larger integration example using the current standard UKF, with
+discrete additive process covariance supplied for each update. Its historical
+sensor defaults should be replaced with values calibrated for an application.
 */
 
 enum SFWA_States {
