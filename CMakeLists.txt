@@ -74,10 +74,17 @@ else()
         LOG_CONFIGURE ON
         LOG_BUILD ON)
     ExternalProject_Get_Property(eigen3 source_dir)
-    # An installed package carries the downloaded headers with it.
+    # An installed package carries the downloaded headers with it. CMake
+    # does not prefix a relative SYSTEM install path, so do it here unless
+    # the include directory is already absolute.
+    if(IS_ABSOLUTE "${CMAKE_INSTALL_INCLUDEDIR}")
+        set(ukf_installed_eigen_dir "${CMAKE_INSTALL_INCLUDEDIR}/ukf/eigen3")
+    else()
+        set(ukf_installed_eigen_dir "$<INSTALL_PREFIX>/${CMAKE_INSTALL_INCLUDEDIR}/ukf/eigen3")
+    endif()
     target_include_directories(ukf SYSTEM INTERFACE
         $<BUILD_INTERFACE:${source_dir}>
-        $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${CMAKE_INSTALL_INCLUDEDIR}/ukf/eigen3>)
+        $<INSTALL_INTERFACE:${ukf_installed_eigen_dir}>)
     # INTERFACE dependencies propagate to consumers, including parallel builds.
     add_dependencies(ukf eigen3)
 endif()
