@@ -1,0 +1,6 @@
+# Formatting-only commits, which git blame skips. GitHub's blame view reads
+# this file; locally, run once:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# Reformat with clang-format 18 in Google style
+be1d141e830bd3e47a9d347d1b459c2210a4c54e
