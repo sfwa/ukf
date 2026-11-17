@@ -655,27 +655,24 @@ private:
 
     /*
     Private functions to apply a delta vector to the state vector field by
-    field.
+    field. The field's rows of the delta are an Eigen expression, and the
+    field type selects the update.
+
+    A quaternion is updated from the MRP vector, equation 45 from the
+    Markley paper. The product is renormalised: the error quaternion is unit
+    length only up to roundoff, and a core which does not take a mean
+    between updates (the parameter estimation core) would otherwise let the
+    norm drift (by 0.2 to 0.3 % over 1e5 noisy single precision updates).
     */
-    template <typename T>
-    static T update_field(const T& state, const Vector<Detail::CovarianceDimension<T>>& delta) {
-        return state + delta;
-    }
-
-    static real_t update_field(const real_t& state, const Vector<1>& delta) {
-        return state + delta(0);
-    }
-
-    static Quaternion update_field(const Quaternion& state, const Vector<3>& delta) {
-        /*
-        Update the attitude quaternion from the MRP vector, equation 45 from
-        the Markley paper. The product is renormalised: the error quaternion
-        is unit length only up to roundoff, and a core which does not take a
-        mean between updates (the parameter estimation core) would otherwise
-        let the norm drift (by 0.2 to 0.3 % over 1e5 noisy single precision
-        updates).
-        */
-        return (Detail::rotation_vector_to_quaternion<StateVector>(delta) * state).normalized();
+    template <typename T, typename Derived>
+    static T update_field(const T& state, const Eigen::MatrixBase<Derived>& delta) {
+        if constexpr (std::is_same<T, Quaternion>::value) {
+            return (Detail::rotation_vector_to_quaternion<StateVector>(Vector<3>(delta)) * state).normalized();
+        } else if constexpr (std::is_arithmetic<T>::value) {
+            return state + delta(0);
+        } else {
+            return state + delta;
+        }
     }
 
     template <typename T>
