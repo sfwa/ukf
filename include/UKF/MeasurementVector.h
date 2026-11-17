@@ -1094,7 +1094,9 @@ private:
     void calculate_field_innovation(const DynamicMeasurementVector& z, InnovationVector& innovation) const {
         constexpr std::size_t order = Detail::get_field_order<0, Fields...>(T::key);
         const std::size_t offset = std::get<order>(field_offsets);
-        if(offset != std::numeric_limits<std::size_t>::max()) {
+        /* A field contributes only when both vectors hold it. */
+        if(offset != std::numeric_limits<std::size_t>::max() &&
+                std::get<order>(z.field_offsets) != std::numeric_limits<std::size_t>::max()) {
             const std::size_t innovation_offset = covariance_offset(offset);
             std::get<order>(innovation.field_offsets) = innovation_offset;
             Detail::assign_field(innovation.template segment<Detail::CovarianceDimension<typename T::type>>(
