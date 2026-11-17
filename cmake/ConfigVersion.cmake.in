@@ -1,0 +1,24 @@
+# The version file that find_package reads for the @package_name@ package.
+#
+# CMake's basic version file, included first, compares MAJOR.MINOR.PATCH only.
+# SemVer orders a pre-release before its release (X.Y.Z-rc.1 comes before
+# X.Y.Z), so a pre-release meets only requests for an earlier version, and is
+# never an exact match. To use a pre-release, find the package without a
+# version.
+include("${CMAKE_CURRENT_LIST_DIR}/@package_name@BasicConfigVersion.cmake")
+if(NOT "@package_prerelease@" STREQUAL "")
+    set(PACKAGE_VERSION_EXACT FALSE)
+    if(PACKAGE_FIND_VERSION_RANGE)
+        set(@package_name@_requested_version "${PACKAGE_FIND_VERSION_MIN}")
+    else()
+        set(@package_name@_requested_version "${PACKAGE_FIND_VERSION}")
+    endif()
+    if(PACKAGE_VERSION_COMPATIBLE
+            AND NOT @package_name@_requested_version STREQUAL ""
+            AND NOT @package_name@_requested_version VERSION_LESS "@package_version@")
+        set(PACKAGE_VERSION_COMPATIBLE FALSE)
+        # Name the pre-release in find_package's list of rejected versions.
+        set(PACKAGE_VERSION "@package_version@-@package_prerelease@")
+    endif()
+    unset(@package_name@_requested_version)
+endif()

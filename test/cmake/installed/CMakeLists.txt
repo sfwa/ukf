@@ -8,9 +8,42 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 enable_testing()
-# A request for this major version must be met; the package is source
-# compatible within a major version.
-find_package(ukf 1.0 REQUIRED CONFIG)
+# A release meets a request for its major version, since the package is
+# source compatible within a major version. A pre-release, such as master's
+# 1.0.0-dev, comes before 1.0.0 and is found without a version.
+find_package(ukf REQUIRED CONFIG)
+if(ukf_VERSION_PRERELEASE STREQUAL "")
+    find_package(ukf ${ukf_VERSION_MAJOR}.0 REQUIRED CONFIG)
+endif()
+
+# Ask the installed version file directly, as find_package does, whether it
+# accepts a request (PACKAGE_VERSION_COMPATIBLE) and whether it is an exact
+# match (PACKAGE_VERSION_EXACT, which find_package ... EXACT requires).
+function(expect_request request expected_COMPATIBLE expected_EXACT)
+    set(PACKAGE_FIND_VERSION ${request})
+    string(REGEX MATCH "^[0-9]+" PACKAGE_FIND_VERSION_MAJOR ${request})
+    set(PACKAGE_VERSION_COMPATIBLE FALSE)
+    set(PACKAGE_VERSION_EXACT FALSE)
+    include(${ukf_DIR}/ukfConfigVersion.cmake)
+    foreach(result COMPATIBLE EXACT)
+        set(got FALSE)
+        if(PACKAGE_VERSION_${result})
+            set(got TRUE)
+        endif()
+        if(NOT got STREQUAL expected_${result})
+            message(FATAL_ERROR "Asking for ukf ${request}: PACKAGE_VERSION_${result} is ${got}, expected ${expected_${result}}")
+        endif()
+    endforeach()
+endfunction()
+math(EXPR next_major "${ukf_VERSION_MAJOR} + 1")
+expect_request(${next_major}.0 FALSE FALSE)
+if(ukf_VERSION_PRERELEASE STREQUAL "")
+    expect_request(${ukf_VERSION} TRUE TRUE)
+else()
+    # 1.0.0-rc.1 must not pass for 1.0.0, exactly or otherwise.
+    expect_request(${ukf_VERSION} FALSE FALSE)
+    expect_request(${ukf_VERSION_MAJOR} FALSE FALSE)
+endif()
 set(ukf_version_string ${ukf_VERSION})
 if(NOT ukf_VERSION_PRERELEASE STREQUAL "")
     set(ukf_version_string ${ukf_VERSION}-${ukf_VERSION_PRERELEASE})

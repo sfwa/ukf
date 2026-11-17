@@ -142,5 +142,5 @@ jobs:
               echo "::error::Tag ${GITHUB_REF_NAME} does not match UKF_VERSION_STRING ${version}"
               exit 1
             fi
-            grep -q "^## \[${version}\]" CHANGELOG.md || { echo "::error::CHANGELOG.md has no section for ${version}"; exit 1; }
+            awk -v heading="## [${version}]" 'index($0, heading) == 1 { found = 1 } END { exit !found }' CHANGELOG.md || { echo "::error::CHANGELOG.md has no section for ${version}"; exit 1; }
           fi

@@ -272,6 +272,11 @@ the package accepts any later release with the same major version:
 find_package(ukf 1.0 REQUIRED CONFIG)
 ```
 
+As in SemVer, a pre-release comes before its release: `1.0.0-rc.1` does not
+meet a request for `1.0` or `1.0.0`, even with `EXACT`. To try a release
+candidate, or master, find the package without a version and check
+`ukf_VERSION_PRERELEASE`.
+
 In code, `UKF_VERSION` is `MAJOR * 10000 + MINOR * 100 + PATCH`, and
 `UKF_VERSION_STRING` includes any pre-release:
 

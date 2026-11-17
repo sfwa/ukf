@@ -101,7 +101,9 @@ target_link_libraries(my_model PRIVATE ukf::double)
 ```
 
 The package accepts a request for any earlier version with the same major
-version, and sets `ukf_VERSION` and `ukf_VERSION_PRERELEASE`. In code,
+version, and sets `ukf_VERSION` and `ukf_VERSION_PRERELEASE`. A pre-release,
+such as master's `1.0.0-dev` or `1.0.0-rc.1`, comes before `1.0.0`, so it does
+not meet a request for `1.0`: find it with `find_package(ukf REQUIRED CONFIG)`. In code,
 `UKF/Version.h` defines `UKF_VERSION_STRING` and `UKF_VERSION` (10000 times
 the major version, plus 100 times the minor, plus the patch). To build
 against a release rather than master, check out or fetch its tag, such as

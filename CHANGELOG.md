@@ -21,7 +21,8 @@ users of that code.
 
 - `UKF/Version.h`, with `UKF_VERSION_MAJOR`, `_MINOR`, `_PATCH`,
   `_PRERELEASE`, `_STRING` and `UKF_VERSION`. The CMake package carries the
-  same version, and `find_package(ukf 1.0)` accepts any later 1.x.
+  same version, and `find_package(ukf 1.0)` accepts any later 1.x
+  release (a pre-release such as `1.0.0-rc.1` comes before `1.0.0`).
 - Install rules and a CMake package: `find_package(ukf)` gives `ukf::ukf`,
   `ukf::single` and `ukf::double` ([#96]).
 - CMake options `UKF_EIGEN_VERSION` and `UKF_EIGEN_URL` to download another

@@ -144,11 +144,18 @@ if(UKF_INSTALL)
     if(NOT CMAKE_VERSION VERSION_LESS 3.14)
         list(APPEND ukf_version_file_options ARCH_INDEPENDENT)
     endif()
-    write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/ukfConfigVersion.cmake
+    write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/ukfBasicConfigVersion.cmake
         VERSION ${PROJECT_VERSION} ${ukf_version_file_options})
+    # A pre-release does not pass for its release (cmake/ConfigVersion.cmake.in).
+    set(package_name ukf)
+    set(package_version ${PROJECT_VERSION})
+    set(package_prerelease "${ukf_version_prerelease}")
+    configure_file(cmake/ConfigVersion.cmake.in
+        ${CMAKE_CURRENT_BINARY_DIR}/ukfConfigVersion.cmake @ONLY)
     install(FILES
         ${CMAKE_CURRENT_BINARY_DIR}/ukfConfig.cmake
         ${CMAKE_CURRENT_BINARY_DIR}/ukfConfigVersion.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/ukfBasicConfigVersion.cmake
         DESTINATION ${ukf_cmake_dir})
 endif()
 
