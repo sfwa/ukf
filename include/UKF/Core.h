@@ -391,8 +391,9 @@ class Core {
     const InnovationVectorType previous_innovation = innovation;
     const typename MeasurementVectorType::CovarianceMatrix
         previous_innovation_covariance = innovation_covariance;
-    if (a_priori_step(delta, input...) && innovation_step(z, input...) &&
-        a_posteriori_step()) {
+    typename MeasurementVectorType::CovarianceMatrix root;
+    if (a_priori_step(delta, input...) &&
+        prepare_innovation(root, z, input...) && apply_innovation(root)) {
       return true;
     }
     state = previous_state;
@@ -420,13 +421,15 @@ class Core {
     const InnovationVectorType previous_innovation = innovation;
     const typename MeasurementVectorType::CovarianceMatrix
         previous_innovation_covariance = innovation_covariance;
-    if (a_priori_step(delta, input...) && innovation_step(z, input...)) {
+    typename MeasurementVectorType::CovarianceMatrix root;
+    if (a_priori_step(delta, input...) &&
+        prepare_innovation(root, z, input...)) {
       if (innovation.size() == 0 ||
           !std::forward<Gate>(gate)(static_cast<const Core&>(*this), z,
                                     input...)) {
         return false;
       }
-      if (a_posteriori_step()) {
+      if (apply_innovation(root)) {
         return true;
       }
     }
@@ -506,6 +509,16 @@ class Core {
   */
   template <typename... U>
   bool innovation_step(const MeasurementVectorType& z, const U&... input) {
+    typename MeasurementVectorType::CovarianceMatrix root;
+    return prepare_innovation(root, z, input...);
+  }
+
+ private:
+  /* A full step passes the validated factor directly to its correction. */
+  template <typename... U>
+  bool prepare_innovation(
+      typename MeasurementVectorType::CovarianceMatrix& root,
+      const MeasurementVectorType& z, const U&... input) {
     innovation_valid = false;
     if (!prior_valid) {
       return false;
@@ -538,11 +551,9 @@ class Core {
     predicted_innovation_covariance +=
         z.calculate_measurement_covariance(measurement_covariance, z_pred);
     /* The innovation covariance must be positive semidefinite. */
-    typename MeasurementVectorType::CovarianceMatrix innovation_root;
     if (!predicted_innovation.allFinite() ||
         (predicted_innovation_covariance.size() != 0 &&
-         !Detail::innovation_root(predicted_innovation_covariance,
-                                  innovation_root))) {
+         !Detail::innovation_root(predicted_innovation_covariance, root))) {
       return false;
     }
 
@@ -552,6 +563,7 @@ class Core {
     return true;
   }
 
+ public:
   /*
   The a posteriori step whitens the cross-correlation and innovation to
   compute the correction. It is split from the innovation step to allow
@@ -566,14 +578,21 @@ class Core {
       return false;
     }
 
+    /* The public covariance can change between split stages. */
+    typename MeasurementVectorType::CovarianceMatrix root;
+    if (innovation.size() != 0 &&
+        !Detail::innovation_root(innovation_covariance, root)) {
+      return false;
+    }
+    return apply_innovation(root);
+  }
+
+ private:
+  bool apply_innovation(
+      const typename MeasurementVectorType::CovarianceMatrix& root) {
     /* An empty dynamic measurement leaves the prediction available. */
     if (innovation.size() == 0) {
       return true;
-    }
-
-    typename MeasurementVectorType::CovarianceMatrix root;
-    if (!Detail::innovation_root(innovation_covariance, root)) {
-      return false;
     }
 
     /*
@@ -633,6 +652,7 @@ class Core {
     return true;
   }
 
+ public:
   /*
   Split-step gating hook. A missing or failed innovation never calls the
   gate. Rejection retains prediction and diagnostics; an accepted gate
