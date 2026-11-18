@@ -28,6 +28,7 @@ SET(googletest_dir ${source_dir})
 # precision (unittest_single), with tolerances for each precision; single
 # precision is what most embedded targets run.
 SET(unittest_sources
+    TestAngle.cpp
     TestStateVector.cpp
     TestFixedMeasurementVector.cpp
     TestDynamicMeasurementVector.cpp

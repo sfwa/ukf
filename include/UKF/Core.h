@@ -305,7 +305,7 @@ class Core {
   /*
   The innovation has one entry for each component of the measurement's
   uncertainty: a quaternion field's is its three-dimensional rotation.
-  Without quaternion fields it is the measurement vector type.
+  An angle contributes one scalar in radians.
   */
   using InnovationVectorType = typename MeasurementVectorType::InnovationVector;
 
@@ -688,7 +688,7 @@ class SquareRootCore {
   /*
   The innovation has one entry for each component of the measurement's
   uncertainty: a quaternion field's is its three-dimensional rotation.
-  Without quaternion fields it is the measurement vector type.
+  An angle contributes one scalar in radians.
   */
   using InnovationVectorType = typename MeasurementVectorType::InnovationVector;
 
@@ -1022,7 +1022,7 @@ class SquareRootParameterEstimationCore {
   /*
   The innovation has one entry for each component of the measurement's
   uncertainty: a quaternion field's is its three-dimensional rotation.
-  Without quaternion fields it is the measurement vector type.
+  An angle contributes one scalar in radians.
   */
   using InnovationVectorType = typename MeasurementVectorType::InnovationVector;
 
