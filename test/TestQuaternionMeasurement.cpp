@@ -3,6 +3,7 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <cmath>
+#include <limits>
 #include <type_traits>
 
 #include "UKF/Core.h"
@@ -341,7 +342,9 @@ TEST(QuaternionMeasurementTest, ConvergesFromAFarPrior) {
       filter.process_noise_covariance.llt().matrixL();
   root_filter.measurement_root_covariance = noise.array().sqrt().matrix();
 
-  for (int i = 0; i < 30; ++i) {
+  /* The large first correction contracts uncertainty along its axis. Allow
+     repeated noisy observations to remove the resulting residual. */
+  for (int i = 0; i < 300; ++i) {
     ASSERT_TRUE(filter.step(real_t(1), z));
     ASSERT_TRUE(root_filter.step(real_t(1), z));
   }
@@ -401,4 +404,113 @@ void check_dense_noise_matches_diagonal() {
 TEST(QuaternionMeasurementTest, DenseNoiseMatchesDiagonal) {
   check_dense_noise_matches_diagonal<QFixed>();
   check_dense_noise_matches_diagonal<QDynamic>();
+}
+
+/*
+A scalar bias observation rotates the attitude through its correlation with
+the bias. For the default Gibbs coordinates and a 90-degree correction about
+X the reset Jacobian has a closed form. The unequal transverse variances
+check its handedness, and the fourth row checks the attitude-bias covariance.
+*/
+template <template <typename...> class Core>
+void check_large_attitude_reset(real_t noise) {
+  Core<QState, QDynamic> filter;
+  filter.state.template set_field<QAttitude>(UKF::Quaternion::Identity());
+  filter.state.template set_field<QBias>(real_t(0));
+  QState::CovarianceMatrix prior;
+  prior << 1, 0, 0, 0.5, 0, 0.6, 0.15, 0, 0, 0.15, 0.4, 0, 0.5, 0, 0, 1;
+  QDynamic measurement;
+  measurement.set_field<QBiasSensor>(real_t(4) * (real_t(1) + noise));
+  QState::CovarianceMatrix actual;
+  if constexpr (std::is_same_v<Core<QState, QDynamic>,
+                               StandardCore<QState, QDynamic>>) {
+    filter.covariance = prior;
+    filter.process_noise_covariance.setZero();
+    filter.measurement_covariance.setZero();
+    filter.measurement_covariance.template set_field<QBiasSensor>(noise);
+    ASSERT_TRUE(filter.step(real_t(0), measurement));
+    actual = filter.covariance;
+  } else {
+    filter.root_covariance = prior.llt().matrixL();
+    filter.process_noise_root_covariance.setZero();
+    filter.measurement_root_covariance.setZero();
+    filter.measurement_root_covariance.template set_field<QBiasSensor>(
+        std::sqrt(noise));
+    if constexpr (std::is_same_v<Core<QState, QDynamic>,
+                                 ParameterCore<QState, QDynamic>>) {
+      ASSERT_TRUE(filter.step(measurement));
+    } else {
+      ASSERT_TRUE(filter.step(real_t(0), measurement));
+    }
+    actual = filter.root_covariance * filter.root_covariance.transpose();
+    EXPECT_TRUE((filter.root_covariance.diagonal().array() >= real_t(0)).all());
+    EXPECT_EQ(real_t(0),
+              QState::CovarianceMatrix(
+                  filter.root_covariance
+                      .template triangularView<Eigen::StrictlyUpper>())
+                  .norm());
+  }
+
+  const UKF::Quaternion expected_attitude =
+      UKF::Quaternion(real_t(1), real_t(1), real_t(0), real_t(0)).normalized();
+  EXPECT_LT(filter.state.template get_field<QAttitude>().angularDistance(
+                expected_attitude),
+            real_t(2e-5));
+  QState::CovarianceMatrix reset;
+  reset << 0.5, 0, 0, 0, 0, 0.5, -0.5, 0, 0, 0.5, 0.5, 0, 0, 0, 0, 1;
+  const QState::CovarianceMatrix posterior =
+      prior - prior.col(3) * prior.row(3) / (real_t(1) + noise);
+  const QState::CovarianceMatrix expected =
+      reset * posterior * reset.transpose();
+  EXPECT_LT((actual - expected).cwiseAbs().maxCoeff(), real_t(2e-5));
+}
+
+TEST(QuaternionMeasurementTest,
+     LargeCorrectionResetsAttitudeAndBiasCovariance) {
+  for (real_t noise : {real_t(0.25), real_t(0)}) {
+    SCOPED_TRACE(noise);
+    check_large_attitude_reset<StandardCore>(noise);
+    check_large_attitude_reset<RootCore>(noise);
+    check_large_attitude_reset<ParameterCore>(noise);
+  }
+}
+
+using CustomResetState = UKF::StateVector<UKF::Field<410, UKF::Quaternion>>;
+using MrpResetState = UKF::StateVector<UKF::Field<411, UKF::Quaternion>>;
+
+namespace UKF::Parameters {
+template <>
+constexpr real_t MRP_A<CustomResetState> = real_t(0.4);
+template <>
+constexpr real_t MRP_F<CustomResetState> = real_t(1.7);
+template <>
+constexpr real_t MRP_A<MrpResetState> = real_t(1);
+}  // namespace UKF::Parameters
+
+template <typename State>
+void check_reset_derivative() {
+  const UKF::Vector<3> delta(real_t(1.1), real_t(-0.6), real_t(0.3));
+  const auto jacobian = UKF::Detail::quaternion_reset_jacobian<State>(delta);
+  const auto base = UKF::Detail::rotation_vector_to_quaternion<State>(delta);
+  const real_t h = std::cbrt(std::numeric_limits<real_t>::epsilon());
+  for (int k = 0; k < 3; ++k) {
+    const UKF::Vector<3> step = UKF::Vector<3>::Unit(k) * h;
+    const auto above =
+        UKF::Detail::rotation_vector_to_quaternion<State>(delta + step);
+    const auto below =
+        UKF::Detail::rotation_vector_to_quaternion<State>(delta - step);
+    const UKF::Vector<3> derivative =
+        (UKF::Detail::quaternion_to_rotation_vector<State>(above *
+                                                           base.conjugate()) -
+         UKF::Detail::quaternion_to_rotation_vector<State>(below *
+                                                           base.conjugate())) /
+        (real_t(2) * h);
+    EXPECT_LT((jacobian.col(k) - derivative).norm(), real_t(12) * h * h);
+  }
+}
+
+TEST(QuaternionMeasurementTest, ResetJacobianMatchesGeneralisedMrpCoordinates) {
+  check_reset_derivative<QState>();
+  check_reset_derivative<CustomResetState>();
+  check_reset_derivative<MrpResetState>();
 }

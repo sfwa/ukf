@@ -25,6 +25,7 @@ SOFTWARE.
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+#include <Eigen/Jacobi>
 #include <Eigen/QR>
 #include <algorithm>
 #include <cmath>
@@ -82,27 +83,76 @@ void calculate_cross_correlation(ResultType& result, const StateDeltas& w_prime,
 }
 
 /*
-Replace the lower triangular factor L of A with a factor of
+From the lower triangular factor L of A, compute a factor of
 A + weight * sum(v_i v_i^T) over the columns v_i of vectors. Rank-one
 updates or downdates are tried first; if a downdate would lose positive
 definiteness, the factor is rebuilt from the updated covariance, which
 accepts a semidefinite result within roundoff. Return false, leaving the
-factor unchanged, if the result is indefinite or not finite.
+input factor unchanged, if the result is indefinite or not finite.
 */
 template <typename MatrixType, typename VectorsType>
-bool update_root(MatrixType& factor, const VectorsType& vectors,
-                 typename MatrixType::Scalar weight) {
-  MatrixType updated = factor;
+bool calculate_updated_root(const MatrixType& factor, MatrixType& updated,
+                            const VectorsType& vectors,
+                            typename MatrixType::Scalar weight) {
+  updated = factor;
   if (rank_update<Eigen::Lower>(updated, vectors, weight) >= 0) {
     const MatrixType prior = factor * factor.transpose();
     MatrixType covariance = prior;
     covariance.noalias() += (weight * vectors) * vectors.transpose();
-    return covariance_root(covariance, factor, prior.cwiseAbs().maxCoeff());
+    return covariance_root(covariance, updated, prior.cwiseAbs().maxCoeff());
   }
-  if (!updated.allFinite()) {
+  return updated.allFinite();
+}
+
+template <typename MatrixType, typename VectorsType>
+bool update_root(MatrixType& factor, const VectorsType& vectors,
+                 typename MatrixType::Scalar weight) {
+  MatrixType updated;
+  if (!calculate_updated_root(factor, updated, vectors, weight)) {
     return false;
   }
   factor = updated;
+  return true;
+}
+
+/*
+The downdate gives uncertainty in the old coordinates. Left-multiplying the
+three quaternion rows of its root also transports every cross-covariance.
+Right Givens rotations clear the three possible entries above the diagonal
+without changing R R^T, including when a pivot is zero.
+*/
+template <typename State, typename CrossType>
+bool correct_root(
+    typename State::CovarianceMatrix& root, const CrossType& cross,
+    [[maybe_unused]] const typename State::StateVectorDelta& delta) {
+  typename State::CovarianceMatrix updated;
+  if (!calculate_updated_root(root, updated, cross, real_t(-1))) {
+    return false;
+  }
+  if constexpr (AttitudeReset<State>::has_quaternion) {
+    AttitudeReset<State>::for_each(
+        delta, [&](std::size_t offset, const Matrix<3, 3>& jacobian) {
+          auto rows = updated.template middleRows<3>(offset);
+          rows = (jacobian * rows).eval();
+          for (std::size_t row = offset; row < offset + 3; ++row) {
+            for (std::size_t col = row + 1; col < offset + 3; ++col) {
+              if (updated(row, col) != real_t(0)) {
+                Eigen::JacobiRotation<real_t> rotation;
+                rotation.makeGivens(updated(row, row), updated(row, col));
+                updated.applyOnTheRight(row, col, rotation);
+                updated(row, col) = real_t(0);
+              }
+            }
+            if (updated(row, row) < real_t(0)) {
+              updated.col(row) *= real_t(-1);
+            }
+          }
+        });
+    if (!updated.allFinite()) {
+      return false;
+    }
+  }
+  root = updated;
   return true;
 }
 
@@ -541,7 +591,9 @@ class Core {
     InnovationVectorType whitened_innovation = innovation;
     Detail::whiten(cross_correlation, whitened_innovation, root);
     StateVectorType updated_state = state;
-    updated_state.apply_delta(cross_correlation * whitened_innovation);
+    const typename StateVectorType::StateVectorDelta update_delta =
+        cross_correlation * whitened_innovation;
+    updated_state.apply_delta(update_delta);
 
     typename StateVectorType::CovarianceMatrix updated_covariance = covariance;
     updated_covariance.noalias() -=
@@ -558,6 +610,20 @@ class Core {
                                  covariance.cwiseAbs().maxCoeff(),
                                  &updated_covariance)) {
       return false;
+    }
+
+    if constexpr (Detail::AttitudeReset<StateVectorType>::has_quaternion) {
+      /* Transport both sides of the covariance, including the cross terms. */
+      Detail::AttitudeReset<StateVectorType>::for_each(
+          update_delta, [&](std::size_t offset, const Matrix<3, 3>& jacobian) {
+            auto rows = updated_covariance.template middleRows<3>(offset);
+            rows = (jacobian * rows).eval();
+            auto cols = updated_covariance.template middleCols<3>(offset);
+            cols = (cols * jacobian.transpose()).eval();
+          });
+      if (!updated_covariance.allFinite()) {
+        return false;
+      }
     }
 
     state = updated_state;
@@ -880,7 +946,9 @@ class SquareRootCore {
     Detail::whiten(cross_correlation, whitened_innovation,
                    innovation_root_covariance);
     StateVectorType updated_state = state;
-    updated_state.apply_delta(cross_correlation * whitened_innovation);
+    const typename StateVectorType::StateVectorDelta update_delta =
+        cross_correlation * whitened_innovation;
+    updated_state.apply_delta(update_delta);
 
     /*
     Update the root covariance using a series of rank-one Cholesky
@@ -891,8 +959,8 @@ class SquareRootCore {
     is left as it was unless every downdate succeeds.
     */
     if (!updated_state.allFinite() ||
-        !Detail::update_root(root_covariance, cross_correlation,
-                             real_t(-1.0))) {
+        !Detail::correct_root<StateVectorType>(
+            root_covariance, cross_correlation, update_delta)) {
       return false;
     }
     state = updated_state;
@@ -1199,7 +1267,9 @@ class SquareRootParameterEstimationCore {
     Detail::whiten(cross_correlation, whitened_innovation,
                    innovation_root_covariance);
     StateVectorType updated_state = state;
-    updated_state.apply_delta(cross_correlation * whitened_innovation);
+    const typename StateVectorType::StateVectorDelta update_delta =
+        cross_correlation * whitened_innovation;
+    updated_state.apply_delta(update_delta);
 
     /*
     Update the root covariance using a series of rank-one Cholesky
@@ -1208,8 +1278,8 @@ class SquareRootParameterEstimationCore {
     succeeds.
     */
     if (!updated_state.allFinite() ||
-        !Detail::update_root(root_covariance, cross_correlation,
-                             real_t(-1.0))) {
+        !Detail::correct_root<StateVectorType>(
+            root_covariance, cross_correlation, update_delta)) {
       return false;
     }
     state = updated_state;
