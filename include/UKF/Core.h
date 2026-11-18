@@ -272,7 +272,14 @@ bool innovation_root(const MatrixType& covariance, MatrixType& root) {
     return false;
   }
   for (Index i = 0; i < root.rows(); ++i) {
-    root.row(i) *= scale(i);
+    if (covariance(i, i) == Scalar(0)) {
+      /* A zero variance in a PSD matrix means an exactly zero row.
+         The eigensolver may leave roundoff here, which the subsequent
+         row-relative whitening would mistake for an observable pivot. */
+      root.row(i).setZero();
+    } else {
+      root.row(i) *= scale(i);
+    }
   }
   return root.allFinite();
 }
