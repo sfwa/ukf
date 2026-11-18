@@ -218,3 +218,28 @@ void Core_APosterioriStep(benchmark::State& state) {
 }
 
 BENCHMARK(Core_APosterioriStep);
+
+// Ordinary Euclidean observations give a full-rank innovation covariance.
+// Time a complete update so reuse between the innovation and correction
+// stages is included.
+void Core_FullStep(benchmark::State& state) {
+  MyCore filter = create_initialised_test_filter();
+  const MyStateVector initial_state = filter.state;
+  const MyStateVector::CovarianceMatrix initial_covariance = filter.covariance;
+  MyMeasurementVector m;
+  m.set_field<GPS_Position>(UKF::Vector<3>(100, 10, -50));
+  m.set_field<GPS_Velocity>(UKF::Vector<3>(20, 0, 0));
+  m.set_field<Gyroscope>(UKF::Vector<3>(0.5, 0, 0));
+
+  while (state.KeepRunning()) {
+    filter.state = initial_state;
+    filter.covariance = initial_covariance;
+    if (!filter.step(real_t(0.01), m)) {
+      state.SkipWithError("Filter step failed");
+      return;
+    }
+    benchmark::DoNotOptimize(filter.state);
+  }
+}
+
+BENCHMARK(Core_FullStep);
