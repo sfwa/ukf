@@ -263,5 +263,5 @@ Tune process and measurement noise against measured error and model mismatch.
 A large process covariance or a small measurement covariance makes an estimate
 follow measurements more closely. A filter need not visibly smooth every
 trajectory, and comparing raw output alone cannot show whether filtering worked.
-The library performs causal filtering; it does not currently provide an RTS or
-fixed-lag smoother that revises past estimates using future measurements.
+Use the optional [fixed-lag or offline RTS smoother](smoothing.md) to revise
+past estimates when later observations become available.

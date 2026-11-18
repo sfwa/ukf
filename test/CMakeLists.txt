@@ -33,6 +33,7 @@ SET(unittest_sources
     TestDynamicMeasurementVector.cpp
     TestDenseMeasurementCovariance.cpp
     TestCore.cpp
+    TestSmoother.cpp
     TestSquareRootCore.cpp
     TestInnovationGating.cpp
     TestInnovationScaling.cpp

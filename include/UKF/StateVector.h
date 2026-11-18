@@ -557,6 +557,13 @@ class StateVector : public StateVectorBaseType<typename Fields::type...> {
   template <typename... U>
   StateVector process_model(real_t delta, const U&... input) const;
 
+  /* Tangent coordinates of this state with respect to reference. */
+  StateVectorDelta delta_from(const StateVector& reference) const {
+    StateVectorDelta delta;
+    (difference_field<Fields>(reference, delta), ...);
+    return delta;
+  }
+
   /* Update the state vector using a delta vector. */
   void apply_delta(const StateVectorDelta& delta) {
     apply_field_deltas<Fields...>(delta);
@@ -732,16 +739,16 @@ class StateVector : public StateVectorBaseType<typename Fields::type...> {
   copied into a temporary matrix.
   */
   template <typename T, typename Derived>
-  static Matrix<Detail::CovarianceDimension<T>, num_sigma()> sigma_point_deltas(
-      const T& mean, const Eigen::MatrixBase<Derived>& X) {
+  static Matrix<Detail::CovarianceDimension<T>, Derived::ColsAtCompileTime>
+  sigma_point_deltas(const T& mean, const Eigen::MatrixBase<Derived>& X) {
     if constexpr (std::is_same<T, Quaternion>::value) {
-      Matrix<3, num_sigma()> temp;
+      Matrix<3, Derived::ColsAtCompileTime> temp;
 
       /*
       The attitude part of this set of vectors is calculated using
       equation 45 from the Kraft paper.
       */
-      for (std::size_t i = 0; i < num_sigma(); i++) {
+      for (typename Derived::Index i = 0; i < X.cols(); ++i) {
         temp.col(i) = Detail::quaternion_to_rotation_vector<StateVector>(
             Quaternion(X.col(i)) * mean.conjugate());
       }
@@ -752,6 +759,18 @@ class StateVector : public StateVectorBaseType<typename Fields::type...> {
     } else {
       return X.colwise() - mean;
     }
+  }
+
+  template <typename Field>
+  void difference_field(const StateVector& reference,
+                        StateVectorDelta& delta) const {
+    using T = typename Field::type;
+    delta.template segment<Detail::CovarianceDimension<T>>(
+        Detail::get_field_covariance_offset<0, Fields...>(Field::key)) =
+        sigma_point_deltas<T>(
+            reference.template get_field<Field::key>(),
+            Base::template segment<Detail::StateVectorDimension<T>>(
+                Detail::get_field_offset<0, Fields...>(Field::key)));
   }
 
   template <typename T>
