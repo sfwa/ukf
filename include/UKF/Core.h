@@ -272,6 +272,37 @@ bool innovation_root(const MatrixType& covariance, MatrixType& root) {
   return root.allFinite();
 }
 
+/* Draw a fresh measurement prior in the state's local error coordinates. */
+template <typename S>
+bool draw_measurement_prior(const S& state,
+                            const typename S::CovarianceMatrix& root,
+                            typename S::SigmaPointDistribution& points,
+                            typename S::SigmaPointDeltas& deltas) {
+  if (!state.allFinite() || !root.allFinite()) {
+    return false;
+  }
+  points = state.calculate_sigma_point_distribution(
+      root * std::sqrt(Parameters::ScaledDimension<S>));
+  deltas = state.calculate_sigma_point_deltas(points);
+  return points.allFinite() && deltas.allFinite();
+}
+
+/* The posterior commits state and uncertainty together. Only the innovation
+   diagnostics need to be restored if a valid innovation cannot be applied. */
+template <typename Innovation, typename Covariance, typename Correction>
+bool correct_measurement(Innovation& innovation,
+                         Covariance& innovation_covariance,
+                         Correction&& correct) {
+  const Innovation previous_innovation = innovation;
+  const Covariance previous_covariance = innovation_covariance;
+  if (correct()) {
+    return true;
+  }
+  innovation = previous_innovation;
+  innovation_covariance = previous_covariance;
+  return false;
+}
+
 }  // namespace Detail
 
 /*
@@ -350,13 +381,12 @@ class Core {
   typename MeasurementVectorType::CovarianceMatrix innovation_covariance;
 
   /*
-  The sigma points of the most recent successful a priori step, one per
-  column, laid out as the state vector is (a quaternion field as x, y, z,
-  w). They are drawn from the predicted state and covariance, including the
-  process noise, and are the points that the innovation step passes through
-  the measurement model; an a posteriori step updates the state but not
-  these points. They are zero before the first a priori step, and
-  unspecified after a step that fails.
+  The sigma points drawn for the most recent prediction or measurement
+  preparation, one per column in state layout (quaternions as x, y, z, w).
+  Prediction includes the process noise. Measurement preparation draws from
+  the current uncertainty. The innovation step passes these points through
+  the measurement model and the posterior leaves them available for inspection.
+  They are initially zero and are unspecified after a failed step.
   */
   const typename StateVectorType::SigmaPointDistribution& get_sigma_points()
       const {
@@ -375,6 +405,33 @@ class Core {
       innovation.setZero();
       innovation_covariance.setZero();
     }
+  }
+
+  /* Prepare the current state for a split measurement update, without
+     running the process model or adding process noise. */
+  bool prepare_measurement_step() {
+    innovation_valid = false;
+    typename StateVectorType::CovarianceMatrix root;
+    prior_valid =
+        Detail::covariance_root(covariance, root) &&
+        Detail::draw_measurement_prior(state, root, sigma_points, w_prime);
+    return prior_valid;
+  }
+
+  /* Fuse an independent observation at the current time. On numerical failure
+     the public state, uncertainty and innovation diagnostics are preserved. */
+  template <typename... U>
+  bool measurement_step(const MeasurementVectorType& z, const U&... input) {
+    const bool ok =
+        prepare_measurement_step() &&
+        Detail::correct_measurement(innovation, innovation_covariance, [&] {
+          typename MeasurementVectorType::CovarianceMatrix root;
+          return prepare_innovation(root, z, input...) &&
+                 apply_innovation(root);
+        });
+    prior_valid = false;
+    innovation_valid = false;
+    return ok;
   }
 
   /*
@@ -736,13 +793,12 @@ class SquareRootCore {
   typename MeasurementVectorType::CovarianceMatrix innovation_root_covariance;
 
   /*
-  The sigma points of the most recent successful a priori step, one per
-  column, laid out as the state vector is (a quaternion field as x, y, z,
-  w). They are drawn from the predicted state and covariance, including the
-  process noise, and are the points that the innovation step passes through
-  the measurement model; an a posteriori step updates the state but not
-  these points. They are zero before the first a priori step, and
-  unspecified after a step that fails.
+  The sigma points drawn for the most recent prediction or measurement
+  preparation, one per column in state layout (quaternions as x, y, z, w).
+  Prediction includes the process noise. Measurement preparation draws from
+  the current uncertainty. The innovation step passes these points through
+  the measurement model and the posterior leaves them available for inspection.
+  They are initially zero and are unspecified after a failed step.
   */
   const typename StateVectorType::SigmaPointDistribution& get_sigma_points()
       const {
@@ -761,6 +817,30 @@ class SquareRootCore {
       innovation.setZero();
       innovation_root_covariance.setZero();
     }
+  }
+
+  /* Prepare the current state for a split measurement update, without
+     running the process model or adding process noise. */
+  bool prepare_measurement_step() {
+    innovation_valid = false;
+    prior_valid = Detail::draw_measurement_prior(state, root_covariance,
+                                                 sigma_points, w_prime);
+    return prior_valid;
+  }
+
+  /* Fuse an independent observation at the current time. On numerical failure
+     the public state, uncertainty and innovation diagnostics are preserved. */
+  template <typename... U>
+  bool measurement_step(const MeasurementVectorType& z, const U&... input) {
+    const bool ok =
+        prepare_measurement_step() &&
+        Detail::correct_measurement(
+            innovation, innovation_root_covariance, [&] {
+              return innovation_step(z, input...) && a_posteriori_step();
+            });
+    prior_valid = false;
+    innovation_valid = false;
+    return ok;
   }
 
   /*
@@ -1070,13 +1150,12 @@ class SquareRootParameterEstimationCore {
   typename MeasurementVectorType::CovarianceMatrix innovation_root_covariance;
 
   /*
-  The sigma points of the most recent successful a priori step, one per
-  column, laid out as the state vector is (a quaternion field as x, y, z,
-  w). They are drawn from the predicted state and covariance, including the
-  process noise, and are the points that the innovation step passes through
-  the measurement model; an a posteriori step updates the state but not
-  these points. They are zero before the first a priori step, and
-  unspecified after a step that fails.
+  The sigma points drawn for the most recent prediction or measurement
+  preparation, one per column in state layout (quaternions as x, y, z, w).
+  Prediction includes the process noise. Measurement preparation draws from
+  the current uncertainty. The innovation step passes these points through
+  the measurement model and the posterior leaves them available for inspection.
+  They are initially zero and are unspecified after a failed step.
   */
   const typename StateVectorType::SigmaPointDistribution& get_sigma_points()
       const {
@@ -1095,6 +1174,30 @@ class SquareRootParameterEstimationCore {
       innovation.setZero();
       innovation_root_covariance.setZero();
     }
+  }
+
+  /* Prepare the current state for a split measurement update, without
+     running the process model or adding process noise. */
+  bool prepare_measurement_step() {
+    innovation_valid = false;
+    prior_valid = Detail::draw_measurement_prior(state, root_covariance,
+                                                 sigma_points, w_prime);
+    return prior_valid;
+  }
+
+  /* Fuse an independent observation at the current time. On numerical failure
+     the public state, uncertainty and innovation diagnostics are preserved. */
+  template <typename... U>
+  bool measurement_step(const MeasurementVectorType& z, const U&... input) {
+    const bool ok =
+        prepare_measurement_step() &&
+        Detail::correct_measurement(
+            innovation, innovation_root_covariance, [&] {
+              return innovation_step(z, input...) && a_posteriori_step();
+            });
+    prior_valid = false;
+    innovation_valid = false;
+    return ok;
   }
 
   /*
