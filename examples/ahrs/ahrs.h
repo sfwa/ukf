@@ -53,7 +53,8 @@ struct ukf_state_t {
   real_t attitude[4];         /* x, y, z, W */
   real_t angular_velocity[3]; /* rolling (rad/s), pitching (rad/s),
                                    yawing (rad/s) */
-  real_t acceleration[3];     /* x, y, z (m/s^2) */
+  real_t acceleration[3];     /* Last measured x, y, z (m/s^2), zero until
+                                 available. */
 };
 
 struct ukf_state_error_t {
@@ -95,6 +96,7 @@ void ukf_get_state_covariance_diagonal(
     real_t state_covariance_diagonal[UKF_STATE_DIM]);
 void ukf_get_state_error(struct ukf_state_error_t *in);
 
+/* Missing sensor fields are zero. Sensor setters may be called in any order. */
 void ukf_get_innovation(struct ukf_innovation_t *in);
 
 /*
@@ -111,7 +113,8 @@ UKF-related functions.
 */
 void ukf_set_params(struct ukf_sensor_params_t *in);
 /* Diagonal variances of discrete additive process noise for one filter step.
-   The implementation converts them to standard deviations internally. */
+   Entries must be finite and nonnegative. Invalid input keeps the last setting.
+ */
 void ukf_set_process_noise(real_t process_noise_covariance[UKF_STATE_DIM]);
 /* dt is the time delta in seconds */
 void ukf_iterate(float dt);

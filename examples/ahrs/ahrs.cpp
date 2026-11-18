@@ -218,6 +218,8 @@ static AHRS_Filter ahrs;
 static AHRS_ParameterEstimationFilter ahrs_errors;
 static AHRS_MeasurementVector meas;
 static UKF::Vector<3> acceleration;
+static bool parameter_correction_pending;
+static bool have_innovation;
 
 /*
 The following functions provide a ctypes-compatible interface for ease of
@@ -225,6 +227,9 @@ testing.
 */
 
 void ukf_init() {
+  ukf_sensor_clear();
+  parameter_correction_pending = false;
+  have_innovation = false;
   /* Initialise state vector and covariance. */
   ahrs.state.set_field<Attitude>(UKF::Quaternion(1, 0, 0, 0));
   ahrs.state.set_field<AngularVelocity>(UKF::Vector<3>(0, 0, 0));
@@ -340,20 +345,20 @@ void ukf_get_state_error(struct ukf_state_error_t* in) {
   in->angular_velocity[2] = state_error[5];
 }
 
-/*
-This assumes accelerometer, gyroscope and magnetometer measurements are
-present and in that order.
-*/
+template <int Key>
+static void copy_innovation(real_t (&out)[3]) {
+  Eigen::Map<UKF::Vector<3>> value(out);
+  if (have_innovation && ahrs.innovation.is_field_set<Key>()) {
+    value = ahrs.innovation.get_field<Key>();
+  } else {
+    value.setZero();
+  }
+}
+
 void ukf_get_innovation(struct ukf_innovation_t* in) {
-  in->accel[0] = ahrs.innovation[0];
-  in->accel[1] = ahrs.innovation[1];
-  in->accel[2] = ahrs.innovation[2];
-  in->gyro[0] = ahrs.innovation[3];
-  in->gyro[1] = ahrs.innovation[4];
-  in->gyro[2] = ahrs.innovation[5];
-  in->mag[0] = ahrs.innovation[6];
-  in->mag[1] = ahrs.innovation[7];
-  in->mag[2] = ahrs.innovation[8];
+  copy_innovation<Accelerometer>(in->accel);
+  copy_innovation<Gyroscope>(in->gyro);
+  copy_innovation<Magnetometer>(in->mag);
 }
 
 void ukf_sensor_clear() { meas = AHRS_MeasurementVector(); }
@@ -384,20 +389,13 @@ void ukf_iterate(float dt) {
   Split the parameter estimation filter into a priori and a posteriori
   steps, to reduce the CPU load each iteration.
   */
-  static int step = 0;
-
-  switch (step++) {
-    case 0:
-      /*
-      The time delta is not used by the parameter estimation filter, so
-      there's no need to adjust it.
-      */
-      ahrs_errors.a_priori_step();
-      ahrs_errors.innovation_step(meas, ahrs.state);
-      break;
-    case 1: {
-      ahrs_errors.a_posteriori_step();
-
+  if (!parameter_correction_pending) {
+    parameter_correction_pending =
+        ahrs_errors.a_priori_step() &&
+        ahrs_errors.innovation_step(meas, ahrs.state);
+  } else {
+    parameter_correction_pending = false;
+    if (ahrs_errors.a_posteriori_step()) {
       /* Clip parameters to physically reasonable values. */
       ahrs_errors.state.set_field<MagneticFieldNorm>(std::max(
           0.2f,
@@ -418,38 +416,34 @@ void ukf_iterate(float dt) {
       temp[1] = std::max(real_t(0.5f), std::min(2.0f, temp[1]));
       temp[2] = std::max(real_t(0.5f), std::min(2.0f, temp[2]));
       ahrs_errors.state.set_field<MagnetometerScaleFactor>(temp);
-
-      step = 0;
-      break;
     }
-    default:
-      step = 0;
-      break;
   }
 
   /*
   Do a normal iteration for the AHRS filter, with the current state of
   the parameter estimation filter as the measurement input.
   */
-  ahrs.a_priori_step(dt);
-  ahrs.innovation_step(meas, ahrs_errors.state);
-  ahrs.a_posteriori_step();
+  have_innovation =
+      ahrs.a_priori_step(dt) && ahrs.innovation_step(meas, ahrs_errors.state);
+  if (have_innovation) {
+    ahrs.a_posteriori_step();
+  }
 
-  acceleration << meas.get_field<Accelerometer>() -
-                      ahrs_errors.state.get_field<AccelerometerBias>() -
-                      (ahrs.state.get_field<Attitude>() *
-                       UKF::Vector<3>(0, 0, -G_ACCEL));
+  if (have_innovation && meas.is_field_set<Accelerometer>()) {
+    acceleration =
+        meas.get_field<Accelerometer>() -
+        ahrs_errors.state.get_field<AccelerometerBias>() -
+        (ahrs.state.get_field<Attitude>() * UKF::Vector<3>(0, 0, -G_ACCEL));
+  }
 }
 
 void ukf_set_process_noise(
     real_t process_noise_covariance[AHRS_StateVector::covariance_size()]) {
-  Eigen::Map<typename AHRS_StateVector::StateVectorDelta> covariance_map(
+  Eigen::Map<const AHRS_StateVector::StateVectorDelta> variances(
       process_noise_covariance);
-  ahrs.process_noise_root_covariance =
-      AHRS_StateVector::CovarianceMatrix::Zero();
-  ahrs.process_noise_root_covariance.diagonal() << covariance_map;
-  ahrs.process_noise_root_covariance =
-      ahrs.process_noise_root_covariance.llt().matrixU();
+  if (variances.allFinite() && (variances.array() >= real_t(0)).all()) {
+    ahrs.process_noise_root_covariance = variances.cwiseSqrt().asDiagonal();
+  }
 }
 
 void ukf_get_parameters(struct ukf_sensor_errors_t* in) {

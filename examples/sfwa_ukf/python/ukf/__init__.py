@@ -61,14 +61,22 @@ class _SigmaPoint(object):
 
 # Wrapper around the custom model function
 _custom_model_func_wrapper_cb = None # avoid garbage-collection
+_custom_model_error = None
+
 def _custom_model_wrapper(state, control, output):
-    if not custom_model:
-        return
+    global _custom_model_error
 
-    result = custom_model(_SigmaPoint(state.contents),
-                          tuple(control.contents[0:3]))
-
-    output.contents = (_REAL_T * 6)(*result[0:6])
+    # ctypes cannot propagate exceptions across the C callback. A nonfinite
+    # prediction rolls the native step back; iterate then re-raises the error.
+    if _custom_model_error is None:
+        try:
+            result = custom_model(_SigmaPoint(state.contents),
+                                  tuple(control.contents))
+            output.contents[:] = result[:6]
+            return
+        except Exception as error:
+            _custom_model_error = error
+    output.contents[:] = (float("nan"),) * 6
 
 
 # Internal classes, wrapping cukf structs directly
@@ -93,7 +101,7 @@ class _State(Structure):
 
 # Public interface
 def iterate(dt, control=None):
-    global _cukf, state, model
+    global _cukf, state, model, _custom_model_error
 
     if not _cukf:
         raise RuntimeError("Please call ukf.init()")
@@ -112,9 +120,14 @@ def iterate(dt, control=None):
                 "for ukf.custom_model"
             )
 
+    _custom_model_error = None
     _cukf.ukf_set_state(state)
     _cukf.ukf_iterate(dt, (_REAL_T * _CONTROL_DIM)(*control))
     _cukf.ukf_sensor_clear()
+    if _custom_model_error is not None:
+        error = _custom_model_error
+        _custom_model_error = None
+        raise error
     _cukf.ukf_get_state(state)
     #_cukf.ukf_get_state_covariance(covariance)
 
