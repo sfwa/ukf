@@ -214,16 +214,22 @@ void SquareRootCore_APosterioriStep(benchmark::State& state) {
   m.set_field<Magnetometer>(UKF::FieldVector(0, -1, 0));
   m.set_field<Gyroscope>(UKF::Vector<3>(0.5, 0, 0));
 
-  test_filter.a_priori_step(0.01);
-  test_filter.innovation_step(m);
+  if (!test_filter.a_priori_step(0.01) || !test_filter.innovation_step(m)) {
+    state.SkipWithError("Could not prepare the correction");
+    return;
+  }
 
-  MyStateVector::CovarianceMatrix initial_cov = test_filter.root_covariance;
-  MyStateVector initial_state = test_filter.state;
-
+  const MyCore predicted = test_filter;
   while (state.KeepRunning()) {
-    test_filter.root_covariance = initial_cov;
-    test_filter.state = initial_state;
-    test_filter.a_posteriori_step();
+    // Each correction consumes its prediction and innovation.
+    state.PauseTiming();
+    test_filter = predicted;
+    state.ResumeTiming();
+    if (!test_filter.a_posteriori_step()) {
+      state.SkipWithError("Correction failed");
+      return;
+    }
+    benchmark::DoNotOptimize(test_filter.state);
   }
 }
 
