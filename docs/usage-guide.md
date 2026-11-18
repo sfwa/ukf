@@ -40,9 +40,10 @@ Cartesian sensor uncertainty into those rotation coordinates. Rotation and
 Jacobian calculations use the same normalized MRP convention. The rotation is
 taken between unit vectors, so it does not depend on the field's magnitude or
 units: a magnetometer in teslas behaves as one in gauss, in single precision
-too. The noise Jacobian accounts for the measured magnitude. At exactly
-opposite directions there is no unique rotation axis; the implementation chooses
-a deterministic perpendicular axis. That convention does not create additional
+too. The noise Jacobian accounts for the measured magnitude. Near a half turn,
+the rotation tracks the measured axis until the two directions are
+indistinguishable from exact opposites at the working precision. At that point
+the implementation chooses a deterministic perpendicular axis. That convention does not create additional
 physical information or make the antiparallel derivative unique.
 
 A fixed measurement requires every declared field on every update. A dynamic

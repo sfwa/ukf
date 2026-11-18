@@ -1149,6 +1149,45 @@ void check_normalized_mrp_rotation() {
   }
 }
 
+TEST(MRPRotationTest, OppositeFieldHasHalfTurnInnovation) {
+  for (const UKF::Vector<3>& axis :
+       {UKF::Vector<3>(1, 1, 5), UKF::Vector<3>(1, 1, 15)}) {
+    UnitMRPMeasurement predicted, measured;
+    predicted.set_field<170>(UKF::FieldVector(axis));
+    measured.set_field<170>(UKF::FieldVector(-axis));
+    const UKF::Vector<3> rotation = predicted.calculate_innovation(measured);
+    EXPECT_NEAR(real_t(4), rotation.norm(), real_t(1e-5));
+    EXPECT_NEAR(real_t(0), rotation.dot(axis.normalized()), real_t(1e-5));
+  }
+}
+
+TEST(MRPRotationTest, NearHalfTurnKeepsTheMeasuredAxisAndNoiseMapping) {
+  const UKF::Vector<3> source(1, 0, 0), target(-1, 0, real_t(1e-4));
+  const auto rotation =
+      UKF::Detail::calculate_rotation_vector<UnitMRPMeasurement>(target,
+                                                                 source);
+  const auto q =
+      UKF::Detail::rotation_vector_to_quaternion<UnitMRPMeasurement>(rotation);
+  EXPECT_LT((q * source - target.normalized()).norm(), real_t(1e-6));
+  EXPECT_LT(rotation.y(), real_t(-3.99));
+
+  const auto jacobian =
+      UKF::Detail::calculate_rotation_vector_jacobian<UnitMRPMeasurement>(
+          target, source);
+  UKF::Vector<3> plus = target, minus = target;
+  const real_t h = real_t(1e-6);
+  plus.y() += h;
+  minus.y() -= h;
+  const UKF::Vector<3> numerical =
+      (UKF::Detail::calculate_rotation_vector<UnitMRPMeasurement>(plus,
+                                                                  source) -
+       UKF::Detail::calculate_rotation_vector<UnitMRPMeasurement>(minus,
+                                                                  source)) /
+      (real_t(2) * h);
+  EXPECT_LT((jacobian.col(1) - numerical).norm() / numerical.norm(),
+            real_t(1e-4));
+}
+
 TEST(MRPRotationTest, UnitA) {
   check_normalized_mrp_rotation<UnitMRPMeasurement>();
 }
