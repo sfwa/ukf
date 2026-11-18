@@ -224,9 +224,12 @@ void whiten(CrossType& cross, InnovationType& innovation,
           cross.col(k) * root.col(k).tail(rest).transpose();
       innovation.tail(rest) -= innovation(k) * root.col(k).tail(rest);
     } else {
-      auto later = root.bottomRightCorner(rest, rest);
-      rank_update_lower(later, root.col(k).tail(rest), Scalar(1));
-      root.col(k).tail(rest).setZero();
+      // A scalar observation has no remaining columns to rotate.
+      if constexpr (RootType::MaxColsAtCompileTime != 1) {
+        auto later = root.bottomRightCorner(rest, rest);
+        rank_update_lower(later, root.col(k).tail(rest), Scalar(1));
+        root.col(k).tail(rest).setZero();
+      }
       cross.col(k).setZero();
       innovation(k) = Scalar(0);
     }
