@@ -43,6 +43,24 @@ TEST(InnovationScalingTest, IndependentChannelsRetainTheirGainInAnyUnits) {
   }
 }
 
+TEST(InnovationScalingTest, ZeroVarianceChannelKeepsAnExactlyZeroRootRow) {
+  using Matrix = UKF::Matrix<5, 5>;
+  Matrix factor;
+  factor << 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 3, 0, 0, -1, 0, 2, 4, 0, 3, 0,
+      -1, 2, 1;
+  const Matrix covariance = factor * factor.transpose();
+  Matrix root;
+  ASSERT_TRUE(UKF::Detail::innovation_root(covariance, root));
+  EXPECT_EQ(real_t(0), root.row(1).cwiseAbs().maxCoeff());
+  UKF::Vector<5> gain;
+  gain << 1, 0, 2, -1, 3;
+  auto cross = (gain.transpose() * covariance).eval();
+  UKF::Vector<5> residual = factor * UKF::Vector<5>::Ones();
+  const real_t expected = gain.dot(residual);
+  UKF::Detail::whiten(cross, residual, root);
+  EXPECT_NEAR(expected, (cross * residual)(0), real_t(1e-4));
+}
+
 TEST(InnovationScalingTest, SplitPosteriorUsesThePublicInnovationCovariance) {
   UKF::Core<ScaledState, ScaledMeasurement> filter;
   filter.state.setZero();
