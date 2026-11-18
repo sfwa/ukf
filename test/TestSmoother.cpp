@@ -195,3 +195,32 @@ TEST(UnscentedSmoother,
   EXPECT_TRUE(result.covariance.isApprox(
       expected, sizeof(real_t) == 4 ? real_t(.001) : real_t(1e-8)));
 }
+
+TEST(UnscentedSmoother, SolvesInObservableDirectionsWithMixedStateUnits) {
+  using Mixed = UKF::StateVector<UKF::Field<914, UKF::Vector<4>>>;
+  using E = UKF::SmoothingEstimate<Mixed>;
+  constexpr real_t small = real_t(1e-4);
+  constexpr real_t large = real_t(1e2);
+  for (real_t rho :
+       {real_t(1),
+        real_t(1) - real_t(2) * std::numeric_limits<real_t>::epsilon()}) {
+    E filtered;
+    filtered.state.setZero();
+    filtered.covariance.setZero();
+    filtered.covariance.diagonal() << large * large, 1, small * small, 1;
+    filtered.covariance(0, 1) = filtered.covariance(1, 0) = rho * large;
+    E next = filtered;
+    next.covariance *= real_t(.5);
+    // The first two entries disagree about a single observable quantity.
+    // The third is a genuinely independent small-scale direction.
+    next.state << large, -1, small, 1;
+    E out;
+    ASSERT_TRUE(UKF::unscented_rts_step(filtered, filtered, filtered.covariance,
+                                        next, out));
+    EXPECT_NEAR(0, out.state(0) / large, tolerance);
+    EXPECT_NEAR(0, out.state(1), tolerance);
+    EXPECT_NEAR(1, out.state(2) / small, tolerance);
+    EXPECT_NEAR(real_t(.5), out.covariance(2, 2) / (small * small), tolerance);
+    EXPECT_NEAR(1, out.state(3), tolerance);
+  }
+}

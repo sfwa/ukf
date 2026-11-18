@@ -50,5 +50,8 @@ The ring holds at most `Lag` records with two states and three covariance-sized
 matrices each, plus the latest estimate. Prediction tracing, the ring and
 backward steps use fixed-size storage. A backward query runs one RTS step per
 requested lag. Singular positive-semidefinite covariances can represent exact
-observations. Check each Boolean result. A failed reset or push preserves the
+observations. The smoothing gain is solved in unit-variance coordinates,
+so changing a state's physical units preserves its numerical rank. Directions
+of the correlation matrix indistinguishable from zero within roundoff receive
+zero gain. Check each Boolean result. A failed reset or push preserves the
 existing window and a failed query or offline step preserves its output.

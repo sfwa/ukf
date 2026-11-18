@@ -34,7 +34,9 @@ bool valid_smoothing_estimate(const SmoothingEstimate<State>& estimate) {
 /*
 Solve G P_pred = C in unit-variance coordinates. A deterministic direction
 can have zero variance, including after an exact measurement, so use the
-pseudoinverse of the correlation matrix when its Cholesky factor is singular.
+pseudoinverse of the correlation matrix when a Cholesky pivot is within
+roundoff of zero. An exactly dependent row can acquire a small positive
+pivot through rounding.
 */
 template <typename MatrixType>
 bool smoothing_gain(const MatrixType& predicted, const MatrixType& cross,
@@ -52,15 +54,15 @@ bool smoothing_gain(const MatrixType& predicted, const MatrixType& cross,
       scale.asDiagonal() * predicted * scale.asDiagonal();
   const MatrixType right = scale.asDiagonal() * cross.transpose();
   if (!correlation.allFinite() || !right.allFinite()) return false;
+  const real_t tolerance = real_t(16) * std::numeric_limits<real_t>::epsilon() *
+                           predicted.rows() * correlation.cwiseAbs().maxCoeff();
   const Eigen::LLT<MatrixType> llt(correlation);
-  if (llt.info() == Eigen::Success) {
+  if (llt.info() == Eigen::Success &&
+      llt.matrixLLT().diagonal().minCoeff() > std::sqrt(tolerance)) {
     gain = llt.solve(right).transpose() * scale.asDiagonal();
   } else {
     const Eigen::SelfAdjointEigenSolver<MatrixType> eig(correlation);
     if (eig.info() != Eigen::Success) return false;
-    const real_t tolerance =
-        real_t(16) * std::numeric_limits<real_t>::epsilon() * predicted.rows() *
-        correlation.cwiseAbs().maxCoeff();
     if (eig.eigenvalues().minCoeff() < -tolerance) return false;
     const auto reciprocal =
         eig.eigenvalues()
@@ -68,7 +70,7 @@ bool smoothing_gain(const MatrixType& predicted, const MatrixType& cross,
               return value > tolerance ? real_t(1) / value : real_t(0);
             })
             .eval();
-    const MatrixType basis = eig.eigenvectors();
+    const auto& basis = eig.eigenvectors();
     gain = right.transpose() * basis * reciprocal.asDiagonal() *
            basis.transpose() * scale.asDiagonal();
   }
