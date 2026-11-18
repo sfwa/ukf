@@ -83,7 +83,9 @@ A square-root factor requires particular care: selection removes inactive
 **rows**, while retaining every factor **column**. Otherwise shared noise from
 an omitted field could incorrectly disappear. Pass the full factor to the
 filter and let it perform that selection. Storage is fixed or bounded, and the
-diagonal default continues to use its original efficient path.
+diagonal default continues to use its original efficient path. Fixed measurement
+vectors without directional `FieldVector` fields use the supplied dense
+covariance or factor directly in innovation coordinates.
 
 ## Directional fields and changing confidence
 

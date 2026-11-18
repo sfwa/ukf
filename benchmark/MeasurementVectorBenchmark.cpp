@@ -290,6 +290,34 @@ void MeasurementVectorFixed_MeasurementCovariance(benchmark::State& state) {
 
 BENCHMARK(MeasurementVectorFixed_MeasurementCovariance);
 
+void MeasurementVectorFixed_DenseMeasurementCovariance(
+    benchmark::State& state) {
+  const MV_Fixed z = MV_Fixed::Zero();
+  const MV_Fixed::DenseCovarianceMatrix factor =
+      MV_Fixed::DenseCovarianceMatrix::Random();
+  MV_Fixed::DenseCovarianceMatrix noise = factor * factor.transpose();
+  while (state.KeepRunning()) {
+    benchmark::DoNotOptimize(noise);
+    benchmark::DoNotOptimize(z.calculate_measurement_covariance(noise, z));
+  }
+}
+
+BENCHMARK(MeasurementVectorFixed_DenseMeasurementCovariance);
+
+void MeasurementVectorFixed_DenseMeasurementRootCovariance(
+    benchmark::State& state) {
+  const MV_Fixed z = MV_Fixed::Zero();
+  MV_Fixed::DenseCovarianceMatrix factor =
+      MV_Fixed::DenseCovarianceMatrix::Random();
+  while (state.KeepRunning()) {
+    benchmark::DoNotOptimize(factor);
+    benchmark::DoNotOptimize(
+        z.calculate_measurement_root_covariance(factor, z));
+  }
+}
+
+BENCHMARK(MeasurementVectorFixed_DenseMeasurementRootCovariance);
+
 void MeasurementVectorDynamic_MeasurementCovariance(benchmark::State& state) {
   MV_Dynamic test_measurement, expected_measurement;
   MV_Dynamic::CovarianceVector measurement_covariance;
