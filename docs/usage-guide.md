@@ -217,8 +217,10 @@ the points drawn from the predicted state and uncertainty, process noise
 included, which the innovation step passes through the measurement model. The
 a posteriori step leaves them unchanged, and they are unspecified after a step
 that fails. To apply a gate, use `step_with_gate(...)` or the gated posterior overload described
-in the gating guide. Do not apply both the gated and ungated posterior to the
-same innovation.
+in the gating guide. A successful nonempty correction consumes its prediction
+and innovation. A second posterior or innovation returns `false` until a new
+prediction prepares sigma points. A rejected gate leaves the prediction
+available for another observation.
 
 When no observation is available, call only `a_priori_step`. An empty dynamic
 measurement also yields prediction-only behaviour with `step` on any of the

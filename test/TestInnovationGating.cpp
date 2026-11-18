@@ -284,6 +284,23 @@ void expect_public_values(const F& filter, const F& expected) {
   }
 }
 
+template <typename F>
+void check_correction_consumes_prediction() {
+  using M = GatingMeasurement;
+  F filter = make_filter<F, M>();
+  M sample;
+  sample << 1, 2;
+  ASSERT_TRUE(step(filter, sample));
+  const F corrected = filter;
+  EXPECT_FALSE(filter.a_posteriori_step());
+  sample << 3, -1;
+  EXPECT_FALSE(filter.innovation_step(sample));
+  expect_public_values<F, M>(filter, corrected);
+  ASSERT_TRUE((predict<F, M>(filter)));
+  ASSERT_TRUE(filter.innovation_step(sample));
+  EXPECT_TRUE(filter.a_posteriori_step());
+}
+
 template <typename F, typename M>
 void check_failed_stages() {
   F filter = make_filter<F, M>();
@@ -401,6 +418,12 @@ void check_failed_correction() {
   expect_public_values<F, M>(filter, predicted);
 }
 }  // namespace
+
+TEST(InnovationGatingTest, SuccessfulCorrectionConsumesPrediction) {
+  check_correction_consumes_prediction<Standard<GatingMeasurement>>();
+  check_correction_consumes_prediction<SquareRoot<GatingMeasurement>>();
+  check_correction_consumes_prediction<Parameter<GatingMeasurement>>();
+}
 
 TEST(InnovationGatingTest, FullStepAcrossFilterVariants) {
   check_full_step<Standard<GatingMeasurement>, GatingMeasurement>();

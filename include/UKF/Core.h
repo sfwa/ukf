@@ -183,6 +183,45 @@ void whiten(CrossType& cross, InnovationType& innovation,
   }
 }
 
+/*
+A successful Cholesky factor already preserves the units of each observation.
+Equilibrate a singular innovation before the spectral fallback, so the size
+of an independent sensor's variance in its chosen units does not determine
+its numerical rank. Restoring the row scales gives a root in the original
+units; whiten tests each pivot against its own row.
+*/
+template <typename MatrixType>
+bool innovation_root(const MatrixType& covariance, MatrixType& root) {
+  using Scalar = typename MatrixType::Scalar;
+  using Index = typename MatrixType::Index;
+  if (!covariance.allFinite()) {
+    return false;
+  }
+  const Eigen::LLT<MatrixType> llt(covariance);
+  if (llt.info() == Eigen::Success) {
+    root = llt.matrixL();
+    return root.allFinite();
+  }
+
+  typename MatrixType::ColXpr::PlainObject scale(covariance.rows());
+  MatrixType correlation = covariance;
+  for (Index i = 0; i < covariance.rows(); ++i) {
+    scale(i) =
+        covariance(i, i) > Scalar(0) ? std::sqrt(covariance(i, i)) : Scalar(1);
+    correlation.row(i) /= scale(i);
+  }
+  for (Index i = 0; i < covariance.cols(); ++i) {
+    correlation.col(i) /= scale(i);
+  }
+  if (!covariance_root(correlation, root)) {
+    return false;
+  }
+  for (Index i = 0; i < root.rows(); ++i) {
+    root.row(i) *= scale(i);
+  }
+  return root.allFinite();
+}
+
 }  // namespace Detail
 
 /*
@@ -452,7 +491,7 @@ class Core {
     typename MeasurementVectorType::CovarianceMatrix innovation_root;
     if (!predicted_innovation.allFinite() ||
         (predicted_innovation_covariance.size() != 0 &&
-         !Detail::covariance_root(predicted_innovation_covariance,
+         !Detail::innovation_root(predicted_innovation_covariance,
                                   innovation_root))) {
       return false;
     }
@@ -464,11 +503,10 @@ class Core {
   }
 
   /*
-  In the a posteriori step, the cross-correlation matrix and innovation
-  covariance inverse are calculated and used to calculate the Kalman gain.
-  This step is split from the innovation step to allow the user to carry
-  out innovation consistency checks and identify failed sensors, if
-  desired.
+  The a posteriori step whitens the cross-correlation and innovation to
+  compute the correction. It is split from the innovation step to allow
+  consistency checks before applying the observation. A successful,
+  nonempty correction consumes its prediction and innovation.
 
   Returns false if there is no valid innovation step to build on, or if the
   corrected state or covariance is not finite.
@@ -478,19 +516,14 @@ class Core {
       return false;
     }
 
-    /* No observations means prediction only; Eigen's QR requires a
-        nonempty matrix. This also supports the split-step interface. */
+    /* An empty dynamic measurement leaves the prediction available. */
     if (innovation.size() == 0) {
       return true;
     }
 
-    /*
-    An innovation covariance that is exactly zero, as after exact
-    observations with no noise, leaves nothing to learn; Eigen's QR would
-    take its zero pivots as nonzero and give a gain that is not finite.
-    */
-    if (innovation_covariance.cwiseAbs().maxCoeff() == real_t(0)) {
-      return true;
+    typename MeasurementVectorType::CovarianceMatrix root;
+    if (!Detail::innovation_root(innovation_covariance, root)) {
+      return false;
     }
 
     /*
@@ -502,32 +535,17 @@ class Core {
     Detail::calculate_cross_correlation<StateVectorType>(cross_correlation,
                                                          w_prime, z_prime);
 
-    /*
-    Calculate the Kalman gain as described in equation 72 from the Kraft
-    paper, by solving K * innovation_covariance = cross_correlation with a
-    column-pivoting QR decomposition rather than forming an inverse. The
-    rank-revealing decomposition allows the innovation covariance to be
-    positive semidefinite.
-    */
-    CrossCorrelation kalman_gain = innovation_covariance.colPivHouseholderQr()
-                                       .solve(cross_correlation.transpose())
-                                       .transpose();
-
-    /*
-    Calculate the update delta vector, to be applied to the a priori
-    estimate.
-    */
-    typename StateVectorType::StateVectorDelta update_delta =
-        kalman_gain * innovation;
-
-    /* Apply the update delta to a copy of the state vector. */
+    /* Whiten the residual and cross-covariance in the same coordinates.
+       Their product gives the state correction, including for a singular
+       innovation. */
+    InnovationVectorType whitened_innovation = innovation;
+    Detail::whiten(cross_correlation, whitened_innovation, root);
     StateVectorType updated_state = state;
-    updated_state.apply_delta(update_delta);
+    updated_state.apply_delta(cross_correlation * whitened_innovation);
 
-    /* Update the covariance using equation 75 from the Kraft paper. */
     typename StateVectorType::CovarianceMatrix updated_covariance = covariance;
     updated_covariance.noalias() -=
-        (kalman_gain * innovation_covariance * kalman_gain.transpose());
+        cross_correlation * cross_correlation.transpose();
     /*
     Reject an indefinite posterior, allowing for roundoff in the update
     against the prior's scale. A posterior that is semidefinite within
@@ -544,6 +562,8 @@ class Core {
 
     state = updated_state;
     covariance = updated_covariance;
+    prior_valid = false;
+    innovation_valid = false;
     return true;
   }
 
@@ -876,6 +896,8 @@ class SquareRootCore {
       return false;
     }
     state = updated_state;
+    prior_valid = false;
+    innovation_valid = false;
     return true;
   }
 
@@ -1191,6 +1213,8 @@ class SquareRootParameterEstimationCore {
       return false;
     }
     state = updated_state;
+    prior_valid = false;
+    innovation_valid = false;
     return true;
   }
 

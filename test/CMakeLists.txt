@@ -35,6 +35,7 @@ SET(unittest_sources
     TestCore.cpp
     TestSquareRootCore.cpp
     TestInnovationGating.cpp
+    TestInnovationScaling.cpp
     TestQuaternionMeasurement.cpp)
 ExternalProject_Get_Property(googletest binary_dir)
 FIND_PACKAGE(Threads REQUIRED)
