@@ -21,11 +21,8 @@ bool applied = filter.step_with_gate(measurement, gate, model_inputs...);
 After successful prediction and innovation calculation, the filter invokes
 `gate(const Filter&, const Measurement&, const Inputs&...)` once. The filter
 reference exposes the predicted state, innovation and `innovation_covariance`
-(`Core`) or `innovation_root_covariance` (both square-root filters). That
-covariance is the predictive one: a quaternion field's noise enters it
-unmapped, however far the reading is from the prediction, and only the
-correction maps it to the observed innovation. The measurement and model
-inputs are the same objects supplied to the step.
+(`Core`) or `innovation_root_covariance` (both square-root filters). The
+measurement and model inputs are the same objects supplied to the step.
 
 Returning `true` applies the usual correction. Returning `false` rejects the
 whole measurement vector: the predicted state and covariance remain intact,
