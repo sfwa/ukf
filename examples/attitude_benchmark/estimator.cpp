@@ -37,7 +37,7 @@ static void describe_filter(const std::string& filter) {
       << std::setprecision(17) << "{\"stage\":\"" << filter << "\""
       << ",\"core\":\""
       << (filter == "ukf" ? "UKF::Core" : "UKF::SquareRootCore") << "\""
-      << ",\"state\":\"attitude quaternion, world-frame velocity, gyroscope "
+      << ",\"state\":\"attitude quaternion, body-frame velocity, gyroscope "
          "bias\""
       << ",\"measurements\":\"zero velocity; gyroscope at rest; magnetic "
          "heading (separate filter)\""

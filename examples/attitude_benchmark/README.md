@@ -30,7 +30,7 @@ fields:
 | State field | Type | Process model |
 |---|---|---|
 | `Attitude` | Quaternion, body to world | Turned by the gyroscope reading, less the bias |
-| `Velocity` | Vector, world frame | Changed by the accelerometer reading, rotated into the world frame, plus gravity |
+| `Velocity` | Vector, body frame | Changed by the accelerometer reading plus gravity rotated into the body frame, less the gyroscope reading crossed with the velocity |
 | `GyroBias` | Vector, body frame | Constant; process noise lets it wander |
 
 Nothing measures the velocity, but a sensor moved by hand never gets far. So
@@ -122,12 +122,12 @@ the run instead of disappearing from the average. Neither sources nor the
 executable may change during a run.
 
 `--diagnostics` writes one trace per UKF run under `OUTPUT/diagnostics/`: the
-gyroscope bias (rad/s) and velocity (m/s) estimates, whether the sensor was
-judged to be at rest, the heading offset (rad), and whether the magnetometer
-reading was rejected. These writes occur inside the timed loop and are marked
-`cpp_update_loop_with_diagnostics_io` in per-trial results. Run without
-diagnostics for update-loop timing. C++ and Python reference timings include
-different overheads and are not a cross-language speed comparison.
+gyroscope bias (rad/s) and body-frame velocity (m/s) estimates, whether the
+sensor was judged to be at rest, the heading offset (rad), and whether the
+magnetometer reading was rejected. These writes occur inside the timed loop and
+are marked `cpp_update_loop_with_diagnostics_io` in per-trial results. Run
+without diagnostics for update-loop timing. C++ and Python reference timings
+include different overheads and are not a cross-language speed comparison.
 
 ## Using the executable directly
 

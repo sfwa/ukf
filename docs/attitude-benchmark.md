@@ -31,10 +31,20 @@ model integrated with `UKF::IntegratorRK4`, per-field measurement models, and
 the cores' own `a_priori_step`, `innovation_step` and `a_posteriori_step`.
 
 The attitude filter is a small strapdown inertial navigator. Its state is a
-body-to-world quaternion, the velocity in the world frame, and the gyroscope
+body-to-world quaternion, the velocity in the body frame, and the gyroscope
 bias. The gyroscope reading, less the bias, turns the attitude; the
-accelerometer reading, rotated into the world frame with gravity added, changes
-the velocity. Both are process model inputs rather than measurements.
+accelerometer reading, with gravity rotated into the body frame and added,
+changes the velocity. Both are process model inputs rather than measurements.
+
+The velocity is kept in the body frame so that its rate involves the attitude
+only through gravity, which does not change with heading. In the world frame
+it would involve the heading through the measured horizontal specific force,
+and the pseudo-measurement below, which is wrong whenever the sensor moves,
+would then correct the heading as well as the tilt. For the same reason the
+rotating frame's term, the rate crossed with the velocity, uses the gyroscope
+reading with its bias left in: taking the bias out there would let a sensor
+moved in circles pass for a gyroscope bias about the vertical, which no
+accelerometer can observe.
 
 Tilt becomes observable through a pseudo-measurement that the velocity is zero.
 A hand-held sensor never moves far, so its velocity stays small; a tilt error
@@ -218,8 +228,9 @@ accuracy changes through the per-trial artifacts, especially disturbance trials.
 The metric tests cover signs, coordinate frames, optical gaps and yaw drift.
 Executable tests on synthetic recordings cover tilted rest, multi-axis rotation,
 bias convergence, agreement between the two cores, malformed input, prefix
-causality, irregular sampling, rest discrimination, translation, accelerometer
-dropout, magnetic isolation, outage and recovery, and unobservable heading.
+causality, irregular sampling, rest discrimination, translation, circling with
+and without a measured gyroscope bias, accelerometer dropout, magnetic
+isolation, outage and recovery, and unobservable heading.
 
 Timing is diagnostic only: the C++ measurement normally excludes CSV I/O;
 `--diagnostics` includes state-trace writes in the measured loop. The Python

@@ -65,8 +65,9 @@ reinterpret the complete accelerometer vector as a gravity direction during
 powered flight.
 
 When the rotor model does not apply, the complete accelerometer reading is a
-process input and the velocity receives a zero pseudo-measurement, exactly as
-in the hand-held estimator:
+process input and the velocity receives a zero pseudo-measurement, as in the
+hand-held estimator (which, unlike this one, leaves the gyroscope bias in the
+`omega` of its `omega × v` term):
 
 ```text
 v_dot = R(q)ᵀ*g_W - omega × v + a
