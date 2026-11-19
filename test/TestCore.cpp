@@ -941,6 +941,86 @@ TEST(AdditiveNoiseTest, SplitPosteriorRefusesAnImpossibleInnovationCovariance) {
   EXPECT_NEAR(real_t(1) / real_t(3), pair.covariance(0, 0), real_t(1e-5));
 }
 
+/*
+More covariances that a split-step caller can write and no covariance can
+have: negative in every direction however small, and asymmetric. A
+correlation one rounding step beyond one is semidefinite to within roundoff,
+and the gain leaves out the direction that the check takes as roundoff
+rather than inverting it.
+*/
+using SplitPlaneState =
+    UKF::StateVector<UKF::Field<177, real_t>, UKF::Field<178, real_t>>;
+using SplitPlaneMeasurement =
+    UKF::FixedMeasurementVector<UKF::Field<182, real_t>,
+                                UKF::Field<183, real_t>>;
+namespace UKF {
+template <>
+template <>
+SplitPlaneState SplitPlaneState::process_model<>(real_t) const {
+  return *this;
+}
+template <>
+template <>
+real_t SplitPlaneMeasurement::expected_measurement<SplitPlaneState, 182>(
+    const SplitPlaneState& state) {
+  return state(0);
+}
+template <>
+template <>
+real_t SplitPlaneMeasurement::expected_measurement<SplitPlaneState, 183>(
+    const SplitPlaneState& state) {
+  return state(1);
+}
+}  // namespace UKF
+
+namespace {
+using SplitPlaneFilter = UKF::Core<SplitPlaneState, SplitPlaneMeasurement>;
+
+void prepare_plane(SplitPlaneFilter& filter) {
+  filter.state << 0, 0;
+  filter.covariance.setIdentity();
+  filter.process_noise_covariance.setZero();
+  filter.measurement_covariance << 3, 3;
+  SplitPlaneMeasurement z;
+  z << 1, 1;
+  ASSERT_TRUE(filter.a_priori_step(real_t(0)));
+  ASSERT_TRUE(filter.innovation_step(z));
+}
+
+void expect_refused(SplitPlaneFilter& filter) {
+  const SplitPlaneState state = filter.state;
+  const UKF::Matrix<2, 2> covariance = filter.covariance;
+  EXPECT_FALSE(filter.a_posteriori_step());
+  EXPECT_TRUE(state == filter.state);
+  EXPECT_TRUE(covariance == filter.covariance);
+}
+}  // namespace
+
+TEST(AdditiveNoiseTest, SplitPosteriorChecksTheWholeInnovationCovariance) {
+  const real_t epsilon = std::numeric_limits<real_t>::epsilon();
+
+  SplitPlaneFilter negative;
+  prepare_plane(negative);
+  negative.innovation_covariance =
+      UKF::Matrix<2, 2>::Identity() * real_t(-1e-8);
+  expect_refused(negative);
+
+  SplitPlaneFilter asymmetric;
+  prepare_plane(asymmetric);
+  asymmetric.innovation_covariance << 4, 10, 0, 4;
+  expect_refused(asymmetric);
+
+  SplitPlaneFilter beyond;
+  prepare_plane(beyond);
+  const real_t correlation = real_t(1) + real_t(2) * epsilon;
+  beyond.innovation_covariance << 1, correlation, correlation, 1;
+  ASSERT_TRUE(beyond.a_posteriori_step());
+  for (int i = 0; i < 2; ++i) {
+    EXPECT_GE(beyond.covariance(i, i), -epsilon);
+    EXPECT_LE(beyond.covariance(i, i), real_t(1) + epsilon);
+  }
+}
+
 /* step() rolls back a successful prediction when its correction fails. */
 TEST(AdditiveNoiseTest, StepIsAllOrNothing) {
   UKF::Core<AdditiveNoiseState, AdditiveNoiseMeasurement> filter;
