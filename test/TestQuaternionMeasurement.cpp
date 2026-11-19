@@ -638,3 +638,164 @@ TEST(QuaternionMeasurementTest, ResetJacobianMatchesGeneralisedMrpCoordinates) {
   check_reset_derivative<CustomResetState>();
   check_reset_derivative<MrpResetState>();
 }
+
+/*
+Sensor noise that is exact in one direction leaves the innovation only the
+state's small variance there. The correction covariance takes the state's
+spread and the mapped noise directly: adding the mapped noise's change to an
+innovation covariance that already holds the noise loses that variance to
+rounding in single precision.
+*/
+enum { QGibbsAngle = 320, QGibbsSensor };
+using QGibbsState = UKF::StateVector<UKF::Field<QGibbsAngle, real_t>>;
+using QGibbsMeasurement =
+    UKF::FixedMeasurementVector<UKF::Field<QGibbsSensor, UKF::Quaternion>>;
+
+namespace UKF {
+template <>
+template <>
+QGibbsState QGibbsState::process_model<>(real_t) const {
+  return *this;
+}
+template <>
+template <>
+UKF::Quaternion
+QGibbsMeasurement::expected_measurement<QGibbsState, QGibbsSensor>(
+    const QGibbsState& state) {
+  return UKF::Detail::rotation_vector_to_quaternion<QGibbsState>(
+      UKF::Vector<3>(state.get_field<QGibbsAngle>(), 0, 0));
+}
+}  // namespace UKF
+
+template <template <typename...> class Core>
+void check_exact_noise_direction() {
+  using Dense = QGibbsMeasurement::DenseCovarianceMatrix;
+  using Filter =
+      Core<QGibbsState, QGibbsMeasurement, UKF::NotUsedIntegrator, Dense>;
+  constexpr bool standard =
+      std::is_same_v<Filter, UKF::Core<QGibbsState, QGibbsMeasurement,
+                                       UKF::NotUsedIntegrator, Dense>>;
+  UKF::Matrix<3, 3> factor;
+  factor << real_t(0.125), 0, 0, real_t(-0.125), 0, 0, 0, 0, 2;
+  Filter filter;
+  filter.state.template set_field<QGibbsAngle>(real_t(0));
+  if constexpr (standard) {
+    filter.covariance << real_t(1e-8);
+    filter.process_noise_covariance << 0;
+    filter.measurement_covariance = factor * factor.transpose();
+  } else {
+    filter.root_covariance << real_t(1e-4);
+    filter.process_noise_root_covariance << 0;
+    filter.measurement_root_covariance = factor;
+  }
+  const real_t pi = real_t(3.14159265358979323846);
+  QGibbsMeasurement z;
+  z.set_field<QGibbsSensor>(rotation(pi / real_t(2), UKF::Vector<3>::UnitZ()));
+  ASSERT_TRUE(filter.step(real_t(0), z));
+  real_t variance;
+  if constexpr (standard) {
+    variance = filter.covariance(0, 0);
+  } else {
+    variance = filter.root_covariance(0, 0) * filter.root_covariance(0, 0);
+  }
+  EXPECT_GE(variance, real_t(0));
+  EXPECT_LE(variance, real_t(1e-8));
+}
+
+TEST(QuaternionMeasurementTest, ExactNoiseDirectionKeepsTheStateVariance) {
+  check_exact_noise_direction<UKF::Core>();
+  check_exact_noise_direction<UKF::SquareRootCore>();
+}
+
+/*
+A split-step caller's innovation covariance is checked as it is, before the
+correction adds the change in the mapped quaternion noise, which is large
+enough here to hide a negative variance.
+*/
+TEST(QuaternionMeasurementTest, SplitPosteriorChecksThePublicCovariance) {
+  UKF::Core<QState, QAttitudeOnly> filter;
+  filter.state.set_field<QAttitude>(UKF::Quaternion::Identity());
+  filter.state.set_field<QBias>(real_t(0));
+  filter.covariance = QState::CovarianceMatrix::Identity() * prior_variance;
+  filter.process_noise_covariance.setZero();
+  filter.measurement_covariance.set_field<QAttitudeSensor>(
+      UKF::Vector<3>::Constant(real_t(4)));
+  const real_t pi = real_t(3.14159265358979323846);
+  QAttitudeOnly z;
+  z.set_field<QAttitudeSensor>(
+      rotation(pi / real_t(2), UKF::Vector<3>::UnitZ()));
+  ASSERT_TRUE(filter.a_priori_step(real_t(0)));
+  ASSERT_TRUE(filter.innovation_step(z));
+  const QState predicted = filter.state;
+  const QState::CovarianceMatrix predicted_covariance = filter.covariance;
+  const QAttitudeOnly::CovarianceMatrix valid = filter.innovation_covariance;
+  filter.innovation_covariance(0, 0) = real_t(-1);
+  EXPECT_FALSE(filter.a_posteriori_step());
+  EXPECT_TRUE(predicted == filter.state);
+  EXPECT_TRUE(predicted_covariance == filter.covariance);
+  filter.innovation_covariance = valid;
+  EXPECT_TRUE(filter.a_posteriori_step());
+}
+
+/*
+A split-step caller's edit to the public innovation covariance or root takes
+effect in the correction. A measurement type that declares a quaternion
+field need not supply it, and without one the correction uses the public
+values as the caller left them. With one, the edit carries over to the
+covariance that the correction uses: the bias reading is read first and is
+independent of the attitude, so its gain is the edited one either way.
+*/
+template <typename Filter>
+void check_split_edit(bool attitude) {
+  Filter filter;
+  filter.state.template set_field<QAttitude>(UKF::Quaternion::Identity());
+  filter.state.template set_field<QBias>(real_t(0));
+  typename QDynamic::CovarianceVector noise;
+  noise.template set_field<QAttitudeSensor>(UKF::Vector<3>::Ones());
+  noise.template set_field<QBiasSensor>(real_t(1));
+  QDynamic z;
+  z.template set_field<QBiasSensor>(real_t(1));
+  if (attitude) {
+    z.template set_field<QAttitudeSensor>(rotation(
+        real_t(3.14159265358979323846) / real_t(2), UKF::Vector<3>::UnitZ()));
+  }
+  real_t variance;
+  if constexpr (std::is_same_v<Filter, UKF::Core<QState, QDynamic>>) {
+    filter.covariance.setIdentity();
+    filter.process_noise_covariance.setZero();
+    filter.measurement_covariance = noise;
+    ASSERT_TRUE(filter.a_priori_step(real_t(0)));
+    ASSERT_TRUE(filter.innovation_step(z));
+    filter.innovation_covariance(0, 0) = real_t(8);
+    ASSERT_TRUE(filter.a_posteriori_step());
+    variance = filter.covariance(3, 3);
+  } else {
+    filter.root_covariance.setIdentity();
+    filter.process_noise_root_covariance.setZero();
+    filter.measurement_root_covariance = noise;
+    if constexpr (std::is_same_v<Filter, UKF::SquareRootParameterEstimationCore<
+                                             QState, QDynamic>>) {
+      ASSERT_TRUE(filter.a_priori_step());
+    } else {
+      ASSERT_TRUE(filter.a_priori_step(real_t(0)));
+    }
+    ASSERT_TRUE(filter.innovation_step(z));
+    filter.innovation_root_covariance(0, 0) = std::sqrt(real_t(8));
+    ASSERT_TRUE(filter.a_posteriori_step());
+    variance =
+        (filter.root_covariance * filter.root_covariance.transpose())(3, 3);
+  }
+  EXPECT_NEAR(real_t(0.125), filter.state.template get_field<QBias>(),
+              real_t(1e-5));
+  EXPECT_NEAR(real_t(0.875), variance, real_t(1e-5));
+}
+
+TEST(QuaternionMeasurementTest, SplitEditsTakeEffect) {
+  for (bool attitude : {false, true}) {
+    SCOPED_TRACE(attitude);
+    check_split_edit<UKF::Core<QState, QDynamic>>(attitude);
+    check_split_edit<UKF::SquareRootCore<QState, QDynamic>>(attitude);
+    check_split_edit<UKF::SquareRootParameterEstimationCore<QState, QDynamic>>(
+        attitude);
+  }
+}
