@@ -40,6 +40,12 @@ SOFTWARE.
 
 namespace UKF {
 
+/* A full gated step retains its prediction on Rejected or Empty and restores
+   its pre-step values on Failed. A split posterior only changes the state on
+   Applied. Failed also covers a split posterior without a valid innovation.
+   A result is not to be ignored: the compiler warns when one is discarded. */
+enum class [[nodiscard]] GateResult { Applied, Rejected, Empty, Failed };
+
 namespace Detail {
 
 /*
@@ -437,6 +443,37 @@ bool innovation_root(const MatrixType& covariance, MatrixType& root) {
   return root.allFinite();
 }
 
+/* Draw a fresh measurement prior in the state's local error coordinates. */
+template <typename S>
+bool draw_measurement_prior(const S& state,
+                            const typename S::CovarianceMatrix& root,
+                            typename S::SigmaPointDistribution& points,
+                            typename S::SigmaPointDeltas& deltas) {
+  if (!state.allFinite() || !root.allFinite()) {
+    return false;
+  }
+  points = state.calculate_sigma_point_distribution(
+      root * std::sqrt(Parameters::ScaledDimension<S>));
+  deltas = state.calculate_sigma_point_deltas(points);
+  return points.allFinite() && deltas.allFinite();
+}
+
+/* The posterior commits state and uncertainty together. Only the innovation
+   diagnostics need to be restored if a valid innovation cannot be applied. */
+template <typename Innovation, typename Covariance, typename Correction>
+bool correct_measurement(Innovation& innovation,
+                         Covariance& innovation_covariance,
+                         Correction&& correct) {
+  const Innovation previous_innovation = innovation;
+  const Covariance previous_covariance = innovation_covariance;
+  if (correct()) {
+    return true;
+  }
+  innovation = previous_innovation;
+  innovation_covariance = previous_covariance;
+  return false;
+}
+
 }  // namespace Detail
 
 /*
@@ -515,13 +552,12 @@ class Core {
   typename MeasurementVectorType::CovarianceMatrix innovation_covariance;
 
   /*
-  The sigma points of the most recent successful a priori step, one per
-  column, laid out as the state vector is (a quaternion field as x, y, z,
-  w). They are drawn from the predicted state and covariance, including the
-  process noise, and are the points that the innovation step passes through
-  the measurement model; an a posteriori step updates the state but not
-  these points. They are zero before the first a priori step, and
-  unspecified after a step that fails.
+  The sigma points drawn for the most recent prediction or measurement
+  preparation, one per column in state layout (quaternions as x, y, z, w).
+  Prediction includes the process noise. Measurement preparation draws from
+  the current uncertainty. The innovation step passes these points through
+  the measurement model and the posterior leaves them available for inspection.
+  They are initially zero and are unspecified after a failed step.
   */
   const typename StateVectorType::SigmaPointDistribution& get_sigma_points()
       const {
@@ -540,6 +576,36 @@ class Core {
       innovation.setZero();
       innovation_covariance.setZero();
     }
+  }
+
+  /* Prepare the current state for a split measurement update, without
+     running the process model or adding process noise. The sigma points are
+     drawn afresh from the stored state and uncertainty, so this replaces
+     the points of any earlier prediction and factors the uncertainty once
+     more. */
+  bool prepare_measurement_step() {
+    innovation_valid = false;
+    typename StateVectorType::CovarianceMatrix root;
+    prior_valid =
+        Detail::covariance_root(covariance, root) &&
+        Detail::draw_measurement_prior(state, root, sigma_points, w_prime);
+    return prior_valid;
+  }
+
+  /* Fuse an independent observation at the current time. On numerical failure
+     the public state, uncertainty and innovation diagnostics are preserved.
+     Straight after a_priori_step, innovation_step and a_posteriori_step use
+     the predicted points; this call draws new ones. */
+  template <typename... U>
+  bool measurement_step(const MeasurementVectorType& z, const U&... input) {
+    const bool ok =
+        prepare_measurement_step() &&
+        Detail::correct_measurement(innovation, innovation_covariance, [&] {
+          return innovation_step(z, input...) && a_posteriori_step();
+        });
+    prior_valid = false;
+    innovation_valid = false;
+    return ok;
   }
 
   /*
@@ -579,6 +645,14 @@ class Core {
   template <typename Gate, typename... U>
   bool step_with_gate(real_t delta, const MeasurementVectorType& z, Gate&& gate,
                       const U&... input) {
+    return step_with_gate_result(delta, z, std::forward<Gate>(gate),
+                                 input...) == GateResult::Applied;
+  }
+
+  /* Report the outcome of the prediction, gate and correction. */
+  template <typename Gate, typename... U>
+  GateResult step_with_gate_result(real_t delta, const MeasurementVectorType& z,
+                                   Gate&& gate, const U&... input) {
     const StateVectorType previous_state = state;
     const typename StateVectorType::CovarianceMatrix previous_covariance =
         covariance;
@@ -586,13 +660,15 @@ class Core {
     const typename MeasurementVectorType::CovarianceMatrix
         previous_innovation_covariance = innovation_covariance;
     if (a_priori_step(delta, input...) && innovation_step(z, input...)) {
-      if (innovation.size() == 0 ||
-          !std::forward<Gate>(gate)(static_cast<const Core&>(*this), z,
+      if (innovation.size() == 0) {
+        return GateResult::Empty;
+      }
+      if (!std::forward<Gate>(gate)(static_cast<const Core&>(*this), z,
                                     input...)) {
-        return false;
+        return GateResult::Rejected;
       }
       if (a_posteriori_step()) {
-        return true;
+        return GateResult::Applied;
       }
     }
     state = previous_state;
@@ -601,7 +677,7 @@ class Core {
     innovation_covariance = previous_innovation_covariance;
     prior_valid = false;
     innovation_valid = false;
-    return false;
+    return GateResult::Failed;
   }
 
   /*
@@ -796,12 +872,24 @@ class Core {
   */
   template <typename Gate, typename... U>
   bool a_posteriori_step(Gate&& gate, const U&... context) {
-    if (!innovation_valid || innovation.size() == 0 ||
-        !std::forward<Gate>(gate)(static_cast<const Core&>(*this),
-                                  context...)) {
-      return false;
+    return a_posteriori_step_with_gate_result(
+               std::forward<Gate>(gate), context...) == GateResult::Applied;
+  }
+
+  template <typename Gate, typename... U>
+  GateResult a_posteriori_step_with_gate_result(Gate&& gate,
+                                                const U&... context) {
+    if (!innovation_valid) {
+      return GateResult::Failed;
     }
-    return a_posteriori_step();
+    if (innovation.size() == 0) {
+      return GateResult::Empty;
+    }
+    if (!std::forward<Gate>(gate)(static_cast<const Core&>(*this),
+                                  context...)) {
+      return GateResult::Rejected;
+    }
+    return a_posteriori_step() ? GateResult::Applied : GateResult::Failed;
   }
 };
 
@@ -872,13 +960,12 @@ class SquareRootCore {
   typename MeasurementVectorType::CovarianceMatrix innovation_root_covariance;
 
   /*
-  The sigma points of the most recent successful a priori step, one per
-  column, laid out as the state vector is (a quaternion field as x, y, z,
-  w). They are drawn from the predicted state and covariance, including the
-  process noise, and are the points that the innovation step passes through
-  the measurement model; an a posteriori step updates the state but not
-  these points. They are zero before the first a priori step, and
-  unspecified after a step that fails.
+  The sigma points drawn for the most recent prediction or measurement
+  preparation, one per column in state layout (quaternions as x, y, z, w).
+  Prediction includes the process noise. Measurement preparation draws from
+  the current uncertainty. The innovation step passes these points through
+  the measurement model and the posterior leaves them available for inspection.
+  They are initially zero and are unspecified after a failed step.
   */
   const typename StateVectorType::SigmaPointDistribution& get_sigma_points()
       const {
@@ -897,6 +984,35 @@ class SquareRootCore {
       innovation.setZero();
       innovation_root_covariance.setZero();
     }
+  }
+
+  /* Prepare the current state for a split measurement update, without
+     running the process model or adding process noise. The sigma points are
+     drawn afresh from the stored state and root covariance, so this replaces
+     the points of any earlier prediction; the stored root is used as it is,
+     with no factorisation. */
+  bool prepare_measurement_step() {
+    innovation_valid = false;
+    prior_valid = Detail::draw_measurement_prior(state, root_covariance,
+                                                 sigma_points, w_prime);
+    return prior_valid;
+  }
+
+  /* Fuse an independent observation at the current time. On numerical failure
+     the public state, uncertainty and innovation diagnostics are preserved.
+     Straight after a_priori_step, innovation_step and a_posteriori_step use
+     the predicted points; this call draws new ones. */
+  template <typename... U>
+  bool measurement_step(const MeasurementVectorType& z, const U&... input) {
+    const bool ok =
+        prepare_measurement_step() &&
+        Detail::correct_measurement(
+            innovation, innovation_root_covariance, [&] {
+              return innovation_step(z, input...) && a_posteriori_step();
+            });
+    prior_valid = false;
+    innovation_valid = false;
+    return ok;
   }
 
   /*
@@ -934,6 +1050,14 @@ class SquareRootCore {
   template <typename Gate, typename... U>
   bool step_with_gate(real_t delta, const MeasurementVectorType& z, Gate&& gate,
                       const U&... input) {
+    return step_with_gate_result(delta, z, std::forward<Gate>(gate),
+                                 input...) == GateResult::Applied;
+  }
+
+  /* Report the outcome of the prediction, gate and correction. */
+  template <typename Gate, typename... U>
+  GateResult step_with_gate_result(real_t delta, const MeasurementVectorType& z,
+                                   Gate&& gate, const U&... input) {
     const StateVectorType previous_state = state;
     const typename StateVectorType::CovarianceMatrix previous_covariance =
         root_covariance;
@@ -941,13 +1065,15 @@ class SquareRootCore {
     const typename MeasurementVectorType::CovarianceMatrix
         previous_innovation_covariance = innovation_root_covariance;
     if (a_priori_step(delta, input...) && innovation_step(z, input...)) {
-      if (innovation.size() == 0 ||
-          !std::forward<Gate>(gate)(static_cast<const SquareRootCore&>(*this),
+      if (innovation.size() == 0) {
+        return GateResult::Empty;
+      }
+      if (!std::forward<Gate>(gate)(static_cast<const SquareRootCore&>(*this),
                                     z, input...)) {
-        return false;
+        return GateResult::Rejected;
       }
       if (a_posteriori_step()) {
-        return true;
+        return GateResult::Applied;
       }
     }
     state = previous_state;
@@ -956,7 +1082,7 @@ class SquareRootCore {
     innovation_root_covariance = previous_innovation_covariance;
     prior_valid = false;
     innovation_valid = false;
-    return false;
+    return GateResult::Failed;
   }
 
   /*
@@ -1131,12 +1257,24 @@ class SquareRootCore {
   */
   template <typename Gate, typename... U>
   bool a_posteriori_step(Gate&& gate, const U&... context) {
-    if (!innovation_valid || innovation.size() == 0 ||
-        !std::forward<Gate>(gate)(static_cast<const SquareRootCore&>(*this),
-                                  context...)) {
-      return false;
+    return a_posteriori_step_with_gate_result(
+               std::forward<Gate>(gate), context...) == GateResult::Applied;
+  }
+
+  template <typename Gate, typename... U>
+  GateResult a_posteriori_step_with_gate_result(Gate&& gate,
+                                                const U&... context) {
+    if (!innovation_valid) {
+      return GateResult::Failed;
     }
-    return a_posteriori_step();
+    if (innovation.size() == 0) {
+      return GateResult::Empty;
+    }
+    if (!std::forward<Gate>(gate)(static_cast<const SquareRootCore&>(*this),
+                                  context...)) {
+      return GateResult::Rejected;
+    }
+    return a_posteriori_step() ? GateResult::Applied : GateResult::Failed;
   }
 };
 
@@ -1205,13 +1343,12 @@ class SquareRootParameterEstimationCore {
   typename MeasurementVectorType::CovarianceMatrix innovation_root_covariance;
 
   /*
-  The sigma points of the most recent successful a priori step, one per
-  column, laid out as the state vector is (a quaternion field as x, y, z,
-  w). They are drawn from the predicted state and covariance, including the
-  process noise, and are the points that the innovation step passes through
-  the measurement model; an a posteriori step updates the state but not
-  these points. They are zero before the first a priori step, and
-  unspecified after a step that fails.
+  The sigma points drawn for the most recent prediction or measurement
+  preparation, one per column in state layout (quaternions as x, y, z, w).
+  Prediction includes the process noise. Measurement preparation draws from
+  the current uncertainty. The innovation step passes these points through
+  the measurement model and the posterior leaves them available for inspection.
+  They are initially zero and are unspecified after a failed step.
   */
   const typename StateVectorType::SigmaPointDistribution& get_sigma_points()
       const {
@@ -1230,6 +1367,35 @@ class SquareRootParameterEstimationCore {
       innovation.setZero();
       innovation_root_covariance.setZero();
     }
+  }
+
+  /* Prepare the current state for a split measurement update, without
+     running the process model or adding process noise. The sigma points are
+     drawn afresh from the stored state and root covariance, so this replaces
+     the points of any earlier prediction; the stored root is used as it is,
+     with no factorisation. */
+  bool prepare_measurement_step() {
+    innovation_valid = false;
+    prior_valid = Detail::draw_measurement_prior(state, root_covariance,
+                                                 sigma_points, w_prime);
+    return prior_valid;
+  }
+
+  /* Fuse an independent observation at the current time. On numerical failure
+     the public state, uncertainty and innovation diagnostics are preserved.
+     Straight after a_priori_step, innovation_step and a_posteriori_step use
+     the predicted points; this call draws new ones. */
+  template <typename... U>
+  bool measurement_step(const MeasurementVectorType& z, const U&... input) {
+    const bool ok =
+        prepare_measurement_step() &&
+        Detail::correct_measurement(
+            innovation, innovation_root_covariance, [&] {
+              return innovation_step(z, input...) && a_posteriori_step();
+            });
+    prior_valid = false;
+    innovation_valid = false;
+    return ok;
   }
 
   /*
@@ -1267,6 +1433,14 @@ class SquareRootParameterEstimationCore {
   template <typename Gate, typename... U>
   bool step_with_gate(const MeasurementVectorType& z, Gate&& gate,
                       const U&... input) {
+    return step_with_gate_result(z, std::forward<Gate>(gate), input...) ==
+           GateResult::Applied;
+  }
+
+  /* Report the outcome of the prediction, gate and correction. */
+  template <typename Gate, typename... U>
+  GateResult step_with_gate_result(const MeasurementVectorType& z, Gate&& gate,
+                                   const U&... input) {
     const StateVectorType previous_state = state;
     const typename StateVectorType::CovarianceMatrix previous_covariance =
         root_covariance;
@@ -1274,14 +1448,16 @@ class SquareRootParameterEstimationCore {
     const typename MeasurementVectorType::CovarianceMatrix
         previous_innovation_covariance = innovation_root_covariance;
     if (a_priori_step() && innovation_step(z, input...)) {
-      if (innovation.size() == 0 ||
-          !std::forward<Gate>(gate)(
+      if (innovation.size() == 0) {
+        return GateResult::Empty;
+      }
+      if (!std::forward<Gate>(gate)(
               static_cast<const SquareRootParameterEstimationCore&>(*this), z,
               input...)) {
-        return false;
+        return GateResult::Rejected;
       }
       if (a_posteriori_step()) {
-        return true;
+        return GateResult::Applied;
       }
     }
     state = previous_state;
@@ -1290,7 +1466,7 @@ class SquareRootParameterEstimationCore {
     innovation_root_covariance = previous_innovation_covariance;
     prior_valid = false;
     innovation_valid = false;
-    return false;
+    return GateResult::Failed;
   }
 
   /*
@@ -1449,13 +1625,25 @@ class SquareRootParameterEstimationCore {
   */
   template <typename Gate, typename... U>
   bool a_posteriori_step(Gate&& gate, const U&... context) {
-    if (!innovation_valid || innovation.size() == 0 ||
-        !std::forward<Gate>(gate)(
+    return a_posteriori_step_with_gate_result(
+               std::forward<Gate>(gate), context...) == GateResult::Applied;
+  }
+
+  template <typename Gate, typename... U>
+  GateResult a_posteriori_step_with_gate_result(Gate&& gate,
+                                                const U&... context) {
+    if (!innovation_valid) {
+      return GateResult::Failed;
+    }
+    if (innovation.size() == 0) {
+      return GateResult::Empty;
+    }
+    if (!std::forward<Gate>(gate)(
             static_cast<const SquareRootParameterEstimationCore&>(*this),
             context...)) {
-      return false;
+      return GateResult::Rejected;
     }
-    return a_posteriori_step();
+    return a_posteriori_step() ? GateResult::Applied : GateResult::Failed;
   }
 };
 

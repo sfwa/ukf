@@ -30,6 +30,7 @@ SET(googletest_dir ${source_dir})
 SET(unittest_sources
     TestAngle.cpp
     TestStateVector.cpp
+    TestMeasurementStep.cpp
     TestFixedMeasurementVector.cpp
     TestDynamicMeasurementVector.cpp
     TestDenseMeasurementCovariance.cpp

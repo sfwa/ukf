@@ -258,6 +258,29 @@ and innovation. A second posterior or innovation returns `false` until a new
 prediction prepares sigma points. A rejected gate leaves the prediction
 available for another observation.
 
+### Independent observations at the same time
+
+Call `a_priori_step(dt, inputs...)` once when the clock advances. Use
+`measurement_step(observation, measurement_inputs...)` for each independent
+observation at that timestamp, including the first. All three filter types
+draw fresh sigma points from the current state and uncertainty on each call.
+Only the measurement model receives the supplied inputs. Process noise is
+added by the prediction alone.
+
+```cpp
+if (!filter.a_priori_step(dt)) return false;
+if (!filter.measurement_step(first)) return false;
+return filter.measurement_step(second);
+```
+
+An empty dynamic observation succeeds and clears the innovation diagnostics.
+A numerical failure preserves the state, uncertainty and diagnostics from
+before that call. To gate an individual observation, call
+`prepare_measurement_step()`, `innovation_step(observation, inputs...)` and
+the gated posterior in order. Preparation replaces the sigma points exposed
+by `get_sigma_points()`. For sensors with correlated noise, supply their
+observations together in one measurement and use a dense noise matrix.
+
 When no observation is available, call only `a_priori_step`. An empty dynamic
 measurement also yields prediction-only behaviour with `step` on any of the
 three filters (it returns `true`). With `step_with_gate`, an empty measurement

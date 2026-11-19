@@ -124,6 +124,18 @@ bool gated_step(F& filter, const M& measurement, Gate&& gate,
   }
 }
 
+template <typename F, typename M, typename Gate, typename... U>
+UKF::GateResult gated_result(F& filter, const M& measurement, Gate&& gate,
+                             const U&... input) {
+  if constexpr (std::is_same_v<F, Parameter<M>>) {
+    return filter.step_with_gate_result(measurement, std::forward<Gate>(gate),
+                                        input...);
+  } else {
+    return filter.step_with_gate_result(real_t(0.5), measurement,
+                                        std::forward<Gate>(gate), input...);
+  }
+}
+
 template <typename F, typename M>
 real_t normalized_innovation_squared(const F& filter) {
   UKF::Vector<2> whitened;
@@ -181,7 +193,8 @@ void check_full_step() {
     EXPECT_LT((current.innovation - residual).norm(), real_t(1e-5));
     return normalized_innovation_squared<F, M>(current) < real_t(9);
   };
-  EXPECT_FALSE(gated_step(filter, measurement, reject_outlier, input));
+  EXPECT_EQ(UKF::GateResult::Rejected,
+            gated_result(filter, measurement, reject_outlier, input));
   EXPECT_EQ(1, calls);
   EXPECT_EQ(real_t(0), (filter.state - predicted.state).norm());
   EXPECT_EQ(real_t(0),
@@ -192,7 +205,8 @@ void check_full_step() {
   measurement.template set_field<231>(UKF::Vector<2>(3, -2));
   step(reference, measurement, input);
   NoncopyableGate accept;
-  EXPECT_TRUE(gated_step(filter, measurement, accept, input));
+  EXPECT_EQ(UKF::GateResult::Applied,
+            gated_result(filter, measurement, accept, input));
   EXPECT_EQ(1, accept.calls);
   EXPECT_EQ(real_t(0), (filter.state - reference.state).norm());
   EXPECT_EQ(real_t(0),
@@ -212,7 +226,8 @@ void check_split_step_and_exception() {
     EXPECT_EQ(&threshold, &limit);
     return normalized_innovation_squared<F, M>(current) < limit;
   };
-  EXPECT_FALSE(filter.a_posteriori_step(gate, threshold));
+  EXPECT_EQ(UKF::GateResult::Rejected,
+            filter.a_posteriori_step_with_gate_result(gate, threshold));
   EXPECT_EQ(real_t(0), (filter.state - predicted.state).norm());
   EXPECT_EQ(real_t(0),
             (covariance<F, M>(filter) - covariance<F, M>(predicted)).norm());
@@ -228,7 +243,8 @@ void check_split_step_and_exception() {
 
   F reference = filter;
   reference.a_posteriori_step();
-  EXPECT_TRUE(filter.a_posteriori_step(RvalueGate{}, true));
+  EXPECT_EQ(UKF::GateResult::Applied,
+            filter.a_posteriori_step_with_gate_result(RvalueGate{}, true));
   EXPECT_EQ(real_t(0), (filter.state - reference.state).norm());
   EXPECT_EQ(real_t(0),
             (covariance<F, M>(filter) - covariance<F, M>(reference)).norm());
@@ -246,7 +262,7 @@ void check_empty() {
   F predicted = filter;
   predict<F, M>(predicted);
   M empty;
-  EXPECT_FALSE(gated_step(filter, empty, accept));
+  EXPECT_EQ(UKF::GateResult::Empty, gated_result(filter, empty, accept));
   EXPECT_EQ(1, accept.calls);
   EXPECT_EQ(0, filter.innovation.size());
   if constexpr (std::is_same_v<F, Standard<M>>) {
@@ -257,7 +273,8 @@ void check_empty() {
   EXPECT_EQ(real_t(0), (filter.state - predicted.state).norm());
   EXPECT_EQ(real_t(0),
             (covariance<F, M>(filter) - covariance<F, M>(predicted)).norm());
-  EXPECT_FALSE(filter.a_posteriori_step(RvalueGate{}, true));
+  EXPECT_EQ(UKF::GateResult::Empty,
+            filter.a_posteriori_step_with_gate_result(RvalueGate{}, true));
   F reference = filter;
   step(reference, measurement);
   EXPECT_TRUE(gated_step(filter, measurement, accept));
@@ -312,7 +329,8 @@ void check_failed_stages() {
     return true;
   };
   // A newly constructed filter has no valid innovation to gate.
-  EXPECT_FALSE(filter.a_posteriori_step(accept));
+  EXPECT_EQ(UKF::GateResult::Failed,
+            filter.a_posteriori_step_with_gate_result(accept));
   EXPECT_EQ(0, calls);
   ASSERT_TRUE(gated_step(filter, measurement, accept));
   const F valid = filter;
@@ -342,7 +360,8 @@ void check_failed_stages() {
           UKF::Vector<2>::Constant(std::numeric_limits<real_t>::quiet_NaN()));
     }
     calls = 0;
-    EXPECT_FALSE(gated_step(filter, sample, accept, input));
+    EXPECT_EQ(UKF::GateResult::Failed,
+              gated_result(filter, sample, accept, input));
     EXPECT_EQ(0, calls);
     expect_public_values<F, M>(filter, valid);
     EXPECT_FALSE(filter.a_posteriori_step(accept));
@@ -402,7 +421,8 @@ void check_failed_correction() {
     ++calls;
     return true;
   };
-  EXPECT_FALSE(gated_step(filter, measurement, accept, input));
+  EXPECT_EQ(UKF::GateResult::Failed,
+            gated_result(filter, measurement, accept, input));
   EXPECT_EQ(1, calls);
   expect_public_values<F, M>(filter, previous);
   EXPECT_FALSE(filter.a_posteriori_step(accept));
