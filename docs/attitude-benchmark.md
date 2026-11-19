@@ -31,10 +31,20 @@ model integrated with `UKF::IntegratorRK4`, per-field measurement models, and
 the cores' own `a_priori_step`, `innovation_step` and `a_posteriori_step`.
 
 The attitude filter is a small strapdown inertial navigator. Its state is a
-body-to-world quaternion, the velocity in the world frame, and the gyroscope
+body-to-world quaternion, the velocity in the body frame, and the gyroscope
 bias. The gyroscope reading, less the bias, turns the attitude; the
-accelerometer reading, rotated into the world frame with gravity added, changes
-the velocity. Both are process model inputs rather than measurements.
+accelerometer reading, with gravity rotated into the body frame and added,
+changes the velocity. Both are process model inputs rather than measurements.
+
+The velocity is kept in the body frame so that its rate involves the attitude
+only through gravity, which does not change with heading. In the world frame
+it would involve the heading through the measured horizontal specific force,
+and the pseudo-measurement below, which is wrong whenever the sensor moves,
+would then correct the heading as well as the tilt. For the same reason the
+rotating frame's term, the rate crossed with the velocity, uses the gyroscope
+reading with its bias left in: taking the bias out there would let a sensor
+moved in circles pass for a gyroscope bias about the vertical, which no
+accelerometer can observe.
 
 Tilt becomes observable through a pseudo-measurement that the velocity is zero.
 A hand-held sensor never moves far, so its velocity stays small; a tilt error
@@ -156,6 +166,17 @@ the same Sassari motion stay together. The tuning was frozen before the
 estimator's first validation run and has not been changed since. The magnetic
 disturbance thresholds were carried over unchanged from the previous estimator.
 The heading uncertainty limit was added after that run.
+
+The velocity's frame was also changed after that run. The velocity was first
+kept in the world frame. Moving it to the body frame, and leaving the
+gyroscope bias in the rotating frame's term, rest on the reasoning given under
+the UKF estimator and on synthetic recordings, but both were done with
+validation results known, so the validation recordings are not untouched by
+this estimator's development. No noise parameter was changed with them. The
+change lowers the six-axis BROAD total on the validation recordings from
+6.374° to 6.189° and raises it on the five development recordings from 6.607°
+to 7.646°, nearly all of it on trial 28 (3.043° to 8.524°).
+
 Reference-algorithm results on all recordings were already known. Use
 `--split development` or `--split validation` to replay these subsets.
 
@@ -167,23 +188,24 @@ of this particular model and fixed parameter configuration. `ukf` and `srukf`
 share the model and settings, and agree at the displayed precision on every
 aggregate.
 
-The 2026-11-12 run completed all 570 evaluations. `ukf` and `srukf` differ by
+The 2026-11-19 run completed all 570 evaluations. `ukf` and `srukf` differ by
 less than 10⁻¹¹ degrees on every recording. Over the full datasets the UKF
-estimator's total RMSE is 6.404° versus VQF's 6.448° on BROAD six-axis and
-2.472° versus 2.593° on BROAD nine-axis. On Sassari it is 4.423° versus 4.323°
-six-axis and 4.199° versus 4.235° nine-axis. On the validation recordings
-alone, which played no part in tuning, the totals are 6.374° versus 6.277°
-(BROAD six-axis), 2.486° versus 2.589° (BROAD nine-axis), 4.514° versus 4.343°
-(Sassari six-axis) and 4.511° versus 4.580° (Sassari nine-axis). These results
+estimator's total RMSE is 6.376° versus VQF's 6.448° on BROAD six-axis and
+2.411° versus 2.593° on BROAD nine-axis. On Sassari it is 4.079° versus 4.323°
+six-axis and 4.037° versus 4.235° nine-axis. On the validation recordings
+alone, which played no part in tuning, the totals are 6.189° versus 6.277°
+(BROAD six-axis), 2.418° versus 2.589° (BROAD nine-axis), 4.058° versus 4.343°
+(Sassari six-axis) and 4.251° versus 4.580° (Sassari nine-axis). These results
 demonstrate rough parity with VQF when unaided by a significant process model.
 
 The differences are not uniform. The UKF estimator's inclination error is
-higher than VQF's on BROAD (0.936° versus 0.857°) and lower on Sassari (1.861°
-versus 2.095°), most clearly in the fast recordings (2.294° versus 2.820°). Its
-six-axis heading drifts more on Sassari (3.862° versus 3.637°). On disturbed
-nine-axis BROAD recordings its total error is 2.689° versus VQF's 3.185°; on
-undisturbed ones it is 2.322° versus 2.181°. Madgwick and Mahony, run with
-fixed gains, are well behind both.
+higher than VQF's on BROAD (0.949° versus 0.857°) and lower on Sassari (1.863°
+versus 2.095°), most clearly in the fast recordings (2.298° versus 2.820°). On
+six-axis BROAD its total error is higher than VQF's on the disturbed recordings
+(6.293° versus 6.038°) and lower on the undisturbed ones (6.434° versus
+6.733°). On nine-axis BROAD it is the other way round: 2.515° versus 3.185° on
+disturbed recordings and 2.339° versus 2.181° on undisturbed ones. Madgwick and
+Mahony, run with fixed gains, are well behind both.
 
 To refresh the checked-in snapshot after running the two datasets separately:
 
@@ -218,8 +240,9 @@ accuracy changes through the per-trial artifacts, especially disturbance trials.
 The metric tests cover signs, coordinate frames, optical gaps and yaw drift.
 Executable tests on synthetic recordings cover tilted rest, multi-axis rotation,
 bias convergence, agreement between the two cores, malformed input, prefix
-causality, irregular sampling, rest discrimination, translation, accelerometer
-dropout, magnetic isolation, outage and recovery, and unobservable heading.
+causality, irregular sampling, rest discrimination, translation, circling with
+and without a measured gyroscope bias, accelerometer dropout, magnetic
+isolation, outage and recovery, and unobservable heading.
 
 Timing is diagnostic only: the C++ measurement normally excludes CSV I/O;
 `--diagnostics` includes state-trace writes in the measured loop. The Python

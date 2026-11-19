@@ -3,15 +3,15 @@ Attitude estimation from a gyroscope, an accelerometer and (optionally) a
 magnetometer, as used for the BROAD and Sassari benchmark recordings.
 
 The filter is a small strapdown inertial navigator. The gyroscope turns the
-attitude, and the accelerometer, rotated into the world frame with gravity
-removed, changes the velocity. Nothing measures that velocity, but a sensor
-moved by hand never gets far, so the filter is simply told that its velocity
-is zero, give or take. That is enough to find which way is down: if the
-attitude estimate is tilted, some of gravity is mistaken for acceleration,
-the velocity estimate runs away, and the "measurement" of zero pulls both
-the velocity and the tilt back. Real accelerations do little harm, because
-they average out within a few seconds while the effect of a tilt error
-keeps growing.
+attitude, and the accelerometer, once the attitude has been used to take
+gravity out of its reading, changes the velocity, which is kept in the body
+frame. Nothing measures that velocity, but a sensor moved by hand never gets
+far, so the filter is simply told that its velocity is zero, give or take.
+That is enough to find which way is down: if the attitude estimate is
+tilted, some of gravity is mistaken for acceleration, the velocity estimate
+runs away, and the "measurement" of zero pulls both the velocity and the
+tilt back. Real accelerations do little harm, because they average out
+within a few seconds while the effect of a tilt error keeps growing.
 
 The gyroscope bias is part of the same state vector, so the filter learns it
 from those same velocity errors while the sensor moves. Whenever the sensor
@@ -62,8 +62,15 @@ enum Attitude_Keys {
 /*
 The attitude filter state vector contains the following:
 - Attitude as a quaternion (body frame to world frame; world +Z is up)
-- Velocity (world frame, m/s)
+- Velocity (body frame, m/s)
 - Gyroscope bias (body frame, rad/s)
+
+The velocity is kept in the body frame, as the MAV estimator keeps it, so
+that its rate depends on the attitude only through gravity, which does not
+change with heading. In the world frame it would depend on heading through
+the measured horizontal specific force, and the zero-velocity
+pseudo-measurement, which is wrong whenever the sensor moves, would then
+correct the heading.
 */
 using Attitude_StateVector =
     UKF::StateVector<UKF::Field<Attitude, UKF::Quaternion>,
@@ -73,7 +80,7 @@ using Attitude_StateVector =
 /*
 The measurement vector is dynamic, because the gyroscope bias can only be
 measured directly while the sensor is at rest:
-- Velocity pseudo-measurement, always zero (world frame, m/s)
+- Velocity pseudo-measurement, always zero (body frame, m/s)
 - Gyroscope reading at rest (body frame, rad/s)
 */
 using Attitude_MeasurementVector =
@@ -112,12 +119,22 @@ inline Attitude_StateVector Attitude_StateVector::derivative<Attitude_Input>(
   output.set_field<Attitude>(get_field<Attitude>() * omega_q);
 
   /*
-  Calculate change in velocity. An accelerometer measures acceleration
-  less gravity, so gravity is added back once the reading has been rotated
-  into the world frame.
+  Calculate change in body-frame velocity. An accelerometer measures
+  acceleration less gravity, so gravity, rotated into the body frame, is
+  added back; the rotating frame adds the transport term -w x v.
+
+  The rate in that term is the gyroscope reading as it stands, bias and
+  all. Taking the bias out there would tie the velocity to the gyroscope
+  bias about the vertical, which no accelerometer can observe: a sensor
+  moved in circles, where the zero-velocity pseudo-measurement is wrong,
+  would then pass for such a bias until it next came to rest. The error
+  this leaves is the bias times the velocity, which is small beside the
+  accelerometer noise.
   */
-  output.set_field<Velocity>(get_field<Attitude>() * input.accelerometer +
-                             UKF::Vector<3>(0, 0, -G_ACCEL));
+  output.set_field<Velocity>(input.accelerometer +
+                             get_field<Attitude>().conjugate() *
+                                 UKF::Vector<3>(0, 0, -G_ACCEL) -
+                             input.gyroscope.cross(get_field<Velocity>()));
 
   /* Assume constant gyroscope bias; the process noise lets it wander. */
   output.set_field<GyroBias>(UKF::Vector<3>(0, 0, 0));

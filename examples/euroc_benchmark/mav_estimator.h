@@ -21,7 +21,7 @@ The rotor model applies only while the rotors are turning, which is detected
 from the vibration they cause. Otherwise (while the vehicle is carried, or
 standing on the ground) the filter behaves like the hand-held one.
 
-Unlike the hand-held filter, the velocity is expressed in the IMU frame.
+As in the hand-held filter, the velocity is expressed in the IMU frame.
 Rotor drag acts in that frame, so the rotor model then never involves the
 heading, which a six-axis IMU cannot observe.
 */

@@ -1,45 +1,48 @@
 {
   "scope": "full EuRoC dataset",
-  "revision": "4faf4ca7a026462a786546cff2ce180c015eb825",
+  "revision": "8d7feab97c8c4e42d73ec514a5878940d0f75a72",
   "dirty": false,
   "source_sha256": {
-    "CMakeLists.txt": "52e051eff179c2eb3876ab2a76b30c4523b5a7af0772f06048cdca01f421684d",
-    "examples/CMakeLists.txt": "21daad0389ad45c19a102145dc29127d881aa69964dddf7f5bc67db1cebfc577",
+    "CMakeLists.txt": "b61515f9967606b490011f6f35f0863b5811f537d56878b9e943c9476b28a42c",
+    "examples/CMakeLists.txt": "efd83b6dfb1e44eb699cf0f8dc5da0730393c993622bcf6f6ee32dcf257c0cf5",
     "examples/attitude_benchmark/CMakeLists.txt": "da08ad74f84250fff13c1e0d109037c8e5b6b98fef4e5ad54a8f76dca15a25a6",
-    "examples/attitude_benchmark/attitude_estimator.h": "a3514ea8a4148ce5fdda5d61aed04b74190a47128d86831901fd38383165ea00",
+    "examples/attitude_benchmark/attitude_estimator.h": "f6ba37af56f9bf5671e631605d999c085dea9dac1ee23a88a8f46518a75112d1",
     "examples/attitude_benchmark/datasets.lock.json": "186770478d3e702911ba4d0bdfd712977535261cfd0a34342c4a2077f259bea5",
     "examples/attitude_benchmark/datasets.py": "e73adba68b74eda802f6c3092939112f38ead066d4d50fe931d156409c5695e2",
-    "examples/attitude_benchmark/estimator.cpp": "1f38598a02840ec2d8dafd8ea6a75a80c2548a35aaee1cfe0fa5798472520d3d",
-    "examples/attitude_benchmark/imu_csv.h": "9503906fc1078e20f594d09151c723cbdb48ca663611c49d2efca2c7b363a7ac",
+    "examples/attitude_benchmark/estimator.cpp": "4c9974c312a8c85aac93b32d374168b523b8d1041f53c29f37cb3fbace7790e9",
+    "examples/attitude_benchmark/imu_csv.h": "70e72f72ecfc8c6c64a12e7c8e188369abce9004246bfb310e30a123c05a72f4",
+    "examples/attitude_benchmark/imu_sample.h": "71d94a06ee6aedd58d3ede0b86d180bb6c2393d75a6e15e29dfc87c7f0613f19",
     "examples/attitude_benchmark/metrics.py": "8e66283acaca20fe56d845ea3a237583780d877a1eba37282a9680cecf9827b4",
     "examples/attitude_benchmark/references.py": "a0faafb3109f9931999277bcecc80cd0932524cf2a7dc9de4029bd304074f95c",
     "examples/attitude_benchmark/requirements.txt": "047bf25111774a6343100d73aa2675a807a79712e015666e4e6943e95b3b3a52",
     "examples/attitude_benchmark/run.py": "d57b843e2c8f8d95367e89b530a6f371d27f352a75c1cf0cfcc54eae392ce3fa",
-    "examples/attitude_benchmark/sensor_checks.h": "d5e7f4ad5f66f856de51de26c5aae41e7bbb5e362bdc09891853546ead894395",
+    "examples/attitude_benchmark/sensor_checks.h": "6713f1c13d4e898e55be5fe298ca4acbc9e803880947f0fec8f36608edfca966",
     "examples/euroc_benchmark/CMakeLists.txt": "d157efdc1a8a10a670884af8062e4bde3957f2f92db0a518bbd5b37b7da00a72",
     "examples/euroc_benchmark/calibrate_mount.py": "408dfb7ae37d756520756d42e8775c519db3fe7bdd1d305d2901ce224e807d47",
     "examples/euroc_benchmark/datasets.lock.json": "b4b30ebcb5421870b5f371101e97f263d34823b8320047ea06304c6a313fe2f1",
     "examples/euroc_benchmark/datasets.py": "0e3a2273ca73bb34e21d1a3f667de08e62ba10f6e27cc00912a05537ae41104f",
-    "examples/euroc_benchmark/estimator.cpp": "a583c3461d4264ad43cea957223eea4c3e80ab6051781844ed03f79471a1fd6f",
-    "examples/euroc_benchmark/mav_estimator.h": "4917bba74262625564451aaa2913dc6b1f0d9e2c3aa0c1a7483e5966beac459f",
-    "examples/euroc_benchmark/rotor_vibration.h": "c48a73a9f9d81590719eca2fdc9eb637755433b6e323d968f485a8e47bb0a4f6",
+    "examples/euroc_benchmark/estimator.cpp": "3b7c1bbfea15fecad5ee185ea5247ecd229b0db1cfddccd01366bf68a1885d88",
+    "examples/euroc_benchmark/mav_estimator.h": "c9668ea531c9aca8aefe0595953b6e555bd64a43b814506c73ad12fb49a4521a",
+    "examples/euroc_benchmark/rotor_vibration.h": "ffc6e31453559820bc9ad9336e4de15c1ade5a245ea9a16be90f096681074812",
     "examples/euroc_benchmark/run.py": "53cb75da03c2eba0ef6a3340d74928bf506cb9118f6a4690e27fe57cd7bfff36",
-    "include/UKF/Config.h": "cb7ecbc40d15a5689d07dd649ceb52c61d8a6d43119ca4a3d910ff58aedf11a5",
-    "include/UKF/Core.h": "5823a50222894043d9ef78fb326a252b613dc8fa5ad1cfacea8e5ff3554d977f",
-    "include/UKF/Covariance.h": "adb762d09bdf9b1bcae0edd26cd87a5ef13e97c291e36f128a9d4effc8f0323a",
-    "include/UKF/Integrator.h": "239361c00080b3fb451b8a7e8ece39ae35c3444eb0e41a73ae64cc7cdc946549",
-    "include/UKF/MeasurementVector.h": "29226c3ac359848a2adc19cbf3af2c2a5d03ed1154d2889a1c4058b8d0a7bd76",
-    "include/UKF/RankUpdate.h": "9986ba29a46de9cae694c4c8df748b32ef4b8623532bc32c5cb16d0ce52e22c8",
-    "include/UKF/StateVector.h": "3c54b0442492974420c0b774571704de4152b3abb80b81f066a2e480311a09ff",
-    "include/UKF/Types.h": "8d6299373fe92651f3b6742f460e4520bb5c6fe6b082756078dbbd328f21dfa7"
+    "include/UKF/Config.h": "e12dce202784a4248a3b30f74bf71438b81e6d85d00ceff5c9f7ea3e08fd535e",
+    "include/UKF/Core.h": "922e729415e94034ce95a000a03118b7961d9682e4e81cf791deead4f30304cb",
+    "include/UKF/Covariance.h": "9de99d0d0e4d8e6ce8d6e6b8f53725fef71c42ed9d07159987396f39e7bbfdae",
+    "include/UKF/Integrator.h": "ba6052f6d8926b8164aedc8d738883ec88352855fe69865260661f3d96096133",
+    "include/UKF/MeasurementVector.h": "b5dbdc06b0a9e80e6e1bbc1750d664ff23cd926bf2147f082fef601cec728182",
+    "include/UKF/RankUpdate.h": "7e16e32f41279f5488e0999da3861654de06cdfac5e1565fc5cf64d1c4b7ea7b",
+    "include/UKF/Smoother.h": "db22793fcf02ca1ae6d8d09f1bf578751f46b4f19badf829b966ce2abcb17f39",
+    "include/UKF/StateVector.h": "2c20ee3398196da03334384720267b0dd0568fd3d5c165a953c78e8412cfa6a3",
+    "include/UKF/Types.h": "7755d86bc436857e3a3be0102dade9269d31e15ddc382b54eb0b9e8f85db557c",
+    "include/UKF/Version.h": "e202c95f936537e51f3a11f24cfbd09eef721508f38567648a4af231ea64c7a3"
   },
   "binary_sha256": {
-    "attitude_benchmark": "0671d66ab91e180f7acd21ae8015c0098396188d80b1976e22d6de66a2b7e2c7",
-    "euroc_benchmark": "5fddd7fd439efc8143db5267d6bc281134dd248c7488532f32b96863ddab4b02"
+    "attitude_benchmark": "86c9d042260b5474d099cc06a345818b5a140be4d038f9cbace170d36e34eac9",
+    "euroc_benchmark": "ea311e7a6971e3c779b600166858483efeb0ab0a430b1709712a0ab1c2dd8238"
   },
-  "platform": "macOS-27.2-arm64-arm-64bit",
-  "machine": "arm64",
-  "python": "3.12.16 (main, Oct 26 2026, 13:59:40) [Clang 23.1.3 ]",
+  "platform": "Linux-6.18.44-fc-v653-x86_64-with-glibc2.39",
+  "machine": "x86_64",
+  "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
   "packages": {
     "numpy": "2.2.6",
     "scipy": "1.15.3",
@@ -75,7 +78,7 @@
     "srukf": {
       "stage": "srukf",
       "core": "UKF::SquareRootCore",
-      "state": "attitude quaternion, world-frame velocity, gyroscope bias",
+      "state": "attitude quaternion, body-frame velocity, gyroscope bias",
       "measurements": "zero velocity; gyroscope at rest; magnetic heading (separate filter)",
       "integrator": "UKF::IntegratorRK4",
       "initial_tilt_rad": 0.05,
@@ -109,7 +112,7 @@
     "ukf": {
       "stage": "ukf",
       "core": "UKF::Core",
-      "state": "attitude quaternion, world-frame velocity, gyroscope bias",
+      "state": "attitude quaternion, body-frame velocity, gyroscope bias",
       "measurements": "zero velocity; gyroscope at rest; magnetic heading (separate filter)",
       "integrator": "UKF::IntegratorRK4",
       "initial_tilt_rad": 0.05,
@@ -516,45 +519,45 @@
       "axes": 6,
       "algorithm": "ukf",
       "sequences": 11,
-      "inclination_rmse_deg": 1.7169956049179298,
-      "heading_rmse_deg": 66.86109129598991,
-      "total_rmse_deg": 66.88642096410564
+      "inclination_rmse_deg": 1.73030515654723,
+      "heading_rmse_deg": 55.95986869315145,
+      "total_rmse_deg": 56.00255542873872
     },
     {
       "dataset": "euroc",
       "axes": 6,
       "algorithm": "srukf",
       "sequences": 11,
-      "inclination_rmse_deg": 1.716995604917915,
-      "heading_rmse_deg": 66.86109129598789,
-      "total_rmse_deg": 66.88642096410365
+      "inclination_rmse_deg": 1.7303051565473075,
+      "heading_rmse_deg": 55.959868693146035,
+      "total_rmse_deg": 56.002555428733324
     },
     {
       "dataset": "euroc",
       "axes": 6,
       "algorithm": "mav-srukf",
       "sequences": 11,
-      "inclination_rmse_deg": 1.2277549417452982,
-      "heading_rmse_deg": 3.4612873884239552,
-      "total_rmse_deg": 3.7099933891964154
+      "inclination_rmse_deg": 1.2277549417453277,
+      "heading_rmse_deg": 3.4612873884241155,
+      "total_rmse_deg": 3.7099933891964922
     },
     {
       "dataset": "euroc",
       "axes": 6,
       "algorithm": "mav-srukf-gravity",
       "sequences": 11,
-      "inclination_rmse_deg": 1.8008467493834999,
-      "heading_rmse_deg": 8.116248404244063,
-      "total_rmse_deg": 8.432846005194081
+      "inclination_rmse_deg": 1.8008467493834894,
+      "heading_rmse_deg": 8.11624840425054,
+      "total_rmse_deg": 8.432846005200437
     },
     {
       "dataset": "euroc",
       "axes": 6,
       "algorithm": "madgwick",
       "sequences": 11,
-      "inclination_rmse_deg": 6.984532707663536,
-      "heading_rmse_deg": 104.75666186060361,
-      "total_rmse_deg": 104.93891770110098
+      "inclination_rmse_deg": 6.98453270766353,
+      "heading_rmse_deg": 104.75666186060343,
+      "total_rmse_deg": 104.9389177011008
     },
     {
       "dataset": "euroc",
@@ -562,7 +565,7 @@
       "algorithm": "mahony",
       "sequences": 11,
       "inclination_rmse_deg": 3.184255271377653,
-      "heading_rmse_deg": 100.24343079907662,
+      "heading_rmse_deg": 100.24343079907659,
       "total_rmse_deg": 100.28850526495381
     },
     {
@@ -570,18 +573,18 @@
       "axes": 6,
       "algorithm": "vqf",
       "sequences": 11,
-      "inclination_rmse_deg": 5.106167677988718,
-      "heading_rmse_deg": 109.72502602686804,
-      "total_rmse_deg": 109.8121079731542
+      "inclination_rmse_deg": 5.106167677989087,
+      "heading_rmse_deg": 109.7250260268801,
+      "total_rmse_deg": 109.81210797316622
     },
     {
       "dataset": "euroc",
       "axes": 6,
       "algorithm": "vqf-mav",
       "sequences": 11,
-      "inclination_rmse_deg": 1.9459196240585057,
-      "heading_rmse_deg": 60.93551520235939,
-      "total_rmse_deg": 61.12734911005135
+      "inclination_rmse_deg": 1.9459196240581078,
+      "heading_rmse_deg": 60.93551520223536,
+      "total_rmse_deg": 61.12734910992799
     }
   ],
   "summary_by_split": {
@@ -591,72 +594,72 @@
         "axes": 6,
         "algorithm": "ukf",
         "sequences": 2,
-        "inclination_rmse_deg": 1.5169850152444808,
-        "heading_rmse_deg": 32.41381233152496,
-        "total_rmse_deg": 32.45153916892663
+        "inclination_rmse_deg": 1.534539967755149,
+        "heading_rmse_deg": 45.34574012736476,
+        "total_rmse_deg": 45.407068601357295
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "srukf",
         "sequences": 2,
-        "inclination_rmse_deg": 1.516985015244528,
-        "heading_rmse_deg": 32.41381233152316,
-        "total_rmse_deg": 32.45153916892481
+        "inclination_rmse_deg": 1.5345399677552567,
+        "heading_rmse_deg": 45.34574012735091,
+        "total_rmse_deg": 45.40706860134354
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf",
         "sequences": 2,
-        "inclination_rmse_deg": 0.9702385113917402,
-        "heading_rmse_deg": 2.2933896985295092,
-        "total_rmse_deg": 2.4952374285924126
+        "inclination_rmse_deg": 0.9702385113917806,
+        "heading_rmse_deg": 2.293389698529144,
+        "total_rmse_deg": 2.495237428591867
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf-gravity",
         "sequences": 2,
-        "inclination_rmse_deg": 1.5525665288546273,
-        "heading_rmse_deg": 5.696989227091079,
-        "total_rmse_deg": 5.9107686346391315
+        "inclination_rmse_deg": 1.5525665288546384,
+        "heading_rmse_deg": 5.696989227088919,
+        "total_rmse_deg": 5.910768634637032
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "madgwick",
         "sequences": 2,
-        "inclination_rmse_deg": 6.7745398901311855,
-        "heading_rmse_deg": 95.14020469835015,
-        "total_rmse_deg": 95.34476024765956
+        "inclination_rmse_deg": 6.774539890131178,
+        "heading_rmse_deg": 95.14020469835012,
+        "total_rmse_deg": 95.34476024765955
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mahony",
         "sequences": 2,
-        "inclination_rmse_deg": 3.2544131278301616,
-        "heading_rmse_deg": 85.43608993811773,
-        "total_rmse_deg": 85.51062554247255
+        "inclination_rmse_deg": 3.254413127830159,
+        "heading_rmse_deg": 85.43608993811769,
+        "total_rmse_deg": 85.51062554247251
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "vqf",
         "sequences": 2,
-        "inclination_rmse_deg": 5.301750883986964,
-        "heading_rmse_deg": 97.91284873331836,
-        "total_rmse_deg": 98.02240505420988
+        "inclination_rmse_deg": 5.301750883982628,
+        "heading_rmse_deg": 97.91284873336696,
+        "total_rmse_deg": 98.02240505425817
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "vqf-mav",
         "sequences": 2,
-        "inclination_rmse_deg": 1.7588141184849206,
-        "heading_rmse_deg": 70.4254552371298,
-        "total_rmse_deg": 70.45531159569462
+        "inclination_rmse_deg": 1.7588141184824924,
+        "heading_rmse_deg": 70.42545523678729,
+        "total_rmse_deg": 70.45531159535248
       }
     ],
     "validation": [
@@ -665,52 +668,52 @@
         "axes": 6,
         "algorithm": "ukf",
         "sequences": 9,
-        "inclination_rmse_deg": 1.7614424026231408,
-        "heading_rmse_deg": 74.51604217698213,
-        "total_rmse_deg": 74.53861691858988
+        "inclination_rmse_deg": 1.773808531834359,
+        "heading_rmse_deg": 58.31856392999295,
+        "total_rmse_deg": 58.35710805704571
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "srukf",
         "sequences": 9,
-        "inclination_rmse_deg": 1.7614424026231124,
-        "heading_rmse_deg": 74.51604217698008,
-        "total_rmse_deg": 74.53861691858782
+        "inclination_rmse_deg": 1.77380853183443,
+        "heading_rmse_deg": 58.31856392998938,
+        "total_rmse_deg": 58.35710805704217
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf",
         "sequences": 9,
-        "inclination_rmse_deg": 1.2849808151572,
-        "heading_rmse_deg": 3.720820208400499,
-        "total_rmse_deg": 3.9799391582195267
+        "inclination_rmse_deg": 1.284980815157227,
+        "heading_rmse_deg": 3.720820208400776,
+        "total_rmse_deg": 3.979939158219742
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf-gravity",
         "sequences": 9,
-        "inclination_rmse_deg": 1.8560201317232494,
-        "heading_rmse_deg": 8.653861554722504,
-        "total_rmse_deg": 8.993307643095182
+        "inclination_rmse_deg": 1.856020131723234,
+        "heading_rmse_deg": 8.653861554730902,
+        "total_rmse_deg": 8.993307643103414
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "madgwick",
         "sequences": 9,
-        "inclination_rmse_deg": 7.031197778226282,
-        "heading_rmse_deg": 106.89365234110437,
-        "total_rmse_deg": 107.07095269075464
+        "inclination_rmse_deg": 7.031197778226275,
+        "heading_rmse_deg": 106.89365234110419,
+        "total_rmse_deg": 107.07095269075444
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mahony",
         "sequences": 9,
-        "inclination_rmse_deg": 3.168664636610429,
+        "inclination_rmse_deg": 3.16866463661043,
         "heading_rmse_deg": 103.53395099040081,
         "total_rmse_deg": 103.57247853661632
       },
@@ -719,18 +722,18 @@
         "axes": 6,
         "algorithm": "vqf",
         "sequences": 9,
-        "inclination_rmse_deg": 5.06270474332244,
-        "heading_rmse_deg": 112.34995431432351,
-        "total_rmse_deg": 112.43204195514181
+        "inclination_rmse_deg": 5.062704743323856,
+        "heading_rmse_deg": 112.34995431432748,
+        "total_rmse_deg": 112.43204195514582
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "vqf-mav",
         "sequences": 9,
-        "inclination_rmse_deg": 1.98749862529708,
-        "heading_rmse_deg": 58.826639639077065,
-        "total_rmse_deg": 59.05446855768618
+        "inclination_rmse_deg": 1.9874986252971334,
+        "heading_rmse_deg": 58.82663963900159,
+        "total_rmse_deg": 59.05446855761144
       }
     ]
   },
@@ -748,72 +751,72 @@
       "axes": 6,
       "algorithm": "ukf",
       "sequences": 5,
-      "inclination_rmse_deg": 1.5862299314709951,
-      "heading_rmse_deg": 67.50063505225818,
-      "total_rmse_deg": 67.5279487831718
+      "inclination_rmse_deg": 1.5971312674615963,
+      "heading_rmse_deg": 58.81243885220887,
+      "total_rmse_deg": 58.838182981436965
     },
     {
       "dataset": "euroc",
       "axes": 6,
       "algorithm": "srukf",
       "sequences": 5,
-      "inclination_rmse_deg": 1.5862299314709916,
-      "heading_rmse_deg": 67.5006350522619,
-      "total_rmse_deg": 67.5279487831755
+      "inclination_rmse_deg": 1.5971312674615876,
+      "heading_rmse_deg": 58.81243885219722,
+      "total_rmse_deg": 58.83818298142533
     },
     {
       "dataset": "euroc",
       "axes": 6,
       "algorithm": "mav-srukf",
       "sequences": 5,
-      "inclination_rmse_deg": 1.1086407488449344,
-      "heading_rmse_deg": 2.646499727738692,
-      "total_rmse_deg": 2.893583946201919
+      "inclination_rmse_deg": 1.1086407488449805,
+      "heading_rmse_deg": 2.6464997277393723,
+      "total_rmse_deg": 2.893583946202458
     },
     {
       "dataset": "euroc",
       "axes": 6,
       "algorithm": "mav-srukf-gravity",
       "sequences": 5,
-      "inclination_rmse_deg": 1.6094973495721028,
-      "heading_rmse_deg": 5.6714165552167515,
-      "total_rmse_deg": 5.932228237461542
+      "inclination_rmse_deg": 1.6094973495720892,
+      "heading_rmse_deg": 5.671416555219891,
+      "total_rmse_deg": 5.932228237464541
     },
     {
       "dataset": "euroc",
       "axes": 6,
       "algorithm": "madgwick",
       "sequences": 5,
-      "inclination_rmse_deg": 8.589124381381335,
-      "heading_rmse_deg": 95.67792947086977,
-      "total_rmse_deg": 95.9727907411496
+      "inclination_rmse_deg": 8.589124381381328,
+      "heading_rmse_deg": 95.67792947086949,
+      "total_rmse_deg": 95.97279074114934
     },
     {
       "dataset": "euroc",
       "axes": 6,
       "algorithm": "mahony",
       "sequences": 5,
-      "inclination_rmse_deg": 3.563778158923251,
-      "heading_rmse_deg": 87.54768129246436,
-      "total_rmse_deg": 87.61531697529469
+      "inclination_rmse_deg": 3.5637781589232502,
+      "heading_rmse_deg": 87.54768129246438,
+      "total_rmse_deg": 87.61531697529472
     },
     {
       "dataset": "euroc",
       "axes": 6,
       "algorithm": "vqf",
       "sequences": 5,
-      "inclination_rmse_deg": 5.463543534955695,
-      "heading_rmse_deg": 107.25151882559393,
-      "total_rmse_deg": 107.35728665753422
+      "inclination_rmse_deg": 5.463543534955443,
+      "heading_rmse_deg": 107.25151882561222,
+      "total_rmse_deg": 107.35728665755246
     },
     {
       "dataset": "euroc",
       "axes": 6,
       "algorithm": "vqf-mav",
       "sequences": 5,
-      "inclination_rmse_deg": 1.5701830933676015,
-      "heading_rmse_deg": 75.11887415957075,
-      "total_rmse_deg": 75.33325215227046
+      "inclination_rmse_deg": 1.5701830933690708,
+      "heading_rmse_deg": 75.11887415945628,
+      "total_rmse_deg": 75.33325215215605
     }
   ],
   "summary_primary_validation": [
@@ -822,72 +825,72 @@
       "axes": 6,
       "algorithm": "ukf",
       "sequences": 4,
-      "inclination_rmse_deg": 1.511353662746352,
-      "heading_rmse_deg": 76.69764795660679,
-      "total_rmse_deg": 76.71760621255086
+      "inclination_rmse_deg": 1.5231853517114526,
+      "heading_rmse_deg": 52.4756320907763,
+      "total_rmse_deg": 52.503387632885946
     },
     {
       "dataset": "euroc",
       "axes": 6,
       "algorithm": "srukf",
       "sequences": 4,
-      "inclination_rmse_deg": 1.5113536627463469,
-      "heading_rmse_deg": 76.69764795660859,
-      "total_rmse_deg": 76.71760621255264
+      "inclination_rmse_deg": 1.5231853517114111,
+      "heading_rmse_deg": 52.47563209076569,
+      "total_rmse_deg": 52.503387632875345
     },
     {
       "dataset": "euroc",
       "axes": 6,
       "algorithm": "mav-srukf",
       "sequences": 4,
-      "inclination_rmse_deg": 1.1717680832694508,
-      "heading_rmse_deg": 2.9012075843225356,
-      "total_rmse_deg": 3.15720926887047
+      "inclination_rmse_deg": 1.1717680832694872,
+      "heading_rmse_deg": 2.9012075843235294,
+      "total_rmse_deg": 3.1572092688713687
     },
     {
       "dataset": "euroc",
       "axes": 6,
       "algorithm": "mav-srukf-gravity",
       "sequences": 4,
-      "inclination_rmse_deg": 1.5432299327170322,
-      "heading_rmse_deg": 5.129353348606816,
-      "total_rmse_deg": 5.400194064842433
+      "inclination_rmse_deg": 1.5432299327170171,
+      "heading_rmse_deg": 5.129353348610634,
+      "total_rmse_deg": 5.400194064846102
     },
     {
       "dataset": "euroc",
       "axes": 6,
       "algorithm": "madgwick",
       "sequences": 4,
-      "inclination_rmse_deg": 8.811891405121852,
-      "heading_rmse_deg": 100.70859224862453,
-      "total_rmse_deg": 100.99521064209091
+      "inclination_rmse_deg": 8.811891405121845,
+      "heading_rmse_deg": 100.7085922486242,
+      "total_rmse_deg": 100.99521064209058
     },
     {
       "dataset": "euroc",
       "axes": 6,
       "algorithm": "mahony",
       "sequences": 4,
-      "inclination_rmse_deg": 3.2952809888884182,
-      "heading_rmse_deg": 92.5377124864695,
-      "total_rmse_deg": 92.58725708527075
+      "inclination_rmse_deg": 3.295280988888418,
+      "heading_rmse_deg": 92.53771248646952,
+      "total_rmse_deg": 92.58725708527078
     },
     {
       "dataset": "euroc",
       "axes": 6,
       "algorithm": "vqf",
       "sequences": 4,
-      "inclination_rmse_deg": 5.483410142966005,
-      "heading_rmse_deg": 111.53973254905998,
-      "total_rmse_deg": 111.63905519752655
+      "inclination_rmse_deg": 5.4834101429678945,
+      "heading_rmse_deg": 111.53973254906525,
+      "total_rmse_deg": 111.63905519753187
     },
     {
       "dataset": "euroc",
       "axes": 6,
       "algorithm": "vqf-mav",
       "sequences": 4,
-      "inclination_rmse_deg": 1.614996083784141,
-      "heading_rmse_deg": 88.52840046231654,
-      "total_rmse_deg": 88.78522618544442
+      "inclination_rmse_deg": 1.6149960837864727,
+      "heading_rmse_deg": 88.52840046227809,
+      "total_rmse_deg": 88.78522618540583
     }
   ],
   "summary_by_environment": {
@@ -897,72 +900,72 @@
         "axes": 6,
         "algorithm": "ukf",
         "sequences": 5,
-        "inclination_rmse_deg": 1.5556482960463822,
-        "heading_rmse_deg": 55.29012611500434,
-        "total_rmse_deg": 55.31382229632516
+        "inclination_rmse_deg": 1.567987371012983,
+        "heading_rmse_deg": 42.8767314395471,
+        "total_rmse_deg": 42.9384334862694
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "srukf",
         "sequences": 5,
-        "inclination_rmse_deg": 1.5556482960463396,
-        "heading_rmse_deg": 55.29012611499538,
-        "total_rmse_deg": 55.3138222963162
+        "inclination_rmse_deg": 1.5679873710132428,
+        "heading_rmse_deg": 42.87673143954363,
+        "total_rmse_deg": 42.938433486266
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf",
         "sequences": 5,
-        "inclination_rmse_deg": 0.9873216017525479,
-        "heading_rmse_deg": 3.760397330269793,
-        "total_rmse_deg": 3.9175056493919733
+        "inclination_rmse_deg": 0.9873216017525757,
+        "heading_rmse_deg": 3.7603973302696962,
+        "total_rmse_deg": 3.9175056493918126
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf-gravity",
         "sequences": 5,
-        "inclination_rmse_deg": 1.704615824514697,
-        "heading_rmse_deg": 11.04505969548195,
-        "total_rmse_deg": 11.309620192035368
+        "inclination_rmse_deg": 1.7046158245147012,
+        "heading_rmse_deg": 11.045059695492679,
+        "total_rmse_deg": 11.309620192046015
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "madgwick",
         "sequences": 5,
-        "inclination_rmse_deg": 6.032711113695943,
-        "heading_rmse_deg": 111.07115790818197,
-        "total_rmse_deg": 111.17056058217831
+        "inclination_rmse_deg": 6.03271111369594,
+        "heading_rmse_deg": 111.07115790818186,
+        "total_rmse_deg": 111.1705605821782
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mahony",
         "sequences": 5,
-        "inclination_rmse_deg": 2.7088972642210503,
-        "heading_rmse_deg": 109.18076213359878,
-        "total_rmse_deg": 109.20564660234552
+        "inclination_rmse_deg": 2.7088972642210507,
+        "heading_rmse_deg": 109.18076213359868,
+        "total_rmse_deg": 109.20564660234545
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "vqf",
         "sequences": 5,
-        "inclination_rmse_deg": 5.211029031954615,
-        "heading_rmse_deg": 113.07108834760777,
-        "total_rmse_deg": 113.15075588838458
+        "inclination_rmse_deg": 5.211029031954648,
+        "heading_rmse_deg": 113.07108834761485,
+        "total_rmse_deg": 113.15075588839167
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "vqf-mav",
         "sequences": 5,
-        "inclination_rmse_deg": 2.141427113255406,
-        "heading_rmse_deg": 55.99482202409787,
-        "total_rmse_deg": 56.14821291868746
+        "inclination_rmse_deg": 2.141427113252243,
+        "heading_rmse_deg": 55.99482202401041,
+        "total_rmse_deg": 56.148212918599974
       }
     ],
     "V1": [
@@ -971,72 +974,72 @@
         "axes": 6,
         "algorithm": "ukf",
         "sequences": 3,
-        "inclination_rmse_deg": 2.2347274603335943,
-        "heading_rmse_deg": 64.06329060685661,
-        "total_rmse_deg": 64.10086012387943
+        "inclination_rmse_deg": 2.244785281906278,
+        "heading_rmse_deg": 76.39827829017823,
+        "total_rmse_deg": 76.42627718720826
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "srukf",
         "sequences": 3,
-        "inclination_rmse_deg": 2.2347274603336165,
-        "heading_rmse_deg": 64.06329060686103,
-        "total_rmse_deg": 64.10086012388382
+        "inclination_rmse_deg": 2.244785281906158,
+        "heading_rmse_deg": 76.39827829016785,
+        "total_rmse_deg": 76.42627718719787
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf",
         "sequences": 3,
-        "inclination_rmse_deg": 1.6495724781440477,
-        "heading_rmse_deg": 2.9526900233528903,
-        "total_rmse_deg": 3.3974872203495745
+        "inclination_rmse_deg": 1.6495724781440921,
+        "heading_rmse_deg": 2.9526900233525417,
+        "total_rmse_deg": 3.397487220349115
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf-gravity",
         "sequences": 3,
-        "inclination_rmse_deg": 2.2572491234855128,
-        "heading_rmse_deg": 6.033200978745051,
-        "total_rmse_deg": 6.489285811765252
+        "inclination_rmse_deg": 2.2572491234854897,
+        "heading_rmse_deg": 6.033200978746706,
+        "total_rmse_deg": 6.489285811766735
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "madgwick",
         "sequences": 3,
-        "inclination_rmse_deg": 6.946596645353537,
-        "heading_rmse_deg": 93.94159260433128,
-        "total_rmse_deg": 94.19200535244848
+        "inclination_rmse_deg": 6.94659664535352,
+        "heading_rmse_deg": 93.94159260433116,
+        "total_rmse_deg": 94.19200535244839
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mahony",
         "sequences": 3,
-        "inclination_rmse_deg": 4.269107432325286,
-        "heading_rmse_deg": 93.15269361150887,
-        "total_rmse_deg": 93.23651112541688
+        "inclination_rmse_deg": 4.269107432325287,
+        "heading_rmse_deg": 93.15269361150877,
+        "total_rmse_deg": 93.23651112541681
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "vqf",
         "sequences": 3,
-        "inclination_rmse_deg": 4.24446648838842,
-        "heading_rmse_deg": 102.50197227305678,
-        "total_rmse_deg": 102.57897420259373
+        "inclination_rmse_deg": 4.244466488389403,
+        "heading_rmse_deg": 102.50197227309054,
+        "total_rmse_deg": 102.5789742026274
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "vqf-mav",
         "sequences": 3,
-        "inclination_rmse_deg": 1.8851469184396068,
-        "heading_rmse_deg": 12.236167040768429,
-        "total_rmse_deg": 12.67458907942673
+        "inclination_rmse_deg": 1.8851469184398908,
+        "heading_rmse_deg": 12.23616704051038,
+        "total_rmse_deg": 12.674589079171113
       }
     ],
     "V2": [
@@ -1045,36 +1048,36 @@
         "axes": 6,
         "algorithm": "ukf",
         "sequences": 3,
-        "inclination_rmse_deg": 1.4681759309548452,
-        "heading_rmse_deg": 88.94383395343247,
-        "total_rmse_deg": 88.9596462506327
+        "inclination_rmse_deg": 1.4863546737452598,
+        "heading_rmse_deg": 57.32668785213193,
+        "total_rmse_deg": 57.352370241051375
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "srukf",
         "sequences": 3,
-        "inclination_rmse_deg": 1.468175930954839,
-        "heading_rmse_deg": 88.94383395343566,
-        "total_rmse_deg": 88.95964625063588
+        "inclination_rmse_deg": 1.4863546737452313,
+        "heading_rmse_deg": 57.326687852128195,
+        "total_rmse_deg": 57.35237024104765
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf",
         "sequences": 3,
-        "inclination_rmse_deg": 1.2066596386677988,
-        "heading_rmse_deg": 3.471368183751957,
-        "total_rmse_deg": 3.676645791050659
+        "inclination_rmse_deg": 1.2066596386678172,
+        "heading_rmse_deg": 3.4713681837530554,
+        "total_rmse_deg": 3.676645791051667
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf-gravity",
         "sequences": 3,
-        "inclination_rmse_deg": 1.5048292500628258,
-        "heading_rmse_deg": 5.317943677679929,
-        "total_rmse_deg": 5.581782553887432
+        "inclination_rmse_deg": 1.5048292500628035,
+        "heading_rmse_deg": 5.317943677684151,
+        "total_rmse_deg": 5.581782553891507
       },
       {
         "dataset": "euroc",
@@ -1082,35 +1085,35 @@
         "algorithm": "madgwick",
         "sequences": 3,
         "inclination_rmse_deg": 8.608838093252858,
-        "heading_rmse_deg": 105.04757103757869,
-        "total_rmse_deg": 105.2997585812913
+        "heading_rmse_deg": 105.04757103757834,
+        "total_rmse_deg": 105.29975858129093
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mahony",
         "sequences": 3,
-        "inclination_rmse_deg": 2.891666455691025,
-        "heading_rmse_deg": 92.4386157624408,
-        "total_rmse_deg": 92.4785971755046
+        "inclination_rmse_deg": 2.8916664556910234,
+        "heading_rmse_deg": 92.43861576244097,
+        "total_rmse_deg": 92.47859717550477
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "vqf",
         "sequences": 3,
-        "inclination_rmse_deg": 5.793099944312516,
-        "heading_rmse_deg": 111.37130924611303,
-        "total_rmse_deg": 111.48082855166399
+        "inclination_rmse_deg": 5.793099944312836,
+        "heading_rmse_deg": 111.37130924611176,
+        "total_rmse_deg": 111.4808285516627
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "vqf-mav",
         "sequences": 3,
-        "inclination_rmse_deg": 1.6808465143492375,
-        "heading_rmse_deg": 117.86935199438618,
-        "total_rmse_deg": 117.87866945961578
+        "inclination_rmse_deg": 1.6808465143527662,
+        "heading_rmse_deg": 117.86935199433525,
+        "total_rmse_deg": 117.87866945956489
       }
     ]
   },
@@ -1121,72 +1124,72 @@
         "axes": 6,
         "algorithm": "ukf",
         "sequences": 4,
-        "inclination_rmse_deg": 1.609345716299243,
-        "heading_rmse_deg": 60.48867895427289,
-        "total_rmse_deg": 60.51213107806504
+        "inclination_rmse_deg": 1.6172136504867067,
+        "heading_rmse_deg": 49.5442186480024,
+        "total_rmse_deg": 49.574940553901875
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "srukf",
         "sequences": 4,
-        "inclination_rmse_deg": 1.609345716299201,
-        "heading_rmse_deg": 60.48867895426964,
-        "total_rmse_deg": 60.51213107806178
+        "inclination_rmse_deg": 1.617213650486945,
+        "heading_rmse_deg": 49.544218648000296,
+        "total_rmse_deg": 49.57494055389981
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf",
         "sequences": 4,
-        "inclination_rmse_deg": 0.9894382785892553,
-        "heading_rmse_deg": 2.2066864603572203,
-        "total_rmse_deg": 2.4583881075473553
+        "inclination_rmse_deg": 0.9894382785893168,
+        "heading_rmse_deg": 2.2066864603580374,
+        "total_rmse_deg": 2.4583881075480543
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf-gravity",
         "sequences": 4,
-        "inclination_rmse_deg": 1.7142928996596518,
-        "heading_rmse_deg": 3.937298912054898,
-        "total_rmse_deg": 4.331100991114543
+        "inclination_rmse_deg": 1.7142928996596678,
+        "heading_rmse_deg": 3.9372989120576785,
+        "total_rmse_deg": 4.331100991117071
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "madgwick",
         "sequences": 4,
-        "inclination_rmse_deg": 7.491689390085754,
-        "heading_rmse_deg": 97.30180760805032,
-        "total_rmse_deg": 97.53369596605444
+        "inclination_rmse_deg": 7.491689390085744,
+        "heading_rmse_deg": 97.3018076080501,
+        "total_rmse_deg": 97.53369596605422
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mahony",
         "sequences": 4,
-        "inclination_rmse_deg": 3.382116302981727,
-        "heading_rmse_deg": 100.11638120426204,
-        "total_rmse_deg": 100.16097308944569
+        "inclination_rmse_deg": 3.38211630298173,
+        "heading_rmse_deg": 100.116381204262,
+        "total_rmse_deg": 100.16097308944568
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "vqf",
         "sequences": 4,
-        "inclination_rmse_deg": 5.219478215955674,
-        "heading_rmse_deg": 113.16438537426058,
-        "total_rmse_deg": 113.25058486660036
+        "inclination_rmse_deg": 5.219478215956421,
+        "heading_rmse_deg": 113.16438537427757,
+        "total_rmse_deg": 113.25058486661737
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "vqf-mav",
         "sequences": 4,
-        "inclination_rmse_deg": 1.8509571016092354,
-        "heading_rmse_deg": 31.900428048283604,
-        "total_rmse_deg": 32.31532672342159
+        "inclination_rmse_deg": 1.8509571016097994,
+        "heading_rmse_deg": 31.900428048270868,
+        "total_rmse_deg": 32.31532672340881
       }
     ],
     "easy": [
@@ -1195,72 +1198,72 @@
         "axes": 6,
         "algorithm": "ukf",
         "sequences": 4,
-        "inclination_rmse_deg": 1.6354972285759581,
-        "heading_rmse_deg": 73.31988505558644,
-        "total_rmse_deg": 73.33710178006524
+        "inclination_rmse_deg": 1.6639976064654134,
+        "heading_rmse_deg": 53.744656861270855,
+        "total_rmse_deg": 53.81196713359738
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "srukf",
         "sequences": 4,
-        "inclination_rmse_deg": 1.6354972285759928,
-        "heading_rmse_deg": 73.31988505558465,
-        "total_rmse_deg": 73.33710178006345
+        "inclination_rmse_deg": 1.663997606465279,
+        "heading_rmse_deg": 53.74465686127235,
+        "total_rmse_deg": 53.81196713359893
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf",
         "sequences": 4,
-        "inclination_rmse_deg": 1.615053741506235,
-        "heading_rmse_deg": 4.598272175229275,
-        "total_rmse_deg": 4.907269181547136
+        "inclination_rmse_deg": 1.6150537415062465,
+        "heading_rmse_deg": 4.598272175228683,
+        "total_rmse_deg": 4.907269181546574
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf-gravity",
         "sequences": 4,
-        "inclination_rmse_deg": 1.709182697030931,
-        "heading_rmse_deg": 4.367168255625076,
-        "total_rmse_deg": 4.73419851707377
+        "inclination_rmse_deg": 1.7091826970308999,
+        "heading_rmse_deg": 4.367168255623914,
+        "total_rmse_deg": 4.734198517072622
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "madgwick",
         "sequences": 4,
-        "inclination_rmse_deg": 5.609507165922693,
-        "heading_rmse_deg": 116.0503605568819,
-        "total_rmse_deg": 116.14093540635088
+        "inclination_rmse_deg": 5.609507165922684,
+        "heading_rmse_deg": 116.05036055688184,
+        "total_rmse_deg": 116.14093540635079
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mahony",
         "sequences": 4,
-        "inclination_rmse_deg": 2.1946977543118473,
-        "heading_rmse_deg": 109.54755273089908,
-        "total_rmse_deg": 109.56217450269529
+        "inclination_rmse_deg": 2.1946977543118478,
+        "heading_rmse_deg": 109.5475527308991,
+        "total_rmse_deg": 109.56217450269531
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "vqf",
         "sequences": 4,
-        "inclination_rmse_deg": 4.719450149818662,
-        "heading_rmse_deg": 111.19650860080452,
-        "total_rmse_deg": 111.26792993479742
+        "inclination_rmse_deg": 4.719450149820531,
+        "heading_rmse_deg": 111.1965086008163,
+        "total_rmse_deg": 111.26792993480923
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "vqf-mav",
         "sequences": 4,
-        "inclination_rmse_deg": 2.2180646420176466,
-        "heading_rmse_deg": 89.45391043221514,
-        "total_rmse_deg": 89.53273882651007
+        "inclination_rmse_deg": 2.2180646420171626,
+        "heading_rmse_deg": 89.4539104320157,
+        "total_rmse_deg": 89.53273882631245
       }
     ],
     "medium": [
@@ -1269,72 +1272,72 @@
         "axes": 6,
         "algorithm": "ukf",
         "sequences": 3,
-        "inclination_rmse_deg": 1.9691932915321415,
-        "heading_rmse_deg": 66.74591607215055,
-        "total_rmse_deg": 66.78456639088036
+        "inclination_rmse_deg": 1.9695038980703494,
+        "heading_rmse_deg": 67.46768452919099,
+        "total_rmse_deg": 67.49349298870963
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "srukf",
         "sequences": 3,
-        "inclination_rmse_deg": 1.9691932915320962,
-        "heading_rmse_deg": 66.74591607214994,
-        "total_rmse_deg": 66.78456639087975
+        "inclination_rmse_deg": 1.9695038980704955,
+        "heading_rmse_deg": 67.4676845291719,
+        "total_rmse_deg": 67.49349298869053
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf",
         "sequences": 3,
-        "inclination_rmse_deg": 1.029112092938773,
-        "heading_rmse_deg": 3.6181089101058426,
-        "total_rmse_deg": 3.782432708260868
+        "inclination_rmse_deg": 1.0291120929387843,
+        "heading_rmse_deg": 3.618108910106129,
+        "total_rmse_deg": 3.7824327082609663
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mav-srukf-gravity",
         "sequences": 3,
-        "inclination_rmse_deg": 2.038470618818723,
-        "heading_rmse_deg": 18.686954591988265,
-        "total_rmse_deg": 18.83336934146055
+        "inclination_rmse_deg": 2.0384706188187045,
+        "heading_rmse_deg": 18.68695459200986,
+        "total_rmse_deg": 18.833369341482012
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "madgwick",
         "sequences": 3,
-        "inclination_rmse_deg": 8.141691186755038,
-        "heading_rmse_deg": 99.6382026023036,
-        "total_rmse_deg": 99.87652307416322
+        "inclination_rmse_deg": 8.14169118675504,
+        "heading_rmse_deg": 99.63820260230334,
+        "total_rmse_deg": 99.87652307416299
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "mahony",
         "sequences": 3,
-        "inclination_rmse_deg": 4.239850585326629,
-        "heading_rmse_deg": 88.00733434973279,
-        "total_rmse_deg": 88.09365584864271
+        "inclination_rmse_deg": 4.239850585326625,
+        "heading_rmse_deg": 88.00733434973274,
+        "total_rmse_deg": 88.09365584864265
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "vqf",
         "sequences": 3,
-        "inclination_rmse_deg": 5.470710331592848,
-        "heading_rmse_deg": 103.17723679842936,
-        "total_rmse_deg": 103.28637616636833
+        "inclination_rmse_deg": 5.470710331590716,
+        "heading_rmse_deg": 103.1772367984352,
+        "total_rmse_deg": 103.2863761663741
       },
       {
         "dataset": "euroc",
         "axes": 6,
         "algorithm": "vqf-mav",
         "sequences": 3,
-        "inclination_rmse_deg": 1.709676296712012,
-        "heading_rmse_deg": 61.62443776798607,
-        "total_rmse_deg": 61.66952600361274
+        "inclination_rmse_deg": 1.7096762967104455,
+        "heading_rmse_deg": 61.62443776781421,
+        "total_rmse_deg": 61.66952600344096
       }
     ]
   },
@@ -1343,18 +1346,18 @@
     "reference": "vqf",
     "sequences": 11,
     "inclination": {
-      "mean_difference_deg": -3.878412736243419,
-      "ratio_of_means": 0.2404454806758132,
+      "mean_difference_deg": -3.878412736243759,
+      "ratio_of_means": 0.2404454806758016,
       "candidate_wins": 10
     },
     "heading": {
-      "mean_difference_deg": -106.2637386384441,
-      "ratio_of_means": 0.03154510428255811,
+      "mean_difference_deg": -106.263738638456,
+      "ratio_of_means": 0.03154510428255611,
       "candidate_wins": 11
     },
     "total": {
-      "mean_difference_deg": -106.10211458395776,
-      "ratio_of_means": 0.033784920967944616,
+      "mean_difference_deg": -106.10211458396975,
+      "ratio_of_means": 0.03378492096794162,
       "candidate_wins": 11
     }
   },
@@ -1364,18 +1367,18 @@
       "reference": "vqf",
       "sequences": 5,
       "inclination": {
-        "mean_difference_deg": -4.35490278611076,
-        "ratio_of_means": 0.20291606386072744,
+        "mean_difference_deg": -4.354902786110463,
+        "ratio_of_means": 0.20291606386074526,
         "candidate_wins": 5
       },
       "heading": {
-        "mean_difference_deg": -104.60501909785526,
-        "ratio_of_means": 0.024675638692280646,
+        "mean_difference_deg": -104.60501909787286,
+        "ratio_of_means": 0.024675638692282783,
         "candidate_wins": 5
       },
       "total": {
-        "mean_difference_deg": -104.4637027113323,
-        "ratio_of_means": 0.026952841640198538,
+        "mean_difference_deg": -104.46370271135,
+        "ratio_of_means": 0.02695284164019898,
         "candidate_wins": 5
       }
     },
@@ -1384,18 +1387,18 @@
       "reference": "vqf-mav",
       "sequences": 5,
       "inclination": {
-        "mean_difference_deg": -0.4615423445226673,
-        "ratio_of_means": 0.7060582638596696,
+        "mean_difference_deg": -0.46154234452409015,
+        "ratio_of_means": 0.7060582638590384,
         "candidate_wins": 5
       },
       "heading": {
-        "mean_difference_deg": -72.47237443183205,
-        "ratio_of_means": 0.035230822577517376,
+        "mean_difference_deg": -72.47237443171691,
+        "ratio_of_means": 0.03523082257758012,
         "candidate_wins": 4
       },
       "total": {
-        "mean_difference_deg": -72.43966820606855,
-        "ratio_of_means": 0.038410447757560535,
+        "mean_difference_deg": -72.43966820595358,
+        "ratio_of_means": 0.038410447757626025,
         "candidate_wins": 4
       }
     }
@@ -1406,18 +1409,18 @@
       "reference": "vqf",
       "sequences": 4,
       "inclination": {
-        "mean_difference_deg": -4.3116420596965535,
-        "ratio_of_means": 0.21369331359839433,
+        "mean_difference_deg": -4.311642059698408,
+        "ratio_of_means": 0.21369331359832733,
         "candidate_wins": 4
       },
       "heading": {
-        "mean_difference_deg": -108.63852496473744,
-        "ratio_of_means": 0.026010530221116136,
+        "mean_difference_deg": -108.63852496474175,
+        "ratio_of_means": 0.026010530221123818,
         "candidate_wins": 4
       },
       "total": {
-        "mean_difference_deg": -108.48184592865607,
-        "ratio_of_means": 0.028280508673996913,
+        "mean_difference_deg": -108.4818459286605,
+        "ratio_of_means": 0.028280508674003616,
         "candidate_wins": 4
       }
     },
@@ -1426,18 +1429,18 @@
       "reference": "vqf-mav",
       "sequences": 4,
       "inclination": {
-        "mean_difference_deg": -0.4432280005146903,
-        "ratio_of_means": 0.7255547521352803,
+        "mean_difference_deg": -0.4432280005169854,
+        "ratio_of_means": 0.7255547521342552,
         "candidate_wins": 4
       },
       "heading": {
-        "mean_difference_deg": -85.627192877994,
-        "ratio_of_means": 0.03277148993059553,
+        "mean_difference_deg": -85.62719287795457,
+        "ratio_of_means": 0.032771489930621,
         "candidate_wins": 3
       },
       "total": {
-        "mean_difference_deg": -85.62801691657393,
-        "ratio_of_means": 0.03556007462633538,
+        "mean_difference_deg": -85.62801691653445,
+        "ratio_of_means": 0.03556007462636096,
         "candidate_wins": 3
       }
     }
@@ -1447,18 +1450,18 @@
     "reference": "mav-srukf-gravity",
     "sequences": 5,
     "inclination": {
-      "mean_difference_deg": -0.5008566007271684,
-      "ratio_of_means": 0.688811789059283,
+      "mean_difference_deg": -0.5008566007271087,
+      "ratio_of_means": 0.6888117890593175,
       "candidate_wins": 4
     },
     "heading": {
-      "mean_difference_deg": -3.0249168274780596,
-      "ratio_of_means": 0.4666382202704466,
+      "mean_difference_deg": -3.0249168274805194,
+      "ratio_of_means": 0.4666382202703082,
       "candidate_wins": 4
     },
     "total": {
-      "mean_difference_deg": -3.0386442912596237,
-      "ratio_of_means": 0.4877735364140527,
+      "mean_difference_deg": -3.038644291262083,
+      "ratio_of_means": 0.487773536413897,
       "candidate_wins": 4
     }
   },
@@ -1467,18 +1470,18 @@
     "reference": "mav-srukf-gravity",
     "sequences": 4,
     "inclination": {
-      "mean_difference_deg": -0.37146184944758154,
-      "ratio_of_means": 0.7592958498455376,
+      "mean_difference_deg": -0.37146184944753,
+      "ratio_of_means": 0.7592958498455686,
       "candidate_wins": 3
     },
     "heading": {
-      "mean_difference_deg": -2.2281457642842804,
-      "ratio_of_means": 0.5656088374396224,
+      "mean_difference_deg": -2.2281457642871048,
+      "ratio_of_means": 0.5656088374393952,
       "candidate_wins": 3
     },
     "total": {
-      "mean_difference_deg": -2.242984795971963,
-      "ratio_of_means": 0.5846473721056155,
+      "mean_difference_deg": -2.242984795974733,
+      "ratio_of_means": 0.5846473721053846,
       "candidate_wins": 3
     }
   },
@@ -1488,18 +1491,18 @@
       "reference": "vqf",
       "sequences": 2,
       "inclination": {
-        "mean_difference_deg": -4.331512372595224,
-        "ratio_of_means": 0.18300341389524366,
+        "mean_difference_deg": -4.331512372590847,
+        "ratio_of_means": 0.18300341389540095,
         "candidate_wins": 2
       },
       "heading": {
-        "mean_difference_deg": -95.61945903478886,
-        "ratio_of_means": 0.023422765532804903,
+        "mean_difference_deg": -95.6194590348378,
+        "ratio_of_means": 0.023422765532789547,
         "candidate_wins": 2
       },
       "total": {
-        "mean_difference_deg": -95.52716762561747,
-        "ratio_of_means": 0.025455786635845728,
+        "mean_difference_deg": -95.5271676256663,
+        "ratio_of_means": 0.025455786635827617,
         "candidate_wins": 2
       }
     },
@@ -1508,21 +1511,21 @@
       "reference": "vqf",
       "sequences": 9,
       "inclination": {
-        "mean_difference_deg": -3.77772392816524,
-        "ratio_of_means": 0.25381310589997413,
+        "mean_difference_deg": -3.777723928166629,
+        "ratio_of_means": 0.2538131058999085,
         "candidate_wins": 8
       },
       "heading": {
-        "mean_difference_deg": -108.62913410592303,
-        "ratio_of_means": 0.03311812836158965,
+        "mean_difference_deg": -108.6291341059267,
+        "ratio_of_means": 0.03311812836159095,
         "candidate_wins": 9
       },
       "total": {
-        "mean_difference_deg": -108.45210279692229,
-        "ratio_of_means": 0.035398620259938396,
+        "mean_difference_deg": -108.45210279692608,
+        "ratio_of_means": 0.03539862025993905,
         "candidate_wins": 9
       }
     }
   },
-  "build_description": "Release build on macOS 27.2 arm64 with Apple clang 21.0.0, C++17, warnings treated as errors, patched Eigen 3.2.8, UKF double precision and Python 3.12.16."
+  "build_description": "Release build on Ubuntu 24.04 x86-64 (glibc 2.39) with GCC 13.3.0, CMake 3.28.3, C++17, warnings treated as errors, patched Eigen 3.2.8, UKF double precision and Python 3.12.3."
 }

@@ -31,8 +31,7 @@ the reports retain all results without a must-win test.
 
 ## Vehicle model
 
-The filter has the same three state vector fields as the hand-held estimator,
-except that the velocity is expressed in the IMU frame:
+The filter has the same three state vector fields as the hand-held estimator:
 
 | State field | Type | Process model |
 |---|---|---|
@@ -70,7 +69,7 @@ reference input or an independently validated navigation output.
 The rotor model applies while the rotors are turning, detected from the
 vibration they cause in the accelerometer signal, and the thrust is between
 0.5 g and 2 g. Otherwise (while the vehicle is carried, or standing on the
-ground) the filter behaves exactly like the hand-held estimator: the complete
+ground) the filter behaves like the hand-held estimator: the complete
 accelerometer reading is integrated, and the velocity is given a
 pseudo-measurement of zero. Vibration is an approximate operating-condition
 detector, not an externally supplied flight mask. The drag rate and thrust

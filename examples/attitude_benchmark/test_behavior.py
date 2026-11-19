@@ -77,6 +77,22 @@ class EstimatorBehaviorTests(unittest.TestCase):
     def bias(details):
         return np.column_stack([details[name] for name in ("bias_x", "bias_y", "bias_z")])
 
+    @staticmethod
+    def heading_error(estimate, truth):
+        """Rotation of the estimate about the world vertical, in degrees."""
+        twist = (estimate * truth.inv()).as_quat(canonical=True, scalar_first=True)
+        return np.rad2deg(2 * np.arctan2(twist[:, 3], twist[:, 0]))
+
+    @staticmethod
+    def circling(time, start, stop, acceleration, frequency):
+        """World-frame acceleration of a sensor carried round a level circle."""
+        moving = (time >= start) & (time < stop)
+        phase = 2 * np.pi * frequency * (time[moving] - start)
+        translation = np.zeros((len(time), 3))
+        translation[moving, 0] = acceleration * np.sin(phase)
+        translation[moving, 1] = acceleration * np.cos(phase)
+        return translation
+
     def test_rest_observes_all_three_gyro_bias_components(self):
         time = np.arange(2001) / 100
         bias = np.array([0.01, -0.015, 0.02])
@@ -127,6 +143,43 @@ class EstimatorBehaviorTests(unittest.TestCase):
                 tilt = self.tilt_error(estimate, truth)
                 self.assertLess(np.sqrt(np.mean(tilt[moving] ** 2)), 1)
                 self.assertLess(tilt[time > 38].max(), 0.5)
+
+    def test_circling_does_not_turn_the_heading(self):
+        # Nothing here measures heading, so carrying the sensor about must not
+        # change it. A circle is the telling movement, because the velocity
+        # keeps turning. The zero-velocity pseudo-measurement disputes that
+        # velocity at every step; if it could see the heading, as it can when
+        # the velocity is kept in the world frame, every step would correct
+        # the heading the same way, by 4.5 degrees over this recording.
+        time = np.arange(6001) / 100
+        samples, truth = self.recording(time, translation=self.circling(time, 6, 46, 1.0, 0.3))
+        for algorithm in FILTERS:
+            with self.subTest(algorithm=algorithm):
+                estimate, details = self.replay(samples, algorithm=algorithm)
+                self.assertLess(np.mean(details["rest"][(time > 8) & (time < 44)]), 0.1)
+                estimate = (truth[0] * estimate[0].inv()) * estimate
+                self.assertLess(np.abs(self.heading_error(estimate, truth)).max(), 0.5)
+
+    def test_circling_is_not_mistaken_for_gyro_bias(self):
+        # Turning steadily about the vertical is never rest, so the gyroscope
+        # bias about that axis is never measured and stays as uncertain as it
+        # began. Such a bias would change how far the velocity swings while
+        # the sensor is carried in circles, and the zero-velocity
+        # pseudo-measurement wants no swing at all. If the velocity could
+        # depend on that bias, the circles would be explained away as bias:
+        # 2 deg/s of it in this recording, turning the heading by 130 degrees.
+        time = np.arange(6001) / 100
+        initial = Rotation.from_euler("xyz", [20, -15, 40], degrees=True)
+        vertical = initial.inv().apply([0., 0., 1.])
+        samples, truth = self.recording(time, omega=np.deg2rad(20) * vertical,
+                                        translation=self.circling(time, 6, 46, 3.0, 0.7))
+        for algorithm in FILTERS:
+            with self.subTest(algorithm=algorithm):
+                estimate, details = self.replay(samples, algorithm=algorithm)
+                self.assertFalse(details["rest"].any())
+                self.assertLess(np.abs(self.bias(details) @ vertical).max(), np.deg2rad(0.2))
+                estimate = (truth[0] * estimate[0].inv()) * estimate
+                self.assertLess(np.abs(self.heading_error(estimate, truth)).max(), 10)
 
     def test_prefix_causality(self):
         time = np.arange(4001) / 100
