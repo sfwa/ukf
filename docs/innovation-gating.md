@@ -37,8 +37,21 @@ or innovation never invokes the gate, including when diagnostics remain from an
 earlier successful update. If an accepting gate is followed by a failed
 correction, the step returns `false` and rolls back the prediction as well.
 Thus `false` can mean rejection, an empty observation, or numerical failure;
-use the checked split stages below and record the gate's decision when the
-application needs to distinguish those outcomes.
+use `step_with_gate_result` with the same arguments when the application needs
+to distinguish the outcomes. The result is a scoped `UKF::GateResult`, declared
+`[[nodiscard]]` so that a discarded result draws a compiler warning.
+
+| Result | State after a full step | Gate |
+| --- | --- | --- |
+| `Applied` | Corrected | Accepted |
+| `Rejected` | Prediction at the new time | Rejected the observation |
+| `Empty` | Prediction at the new time | Skipped |
+| `Failed` | Restored to before the step | Skipped on prediction or innovation failure, accepted on correction failure |
+
+The split overload `a_posteriori_step_with_gate_result(gate, context...)`
+uses the same outcomes. A failed split posterior preserves the preceding
+successful stages. Calling it without a valid innovation gives `Failed`.
+Both Boolean interfaces continue to return true only for `Applied`.
 
 The library reports numerical failure without exceptions and works with
 exceptions disabled. If an application enables exceptions and its gate throws,

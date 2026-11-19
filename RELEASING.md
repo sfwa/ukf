@@ -44,7 +44,8 @@ results (see [Numerical changes](#numerical-changes)).
   `UKF::IntegratorHeun` and `UKF::IntegratorRK4`.
 - **Gates.** The gate concept accepted by `step_with_gate` and
   `a_posteriori_step(gate, ...)`, as [docs/innovation-gating.md](docs/innovation-gating.md)
-  describes it.
+  describes it. The outcome-returning forms `step_with_gate_result` and
+  `a_posteriori_step_with_gate_result` expose `UKF::GateResult`.
 - **Conventions.** What every documented quantity means: covariance versus
   lower root factor (`P = S Sᵀ`), the additive process-noise model, the
   three-dimensional uncertainty of a quaternion and its left-perturbation MRP

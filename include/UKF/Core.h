@@ -40,6 +40,12 @@ SOFTWARE.
 
 namespace UKF {
 
+/* A full gated step retains its prediction on Rejected or Empty and restores
+   its pre-step values on Failed. A split posterior only changes the state on
+   Applied. Failed also covers a split posterior without a valid innovation.
+   A result is not to be ignored: the compiler warns when one is discarded. */
+enum class [[nodiscard]] GateResult { Applied, Rejected, Empty, Failed };
+
 namespace Detail {
 
 /*
@@ -639,6 +645,14 @@ class Core {
   template <typename Gate, typename... U>
   bool step_with_gate(real_t delta, const MeasurementVectorType& z, Gate&& gate,
                       const U&... input) {
+    return step_with_gate_result(delta, z, std::forward<Gate>(gate),
+                                 input...) == GateResult::Applied;
+  }
+
+  /* Report the outcome of the prediction, gate and correction. */
+  template <typename Gate, typename... U>
+  GateResult step_with_gate_result(real_t delta, const MeasurementVectorType& z,
+                                   Gate&& gate, const U&... input) {
     const StateVectorType previous_state = state;
     const typename StateVectorType::CovarianceMatrix previous_covariance =
         covariance;
@@ -646,13 +660,15 @@ class Core {
     const typename MeasurementVectorType::CovarianceMatrix
         previous_innovation_covariance = innovation_covariance;
     if (a_priori_step(delta, input...) && innovation_step(z, input...)) {
-      if (innovation.size() == 0 ||
-          !std::forward<Gate>(gate)(static_cast<const Core&>(*this), z,
+      if (innovation.size() == 0) {
+        return GateResult::Empty;
+      }
+      if (!std::forward<Gate>(gate)(static_cast<const Core&>(*this), z,
                                     input...)) {
-        return false;
+        return GateResult::Rejected;
       }
       if (a_posteriori_step()) {
-        return true;
+        return GateResult::Applied;
       }
     }
     state = previous_state;
@@ -661,7 +677,7 @@ class Core {
     innovation_covariance = previous_innovation_covariance;
     prior_valid = false;
     innovation_valid = false;
-    return false;
+    return GateResult::Failed;
   }
 
   /*
@@ -856,12 +872,24 @@ class Core {
   */
   template <typename Gate, typename... U>
   bool a_posteriori_step(Gate&& gate, const U&... context) {
-    if (!innovation_valid || innovation.size() == 0 ||
-        !std::forward<Gate>(gate)(static_cast<const Core&>(*this),
-                                  context...)) {
-      return false;
+    return a_posteriori_step_with_gate_result(
+               std::forward<Gate>(gate), context...) == GateResult::Applied;
+  }
+
+  template <typename Gate, typename... U>
+  GateResult a_posteriori_step_with_gate_result(Gate&& gate,
+                                                const U&... context) {
+    if (!innovation_valid) {
+      return GateResult::Failed;
     }
-    return a_posteriori_step();
+    if (innovation.size() == 0) {
+      return GateResult::Empty;
+    }
+    if (!std::forward<Gate>(gate)(static_cast<const Core&>(*this),
+                                  context...)) {
+      return GateResult::Rejected;
+    }
+    return a_posteriori_step() ? GateResult::Applied : GateResult::Failed;
   }
 };
 
@@ -1022,6 +1050,14 @@ class SquareRootCore {
   template <typename Gate, typename... U>
   bool step_with_gate(real_t delta, const MeasurementVectorType& z, Gate&& gate,
                       const U&... input) {
+    return step_with_gate_result(delta, z, std::forward<Gate>(gate),
+                                 input...) == GateResult::Applied;
+  }
+
+  /* Report the outcome of the prediction, gate and correction. */
+  template <typename Gate, typename... U>
+  GateResult step_with_gate_result(real_t delta, const MeasurementVectorType& z,
+                                   Gate&& gate, const U&... input) {
     const StateVectorType previous_state = state;
     const typename StateVectorType::CovarianceMatrix previous_covariance =
         root_covariance;
@@ -1029,13 +1065,15 @@ class SquareRootCore {
     const typename MeasurementVectorType::CovarianceMatrix
         previous_innovation_covariance = innovation_root_covariance;
     if (a_priori_step(delta, input...) && innovation_step(z, input...)) {
-      if (innovation.size() == 0 ||
-          !std::forward<Gate>(gate)(static_cast<const SquareRootCore&>(*this),
+      if (innovation.size() == 0) {
+        return GateResult::Empty;
+      }
+      if (!std::forward<Gate>(gate)(static_cast<const SquareRootCore&>(*this),
                                     z, input...)) {
-        return false;
+        return GateResult::Rejected;
       }
       if (a_posteriori_step()) {
-        return true;
+        return GateResult::Applied;
       }
     }
     state = previous_state;
@@ -1044,7 +1082,7 @@ class SquareRootCore {
     innovation_root_covariance = previous_innovation_covariance;
     prior_valid = false;
     innovation_valid = false;
-    return false;
+    return GateResult::Failed;
   }
 
   /*
@@ -1219,12 +1257,24 @@ class SquareRootCore {
   */
   template <typename Gate, typename... U>
   bool a_posteriori_step(Gate&& gate, const U&... context) {
-    if (!innovation_valid || innovation.size() == 0 ||
-        !std::forward<Gate>(gate)(static_cast<const SquareRootCore&>(*this),
-                                  context...)) {
-      return false;
+    return a_posteriori_step_with_gate_result(
+               std::forward<Gate>(gate), context...) == GateResult::Applied;
+  }
+
+  template <typename Gate, typename... U>
+  GateResult a_posteriori_step_with_gate_result(Gate&& gate,
+                                                const U&... context) {
+    if (!innovation_valid) {
+      return GateResult::Failed;
     }
-    return a_posteriori_step();
+    if (innovation.size() == 0) {
+      return GateResult::Empty;
+    }
+    if (!std::forward<Gate>(gate)(static_cast<const SquareRootCore&>(*this),
+                                  context...)) {
+      return GateResult::Rejected;
+    }
+    return a_posteriori_step() ? GateResult::Applied : GateResult::Failed;
   }
 };
 
@@ -1383,6 +1433,14 @@ class SquareRootParameterEstimationCore {
   template <typename Gate, typename... U>
   bool step_with_gate(const MeasurementVectorType& z, Gate&& gate,
                       const U&... input) {
+    return step_with_gate_result(z, std::forward<Gate>(gate), input...) ==
+           GateResult::Applied;
+  }
+
+  /* Report the outcome of the prediction, gate and correction. */
+  template <typename Gate, typename... U>
+  GateResult step_with_gate_result(const MeasurementVectorType& z, Gate&& gate,
+                                   const U&... input) {
     const StateVectorType previous_state = state;
     const typename StateVectorType::CovarianceMatrix previous_covariance =
         root_covariance;
@@ -1390,14 +1448,16 @@ class SquareRootParameterEstimationCore {
     const typename MeasurementVectorType::CovarianceMatrix
         previous_innovation_covariance = innovation_root_covariance;
     if (a_priori_step() && innovation_step(z, input...)) {
-      if (innovation.size() == 0 ||
-          !std::forward<Gate>(gate)(
+      if (innovation.size() == 0) {
+        return GateResult::Empty;
+      }
+      if (!std::forward<Gate>(gate)(
               static_cast<const SquareRootParameterEstimationCore&>(*this), z,
               input...)) {
-        return false;
+        return GateResult::Rejected;
       }
       if (a_posteriori_step()) {
-        return true;
+        return GateResult::Applied;
       }
     }
     state = previous_state;
@@ -1406,7 +1466,7 @@ class SquareRootParameterEstimationCore {
     innovation_root_covariance = previous_innovation_covariance;
     prior_valid = false;
     innovation_valid = false;
-    return false;
+    return GateResult::Failed;
   }
 
   /*
@@ -1565,13 +1625,25 @@ class SquareRootParameterEstimationCore {
   */
   template <typename Gate, typename... U>
   bool a_posteriori_step(Gate&& gate, const U&... context) {
-    if (!innovation_valid || innovation.size() == 0 ||
-        !std::forward<Gate>(gate)(
+    return a_posteriori_step_with_gate_result(
+               std::forward<Gate>(gate), context...) == GateResult::Applied;
+  }
+
+  template <typename Gate, typename... U>
+  GateResult a_posteriori_step_with_gate_result(Gate&& gate,
+                                                const U&... context) {
+    if (!innovation_valid) {
+      return GateResult::Failed;
+    }
+    if (innovation.size() == 0) {
+      return GateResult::Empty;
+    }
+    if (!std::forward<Gate>(gate)(
             static_cast<const SquareRootParameterEstimationCore&>(*this),
             context...)) {
-      return false;
+      return GateResult::Rejected;
     }
-    return a_posteriori_step();
+    return a_posteriori_step() ? GateResult::Applied : GateResult::Failed;
   }
 };
 

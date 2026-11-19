@@ -164,7 +164,12 @@ int run_example() {
       predicted_state = predicted.state;
       predicted_covariance = predicted.covariance;
     }
-    const bool applied = filter.step_with_gate(dt, measurement, gate);
+    const auto result = filter.step_with_gate_result(dt, measurement, gate);
+    if (result == UKF::GateResult::Failed) {
+      std::cerr << "Filter update failed at sample " << i << '\n';
+      return 1;
+    }
+    const bool applied = result == UKF::GateResult::Applied;
     if (measurement.size() != 0) {
       applied ? ++accepted : ++rejected;
       if (outlier && !applied) {
