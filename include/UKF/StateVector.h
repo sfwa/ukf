@@ -198,14 +198,48 @@ inline Angle convert_from_segment<Angle>(const Vector<1>& state) {
   return Angle(state(0));
 }
 
-/* Principal signed displacement on a circle, with half a turn mapped to -pi. */
+/*
+Principal signed displacement on a circle, with half a turn mapped to -pi.
+
+The reduction runs in double precision against 2 pi split into its nearest
+double and the remainder, so a heading many turns out keeps its phase to
+about a rounding in either precision. Rounding the period to the stored
+precision instead would shift the phase by the period's rounding error once
+per turn: about 0.028 rad at a million radians in single precision. Beyond
+2^48 rad the turn count is no longer exact, and the standard library's sine
+and cosine, which reduce their argument exactly, give the phase.
+*/
 inline real_t wrap_angle(real_t radians) {
   constexpr real_t pi = real_t(3.14159265358979323846);
   if (radians >= -pi && radians < pi) {
     return radians;
   }
-  const real_t reduced = std::remainder(radians, real_t(2) * pi);
-  return reduced == pi ? -pi : reduced;
+  constexpr double pi_head = 3.141592653589793;
+  constexpr double two_pi_head = 6.283185307179586;
+  constexpr double two_pi_tail = 2.4492935982947064e-16;
+  const double angle = static_cast<double>(radians);
+  double reduced;
+  if (std::abs(angle) < 3 * pi_head) {
+    /* One turn, as for a difference of principal angles. Exact subtraction. */
+    reduced = angle > 0 ? (angle - two_pi_head) - two_pi_tail
+                        : (angle + two_pi_head) + two_pi_tail;
+  } else if (std::abs(angle) < 0x1p48) {
+    /* Exact, and at most half a period from zero. */
+    const double head = std::remainder(angle, two_pi_head);
+    const double turns = std::round((angle - head) / two_pi_head);
+    /* The tail term is under 0.011 rad, so at most one more turn is needed. */
+    reduced = head - turns * two_pi_tail;
+    if (reduced < -pi_head) {
+      reduced = (reduced + two_pi_head) + two_pi_tail;
+    } else if (reduced > pi_head) {
+      reduced = (reduced - two_pi_head) - two_pi_tail;
+    }
+  } else {
+    reduced = std::atan2(std::sin(angle), std::cos(angle));
+  }
+  const real_t result = static_cast<real_t>(reduced);
+  /* Half a turn, or a rounding past either end, is -pi. */
+  return result >= pi || result < -pi ? -pi : result;
 }
 
 /*

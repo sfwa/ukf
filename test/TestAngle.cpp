@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
+#include <limits>
 #include <type_traits>
 
 #include "UKF/Core.h"
@@ -158,19 +159,32 @@ TEST(AngleTest, AllFiltersUpdateAcrossTheBranchCut) {
 }
 
 /*
-A stored heading need not be wrapped, and an unwrapped one must take the
-same correction as its principal value. In single precision a correction of
-a hundredth of a radian added to a heading of a million radians would round
-away.
+Headings many turns out, each exact in both precisions, and their principal
+values, from x - 2 pi round(x / 2 pi) in 120-digit decimal arithmetic. They
+do not come from the library's own reduction.
 */
+struct DistantHeading {
+  real_t radians;
+  double principal;
+};
+constexpr DistantHeading distant_headings[] = {
+    {real_t(1e6), -0.357564167085735044015},
+    {real_t(-1e6), 0.357564167085735044015},
+    {real_t(1e10), -0.509231072165734782829},
+    {real_t(0x1p60), -2.16131999313972709154},
+    {real_t(-0x1p100), 1.05964853168015739226},
+    {real_t(0x1.8p126), 0.504798781762045098518},
+};
+
+/* A few roundings of a half-turn angle in the stored precision. */
+constexpr real_t phase_tolerance =
+    real_t(8) * std::numeric_limits<real_t>::epsilon() * real_t(3.14159265);
+
 template <typename Filter>
-void check_unwrapped_heading_correction(real_t start) {
-  const real_t wrapped = UKF::Detail::wrap_angle(start);
+Filter heading_filter(real_t start) {
   Filter filter;
   filter.state.template set_field<Heading>(UKF::Angle(start));
-  constexpr bool standard =
-      std::is_same_v<Filter, UKF::Core<AngleState, FixedBearing>>;
-  if constexpr (standard) {
+  if constexpr (std::is_same_v<Filter, UKF::Core<AngleState, FixedBearing>>) {
     filter.covariance.setConstant(real_t(0.01));
     filter.process_noise_covariance.setZero();
     filter.measurement_covariance.setConstant(real_t(0.01));
@@ -179,29 +193,76 @@ void check_unwrapped_heading_correction(real_t start) {
     filter.process_noise_root_covariance.setZero();
     filter.measurement_root_covariance.setConstant(real_t(0.1));
   }
+  return filter;
+}
+
+template <typename Filter>
+void step_heading(Filter& filter, real_t bearing) {
   FixedBearing measured;
-  measured.set_field<Bearing>(UKF::Angle(wrapped + real_t(0.02)));
+  measured.set_field<Bearing>(UKF::Angle(bearing));
   if constexpr (std::is_same_v<Filter, UKF::SquareRootParameterEstimationCore<
                                            AngleState, FixedBearing>>) {
     ASSERT_TRUE(filter.step(measured));
   } else {
     ASSERT_TRUE(filter.step(0, measured));
   }
+}
+
+/*
+A heading many turns out must read as its principal value: observing it from
+that value gives no innovation, in either precision.
+*/
+template <typename Filter>
+void check_distant_reading(const DistantHeading& heading) {
+  const real_t principal = static_cast<real_t>(heading.principal);
+  Filter filter = heading_filter<Filter>(principal);
+  step_heading(filter, heading.radians);
+  EXPECT_NEAR(real_t(0), filter.innovation.template get_field<Bearing>(),
+              phase_tolerance);
+  EXPECT_NEAR(principal, filter.state.template get_field<Heading>().radians(),
+              phase_tolerance);
+}
+
+TEST(AngleTest, DistantHeadingReadsAsItsPrincipalValue) {
+  for (const DistantHeading& heading : distant_headings) {
+    SCOPED_TRACE(heading.radians);
+    check_distant_reading<UKF::Core<AngleState, FixedBearing>>(heading);
+    check_distant_reading<UKF::SquareRootCore<AngleState, FixedBearing>>(
+        heading);
+    check_distant_reading<
+        UKF::SquareRootParameterEstimationCore<AngleState, FixedBearing>>(
+        heading);
+  }
+}
+
+/*
+A stored heading need not be wrapped, and an unwrapped one must take the
+same correction as its principal value. In single precision a correction of
+a hundredth of a radian added to a heading of a million radians would round
+away.
+*/
+template <typename Filter>
+void check_unwrapped_heading_correction(real_t start, real_t principal) {
+  Filter filter = heading_filter<Filter>(start);
+  step_heading(filter, principal + real_t(0.02));
   EXPECT_NEAR(real_t(0.02), filter.innovation.template get_field<Bearing>(),
               tolerance);
-  EXPECT_NEAR(wrapped + real_t(0.01),
+  EXPECT_NEAR(principal + real_t(0.01),
               filter.state.template get_field<Heading>().radians(), tolerance);
 }
 
 TEST(AngleTest, UnwrappedHeadingTakesTheWholeCorrection) {
-  for (real_t start : {real_t(1e6), UKF::Detail::wrap_angle(real_t(1e6))}) {
-    SCOPED_TRACE(start);
-    check_unwrapped_heading_correction<UKF::Core<AngleState, FixedBearing>>(
-        start);
-    check_unwrapped_heading_correction<
-        UKF::SquareRootCore<AngleState, FixedBearing>>(start);
-    check_unwrapped_heading_correction<
-        UKF::SquareRootParameterEstimationCore<AngleState, FixedBearing>>(
-        start);
+  for (const DistantHeading& heading : distant_headings) {
+    const real_t principal = static_cast<real_t>(heading.principal);
+    for (real_t start : {heading.radians, principal}) {
+      SCOPED_TRACE(start);
+      check_unwrapped_heading_correction<UKF::Core<AngleState, FixedBearing>>(
+          start, principal);
+      check_unwrapped_heading_correction<
+          UKF::SquareRootCore<AngleState, FixedBearing>>(start, principal);
+      check_unwrapped_heading_correction<
+          UKF::SquareRootParameterEstimationCore<AngleState, FixedBearing>>(
+          start, principal);
+    }
   }
 }

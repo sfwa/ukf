@@ -82,6 +82,10 @@ real_t error = predicted.calculate_innovation(measured).get_field<Bearing>();
 // error is approximately +0.0232 rad.
 ```
 
+Stored and measured angles need not be wrapped. Any finite value, even one
+many turns out, is reduced to its principal value to within a rounding of
+the stored precision.
+
 Sigma points and corrections wrap at the branch cut. Means are computed by
 unwrapping the sigma points around the central point, then wrapping the
 weighted mean. Angular uncertainty should be concentrated within half a turn
