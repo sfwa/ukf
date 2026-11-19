@@ -60,3 +60,20 @@ TEST(InnovationScalingTest, ZeroVarianceChannelKeepsAnExactlyZeroRootRow) {
   UKF::Detail::whiten(cross, residual, root);
   EXPECT_NEAR(expected, (cross * residual)(0), real_t(1e-4));
 }
+
+TEST(InnovationScalingTest, SplitPosteriorUsesThePublicInnovationCovariance) {
+  UKF::Core<ScaledState, ScaledMeasurement> filter;
+  filter.state.setZero();
+  filter.covariance.setIdentity();
+  filter.process_noise_covariance.setZero();
+  filter.measurement_covariance.setOnes();
+  ScaledMeasurement z;
+  z << 0, 1, 0;
+  const real_t scale = 1;
+  ASSERT_TRUE(filter.a_priori_step(real_t(0), scale));
+  ASSERT_TRUE(filter.innovation_step(z, scale));
+  filter.innovation_covariance(1, 1) = 4;
+  ASSERT_TRUE(filter.a_posteriori_step());
+  EXPECT_NEAR(real_t(0.25), filter.state(1), real_t(1e-5));
+  EXPECT_NEAR(real_t(0.75), filter.covariance(1, 1), real_t(1e-5));
+}

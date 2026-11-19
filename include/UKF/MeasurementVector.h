@@ -570,9 +570,13 @@ class FixedMeasurementVector
   CovarianceMatrix calculate_measurement_covariance(
       const DenseCovarianceMatrix& measurement_covariance,
       const FixedMeasurementVector& z_pred) const {
-    DenseCovarianceMatrix transform = DenseCovarianceMatrix::Zero();
-    (calculate_field_noise_transform<Fields>(transform, z_pred), ...);
-    return transform * measurement_covariance * transform.transpose();
+    if constexpr (has_field_vector) {
+      DenseCovarianceMatrix transform = DenseCovarianceMatrix::Zero();
+      (calculate_field_noise_transform<Fields>(transform, z_pred), ...);
+      return transform * measurement_covariance * transform.transpose();
+    } else {
+      return measurement_covariance;
+    }
   }
 
   /* Keep every factor column: selecting columns would discard noise variance.
@@ -580,9 +584,13 @@ class FixedMeasurementVector
   DenseCovarianceMatrix calculate_measurement_root_covariance(
       const DenseCovarianceMatrix& measurement_root_covariance,
       const FixedMeasurementVector& z_pred) const {
-    DenseCovarianceMatrix transform = DenseCovarianceMatrix::Zero();
-    (calculate_field_noise_transform<Fields>(transform, z_pred), ...);
-    return transform * measurement_root_covariance;
+    if constexpr (has_field_vector) {
+      DenseCovarianceMatrix transform = DenseCovarianceMatrix::Zero();
+      (calculate_field_noise_transform<Fields>(transform, z_pred), ...);
+      return transform * measurement_root_covariance;
+    } else {
+      return measurement_root_covariance;
+    }
   }
 
   /* Resolve Eigen expressions before conversion can match both noise types. */
@@ -633,6 +641,11 @@ class FixedMeasurementVector
   }
 
  private:
+  // Only FieldVector noise needs conversion from sensor to innovation
+  // coordinates.
+  static constexpr bool has_field_vector =
+      (std::is_same_v<typename Fields::type, FieldVector> || ...);
+
   /*
   This function is intended to be specialised by the user for each field in
   the measurement vector, and allows the user to specify how a particular

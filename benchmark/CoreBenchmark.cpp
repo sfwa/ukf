@@ -223,3 +223,68 @@ void Core_APosterioriStep(benchmark::State& state) {
 }
 
 BENCHMARK(Core_APosterioriStep)->UseManualTime();
+
+// Ordinary Euclidean observations give a full-rank innovation covariance.
+// Time a complete update: prediction, innovation and correction.
+void Core_FullStep(benchmark::State& state) {
+  MyCore filter = create_initialised_test_filter();
+  const MyStateVector initial_state = filter.state;
+  const MyStateVector::CovarianceMatrix initial_covariance = filter.covariance;
+  MyMeasurementVector m;
+  m.set_field<GPS_Position>(UKF::Vector<3>(100, 10, -50));
+  m.set_field<GPS_Velocity>(UKF::Vector<3>(20, 0, 0));
+  m.set_field<Gyroscope>(UKF::Vector<3>(0.5, 0, 0));
+
+  while (state.KeepRunning()) {
+    filter.state = initial_state;
+    filter.covariance = initial_covariance;
+    if (!filter.step(real_t(0.01), m)) {
+      state.SkipWithError("Filter step failed");
+      return;
+    }
+    benchmark::DoNotOptimize(filter.state);
+  }
+}
+
+BENCHMARK(Core_FullStep);
+
+// Four independent three-axis sensors observe the same state. This exercises
+// the innovation factor and solve when the process model is inexpensive.
+using SensorArrayState = UKF::StateVector<UKF::Field<0, UKF::Vector<3>>>;
+using SensorArrayMeasurement =
+    UKF::FixedMeasurementVector<UKF::Field<0, UKF::Vector<12>>>;
+
+namespace UKF {
+template <>
+template <>
+SensorArrayState SensorArrayState::process_model<>(real_t) const {
+  return *this;
+}
+
+template <>
+template <>
+Vector<12> SensorArrayMeasurement::expected_measurement<SensorArrayState, 0>(
+    const SensorArrayState& x) {
+  Vector<12> z;
+  z << x, x, x, x;
+  return z;
+}
+}  // namespace UKF
+
+void Core_SensorArrayFullStep(benchmark::State& state) {
+  UKF::Core<SensorArrayState, SensorArrayMeasurement> filter;
+  filter.process_noise_covariance.setZero();
+  filter.measurement_covariance.setOnes();
+  const SensorArrayMeasurement z = SensorArrayMeasurement::Zero();
+  while (state.KeepRunning()) {
+    filter.state.setZero();
+    filter.covariance.setIdentity();
+    if (!filter.step(real_t(0.01), z)) {
+      state.SkipWithError("Filter step failed");
+      return;
+    }
+    benchmark::DoNotOptimize(filter.covariance);
+  }
+}
+
+BENCHMARK(Core_SensorArrayFullStep);
