@@ -241,111 +241,203 @@ void whiten(CrossType& cross, InnovationType& innovation,
 }
 
 /*
-Whether a symmetric matrix scaled to unit diagonal, with a zero diagonal
-left as it is, is positive semidefinite to within roundoff. Only the lower
-triangle is read. A Cholesky factorisation succeeds for a positive definite
-matrix, the usual case. Otherwise a symmetrically pivoted LDL^T decomposition
-eliminates the largest remaining diagonal at each stage. Once none exceeds the
-tolerance, what remains must be negligible as well, because no coefficient of
-a semidefinite matrix exceeds its diagonal; a negative variance, or a
+An innovation covariance S, checked and factored for the Kalman gain. S is
+scaled to unit diagonal first, a zero or negative diagonal being left as it
+is, so that the units of each sensor do not decide its numerical rank. The
+scaled matrix must be symmetric, and is factored as P^T S P = L D L^T by a
+symmetrically pivoted LDL^T decomposition, which eliminates the largest
+remaining diagonal at each stage and stops at the first that is negligible.
+What remains must then be negligible too, because no coefficient of a
+semidefinite matrix exceeds its diagonal: a negative variance, or a
 correlation that no covariance can have, leaves a remainder that is not.
-Plain loops keep GCC's array bounds analysis quiet for a single row.
+Both tests take roundoff against the largest scaled coefficient.
+
+The directions left at that point are those in which the innovation cannot
+vary, such as a field vector's rotation about the predicted field, or which
+are negative only by roundoff. The gain leaves out exactly these, so the
+check and the solve agree on what is negligible. Plain loops keep GCC's
+array bounds analysis quiet for a single row.
 */
 template <typename MatrixType>
-bool unit_diagonal_semidefinite(const MatrixType& scaled) {
+struct SemidefiniteFactor {
   using Scalar = typename MatrixType::Scalar;
   using Index = typename MatrixType::Index;
-  if (Eigen::LLT<MatrixType>(scaled).info() == Eigen::Success) {
-    return true;
-  }
-  MatrixType a = scaled;
-  const Index n = a.rows();
-  const Scalar tolerance =
-      Scalar(16) * std::numeric_limits<Scalar>::epsilon() * Scalar(n);
-  for (Index k = 0; k < n; ++k) {
-    Index pivot = k;
-    for (Index i = k + 1; i < n; ++i) {
-      if (a(i, i) > a(pivot, pivot)) {
-        pivot = i;
+  using Vector = typename MatrixType::ColXpr::PlainObject;
+  using Order =
+      Eigen::Matrix<Index, MatrixType::RowsAtCompileTime, 1, Eigen::ColMajor,
+                    MatrixType::MaxRowsAtCompileTime, 1>;
+
+  /* L D below and on the diagonal of the scaled, permuted matrix. */
+  MatrixType factor;
+  Vector scale;
+  /* The row of S eliminated at each stage. */
+  Order order;
+  Index rank = 0;
+
+  /* Returns false if S is not finite, symmetric and semidefinite. */
+  bool compute(const MatrixType& covariance) {
+    const Index n = covariance.rows();
+    if (!covariance.allFinite()) {
+      return false;
+    }
+    scale.resize(n);
+    order.resize(n);
+    for (Index i = 0; i < n; ++i) {
+      scale(i) = covariance(i, i) > Scalar(0)
+                     ? Scalar(1) / std::sqrt(covariance(i, i))
+                     : Scalar(1);
+      order(i) = i;
+    }
+    factor = scale.asDiagonal() * covariance * scale.asDiagonal();
+    Scalar largest = Scalar(0);
+    for (Index j = 0; j < n; ++j) {
+      for (Index i = 0; i < n; ++i) {
+        largest = std::max(largest, std::abs(factor(i, j)));
       }
     }
-    if (a(pivot, pivot) <= tolerance) {
-      for (Index j = k; j < n; ++j) {
+    const Scalar tolerance = Scalar(16) *
+                             std::numeric_limits<Scalar>::epsilon() *
+                             Scalar(n) * largest;
+    for (Index j = 0; j < n; ++j) {
+      for (Index i = j + 1; i < n; ++i) {
+        if (std::abs(factor(i, j) - factor(j, i)) > tolerance) {
+          return false;
+        }
+      }
+    }
+
+    rank = 0;
+    for (Index k = 0; k < n; ++k) {
+      Index pivot = k;
+      for (Index i = k + 1; i < n; ++i) {
+        if (factor(i, i) > factor(pivot, pivot)) {
+          pivot = i;
+        }
+      }
+      if (factor(pivot, pivot) <= tolerance) {
+        for (Index j = k; j < n; ++j) {
+          for (Index i = j; i < n; ++i) {
+            if (std::abs(factor(i, j)) > tolerance) {
+              return false;
+            }
+          }
+        }
+        return true;
+      }
+      /* Exchange rows and columns k and pivot within the lower triangle. */
+      if (pivot != k) {
+        for (Index j = 0; j < k; ++j) {
+          std::swap(factor(k, j), factor(pivot, j));
+        }
+        std::swap(factor(k, k), factor(pivot, pivot));
+        for (Index i = k + 1; i < pivot; ++i) {
+          std::swap(factor(i, k), factor(pivot, i));
+        }
+        for (Index i = pivot + 1; i < n; ++i) {
+          std::swap(factor(i, k), factor(i, pivot));
+        }
+        std::swap(order(k), order(pivot));
+      }
+      const Scalar inverse = Scalar(1) / factor(k, k);
+      for (Index j = k + 1; j < n; ++j) {
+        const Scalar multiple = factor(j, k) * inverse;
         for (Index i = j; i < n; ++i) {
-          if (std::abs(a(i, j)) > tolerance) {
-            return false;
+          factor(i, j) -= factor(i, k) * multiple;
+        }
+      }
+      rank = k + 1;
+    }
+    return true;
+  }
+
+  /*
+  Solve K S = P for the gain K over the first rank pivots, through the
+  generalised inverse P [L11^-T D^-1 L11^-1, 0; 0, 0] P^T of the factored
+  S, and give the remaining directions no gain.
+  */
+  template <typename CrossType>
+  void solve(const CrossType& cross, CrossType& gain) const {
+    const Index rows = cross.rows();
+    const Index n = factor.rows();
+    CrossType work(rows, n);
+    for (Index k = 0; k < n; ++k) {
+      for (Index r = 0; r < rows; ++r) {
+        work(r, k) = cross(r, order(k)) * scale(order(k));
+      }
+    }
+    for (Index k = 0; k < rank; ++k) {
+      const Scalar inverse = Scalar(1) / factor(k, k);
+      for (Index j = k + 1; j < rank; ++j) {
+        const Scalar multiple = factor(j, k) * inverse;
+        for (Index r = 0; r < rows; ++r) {
+          work(r, j) -= work(r, k) * multiple;
+        }
+      }
+      for (Index r = 0; r < rows; ++r) {
+        work(r, k) *= inverse;
+      }
+    }
+    /* A single row has no back substitution; leaving it out at compile time
+       keeps GCC's array bounds analysis quiet. */
+    if constexpr (MatrixType::MaxColsAtCompileTime != 1) {
+      for (Index i = rank - 1; i > 0; --i) {
+        for (Index j = 0; j < i; ++j) {
+          const Scalar multiple = factor(i, j) / factor(j, j);
+          for (Index r = 0; r < rows; ++r) {
+            work(r, j) -= work(r, i) * multiple;
           }
         }
       }
-      return true;
     }
-    /* Exchange rows and columns k and pivot within the lower triangle. */
-    if (pivot != k) {
-      for (Index j = 0; j < k; ++j) {
-        std::swap(a(k, j), a(pivot, j));
-      }
-      std::swap(a(k, k), a(pivot, pivot));
-      for (Index i = k + 1; i < pivot; ++i) {
-        std::swap(a(i, k), a(pivot, i));
-      }
-      for (Index i = pivot + 1; i < n; ++i) {
-        std::swap(a(i, k), a(i, pivot));
-      }
-    }
-    const Scalar inverse = Scalar(1) / a(k, k);
-    for (Index j = k + 1; j < n; ++j) {
-      const Scalar factor = a(j, k) * inverse;
-      for (Index i = j; i < n; ++i) {
-        a(i, j) -= a(i, k) * factor;
+    gain.setZero(rows, n);
+    for (Index k = 0; k < rank; ++k) {
+      for (Index r = 0; r < rows; ++r) {
+        gain(r, order(k)) = work(r, k) * scale(order(k));
       }
     }
   }
-  return true;
+};
+
+/* Whether S is symmetric and positive semidefinite to within roundoff. */
+template <typename MatrixType>
+bool symmetric_semidefinite(const MatrixType& covariance) {
+  SemidefiniteFactor<MatrixType> factor;
+  return factor.compute(covariance);
 }
 
 /*
 Solve K S = P for the Kalman gain K, given the innovation covariance S and
-the cross-correlation P. S is scaled to unit diagonal first, so that the
-units of each sensor do not decide its numerical rank, and is then solved by
-a column-pivoting QR decomposition. That leaves out the directions in which
-the innovation cannot vary, such as a field vector's rotation about the
-predicted field, and roundoff in those directions stays at the scale of S
-rather than of its square root. An exactly zero S leaves nothing to learn and
-gives a zero gain.
-
-The QR solve assumes that S is a covariance, so an S that is not positive
-semidefinite, which a split-step caller can write into the public innovation
-covariance, is refused here rather than turned into a gain.
+the cross-correlation P, leaving out the directions in which S cannot vary.
+An exactly zero S leaves nothing to learn and gives a zero gain. An S that is
+not a covariance, which a split-step caller can write into the public
+innovation covariance, is refused rather than turned into a gain.
 */
 template <typename MatrixType, typename CrossType>
 bool kalman_gain(const MatrixType& covariance, const CrossType& cross,
                  CrossType& gain) {
-  using Scalar = typename MatrixType::Scalar;
-  using Index = typename MatrixType::Index;
-  if (!covariance.allFinite() || !cross.allFinite()) {
+  if (!cross.allFinite()) {
     return false;
   }
-  if (covariance.cwiseAbs().maxCoeff() == Scalar(0)) {
-    /* Eigen's QR would take the pivots of a zero matrix as nonzero. */
-    gain.setZero(cross.rows(), cross.cols());
-    return true;
-  }
-  typename MatrixType::ColXpr::PlainObject scale(covariance.rows());
-  for (Index i = 0; i < covariance.rows(); ++i) {
-    scale(i) = covariance(i, i) > Scalar(0)
-                   ? Scalar(1) / std::sqrt(covariance(i, i))
-                   : Scalar(1);
-  }
-  const MatrixType scaled =
-      scale.asDiagonal() * covariance * scale.asDiagonal();
-  if (!unit_diagonal_semidefinite(scaled)) {
+  SemidefiniteFactor<MatrixType> factor;
+  if (!factor.compute(covariance)) {
     return false;
   }
-  const CrossType scaled_cross = cross * scale.asDiagonal();
-  gain =
-      scaled.colPivHouseholderQr().solve(scaled_cross.transpose()).transpose();
-  gain = (gain * scale.asDiagonal()).eval();
+  factor.solve(cross, gain);
   return gain.allFinite();
+}
+
+/* Make a computed covariance exactly symmetric. */
+template <typename MatrixType>
+void symmetrise(MatrixType& covariance) {
+  using Index = typename MatrixType::Index;
+  for (Index j = 0; j < covariance.cols(); ++j) {
+    for (Index i = j + 1; i < covariance.rows(); ++i) {
+      const typename MatrixType::Scalar mean =
+          (covariance(i, j) + covariance(j, i)) / 2;
+      covariance(i, j) = mean;
+      covariance(j, i) = mean;
+    }
+  }
 }
 
 /*
@@ -399,6 +491,46 @@ struct NotStored {};
 template <bool Stored, typename T>
 using StoredIf = std::conditional_t<Stored, T, NotStored>;
 
+/*
+The innovation covariance or root that a correction uses when a quaternion
+reading's noise is mapped to the observed innovation, and the public one as
+the innovation step left it, against which a split-step caller's edit is
+measured.
+*/
+template <typename MatrixType>
+struct MappedCorrection {
+  MatrixType matrix;
+  MatrixType predicted;
+  /* Whether the reading held a quaternion field. */
+  bool mapped = false;
+};
+
+/*
+The root that a square-root filter's correction whitens by. Without a
+quaternion reading it is the public innovation root, as a split-step caller
+left it. With one it is the root with the quaternion noise mapped. A
+caller's edit to the public root carries over to it as the change in the
+covariance, and the result is factored again.
+*/
+template <typename RootType>
+bool correction_root(const RootType& public_root,
+                     const MappedCorrection<RootType>& correction,
+                     RootType& root) {
+  if (!correction.mapped) {
+    root = public_root;
+    return true;
+  }
+  if (public_root == correction.predicted) {
+    root = correction.matrix;
+    return true;
+  }
+  const RootType covariance =
+      correction.matrix.lazyProduct(correction.matrix.transpose()) +
+      public_root.lazyProduct(public_root.transpose()) -
+      correction.predicted.lazyProduct(correction.predicted.transpose());
+  return innovation_root(covariance, root);
+}
+
 }  // namespace Detail
 
 /*
@@ -447,13 +579,15 @@ class Core {
   bool innovation_valid = false;
 
   /*
-  The correction's change to the innovation covariance, T R T^T - R for the
-  noise R in innovation_covariance and the measurement's correction noise
-  transform T; kept only for measurements with quaternion fields.
+  For a reading with a quaternion field, the covariance that the correction
+  uses: the spread of the measurement sigma points with the noise R mapped
+  to T R T^T by the measurement's correction noise transform T. Kept only
+  for measurements with quaternion fields.
   */
   Detail::StoredIf<MeasurementVectorType::has_quaternion_field,
-                   typename MeasurementVectorType::CovarianceMatrix>
-      correction_noise;
+                   Detail::MappedCorrection<
+                       typename MeasurementVectorType::CovarianceMatrix>>
+      quaternion_correction;
 
   /* Aliases needed during filter iteration. */
   using CrossCorrelation =
@@ -511,7 +645,8 @@ class Core {
       innovation.setZero();
       innovation_covariance.setZero();
       if constexpr (MeasurementVectorType::has_quaternion_field) {
-        correction_noise.setZero();
+        quaternion_correction.matrix.setZero();
+        quaternion_correction.predicted.setZero();
       }
     }
   }
@@ -706,13 +841,14 @@ class Core {
     */
     const InnovationVectorType predicted_innovation =
         z_pred.calculate_innovation(z);
-    typename MeasurementVectorType::CovarianceMatrix
-        predicted_innovation_covariance =
-            z_pred.template calculate_sigma_point_covariance<StateVectorType>(
-                z_prime);
+    const typename MeasurementVectorType::CovarianceMatrix spread =
+        z_pred.template calculate_sigma_point_covariance<StateVectorType>(
+            z_prime);
     const typename MeasurementVectorType::CovarianceMatrix noise =
         z.calculate_measurement_covariance(measurement_covariance, z_pred);
-    predicted_innovation_covariance += noise;
+    typename MeasurementVectorType::CovarianceMatrix
+        predicted_innovation_covariance = spread + noise;
+    Detail::symmetrise(predicted_innovation_covariance);
     /* The innovation covariance must be positive semidefinite. */
     typename MeasurementVectorType::CovarianceMatrix innovation_root;
     if (!predicted_innovation.allFinite() ||
@@ -725,12 +861,21 @@ class Core {
     /*
     The innovation covariance is the predictive one, which gates and
     diagnostics read; the correction maps a quaternion sensor's noise to the
-    observed innovation instead.
+    observed innovation instead. Its covariance is formed from the spread
+    and the mapped noise directly: adding only the noise's change to the
+    innovation covariance would lose a small spread to rounding where the
+    noise is large.
     */
     if constexpr (MeasurementVectorType::has_quaternion_field) {
-      const typename MeasurementVectorType::CovarianceMatrix transform =
-          z.calculate_correction_noise_transform(z_pred);
-      correction_noise = transform * noise * transform.transpose() - noise;
+      quaternion_correction.mapped = z.contains_quaternion_field();
+      if (quaternion_correction.mapped) {
+        const typename MeasurementVectorType::CovarianceMatrix transform =
+            z.calculate_correction_noise_transform(z_pred);
+        quaternion_correction.matrix =
+            spread + transform * noise * transform.transpose();
+        Detail::symmetrise(quaternion_correction.matrix);
+        quaternion_correction.predicted = predicted_innovation_covariance;
+      }
     }
 
     innovation = predicted_innovation;
@@ -776,7 +921,20 @@ class Core {
     typename MeasurementVectorType::CovarianceMatrix correction_covariance =
         innovation_covariance;
     if constexpr (MeasurementVectorType::has_quaternion_field) {
-      correction_covariance += correction_noise;
+      if (quaternion_correction.mapped) {
+        /*
+        Check the public covariance as it is, since the mapped noise could
+        hide a split-step caller's negative variance, and carry the caller's
+        edit over to the correction's covariance. Without an edit the
+        difference is exactly zero.
+        */
+        if (!Detail::symmetric_semidefinite(innovation_covariance)) {
+          return false;
+        }
+        correction_covariance =
+            quaternion_correction.matrix +
+            (innovation_covariance - quaternion_correction.predicted);
+      }
     }
     CrossCorrelation kalman_gain(StateVectorType::covariance_size(),
                                  innovation.size());
@@ -878,14 +1036,15 @@ class SquareRootCore {
   bool innovation_valid = false;
 
   /*
-  The innovation root that the correction whitens by: that of
-  innovation_root_covariance with the noise factor L replaced by T L, for
-  the measurement's correction noise transform T. Kept only for measurements
-  with quaternion fields.
+  For a reading with a quaternion field, the innovation root that the
+  correction whitens by: that of innovation_root_covariance with the noise
+  factor L replaced by T L, for the measurement's correction noise transform
+  T. Kept only for measurements with quaternion fields.
   */
   Detail::StoredIf<MeasurementVectorType::has_quaternion_field,
-                   typename MeasurementVectorType::CovarianceMatrix>
-      correction_root;
+                   Detail::MappedCorrection<
+                       typename MeasurementVectorType::CovarianceMatrix>>
+      quaternion_correction;
 
   /* Aliases needed during filter iteration. */
   using CrossCorrelation =
@@ -946,7 +1105,8 @@ class SquareRootCore {
       innovation.setZero();
       innovation_root_covariance.setZero();
       if constexpr (MeasurementVectorType::has_quaternion_field) {
-        correction_root.setZero();
+        quaternion_correction.matrix.setZero();
+        quaternion_correction.predicted.setZero();
       }
     }
   }
@@ -1157,11 +1317,16 @@ class SquareRootCore {
     mapped to the observed innovation instead.
     */
     if constexpr (MeasurementVectorType::has_quaternion_field) {
-      const typename MeasurementVectorType::CovarianceMatrix transform =
-          z.calculate_correction_noise_transform(z_pred);
-      if (!Detail::sigma_point_root<StateVectorType>(
-              correction_root, z_prime, (transform * noise_root).eval())) {
-        return false;
+      quaternion_correction.mapped = z.contains_quaternion_field();
+      if (quaternion_correction.mapped) {
+        const typename MeasurementVectorType::CovarianceMatrix transform =
+            z.calculate_correction_noise_transform(z_pred);
+        if (!Detail::sigma_point_root<StateVectorType>(
+                quaternion_correction.matrix, z_prime,
+                (transform * noise_root).eval())) {
+          return false;
+        }
+        quaternion_correction.predicted = predicted_root;
       }
     }
 
@@ -1202,7 +1367,12 @@ class SquareRootCore {
     */
     InnovationVectorType whitened_innovation = innovation;
     if constexpr (MeasurementVectorType::has_quaternion_field) {
-      Detail::whiten(cross_correlation, whitened_innovation, correction_root);
+      typename MeasurementVectorType::CovarianceMatrix whitening_root;
+      if (!Detail::correction_root(innovation_root_covariance,
+                                   quaternion_correction, whitening_root)) {
+        return false;
+      }
+      Detail::whiten(cross_correlation, whitened_innovation, whitening_root);
     } else {
       Detail::whiten(cross_correlation, whitened_innovation,
                      innovation_root_covariance);
@@ -1279,14 +1449,15 @@ class SquareRootParameterEstimationCore {
   bool innovation_valid = false;
 
   /*
-  The innovation root that the correction whitens by: that of
-  innovation_root_covariance with the noise factor L replaced by T L, for
-  the measurement's correction noise transform T. Kept only for measurements
-  with quaternion fields.
+  For a reading with a quaternion field, the innovation root that the
+  correction whitens by: that of innovation_root_covariance with the noise
+  factor L replaced by T L, for the measurement's correction noise transform
+  T. Kept only for measurements with quaternion fields.
   */
   Detail::StoredIf<MeasurementVectorType::has_quaternion_field,
-                   typename MeasurementVectorType::CovarianceMatrix>
-      correction_root;
+                   Detail::MappedCorrection<
+                       typename MeasurementVectorType::CovarianceMatrix>>
+      quaternion_correction;
 
   /* Aliases needed during filter iteration. */
   using CrossCorrelation =
@@ -1347,7 +1518,8 @@ class SquareRootParameterEstimationCore {
       innovation.setZero();
       innovation_root_covariance.setZero();
       if constexpr (MeasurementVectorType::has_quaternion_field) {
-        correction_root.setZero();
+        quaternion_correction.matrix.setZero();
+        quaternion_correction.predicted.setZero();
       }
     }
   }
@@ -1509,11 +1681,16 @@ class SquareRootParameterEstimationCore {
     mapped to the observed innovation instead.
     */
     if constexpr (MeasurementVectorType::has_quaternion_field) {
-      const typename MeasurementVectorType::CovarianceMatrix transform =
-          z.calculate_correction_noise_transform(z_pred);
-      if (!Detail::sigma_point_root<StateVectorType>(
-              correction_root, z_prime, (transform * noise_root).eval())) {
-        return false;
+      quaternion_correction.mapped = z.contains_quaternion_field();
+      if (quaternion_correction.mapped) {
+        const typename MeasurementVectorType::CovarianceMatrix transform =
+            z.calculate_correction_noise_transform(z_pred);
+        if (!Detail::sigma_point_root<StateVectorType>(
+                quaternion_correction.matrix, z_prime,
+                (transform * noise_root).eval())) {
+          return false;
+        }
+        quaternion_correction.predicted = predicted_root;
       }
     }
 
@@ -1554,7 +1731,12 @@ class SquareRootParameterEstimationCore {
     */
     InnovationVectorType whitened_innovation = innovation;
     if constexpr (MeasurementVectorType::has_quaternion_field) {
-      Detail::whiten(cross_correlation, whitened_innovation, correction_root);
+      typename MeasurementVectorType::CovarianceMatrix whitening_root;
+      if (!Detail::correction_root(innovation_root_covariance,
+                                   quaternion_correction, whitening_root)) {
+        return false;
+      }
+      Detail::whiten(cross_correlation, whitened_innovation, whitening_root);
     } else {
       Detail::whiten(cross_correlation, whitened_innovation,
                      innovation_root_covariance);
