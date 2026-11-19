@@ -5,6 +5,14 @@ INCLUDE(ExternalProject)
 # Set default ExternalProject root directory
 SET_DIRECTORY_PROPERTIES(PROPERTIES EP_PREFIX .)
 
+# The static library that building Google Benchmark produces. It is named as
+# a byproduct so that a generator which checks every input before it builds
+# anything, as Ninja does, knows where it comes from.
+SET(googlebenchmark_binary_dir
+    ${CMAKE_CURRENT_BINARY_DIR}/src/googlebenchmark-build)
+SET(googlebenchmark_library
+    ${googlebenchmark_binary_dir}/src/${CMAKE_FIND_LIBRARY_PREFIXES}benchmark.a)
+
 # Add benchmark
 ExternalProject_Add(
 googlebenchmark
@@ -19,6 +27,8 @@ CMAKE_ARGS
     # Keep strict warnings on our benchmarks, not the vendored library.
     -DHAVE_CXX_FLAG_WERROR:BOOL=OFF
     -DHAVE_CXX_FLAG_PEDANTIC_ERRORS:BOOL=OFF
+BINARY_DIR ${googlebenchmark_binary_dir}
+BUILD_BYPRODUCTS ${googlebenchmark_library}
 # Disable install step
 INSTALL_COMMAND ""
 # Wrap download, configure and build steps in a script to log output
@@ -46,9 +56,8 @@ ukf_project_warnings(benchmark)
 ADD_DEPENDENCIES(benchmark googlebenchmark)
 
 # Specify benchmark's link libraries
-ExternalProject_Get_Property(googlebenchmark binary_dir)
 FIND_PACKAGE(Threads REQUIRED)
 TARGET_LINK_LIBRARIES(benchmark PRIVATE
     ukf::double
-    ${binary_dir}/src/${CMAKE_FIND_LIBRARY_PREFIXES}benchmark.a
+    ${googlebenchmark_library}
     Threads::Threads)

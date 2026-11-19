@@ -5,6 +5,14 @@ INCLUDE(ExternalProject)
 # Set default ExternalProject root directory
 SET_DIRECTORY_PROPERTIES(PROPERTIES EP_PREFIX .)
 
+# The static libraries that building googletest produces. They are named as
+# its byproducts so that a generator which checks every input before it
+# builds anything, as Ninja does, knows where they come from.
+SET(googletest_binary_dir ${CMAKE_CURRENT_BINARY_DIR}/src/googletest-build)
+SET(googletest_libraries
+    ${googletest_binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}gtest.a
+    ${googletest_binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}gtest_main.a)
+
 # Add gtest
 ExternalProject_Add(
 googletest
@@ -13,6 +21,8 @@ TIMEOUT 30
 CMAKE_ARGS
     -DCMAKE_BUILD_TYPE:STRING=Release
     -DCMAKE_POLICY_VERSION_MINIMUM:STRING=3.10
+BINARY_DIR ${googletest_binary_dir}
+BUILD_BYPRODUCTS ${googletest_libraries}
 # Disable install step
 INSTALL_COMMAND ""
 # Wrap download, configure and build steps in a script to log output
@@ -40,7 +50,6 @@ SET(unittest_sources
     TestInnovationGating.cpp
     TestInnovationScaling.cpp
     TestQuaternionMeasurement.cpp)
-ExternalProject_Get_Property(googletest binary_dir)
 FIND_PACKAGE(Threads REQUIRED)
 
 FOREACH(precision double single)
@@ -60,8 +69,7 @@ FOREACH(precision double single)
     # Specify test's link libraries
     TARGET_LINK_LIBRARIES(${target} PRIVATE
         ukf::${precision}
-        ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}gtest.a
-        ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}gtest_main.a
+        ${googletest_libraries}
         Threads::Threads)
 
     ADD_TEST(${target} ${target})

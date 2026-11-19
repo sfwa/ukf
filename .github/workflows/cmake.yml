@@ -36,6 +36,9 @@ jobs:
           # The newest compilers, which diagnose more than the runner's defaults.
           - { name: Linux GCC 15 (bundled Eigen), os: ubuntu-24.04, container: 'gcc:15', CC: gcc, CXX: g++, eigen: 'OFF' }
           - { name: Linux Clang 22 (bundled Eigen), os: ubuntu-24.04, CC: clang-22, CXX: clang++-22, eigen: 'OFF', llvm: '22' }
+          # The README's other single-configuration generator. Ninja checks
+          # that every input has a rule before it builds anything.
+          - { name: Linux GCC (bundled Eigen, Ninja), os: ubuntu-24.04, CC: gcc, CXX: g++, eigen: 'OFF', generator: Ninja }
     env:
       CC: ${{ matrix.config.CC }}
       CXX: ${{ matrix.config.CXX }}
@@ -57,6 +60,12 @@ jobs:
       - name: Install system Eigen
         if: matrix.config.eigen == 'ON'
         run: sudo apt-get update && sudo apt-get install -y libeigen3-dev
+
+      - name: Install Ninja and make it the generator of every configure step
+        if: matrix.config.generator == 'Ninja'
+        run: |
+          sudo apt-get update && sudo apt-get install -y ninja-build
+          echo "CMAKE_GENERATOR=Ninja" >> "$GITHUB_ENV"
 
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} $EIGEN_ARGS -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/install
@@ -98,6 +107,8 @@ jobs:
       - name: Install and use the CMake package
         run: |
           cmake --install build --config ${{ matrix.build_type }}
+          test -f "$GITHUB_WORKSPACE/install/share/licenses/ukf/LICENSE"
+          if [ "${{ matrix.config.eigen }}" = OFF ]; then test -f "$GITHUB_WORKSPACE/install/share/licenses/ukf/eigen3/COPYING.MPL2"; fi
           cmake -S test/cmake/installed -B build-installed -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/install
           cmake --build build-installed --config ${{ matrix.build_type }} --parallel 2
           ctest --test-dir build-installed --build-config ${{ matrix.build_type }} --output-on-failure

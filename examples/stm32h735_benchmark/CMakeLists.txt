@@ -1,4 +1,10 @@
-cmake_minimum_required(VERSION 3.16)
+# The firmware needs CMake 3.16. The repository also adds this
+# directory to its host build, which must configure with CMake 3.10.
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    cmake_minimum_required(VERSION 3.16)
+else()
+    cmake_minimum_required(VERSION 3.10)
+endif()
 # Repository host builds discover every example. This target needs its own toolchain.
 if(NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     return()
