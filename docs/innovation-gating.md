@@ -38,7 +38,8 @@ earlier successful update. If an accepting gate is followed by a failed
 correction, the step returns `false` and rolls back the prediction as well.
 Thus `false` can mean rejection, an empty observation, or numerical failure;
 use `step_with_gate_result` with the same arguments when the application needs
-to distinguish the outcomes. The result is a scoped `UKF::GateResult`.
+to distinguish the outcomes. The result is a scoped `UKF::GateResult`, declared
+`[[nodiscard]]` so that a discarded result draws a compiler warning.
 
 | Result | State after a full step | Gate |
 | --- | --- | --- |

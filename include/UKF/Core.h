@@ -43,8 +43,9 @@ namespace UKF {
 
 /* A full gated step retains its prediction on Rejected or Empty and restores
    its pre-step values on Failed. A split posterior only changes the state on
-   Applied. Failed also covers a split posterior without a valid innovation. */
-enum class GateResult { Applied, Rejected, Empty, Failed };
+   Applied. Failed also covers a split posterior without a valid innovation.
+   A result is not to be ignored: the compiler warns when one is discarded. */
+enum class [[nodiscard]] GateResult { Applied, Rejected, Empty, Failed };
 
 namespace Detail {
 
