@@ -29,6 +29,7 @@ SET(googletest_dir ${source_dir})
 # precision is what most embedded targets run.
 SET(unittest_sources
     TestStateVector.cpp
+    TestMeasurementStep.cpp
     TestFixedMeasurementVector.cpp
     TestDynamicMeasurementVector.cpp
     TestDenseMeasurementCovariance.cpp

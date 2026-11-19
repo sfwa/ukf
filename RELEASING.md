@@ -22,8 +22,9 @@ results (see [Numerical changes](#numerical-changes)).
   `UKF::SquareRootParameterEstimationCore`: their template parameters and
   defaults, their public member functions (`step`, `step_with_gate`,
   `a_priori_step`, `innovation_step`, `a_posteriori_step`,
-  `get_sigma_points`) and their public fields (`state`, `covariance` or
-  `root_covariance`, `process_noise_covariance` or `process_noise_root_covariance`,
+  `get_sigma_points`, `prepare_measurement_step`, `measurement_step`) and
+  their public fields (`state`, `covariance` or `root_covariance`,
+  `process_noise_covariance` or `process_noise_root_covariance`,
   `measurement_covariance` or `measurement_root_covariance`, `innovation`,
   `innovation_covariance` or `innovation_root_covariance`), and the member type
   `InnovationVectorType`.

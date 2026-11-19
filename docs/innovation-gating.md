@@ -131,7 +131,9 @@ uses the edited value. The standard filter refuses an edited covariance that
 is not symmetric and positive semidefinite to within roundoff.
 Gating selects whether to correct with the entire measurement vector; an
 application needing separate decisions per sensor can perform separate
-measurement updates with its dynamic measurement vector.
+measurement updates with its dynamic measurement vector. For independent
+observations at the same timestamp, begin each update with
+`prepare_measurement_step()` to draw points around the current posterior.
 Do not call an ungated posterior after a rejected gated posterior unless you
 intend to override that rejection.
 
