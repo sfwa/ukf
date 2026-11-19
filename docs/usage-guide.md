@@ -25,11 +25,14 @@ attitude estimator (experimental in 1.0: see
 three-dimensional uncertainty. Its innovation is the rotation vector of
 `z * conjugate(z_predicted)`, the shortest rotation from the predicted to the
 measured orientation, in the same normalised MRP convention as quaternion
-states. It does not depend on the sign of either quaternion. Its noise is three
+states. It does not depend on the sign of either quaternion. Its noise is a
+small rotation applied on the left of the true orientation, given as three
 rotation variances (standard deviations for square-root filters), or a 3 × 3
 block of [dense noise](dense-measurement-covariance.md), in those rotation
-coordinates. A measurement type's `covariance_size()` counts three for each
-quaternion field, and `Measurement::InnovationVector` (also the cores'
+coordinates. The filters map it into the innovation's coordinates at the
+observed innovation, as they do for a field vector, so a large innovation
+carries a wider noise. A measurement type's `covariance_size()` counts three
+for each quaternion field, and `Measurement::InnovationVector` (also the cores'
 `InnovationVectorType`) holds the innovation in those coordinates: each
 quaternion field becomes a `UKF::Vector<3>` there. For measurements without
 quaternion fields `InnovationVector` is the measurement type itself, as before.

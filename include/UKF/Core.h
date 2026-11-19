@@ -224,8 +224,9 @@ void whiten(CrossType& cross, InnovationType& innovation,
           cross.col(k) * root.col(k).tail(rest).transpose();
       innovation.tail(rest) -= innovation(k) * root.col(k).tail(rest);
     } else {
-      // A scalar observation has no remaining columns to rotate.
-      if constexpr (RootType::MaxColsAtCompileTime != 1) {
+      /* The last column has nothing after it; skipping the empty corner
+         also keeps GCC's array bounds analysis quiet for one row. */
+      if (rest > 0) {
         auto later = root.bottomRightCorner(rest, rest);
         rank_update_lower(later, root.col(k).tail(rest), Scalar(1));
         root.col(k).tail(rest).setZero();
@@ -234,6 +235,44 @@ void whiten(CrossType& cross, InnovationType& innovation,
       innovation(k) = Scalar(0);
     }
   }
+}
+
+/*
+Solve K S = P for the Kalman gain K, given the positive semidefinite
+innovation covariance S and the cross-correlation P. S is scaled to unit
+diagonal first, so that the units of each sensor do not decide its numerical
+rank, and is then solved by a column-pivoting QR decomposition. That leaves
+out the directions in which the innovation cannot vary, such as a field
+vector's rotation about the predicted field, and roundoff in those
+directions stays at the scale of S rather than of its square root. An
+exactly zero S leaves nothing to learn and gives a zero gain.
+*/
+template <typename MatrixType, typename CrossType>
+bool kalman_gain(const MatrixType& covariance, const CrossType& cross,
+                 CrossType& gain) {
+  using Scalar = typename MatrixType::Scalar;
+  using Index = typename MatrixType::Index;
+  if (!covariance.allFinite() || !cross.allFinite()) {
+    return false;
+  }
+  if (covariance.cwiseAbs().maxCoeff() == Scalar(0)) {
+    /* Eigen's QR would take the pivots of a zero matrix as nonzero. */
+    gain.setZero(cross.rows(), cross.cols());
+    return true;
+  }
+  typename MatrixType::ColXpr::PlainObject scale(covariance.rows());
+  for (Index i = 0; i < covariance.rows(); ++i) {
+    scale(i) = covariance(i, i) > Scalar(0)
+                   ? Scalar(1) / std::sqrt(covariance(i, i))
+                   : Scalar(1);
+  }
+  const MatrixType scaled =
+      scale.asDiagonal() * covariance * scale.asDiagonal();
+  const CrossType scaled_cross = cross * scale.asDiagonal();
+  gain =
+      scaled.colPivHouseholderQr().solve(scaled_cross.transpose()).transpose();
+  gain = (gain * scale.asDiagonal()).eval();
+  return gain.allFinite();
 }
 
 /*
@@ -440,9 +479,7 @@ class Core {
     const bool ok =
         prepare_measurement_step() &&
         Detail::correct_measurement(innovation, innovation_covariance, [&] {
-          typename MeasurementVectorType::CovarianceMatrix root;
-          return prepare_innovation(root, z, input...) &&
-                 apply_innovation(root);
+          return innovation_step(z, input...) && a_posteriori_step();
         });
     prior_valid = false;
     innovation_valid = false;
@@ -463,9 +500,8 @@ class Core {
     const InnovationVectorType previous_innovation = innovation;
     const typename MeasurementVectorType::CovarianceMatrix
         previous_innovation_covariance = innovation_covariance;
-    typename MeasurementVectorType::CovarianceMatrix root;
-    if (a_priori_step(delta, input...) &&
-        prepare_innovation(root, z, input...) && apply_innovation(root)) {
+    if (a_priori_step(delta, input...) && innovation_step(z, input...) &&
+        a_posteriori_step()) {
       return true;
     }
     state = previous_state;
@@ -493,15 +529,13 @@ class Core {
     const InnovationVectorType previous_innovation = innovation;
     const typename MeasurementVectorType::CovarianceMatrix
         previous_innovation_covariance = innovation_covariance;
-    typename MeasurementVectorType::CovarianceMatrix root;
-    if (a_priori_step(delta, input...) &&
-        prepare_innovation(root, z, input...)) {
+    if (a_priori_step(delta, input...) && innovation_step(z, input...)) {
       if (innovation.size() == 0 ||
           !std::forward<Gate>(gate)(static_cast<const Core&>(*this), z,
                                     input...)) {
         return false;
       }
-      if (apply_innovation(root)) {
+      if (a_posteriori_step()) {
         return true;
       }
     }
@@ -581,16 +615,6 @@ class Core {
   */
   template <typename... U>
   bool innovation_step(const MeasurementVectorType& z, const U&... input) {
-    typename MeasurementVectorType::CovarianceMatrix root;
-    return prepare_innovation(root, z, input...);
-  }
-
- private:
-  /* A full step passes the validated factor directly to its correction. */
-  template <typename... U>
-  bool prepare_innovation(
-      typename MeasurementVectorType::CovarianceMatrix& root,
-      const MeasurementVectorType& z, const U&... input) {
     innovation_valid = false;
     if (!prior_valid) {
       return false;
@@ -623,9 +647,11 @@ class Core {
     predicted_innovation_covariance +=
         z.calculate_measurement_covariance(measurement_covariance, z_pred);
     /* The innovation covariance must be positive semidefinite. */
+    typename MeasurementVectorType::CovarianceMatrix innovation_root;
     if (!predicted_innovation.allFinite() ||
         (predicted_innovation_covariance.size() != 0 &&
-         !Detail::innovation_root(predicted_innovation_covariance, root))) {
+         !Detail::innovation_root(predicted_innovation_covariance,
+                                  innovation_root))) {
       return false;
     }
 
@@ -635,12 +661,11 @@ class Core {
     return true;
   }
 
- public:
   /*
-  The a posteriori step whitens the cross-correlation and innovation to
-  compute the correction. It is split from the innovation step to allow
-  consistency checks before applying the observation. A successful,
-  nonempty correction consumes its prediction and innovation.
+  The a posteriori step solves for the Kalman gain and applies the
+  correction. It is split from the innovation step to allow consistency
+  checks before applying the observation. A successful, nonempty correction
+  consumes its prediction and innovation.
 
   Returns false if there is no valid innovation step to build on, or if the
   corrected state or covariance is not finite.
@@ -650,18 +675,6 @@ class Core {
       return false;
     }
 
-    /* The public covariance can change between split stages. */
-    typename MeasurementVectorType::CovarianceMatrix root;
-    if (innovation.size() != 0 &&
-        !Detail::innovation_root(innovation_covariance, root)) {
-      return false;
-    }
-    return apply_innovation(root);
-  }
-
- private:
-  bool apply_innovation(
-      const typename MeasurementVectorType::CovarianceMatrix& root) {
     /* An empty dynamic measurement leaves the prediction available. */
     if (innovation.size() == 0) {
       return true;
@@ -676,19 +689,27 @@ class Core {
     Detail::calculate_cross_correlation<StateVectorType>(cross_correlation,
                                                          w_prime, z_prime);
 
-    /* Whiten the residual and cross-covariance in the same coordinates.
-       Their product gives the state correction, including for a singular
-       innovation. */
-    InnovationVectorType whitened_innovation = innovation;
-    Detail::whiten(cross_correlation, whitened_innovation, root);
+    /*
+    Calculate the Kalman gain of equation 72 from the Kraft paper, by
+    solving K * innovation_covariance = cross_correlation rather than
+    forming an inverse; a singular innovation is left out in the directions
+    in which it cannot vary.
+    */
+    CrossCorrelation kalman_gain(StateVectorType::covariance_size(),
+                                 innovation.size());
+    if (!Detail::kalman_gain(innovation_covariance, cross_correlation,
+                             kalman_gain)) {
+      return false;
+    }
     StateVectorType updated_state = state;
     const typename StateVectorType::StateVectorDelta update_delta =
-        cross_correlation * whitened_innovation;
+        kalman_gain * innovation;
     updated_state.apply_delta(update_delta);
 
+    /* Update the covariance using equation 75 from the Kraft paper. */
     typename StateVectorType::CovarianceMatrix updated_covariance = covariance;
     updated_covariance.noalias() -=
-        cross_correlation * cross_correlation.transpose();
+        kalman_gain * innovation_covariance * kalman_gain.transpose();
     /*
     Reject an indefinite posterior, allowing for roundoff in the update
     against the prior's scale. A posterior that is semidefinite within
@@ -724,7 +745,6 @@ class Core {
     return true;
   }
 
- public:
   /*
   Split-step gating hook. A missing or failed innovation never calls the
   gate. Rejection retains prediction and diagnostics; an accepted gate
