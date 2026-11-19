@@ -24,6 +24,7 @@ SOFTWARE.
 #define MEASUREMENTVECTOR_H
 
 #include <Eigen/Core>
+#include <Eigen/LU>
 #include <array>
 #include <cassert>
 #include <cstddef>
@@ -219,6 +220,23 @@ class MeasurementStateHelper {
   }
 
   /*
+  A quaternion sensor's noise n is a left perturbation of the measured
+  rotation, z = q(n) h(x), and its variances are given in that perturbation.
+  The innovation is u = r(z z_pred^-1). With the prediction error
+  e = r(h(x) z_pred^-1), q(u) = q(n) q(e), so n = r(q(u) q(e)^-1), whose
+  derivative in u at u = e is the attitude reset Jacobian J(e) of a state
+  correction. The noise therefore enters the innovation through J(u)^-1 at
+  the observed innovation: the identity for a zero innovation, widening as
+  the innovation grows.
+  */
+  static Matrix<3, 3> noise_jacobian(const Quaternion& z_pred,
+                                     const Quaternion& z) {
+    return Detail::quaternion_reset_jacobian<M>(
+               Detail::quaternion_to_rotation_vector<M>(z * z_pred.conjugate()))
+        .inverse();
+  }
+
+  /*
   Functions for calculating the covariance of a field in the
   measurement vector. The noise p has the field's covariance type: for a
   quaternion, the variances of the rotation's three components.
@@ -253,6 +271,14 @@ class MeasurementStateHelper {
     return T * Eigen::DiagonalMatrix<real_t, 3>(p) * T.transpose();
   }
 
+  /* Quaternion noise is mapped into the innovation in the same way. */
+  template <typename P>
+  static Matrix<3, 3> field_covariance(const P& p, const Quaternion& z_pred,
+                                       const Quaternion& z) {
+    const Matrix<3, 3> T = noise_jacobian(z_pred, z);
+    return T * Eigen::DiagonalMatrix<real_t, 3>(p) * T.transpose();
+  }
+
   template <typename P, typename T>
   static Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>>
   field_root_covariance(const P& p, [[maybe_unused]] const T& z_pred,
@@ -284,6 +310,13 @@ class MeasurementStateHelper {
     */
     return Detail::calculate_rotation_vector_jacobian<M>(z, z_pred) *
            Eigen::DiagonalMatrix<real_t, 3>(p);
+  }
+
+  template <typename P>
+  static Matrix<3, 3> field_root_covariance(const P& p,
+                                            const Quaternion& z_pred,
+                                            const Quaternion& z) {
+    return noise_jacobian(z_pred, z) * Eigen::DiagonalMatrix<real_t, 3>(p);
   }
 
   /*
@@ -580,7 +613,7 @@ class FixedMeasurementVector
   CovarianceMatrix calculate_measurement_covariance(
       const DenseCovarianceMatrix& measurement_covariance,
       const FixedMeasurementVector& z_pred) const {
-    if constexpr (has_field_vector) {
+    if constexpr (has_mapped_noise) {
       DenseCovarianceMatrix transform = DenseCovarianceMatrix::Zero();
       (calculate_field_noise_transform<Fields>(transform, z_pred), ...);
       return transform * measurement_covariance * transform.transpose();
@@ -594,7 +627,7 @@ class FixedMeasurementVector
   DenseCovarianceMatrix calculate_measurement_root_covariance(
       const DenseCovarianceMatrix& measurement_root_covariance,
       const FixedMeasurementVector& z_pred) const {
-    if constexpr (has_field_vector) {
+    if constexpr (has_mapped_noise) {
       DenseCovarianceMatrix transform = DenseCovarianceMatrix::Zero();
       (calculate_field_noise_transform<Fields>(transform, z_pred), ...);
       return transform * measurement_root_covariance;
@@ -651,10 +684,12 @@ class FixedMeasurementVector
   }
 
  private:
-  // Only FieldVector noise needs conversion from sensor to innovation
-  // coordinates.
-  static constexpr bool has_field_vector =
-      (std::is_same_v<typename Fields::type, FieldVector> || ...);
+  // Only FieldVector and Quaternion noise needs conversion from sensor to
+  // innovation coordinates.
+  static constexpr bool has_mapped_noise =
+      ((std::is_same_v<typename Fields::type, FieldVector> ||
+        std::is_same_v<typename Fields::type, Quaternion>) ||
+       ...);
 
   /*
   This function is intended to be specialised by the user for each field in

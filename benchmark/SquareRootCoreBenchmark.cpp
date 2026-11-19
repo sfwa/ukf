@@ -2,6 +2,7 @@
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+#include <chrono>
 
 #include "UKF/Core.h"
 #include "UKF/Integrator.h"
@@ -221,16 +222,20 @@ void SquareRootCore_APosterioriStep(benchmark::State& state) {
 
   const MyCore predicted = test_filter;
   while (state.KeepRunning()) {
-    // Each correction consumes its prediction and innovation.
-    state.PauseTiming();
+    // Each correction consumes its prediction and innovation, so restore one
+    // between timed intervals. Manual timing avoids PauseTiming's overhead,
+    // which is comparable with the step.
     test_filter = predicted;
-    state.ResumeTiming();
-    if (!test_filter.a_posteriori_step()) {
+    const auto start = std::chrono::steady_clock::now();
+    const bool corrected = test_filter.a_posteriori_step();
+    benchmark::DoNotOptimize(test_filter.state);
+    const auto stop = std::chrono::steady_clock::now();
+    if (!corrected) {
       state.SkipWithError("Correction failed");
       return;
     }
-    benchmark::DoNotOptimize(test_filter.state);
+    state.SetIterationTime(std::chrono::duration<double>(stop - start).count());
   }
 }
 
-BENCHMARK(SquareRootCore_APosterioriStep);
+BENCHMARK(SquareRootCore_APosterioriStep)->UseManualTime();
