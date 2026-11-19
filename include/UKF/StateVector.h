@@ -24,6 +24,7 @@ SOFTWARE.
 #define STATEVECTOR_H
 
 #include <Eigen/Core>
+#include <cmath>
 #include <cstddef>
 #include <limits>
 #include <tuple>
@@ -54,6 +55,9 @@ inline constexpr std::size_t StateVectorDimension<Quaternion> = 4;
 
 template <>
 inline constexpr std::size_t StateVectorDimension<real_t> = 1;
+
+template <>
+inline constexpr std::size_t StateVectorDimension<Angle> = 1;
 
 /*
 This variable template defines the dimensionality of a particular
@@ -187,6 +191,82 @@ inline T convert_from_segment(const Vector<StateVectorDimension<T>>& state) {
 template <>
 inline real_t convert_from_segment<real_t>(const Vector<1>& state) {
   return static_cast<real_t>(state(0));
+}
+
+template <>
+inline Angle convert_from_segment<Angle>(const Vector<1>& state) {
+  return Angle(state(0));
+}
+
+/*
+Principal signed displacement on a circle, with half a turn mapped to -pi.
+
+The reduction runs in double precision against 2 pi split into its nearest
+double and the remainder, so a heading many turns out keeps its phase to
+about a rounding in either precision. Rounding the period to the stored
+precision instead would shift the phase by the period's rounding error once
+per turn: about 0.028 rad at a million radians in single precision. Beyond
+2^48 rad the turn count is no longer exact, and the standard library's sine
+and cosine, which reduce their argument exactly, give the phase.
+*/
+inline real_t wrap_angle(real_t radians) {
+  constexpr real_t pi = real_t(3.14159265358979323846);
+  if (radians >= -pi && radians < pi) {
+    return radians;
+  }
+  constexpr double pi_head = 3.141592653589793;
+  constexpr double two_pi_head = 6.283185307179586;
+  constexpr double two_pi_tail = 2.4492935982947064e-16;
+  const double angle = static_cast<double>(radians);
+  double reduced;
+  if (std::abs(angle) < 3 * pi_head) {
+    /* One turn, as for a difference of principal angles. Exact subtraction. */
+    reduced = angle > 0 ? (angle - two_pi_head) - two_pi_tail
+                        : (angle + two_pi_head) + two_pi_tail;
+  } else if (std::abs(angle) < 0x1p48) {
+    /* Exact, and at most half a period from zero. */
+    const double head = std::remainder(angle, two_pi_head);
+    const double turns = std::round((angle - head) / two_pi_head);
+    /* The tail term is under 0.011 rad, so at most one more turn is needed. */
+    reduced = head - turns * two_pi_tail;
+    if (reduced < -pi_head) {
+      reduced = (reduced + two_pi_head) + two_pi_tail;
+    } else if (reduced > pi_head) {
+      reduced = (reduced - two_pi_head) - two_pi_tail;
+    }
+  } else {
+    reduced = std::atan2(std::sin(angle), std::cos(angle));
+  }
+  const real_t result = static_cast<real_t>(reduced);
+  /* Half a turn, or a rounding past either end, is -pi. */
+  return result >= pi || result < -pi ? -pi : result;
+}
+
+/*
+Unwrap around the central sigma point before averaging. This local mean also
+works with signed unscented-transform weights. As with a scalar angular
+covariance, the distribution must fit within a single chart about its centre.
+*/
+template <typename Derived>
+inline Vector<1> angle_sigma_mean(const Eigen::MatrixBase<Derived>& sigma,
+                                  real_t outer_weight) {
+  const real_t center = wrap_angle(sigma(0, 0));
+  real_t sum = 0;
+  for (typename Derived::Index i = 1; i < sigma.cols(); ++i) {
+    sum += wrap_angle(wrap_angle(sigma(0, i)) - center);
+  }
+  return Vector<1>::Constant(wrap_angle(center + outer_weight * sum));
+}
+
+template <typename Derived>
+inline Matrix<1, Derived::ColsAtCompileTime> angle_sigma_deltas(
+    Angle mean, const Eigen::MatrixBase<Derived>& sigma) {
+  Matrix<1, Derived::ColsAtCompileTime> deltas;
+  const real_t center = wrap_angle(mean.radians());
+  for (typename Derived::Index i = 0; i < sigma.cols(); ++i) {
+    deltas(i) = wrap_angle(wrap_angle(sigma(0, i)) - center);
+  }
+  return deltas;
 }
 
 /*
@@ -371,7 +451,7 @@ inline Vector<3> quaternion_to_rotation_vector(Quaternion d_q) {
 /*
 The type that holds a field's noise and innovation: its value type,
 except that a quaternion's uncertainty is a three-dimensional
-rotation.
+rotation and a circular angle's tangent coordinate is a scalar.
 */
 template <typename T>
 struct CovarianceFieldTypeHelper {
@@ -381,6 +461,11 @@ struct CovarianceFieldTypeHelper {
 template <>
 struct CovarianceFieldTypeHelper<Quaternion> {
   using type = Vector<3>;
+};
+
+template <>
+struct CovarianceFieldTypeHelper<Angle> {
+  using type = real_t;
 };
 
 template <typename T>
@@ -458,6 +543,11 @@ class StateVector : public StateVectorBaseType<typename Fields::type...> {
     Base::template segment<Detail::get_field_size<Fields...>(Key)>(
         Detail::get_field_offset<0, Fields...>(Key))
         << in;
+  }
+
+  template <int Key>
+  void set_field(Angle in) {
+    set_field<Key>(in.radians());
   }
 
   template <int Key>
@@ -619,6 +709,14 @@ class StateVector : public StateVectorBaseType<typename Fields::type...> {
             state;
         temp.col(i + covariance_size() + 1) << temp_q.vec(), temp_q.w();
       }
+    } else if constexpr (std::is_same_v<T, Angle>) {
+      const real_t center = Detail::wrap_angle(state.radians());
+      temp(0, 0) = center;
+      for (std::size_t i = 0; i < covariance_size(); ++i) {
+        temp(0, i + 1) = Detail::wrap_angle(center + cov(0, i));
+        temp(0, i + covariance_size() + 1) =
+            Detail::wrap_angle(center - cov(0, i));
+      }
     } else if constexpr (std::is_arithmetic<T>::value) {
       temp(0) = state;
       temp.template segment<covariance_size()>(1) = cov.array() + state;
@@ -704,6 +802,9 @@ class StateVector : public StateVectorBaseType<typename Fields::type...> {
                   .sum();
       const Quaternion temp_q = Quaternion(temp).normalized();
       return Vector<4>(temp_q.x(), temp_q.y(), temp_q.z(), temp_q.w());
+    } else if constexpr (std::is_same_v<T, Angle>) {
+      return Detail::angle_sigma_mean(sigma,
+                                      Parameters::Sigma_WMI<StateVector>);
     } else {
       return sigma.col(0) +
              Parameters::Sigma_WMI<StateVector> *
@@ -754,6 +855,8 @@ class StateVector : public StateVectorBaseType<typename Fields::type...> {
       }
 
       return temp;
+    } else if constexpr (std::is_same_v<T, Angle>) {
+      return Detail::angle_sigma_deltas(mean, X);
     } else if constexpr (std::is_arithmetic<T>::value) {
       return X.array() - mean;
     } else {
@@ -812,6 +915,11 @@ class StateVector : public StateVectorBaseType<typename Fields::type...> {
                   Vector<3>(delta)) *
               state)
           .normalized();
+    } else if constexpr (std::is_same_v<T, Angle>) {
+      /* Wrap the stored angle first, as the sigma points do: a small
+         correction added to a large unwrapped angle would round away. */
+      return Angle(
+          Detail::wrap_angle(Detail::wrap_angle(state.radians()) + delta(0)));
     } else if constexpr (std::is_arithmetic<T>::value) {
       return state + delta(0);
     } else {

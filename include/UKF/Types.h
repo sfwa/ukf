@@ -50,6 +50,21 @@ using VectorDynamic = Eigen::Matrix<real_t, Eigen::Dynamic, 1, 0, Length, 1>;
 
 using Quaternion = Eigen::Quaternion<real_t>;
 
+/*
+A scalar heading or bearing in radians. Its tangent coordinate is real_t. A
+default-constructed angle is zero, so that angles can be declared in arrays
+and structures before they are set.
+*/
+class Angle {
+ public:
+  Angle() = default;
+  explicit Angle(real_t radians) : radians_(radians) {}
+  real_t radians() const { return radians_; }
+
+ private:
+  real_t radians_ = real_t(0);
+};
+
 class FieldVector : public Vector<3> {
  public:
   /* Inherit Eigen::Matrix constructors and assignment operators. */

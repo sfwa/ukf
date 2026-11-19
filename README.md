@@ -12,7 +12,7 @@ builds with them disabled: every filter step returns whether it succeeded.
 | `UKF::SquareRootCore` | Square-root state estimation [[3]](#ref3) | Lower factor `S`, where `P = S Sᵀ` |
 | `UKF::SquareRootParameterEstimationCore` | Parameter estimation without a process model [[3]](#ref3) | Lower factor `S` |
 
-All three support scalar, vector and quaternion measurements, fixed or dynamic measurement
+All three support scalar, vector, [angle](docs/usage-guide.md#heading-and-bearing) and quaternion measurements, fixed or dynamic measurement
 sets, optional [dense measurement noise](docs/dense-measurement-covariance.md),
 and [innovation gating](docs/innovation-gating.md). Each can be compiled in
 single or double precision.

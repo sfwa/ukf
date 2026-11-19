@@ -32,8 +32,9 @@ block of [dense noise](dense-measurement-covariance.md), in those rotation
 coordinates. A measurement type's `covariance_size()` counts three for each
 quaternion field, and `Measurement::InnovationVector` (also the cores'
 `InnovationVectorType`) holds the innovation in those coordinates: each
-quaternion field becomes a `UKF::Vector<3>` there. For measurements without
-quaternion fields `InnovationVector` is the measurement type itself, as before.
+quaternion field becomes a `UKF::Vector<3>` there. An angle field becomes a
+`real_t`. For measurements containing neither type, `InnovationVector` is the
+measurement type itself.
 
 `UKF::FieldVector` is a directional measurement such as gravity or a magnetic
 field. Its innovation uses a rotation vector, and the noise Jacobian maps raw
@@ -53,6 +54,39 @@ fresh dynamic vector each iteration so a missing sensor does not retain an old
 value. Fields can be inserted in any order; retrieve them by key rather than by
 a hard-coded component index. Noise storage, however, always follows the
 **declared** field order, including fields absent from a dynamic observation.
+
+### Heading and bearing
+
+Use `UKF::Angle` for a scalar state or measurement with period 2π. Write
+radians with `set_field<Heading>(UKF::Angle(radians))` and read them with
+`get_field<Heading>().radians()`; a default-constructed `UKF::Angle` is
+zero. A sensor model for a heading state can
+return that state field directly. An angle has one stored component and one
+tangent coordinate. Set the measurement noise in rad² (rad for root factors).
+The scalar innovation uses the shortest signed displacement in [−π, π).
+For example, a prediction of +179° followed by a reading of −179° gives a +2°
+innovation.
+
+```cpp
+enum { Bearing };
+using Compass = UKF::FixedMeasurementVector<UKF::Field<Bearing, UKF::Angle>>;
+Compass predicted, measured;
+predicted.set_field<Bearing>(UKF::Angle(real_t(3.13)));
+measured.set_field<Bearing>(UKF::Angle(real_t(-3.13)));
+real_t error = predicted.calculate_innovation(measured).get_field<Bearing>();
+// error is approximately +0.0232 rad.
+```
+
+Stored and measured angles need not be wrapped. Any finite value, even one
+many turns out, is reduced to its principal value to within a rounding of
+the stored precision.
+
+Sigma points and corrections wrap at the branch cut. Means are computed by
+unwrapping the sigma points around the central point, then wrapping the
+weighted mean. Angular uncertainty should be concentrated within half a turn
+of that reference. Use an ordinary scalar for an unwrapped quantity such as
+a shaft's total rotation or an angular rate. A continuous-time model writes
+the heading derivative as its angular rate in rad/s.
 
 ## Process models and inputs
 

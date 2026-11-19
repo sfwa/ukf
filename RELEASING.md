@@ -30,7 +30,7 @@ results (see [Numerical changes](#numerical-changes)).
   `InnovationVectorType`.
 - **State and measurement types.** `UKF::StateVector`,
   `UKF::FixedMeasurementVector`, `UKF::DynamicMeasurementVector`, `UKF::Field`,
-  `UKF::Vector`, `UKF::Quaternion`, `UKF::FieldVector`,
+  `UKF::Vector`, `UKF::Quaternion`, `UKF::FieldVector`, `UKF::Angle`,
   `UKF::DenseCovarianceMatrix` and the members documented in their headers and
   in [docs/usage-guide.md](docs/usage-guide.md), including
   `CovarianceMatrix`, `covariance_size()`, `InnovationVector`, `set_field`,
@@ -50,7 +50,8 @@ results (see [Numerical changes](#numerical-changes)).
   lower root factor (`P = S Sᵀ`), the additive process-noise model, the
   three-dimensional uncertainty of a quaternion and its left-perturbation MRP
   coordinates, the innovation of a quaternion or field-vector measurement,
-  declared-field order for noise storage, and the sigma-point weights derived
+  an angle's period of 2π and its innovation as the shortest signed
+  displacement in [−π, π), declared-field order for noise storage, and the sigma-point weights derived
   from `AlphaSquared`, `Beta` and `Kappa`. Default values of every parameter.
 - **Error handling.** No exceptions: each step returns `true` on success, and
   on failure returns `false` and leaves the public state, covariance,

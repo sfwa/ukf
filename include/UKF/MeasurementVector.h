@@ -47,6 +47,8 @@ template <typename Segment, typename T>
 inline void assign_field(Segment&& segment, const T& in) {
   if constexpr (std::is_same<T, Quaternion>::value) {
     segment << in.vec(), in.w();
+  } else if constexpr (std::is_same_v<T, Angle>) {
+    segment << in.radians();
   } else {
     segment << in;
   }
@@ -331,6 +333,8 @@ class MeasurementStateHelper {
 
       return Detail::rotation_vector_to_quaternion<M>(temp) *
              Vector<3>(sigma.col(0));
+    } else if constexpr (std::is_same_v<T, Angle>) {
+      return Detail::angle_sigma_mean(sigma, Parameters::Sigma_WMI<S>);
     } else {
       return sigma.col(0) +
              Parameters::Sigma_WMI<S> *
@@ -357,6 +361,9 @@ class MeasurementStateHelper {
       return Detail::quaternion_to_rotation_vector<M>(z * z_pred.conjugate());
     } else if constexpr (std::is_same<T, FieldVector>::value) {
       return Detail::calculate_rotation_vector<M>(z, z_pred);
+    } else if constexpr (std::is_same_v<T, Angle>) {
+      return Detail::wrap_angle(Detail::wrap_angle(z.radians()) -
+                                Detail::wrap_angle(z_pred.radians()));
     } else {
       return z - z_pred;
     }
@@ -386,6 +393,8 @@ class MeasurementStateHelper {
       }
 
       return temp;
+    } else if constexpr (std::is_same_v<T, Angle>) {
+      return Detail::angle_sigma_deltas(mean, Z);
     } else if constexpr (std::is_arithmetic<T>::value) {
       return Z.array() - mean;
     } else {
@@ -439,7 +448,8 @@ class FixedMeasurementVector
   /*
   Diagonal sensor noise, and the innovation, have one entry for each
   component of a field's uncertainty: three, the rotation, for a
-  quaternion. Without quaternion fields these are this vector type.
+  quaternion. An angle field's noise and innovation are scalar radians²
+  (radians for root noise) and radians, respectively.
   Experimental: quaternion measurement fields, and these types where they
   differ from the measurement type, may change in a minor release (see
   RELEASING.md).
@@ -846,9 +856,9 @@ class DynamicMeasurementVector
   /*
   Diagonal sensor noise covers every declared field, and the innovation
   the fields that are set, with one entry for each component of a field's
-  uncertainty: three, the rotation, for a quaternion. Without quaternion
-  fields the innovation is this vector type. Experimental: quaternion
-  measurement fields, and these types where they differ from the
+  uncertainty: three, the rotation, for a quaternion. An angle contributes
+  one real_t component. Experimental: quaternion measurement fields,
+  and these types where they differ from the
   measurement type, may change in a minor release (see RELEASING.md).
   */
   using CovarianceVector = FixedMeasurementVector<Field<
