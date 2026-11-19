@@ -171,12 +171,23 @@ negligible beside the rest of its row: a field vector's rotation, for one,
 has no component along the predicted field. That column of S is rotated into
 the later columns, which leaves S S^T unchanged, and its direction, in which
 there is nothing to learn, is left out of the correction.
+
+A split-step caller can write anything into the public innovation root. A
+root which is not finite, or not the size of the innovation, is refused
+before anything is changed: its comparisons would otherwise all fail, every
+direction would be left out, and the correction would report success having
+done nothing. Returns false in that case.
 */
 template <typename CrossType, typename InnovationType, typename RootType>
-void whiten(CrossType& cross, InnovationType& innovation,
-            const RootType& innovation_root) {
+[[nodiscard]] bool whiten(CrossType& cross, InnovationType& innovation,
+                          const RootType& innovation_root) {
   using Scalar = typename RootType::Scalar;
   using Index = typename RootType::Index;
+  if (innovation_root.rows() != innovation.size() ||
+      innovation_root.cols() != innovation.size() ||
+      !innovation_root.allFinite()) {
+    return false;
+  }
   const Scalar tolerance = std::sqrt(std::numeric_limits<Scalar>::epsilon());
   RootType root = innovation_root;
   for (Index k = 0; k < root.cols(); ++k) {
@@ -202,6 +213,7 @@ void whiten(CrossType& cross, InnovationType& innovation,
       innovation(k) = Scalar(0);
     }
   }
+  return true;
 }
 
 /*
@@ -366,13 +378,15 @@ struct SemidefiniteFactor {
 Solve K S = P for the Kalman gain K, given the innovation covariance S and
 the cross-correlation P, leaving out the directions in which S cannot vary.
 An exactly zero S leaves nothing to learn and gives a zero gain. An S that is
-not a covariance, which a split-step caller can write into the public
-innovation covariance, is refused rather than turned into a gain.
+not a covariance, or not the size of the innovation, which a split-step
+caller can write into the public innovation covariance, is refused rather
+than turned into a gain.
 */
 template <typename MatrixType, typename CrossType>
 bool kalman_gain(const MatrixType& covariance, const CrossType& cross,
                  CrossType& gain) {
-  if (!cross.allFinite()) {
+  if (covariance.rows() != cross.cols() || covariance.cols() != cross.cols() ||
+      !cross.allFinite()) {
     return false;
   }
   SemidefiniteFactor<MatrixType> factor;
@@ -1294,11 +1308,15 @@ class SquareRootCore {
     /*
     Whiten the cross-correlation and the innovation by the innovation
     root covariance. Their product is the update delta vector, which is
-    applied to a copy of the a priori estimate.
+    applied to a copy of the a priori estimate. An innovation root that a
+    caller has edited into something that is not finite, or not the size
+    of the innovation, is refused.
     */
     InnovationVectorType whitened_innovation = innovation;
-    Detail::whiten(cross_correlation, whitened_innovation,
-                   innovation_root_covariance);
+    if (!Detail::whiten(cross_correlation, whitened_innovation,
+                        innovation_root_covariance)) {
+      return false;
+    }
     StateVectorType updated_state = state;
     const typename StateVectorType::StateVectorDelta update_delta =
         cross_correlation * whitened_innovation;
@@ -1664,11 +1682,15 @@ class SquareRootParameterEstimationCore {
     /*
     Whiten the cross-correlation and the innovation by the innovation
     root covariance. Their product is the update delta vector, which is
-    applied to a copy of the a priori estimate.
+    applied to a copy of the a priori estimate. An innovation root that a
+    caller has edited into something that is not finite, or not the size
+    of the innovation, is refused.
     */
     InnovationVectorType whitened_innovation = innovation;
-    Detail::whiten(cross_correlation, whitened_innovation,
-                   innovation_root_covariance);
+    if (!Detail::whiten(cross_correlation, whitened_innovation,
+                        innovation_root_covariance)) {
+      return false;
+    }
     StateVectorType updated_state = state;
     const typename StateVectorType::StateVectorDelta update_delta =
         cross_correlation * whitened_innovation;
