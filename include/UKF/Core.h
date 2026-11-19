@@ -25,7 +25,6 @@ SOFTWARE.
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-#include <Eigen/Jacobi>
 #include <Eigen/QR>
 #include <algorithm>
 #include <cmath>
@@ -112,47 +111,6 @@ bool update_root(MatrixType& factor, const VectorsType& vectors,
     return false;
   }
   factor = updated;
-  return true;
-}
-
-/*
-The downdate gives uncertainty in the old coordinates. Left-multiplying the
-three quaternion rows of its root also transports every cross-covariance.
-Right Givens rotations clear the three possible entries above the diagonal
-without changing R R^T, including when a pivot is zero.
-*/
-template <typename State, typename CrossType>
-bool correct_root(
-    typename State::CovarianceMatrix& root, const CrossType& cross,
-    [[maybe_unused]] const typename State::StateVectorDelta& delta) {
-  typename State::CovarianceMatrix updated;
-  if (!calculate_updated_root(root, updated, cross, real_t(-1))) {
-    return false;
-  }
-  if constexpr (AttitudeReset<State>::has_quaternion) {
-    AttitudeReset<State>::for_each(
-        delta, [&](std::size_t offset, const Matrix<3, 3>& jacobian) {
-          auto rows = updated.template middleRows<3>(offset);
-          rows = (jacobian * rows).eval();
-          for (std::size_t row = offset; row < offset + 3; ++row) {
-            for (std::size_t col = row + 1; col < offset + 3; ++col) {
-              if (updated(row, col) != real_t(0)) {
-                Eigen::JacobiRotation<real_t> rotation;
-                rotation.makeGivens(updated(row, row), updated(row, col));
-                updated.applyOnTheRight(row, col, rotation);
-                updated(row, col) = real_t(0);
-              }
-            }
-            if (updated(row, row) < real_t(0)) {
-              updated.col(row) *= real_t(-1);
-            }
-          }
-        });
-    if (!updated.allFinite()) {
-      return false;
-    }
-  }
-  root = updated;
   return true;
 }
 
@@ -929,20 +887,6 @@ class Core {
       return false;
     }
 
-    if constexpr (Detail::AttitudeReset<StateVectorType>::has_quaternion) {
-      /* Transport both sides of the covariance, including the cross terms. */
-      Detail::AttitudeReset<StateVectorType>::for_each(
-          update_delta, [&](std::size_t offset, const Matrix<3, 3>& jacobian) {
-            auto rows = updated_covariance.template middleRows<3>(offset);
-            rows = (jacobian * rows).eval();
-            auto cols = updated_covariance.template middleCols<3>(offset);
-            cols = (cols * jacobian.transpose()).eval();
-          });
-      if (!updated_covariance.allFinite()) {
-        return false;
-      }
-    }
-
     state = updated_state;
     covariance = updated_covariance;
     prior_valid = false;
@@ -1319,8 +1263,7 @@ class SquareRootCore {
     is left as it was unless every downdate succeeds.
     */
     if (!updated_state.allFinite() ||
-        !Detail::correct_root<StateVectorType>(
-            root_covariance, cross_correlation, update_delta)) {
+        !Detail::update_root(root_covariance, cross_correlation, real_t(-1))) {
       return false;
     }
     state = updated_state;
@@ -1681,8 +1624,7 @@ class SquareRootParameterEstimationCore {
     succeeds.
     */
     if (!updated_state.allFinite() ||
-        !Detail::correct_root<StateVectorType>(
-            root_covariance, cross_correlation, update_delta)) {
+        !Detail::update_root(root_covariance, cross_correlation, real_t(-1))) {
       return false;
     }
     state = updated_state;

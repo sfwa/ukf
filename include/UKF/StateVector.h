@@ -846,39 +846,6 @@ Matrix<3, 3> quaternion_reset_jacobian(const Vector<3>& delta) {
   return jacobian;
 }
 
-/* A custom state type retains its own covariance-coordinate convention. */
-template <typename State>
-struct AttitudeReset {
-  static constexpr bool has_quaternion = false;
-};
-
-template <typename... Fields>
-struct AttitudeReset<StateVector<Fields...>> {
-  using State = StateVector<Fields...>;
-  static constexpr bool has_quaternion =
-      (std::is_same_v<typename Fields::type, Quaternion> || ...);
-
-  template <typename Visitor>
-  static void for_each(const typename State::StateVectorDelta& delta,
-                       const Visitor& visit) {
-    (visit_field<Fields>(delta, visit), ...);
-  }
-
- private:
-  template <typename FieldType, typename Visitor>
-  static void visit_field(const typename State::StateVectorDelta& delta,
-                          const Visitor& visit) {
-    if constexpr (std::is_same_v<typename FieldType::type, Quaternion>) {
-      constexpr auto offset =
-          get_field_covariance_offset<0, Fields...>(FieldType::key);
-      const Vector<3> rotation = delta.template segment<3>(offset);
-      if ((rotation.array() != real_t(0)).any()) {
-        visit(offset, quaternion_reset_jacobian<State>(rotation));
-      }
-    }
-  }
-};
-
 }  // namespace Detail
 
 }  // namespace UKF

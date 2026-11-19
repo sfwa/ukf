@@ -324,11 +324,11 @@ the shorter one.
 /*
 The sensor's noise is a rotation of the true orientation, so in the
 innovation's coordinates about the prediction it widens with the
-innovation. After a correction the uncertainty is expressed about the
-corrected orientation, where that widening is undone: a broad prior and an
-exact observation two radians away leave the sensor's own noise.
+innovation. The posterior uncertainty stays in those coordinates: a broad
+prior and an exact observation two radians away leave the sensor's noise
+as it appears there, J(d)^-1 R J(d)^-T for the applied correction d.
 */
-TEST(QuaternionMeasurementTest, WideInnovationKeepsTheSensorNoise) {
+TEST(QuaternionMeasurementTest, WideInnovationKeepsTheMappedSensorNoise) {
   const UKF::Quaternion truth = rotation(real_t(2), UKF::Vector<3>(1, 2, -1));
   QAttitudeOnly z;
   z.set_field<QAttitudeSensor>(truth);
@@ -349,16 +349,26 @@ TEST(QuaternionMeasurementTest, WideInnovationKeepsTheSensorNoise) {
 
   ASSERT_TRUE(filter.step(real_t(0), z));
   ASSERT_TRUE(root_filter.step(real_t(0), z));
+  /* The prior is the identity, so the posterior is the correction. */
+  const auto mapped_noise = [](const UKF::Quaternion& posterior) {
+    const UKF::Matrix<3, 3> inverse =
+        UKF::Detail::quaternion_reset_jacobian<QState>(
+            UKF::Detail::quaternion_to_rotation_vector<QState>(posterior))
+            .inverse();
+    return UKF::Matrix<3, 3>(inverse * inverse.transpose() * attitude_variance);
+  };
   const UKF::Matrix<3, 3> expected =
-      UKF::Matrix<3, 3>::Identity() * attitude_variance;
+      mapped_noise(filter.state.get_field<QAttitude>());
+  const UKF::Matrix<3, 3> root_expected =
+      mapped_noise(root_filter.state.get_field<QAttitude>());
   const UKF::Matrix<3, 3> attitude = filter.covariance.topLeftCorner<3, 3>();
   const UKF::Matrix<3, 3> root_attitude =
       (root_filter.root_covariance * root_filter.root_covariance.transpose())
           .topLeftCorner<3, 3>();
   EXPECT_LT((attitude - expected).cwiseAbs().maxCoeff(),
-            real_t(0.02) * attitude_variance);
-  EXPECT_LT((root_attitude - expected).cwiseAbs().maxCoeff(),
-            real_t(0.02) * attitude_variance);
+            real_t(0.02) * expected.cwiseAbs().maxCoeff());
+  EXPECT_LT((root_attitude - root_expected).cwiseAbs().maxCoeff(),
+            real_t(0.02) * root_expected.cwiseAbs().maxCoeff());
   EXPECT_LT(rotation_between(filter.state.get_field<QAttitude>(), truth).norm(),
             real_t(0.01));
   EXPECT_LT(
@@ -528,75 +538,6 @@ void check_dense_noise_matches_diagonal() {
 TEST(QuaternionMeasurementTest, DenseNoiseMatchesDiagonal) {
   check_dense_noise_matches_diagonal<QFixed>();
   check_dense_noise_matches_diagonal<QDynamic>();
-}
-
-/*
-A scalar bias observation rotates the attitude through its correlation with
-the bias. For the default Gibbs coordinates and a 90-degree correction about
-X the reset Jacobian has a closed form. The unequal transverse variances
-check its handedness, and the fourth row checks the attitude-bias covariance.
-*/
-template <template <typename...> class Core>
-void check_large_attitude_reset(real_t noise) {
-  Core<QState, QDynamic> filter;
-  filter.state.template set_field<QAttitude>(UKF::Quaternion::Identity());
-  filter.state.template set_field<QBias>(real_t(0));
-  QState::CovarianceMatrix prior;
-  prior << 1, 0, 0, 0.5, 0, 0.6, 0.15, 0, 0, 0.15, 0.4, 0, 0.5, 0, 0, 1;
-  QDynamic measurement;
-  measurement.set_field<QBiasSensor>(real_t(4) * (real_t(1) + noise));
-  QState::CovarianceMatrix actual;
-  if constexpr (std::is_same_v<Core<QState, QDynamic>,
-                               StandardCore<QState, QDynamic>>) {
-    filter.covariance = prior;
-    filter.process_noise_covariance.setZero();
-    filter.measurement_covariance.setZero();
-    filter.measurement_covariance.template set_field<QBiasSensor>(noise);
-    ASSERT_TRUE(filter.step(real_t(0), measurement));
-    actual = filter.covariance;
-  } else {
-    filter.root_covariance = prior.llt().matrixL();
-    filter.process_noise_root_covariance.setZero();
-    filter.measurement_root_covariance.setZero();
-    filter.measurement_root_covariance.template set_field<QBiasSensor>(
-        std::sqrt(noise));
-    if constexpr (std::is_same_v<Core<QState, QDynamic>,
-                                 ParameterCore<QState, QDynamic>>) {
-      ASSERT_TRUE(filter.step(measurement));
-    } else {
-      ASSERT_TRUE(filter.step(real_t(0), measurement));
-    }
-    actual = filter.root_covariance * filter.root_covariance.transpose();
-    EXPECT_TRUE((filter.root_covariance.diagonal().array() >= real_t(0)).all());
-    EXPECT_EQ(real_t(0),
-              QState::CovarianceMatrix(
-                  filter.root_covariance
-                      .template triangularView<Eigen::StrictlyUpper>())
-                  .norm());
-  }
-
-  const UKF::Quaternion expected_attitude =
-      UKF::Quaternion(real_t(1), real_t(1), real_t(0), real_t(0)).normalized();
-  EXPECT_LT(filter.state.template get_field<QAttitude>().angularDistance(
-                expected_attitude),
-            real_t(2e-5));
-  QState::CovarianceMatrix reset;
-  reset << 0.5, 0, 0, 0, 0, 0.5, -0.5, 0, 0, 0.5, 0.5, 0, 0, 0, 0, 1;
-  const QState::CovarianceMatrix posterior =
-      prior - prior.col(3) * prior.row(3) / (real_t(1) + noise);
-  const QState::CovarianceMatrix expected =
-      reset * posterior * reset.transpose();
-  EXPECT_LT((actual - expected).cwiseAbs().maxCoeff(), real_t(2e-5));
-}
-
-TEST(QuaternionMeasurementTest,
-     LargeCorrectionResetsAttitudeAndBiasCovariance) {
-  for (real_t noise : {real_t(0.25), real_t(0)}) {
-    SCOPED_TRACE(noise);
-    check_large_attitude_reset<StandardCore>(noise);
-    check_large_attitude_reset<RootCore>(noise);
-    check_large_attitude_reset<ParameterCore>(noise);
-  }
 }
 
 using CustomResetState = UKF::StateVector<UKF::Field<410, UKF::Quaternion>>;

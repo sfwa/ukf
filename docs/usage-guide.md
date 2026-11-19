@@ -117,13 +117,6 @@ The uncertainty of a quaternion state is three-dimensional, so use
 `State::CovarianceMatrix` and `State::covariance_size()` rather than the number
 of stored state coefficients when allocating uncertainty matrices.
 
-After a correction, all three filters express attitude uncertainty around the
-corrected quaternion. They transform its covariance and its correlations with
-other fields using the Jacobian of the change in MRP coordinates. For example,
-with the default Gibbs coordinates, a 90-degree correction halves the local
-error along its rotation axis, so that variance is one quarter of its value
-in the previous coordinates. Later gains and estimates can change as a result.
-
 | Quantity | `Core` | Square-root filters |
 | --- | --- | --- |
 | State uncertainty | `covariance = P` | `root_covariance = S`, with `P = S * S.transpose()` |
