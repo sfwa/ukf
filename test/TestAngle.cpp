@@ -156,3 +156,52 @@ TEST(AngleTest, AllFiltersUpdateAcrossTheBranchCut) {
       UKF::SquareRootParameterEstimationCore<AngleState, FixedBearing>,
       FixedBearing>();
 }
+
+/*
+A stored heading need not be wrapped, and an unwrapped one must take the
+same correction as its principal value. In single precision a correction of
+a hundredth of a radian added to a heading of a million radians would round
+away.
+*/
+template <typename Filter>
+void check_unwrapped_heading_correction(real_t start) {
+  const real_t wrapped = UKF::Detail::wrap_angle(start);
+  Filter filter;
+  filter.state.template set_field<Heading>(UKF::Angle(start));
+  constexpr bool standard =
+      std::is_same_v<Filter, UKF::Core<AngleState, FixedBearing>>;
+  if constexpr (standard) {
+    filter.covariance.setConstant(real_t(0.01));
+    filter.process_noise_covariance.setZero();
+    filter.measurement_covariance.setConstant(real_t(0.01));
+  } else {
+    filter.root_covariance.setConstant(real_t(0.1));
+    filter.process_noise_root_covariance.setZero();
+    filter.measurement_root_covariance.setConstant(real_t(0.1));
+  }
+  FixedBearing measured;
+  measured.set_field<Bearing>(UKF::Angle(wrapped + real_t(0.02)));
+  if constexpr (std::is_same_v<Filter, UKF::SquareRootParameterEstimationCore<
+                                           AngleState, FixedBearing>>) {
+    ASSERT_TRUE(filter.step(measured));
+  } else {
+    ASSERT_TRUE(filter.step(0, measured));
+  }
+  EXPECT_NEAR(real_t(0.02), filter.innovation.template get_field<Bearing>(),
+              tolerance);
+  EXPECT_NEAR(wrapped + real_t(0.01),
+              filter.state.template get_field<Heading>().radians(), tolerance);
+}
+
+TEST(AngleTest, UnwrappedHeadingTakesTheWholeCorrection) {
+  for (real_t start : {real_t(1e6), UKF::Detail::wrap_angle(real_t(1e6))}) {
+    SCOPED_TRACE(start);
+    check_unwrapped_heading_correction<UKF::Core<AngleState, FixedBearing>>(
+        start);
+    check_unwrapped_heading_correction<
+        UKF::SquareRootCore<AngleState, FixedBearing>>(start);
+    check_unwrapped_heading_correction<
+        UKF::SquareRootParameterEstimationCore<AngleState, FixedBearing>>(
+        start);
+  }
+}

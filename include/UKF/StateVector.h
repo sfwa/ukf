@@ -863,7 +863,10 @@ class StateVector : public StateVectorBaseType<typename Fields::type...> {
               state)
           .normalized();
     } else if constexpr (std::is_same_v<T, Angle>) {
-      return Angle(Detail::wrap_angle(state.radians() + delta(0)));
+      /* Wrap the stored angle first, as the sigma points do: a small
+         correction added to a large unwrapped angle would round away. */
+      return Angle(
+          Detail::wrap_angle(Detail::wrap_angle(state.radians()) + delta(0)));
     } else if constexpr (std::is_arithmetic<T>::value) {
       return state + delta(0);
     } else {
