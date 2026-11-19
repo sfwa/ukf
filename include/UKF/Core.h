@@ -25,6 +25,7 @@ SOFTWARE.
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+#include <Eigen/Jacobi>
 #include <Eigen/QR>
 #include <algorithm>
 #include <cmath>
@@ -111,6 +112,47 @@ bool update_root(MatrixType& factor, const VectorsType& vectors,
     return false;
   }
   factor = updated;
+  return true;
+}
+
+/*
+The downdate gives uncertainty in the old coordinates. Left-multiplying the
+three quaternion rows of its root also transports every cross-covariance.
+Right Givens rotations clear the three possible entries above the diagonal
+without changing R R^T, including when a pivot is zero.
+*/
+template <typename State, typename CrossType>
+bool correct_root(
+    typename State::CovarianceMatrix& root, const CrossType& cross,
+    [[maybe_unused]] const typename State::StateVectorDelta& delta) {
+  typename State::CovarianceMatrix updated;
+  if (!calculate_updated_root(root, updated, cross, real_t(-1))) {
+    return false;
+  }
+  if constexpr (AttitudeReset<State>::has_quaternion) {
+    AttitudeReset<State>::for_each(
+        delta, [&](std::size_t offset, const Matrix<3, 3>& jacobian) {
+          auto rows = updated.template middleRows<3>(offset);
+          rows = (jacobian * rows).eval();
+          for (std::size_t row = offset; row < offset + 3; ++row) {
+            for (std::size_t col = row + 1; col < offset + 3; ++col) {
+              if (updated(row, col) != real_t(0)) {
+                Eigen::JacobiRotation<real_t> rotation;
+                rotation.makeGivens(updated(row, row), updated(row, col));
+                updated.applyOnTheRight(row, col, rotation);
+                updated(row, col) = real_t(0);
+              }
+            }
+            if (updated(row, row) < real_t(0)) {
+              updated.col(row) *= real_t(-1);
+            }
+          }
+        });
+    if (!updated.allFinite()) {
+      return false;
+    }
+  }
+  root = updated;
   return true;
 }
 
@@ -356,6 +398,13 @@ struct SemidefiniteFactor {
   }
 };
 
+/* Whether S is symmetric and positive semidefinite to within roundoff. */
+template <typename MatrixType>
+bool symmetric_semidefinite(const MatrixType& covariance) {
+  SemidefiniteFactor<MatrixType> factor;
+  return factor.compute(covariance);
+}
+
 /*
 Solve K S = P for the Kalman gain K, given the innovation covariance S and
 the cross-correlation P, leaving out the directions in which S cannot vary.
@@ -437,6 +486,51 @@ bool innovation_root(const MatrixType& covariance, MatrixType& root) {
   return root.allFinite();
 }
 
+/* Storage that a filter keeps only for measurements with quaternion fields. */
+struct NotStored {};
+template <bool Stored, typename T>
+using StoredIf = std::conditional_t<Stored, T, NotStored>;
+
+/*
+The innovation covariance or root that a correction uses when a quaternion
+reading's noise is mapped to the observed innovation, and the public one as
+the innovation step left it, against which a split-step caller's edit is
+measured.
+*/
+template <typename MatrixType>
+struct MappedCorrection {
+  MatrixType matrix;
+  MatrixType predicted;
+  /* Whether the reading held a quaternion field. */
+  bool mapped = false;
+};
+
+/*
+The root that a square-root filter's correction whitens by. Without a
+quaternion reading it is the public innovation root, as a split-step caller
+left it. With one it is the root with the quaternion noise mapped. A
+caller's edit to the public root carries over to it as the change in the
+covariance, and the result is factored again.
+*/
+template <typename RootType>
+bool correction_root(const RootType& public_root,
+                     const MappedCorrection<RootType>& correction,
+                     RootType& root) {
+  if (!correction.mapped) {
+    root = public_root;
+    return true;
+  }
+  if (public_root == correction.predicted) {
+    root = correction.matrix;
+    return true;
+  }
+  const RootType covariance =
+      correction.matrix.lazyProduct(correction.matrix.transpose()) +
+      public_root.lazyProduct(public_root.transpose()) -
+      correction.predicted.lazyProduct(correction.predicted.transpose());
+  return innovation_root(covariance, root);
+}
+
 }  // namespace Detail
 
 /*
@@ -483,6 +577,17 @@ class Core {
   /* Whether the sigma points and innovation are ready for the next step. */
   bool prior_valid = false;
   bool innovation_valid = false;
+
+  /*
+  For a reading with a quaternion field, the covariance that the correction
+  uses: the spread of the measurement sigma points with the noise R mapped
+  to T R T^T by the measurement's correction noise transform T. Kept only
+  for measurements with quaternion fields.
+  */
+  Detail::StoredIf<MeasurementVectorType::has_quaternion_field,
+                   Detail::MappedCorrection<
+                       typename MeasurementVectorType::CovarianceMatrix>>
+      quaternion_correction;
 
   /* Aliases needed during filter iteration. */
   using CrossCorrelation =
@@ -539,6 +644,10 @@ class Core {
     if constexpr (MeasurementVectorType::RowsAtCompileTime != Eigen::Dynamic) {
       innovation.setZero();
       innovation_covariance.setZero();
+      if constexpr (MeasurementVectorType::has_quaternion_field) {
+        quaternion_correction.matrix.setZero();
+        quaternion_correction.predicted.setZero();
+      }
     }
   }
 
@@ -713,6 +822,26 @@ class Core {
       return false;
     }
 
+    /*
+    The innovation covariance is the predictive one, which gates and
+    diagnostics read; the correction maps a quaternion sensor's noise to the
+    observed innovation instead. Its covariance is formed from the spread
+    and the mapped noise directly: adding only the noise's change to the
+    innovation covariance would lose a small spread to rounding where the
+    noise is large.
+    */
+    if constexpr (MeasurementVectorType::has_quaternion_field) {
+      quaternion_correction.mapped = z.contains_quaternion_field();
+      if (quaternion_correction.mapped) {
+        const typename MeasurementVectorType::CovarianceMatrix transform =
+            z.calculate_correction_noise_transform(z_pred);
+        quaternion_correction.matrix =
+            spread + transform * noise * transform.transpose();
+        Detail::symmetrise(quaternion_correction.matrix);
+        quaternion_correction.predicted = predicted_innovation_covariance;
+      }
+    }
+
     innovation = predicted_innovation;
     innovation_covariance = predicted_innovation_covariance;
     innovation_valid = true;
@@ -753,9 +882,27 @@ class Core {
     forming an inverse; a singular innovation is left out in the directions
     in which it cannot vary.
     */
+    typename MeasurementVectorType::CovarianceMatrix correction_covariance =
+        innovation_covariance;
+    if constexpr (MeasurementVectorType::has_quaternion_field) {
+      if (quaternion_correction.mapped) {
+        /*
+        Check the public covariance as it is, since the mapped noise could
+        hide a split-step caller's negative variance, and carry the caller's
+        edit over to the correction's covariance. Without an edit the
+        difference is exactly zero.
+        */
+        if (!Detail::symmetric_semidefinite(innovation_covariance)) {
+          return false;
+        }
+        correction_covariance =
+            quaternion_correction.matrix +
+            (innovation_covariance - quaternion_correction.predicted);
+      }
+    }
     CrossCorrelation kalman_gain(StateVectorType::covariance_size(),
                                  innovation.size());
-    if (!Detail::kalman_gain(innovation_covariance, cross_correlation,
+    if (!Detail::kalman_gain(correction_covariance, cross_correlation,
                              kalman_gain)) {
       return false;
     }
@@ -767,7 +914,7 @@ class Core {
     /* Update the covariance using equation 75 from the Kraft paper. */
     typename StateVectorType::CovarianceMatrix updated_covariance = covariance;
     updated_covariance.noalias() -=
-        kalman_gain * innovation_covariance * kalman_gain.transpose();
+        kalman_gain * correction_covariance * kalman_gain.transpose();
     /*
     Reject an indefinite posterior, allowing for roundoff in the update
     against the prior's scale. A posterior that is semidefinite within
@@ -780,6 +927,20 @@ class Core {
                                  covariance.cwiseAbs().maxCoeff(),
                                  &updated_covariance)) {
       return false;
+    }
+
+    if constexpr (Detail::AttitudeReset<StateVectorType>::has_quaternion) {
+      /* Transport both sides of the covariance, including the cross terms. */
+      Detail::AttitudeReset<StateVectorType>::for_each(
+          update_delta, [&](std::size_t offset, const Matrix<3, 3>& jacobian) {
+            auto rows = updated_covariance.template middleRows<3>(offset);
+            rows = (jacobian * rows).eval();
+            auto cols = updated_covariance.template middleCols<3>(offset);
+            cols = (cols * jacobian.transpose()).eval();
+          });
+      if (!updated_covariance.allFinite()) {
+        return false;
+      }
     }
 
     state = updated_state;
@@ -837,6 +998,17 @@ class SquareRootCore {
   /* Whether the sigma points and innovation are ready for the next step. */
   bool prior_valid = false;
   bool innovation_valid = false;
+
+  /*
+  For a reading with a quaternion field, the innovation root that the
+  correction whitens by: that of innovation_root_covariance with the noise
+  factor L replaced by T L, for the measurement's correction noise transform
+  T. Kept only for measurements with quaternion fields.
+  */
+  Detail::StoredIf<MeasurementVectorType::has_quaternion_field,
+                   Detail::MappedCorrection<
+                       typename MeasurementVectorType::CovarianceMatrix>>
+      quaternion_correction;
 
   /* Aliases needed during filter iteration. */
   using CrossCorrelation =
@@ -896,6 +1068,10 @@ class SquareRootCore {
       z_prime.setZero();
       innovation.setZero();
       innovation_root_covariance.setZero();
+      if constexpr (MeasurementVectorType::has_quaternion_field) {
+        quaternion_correction.matrix.setZero();
+        quaternion_correction.predicted.setZero();
+      }
     }
   }
 
@@ -1063,6 +1239,25 @@ class SquareRootCore {
       return false;
     }
 
+    /*
+    The innovation root is the predictive one, which gates and diagnostics
+    read; the correction whitens by a root with a quaternion sensor's noise
+    mapped to the observed innovation instead.
+    */
+    if constexpr (MeasurementVectorType::has_quaternion_field) {
+      quaternion_correction.mapped = z.contains_quaternion_field();
+      if (quaternion_correction.mapped) {
+        const typename MeasurementVectorType::CovarianceMatrix transform =
+            z.calculate_correction_noise_transform(z_pred);
+        if (!Detail::sigma_point_root<StateVectorType>(
+                quaternion_correction.matrix, z_prime,
+                (transform * noise_root).eval())) {
+          return false;
+        }
+        quaternion_correction.predicted = predicted_root;
+      }
+    }
+
     innovation = predicted_innovation;
     innovation_root_covariance = predicted_root;
     innovation_valid = true;
@@ -1099,8 +1294,17 @@ class SquareRootCore {
     applied to a copy of the a priori estimate.
     */
     InnovationVectorType whitened_innovation = innovation;
-    Detail::whiten(cross_correlation, whitened_innovation,
-                   innovation_root_covariance);
+    if constexpr (MeasurementVectorType::has_quaternion_field) {
+      typename MeasurementVectorType::CovarianceMatrix whitening_root;
+      if (!Detail::correction_root(innovation_root_covariance,
+                                   quaternion_correction, whitening_root)) {
+        return false;
+      }
+      Detail::whiten(cross_correlation, whitened_innovation, whitening_root);
+    } else {
+      Detail::whiten(cross_correlation, whitened_innovation,
+                     innovation_root_covariance);
+    }
     StateVectorType updated_state = state;
     const typename StateVectorType::StateVectorDelta update_delta =
         cross_correlation * whitened_innovation;
@@ -1115,7 +1319,8 @@ class SquareRootCore {
     is left as it was unless every downdate succeeds.
     */
     if (!updated_state.allFinite() ||
-        !Detail::update_root(root_covariance, cross_correlation, real_t(-1))) {
+        !Detail::correct_root<StateVectorType>(
+            root_covariance, cross_correlation, update_delta)) {
       return false;
     }
     state = updated_state;
@@ -1170,6 +1375,17 @@ class SquareRootParameterEstimationCore {
   /* Whether the sigma points and innovation are ready for the next step. */
   bool prior_valid = false;
   bool innovation_valid = false;
+
+  /*
+  For a reading with a quaternion field, the innovation root that the
+  correction whitens by: that of innovation_root_covariance with the noise
+  factor L replaced by T L, for the measurement's correction noise transform
+  T. Kept only for measurements with quaternion fields.
+  */
+  Detail::StoredIf<MeasurementVectorType::has_quaternion_field,
+                   Detail::MappedCorrection<
+                       typename MeasurementVectorType::CovarianceMatrix>>
+      quaternion_correction;
 
   /* Aliases needed during filter iteration. */
   using CrossCorrelation =
@@ -1229,6 +1445,10 @@ class SquareRootParameterEstimationCore {
       z_prime.setZero();
       innovation.setZero();
       innovation_root_covariance.setZero();
+      if constexpr (MeasurementVectorType::has_quaternion_field) {
+        quaternion_correction.matrix.setZero();
+        quaternion_correction.predicted.setZero();
+      }
     }
   }
 
@@ -1383,6 +1603,25 @@ class SquareRootParameterEstimationCore {
       return false;
     }
 
+    /*
+    The innovation root is the predictive one, which gates and diagnostics
+    read; the correction whitens by a root with a quaternion sensor's noise
+    mapped to the observed innovation instead.
+    */
+    if constexpr (MeasurementVectorType::has_quaternion_field) {
+      quaternion_correction.mapped = z.contains_quaternion_field();
+      if (quaternion_correction.mapped) {
+        const typename MeasurementVectorType::CovarianceMatrix transform =
+            z.calculate_correction_noise_transform(z_pred);
+        if (!Detail::sigma_point_root<StateVectorType>(
+                quaternion_correction.matrix, z_prime,
+                (transform * noise_root).eval())) {
+          return false;
+        }
+        quaternion_correction.predicted = predicted_root;
+      }
+    }
+
     innovation = predicted_innovation;
     innovation_root_covariance = predicted_root;
     innovation_valid = true;
@@ -1419,8 +1658,17 @@ class SquareRootParameterEstimationCore {
     applied to a copy of the a priori estimate.
     */
     InnovationVectorType whitened_innovation = innovation;
-    Detail::whiten(cross_correlation, whitened_innovation,
-                   innovation_root_covariance);
+    if constexpr (MeasurementVectorType::has_quaternion_field) {
+      typename MeasurementVectorType::CovarianceMatrix whitening_root;
+      if (!Detail::correction_root(innovation_root_covariance,
+                                   quaternion_correction, whitening_root)) {
+        return false;
+      }
+      Detail::whiten(cross_correlation, whitened_innovation, whitening_root);
+    } else {
+      Detail::whiten(cross_correlation, whitened_innovation,
+                     innovation_root_covariance);
+    }
     StateVectorType updated_state = state;
     const typename StateVectorType::StateVectorDelta update_delta =
         cross_correlation * whitened_innovation;
@@ -1433,7 +1681,8 @@ class SquareRootParameterEstimationCore {
     succeeds.
     */
     if (!updated_state.allFinite() ||
-        !Detail::update_root(root_covariance, cross_correlation, real_t(-1))) {
+        !Detail::correct_root<StateVectorType>(
+            root_covariance, cross_correlation, update_delta)) {
       return false;
     }
     state = updated_state;
