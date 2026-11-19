@@ -664,6 +664,11 @@ class FixedMeasurementVector
   static constexpr bool has_quaternion_field =
       (std::is_same_v<typename Fields::type, Quaternion> || ...);
 
+  /* Whether this reading holds a quaternion field. */
+  constexpr bool contains_quaternion_field() const {
+    return has_quaternion_field;
+  }
+
   /*
   The transform from the noise in the innovation covariance to the noise
   that the correction uses: J(u)^-1 at the observed innovation u for each
@@ -1168,6 +1173,11 @@ class DynamicMeasurementVector
   static constexpr bool has_quaternion_field =
       (std::is_same_v<typename Fields::type, Quaternion> || ...);
 
+  /* Whether this reading holds a quaternion field; one may be left unset. */
+  bool contains_quaternion_field() const {
+    return (contains_field_of<Fields, Quaternion>() || ...);
+  }
+
   /*
   The transform from the noise in the innovation covariance to the noise
   that the correction uses: J(u)^-1 at the observed innovation u for each
@@ -1288,6 +1298,17 @@ class DynamicMeasurementVector
   These functions build the measurement covariance from all populated
   fields.
   */
+  /* Whether field T is set and of type Type. */
+  template <typename T, typename Type>
+  bool contains_field_of() const {
+    if constexpr (std::is_same_v<typename T::type, Type>) {
+      return std::get<Detail::get_field_order<0, Fields...>(T::key)>(
+                 field_offsets) != std::numeric_limits<std::size_t>::max();
+    } else {
+      return false;
+    }
+  }
+
   template <typename T>
   void calculate_field_correction_transform(
       CovarianceMatrix& transform,
