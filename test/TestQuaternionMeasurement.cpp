@@ -321,6 +321,51 @@ Repeated observations of an orientation far from the prior converge on it,
 in the standard and square-root cores, and the innovation's rotation stays
 the shorter one.
 */
+/*
+The sensor's noise is a rotation of the true orientation, so in the
+innovation's coordinates about the prediction it widens with the
+innovation. After a correction the uncertainty is expressed about the
+corrected orientation, where that widening is undone: a broad prior and an
+exact observation two radians away leave the sensor's own noise.
+*/
+TEST(QuaternionMeasurementTest, WideInnovationKeepsTheSensorNoise) {
+  const UKF::Quaternion truth = rotation(real_t(2), UKF::Vector<3>(1, 2, -1));
+  QAttitudeOnly z;
+  z.set_field<QAttitudeSensor>(truth);
+
+  UKF::Core<QState, QAttitudeOnly> filter;
+  filter.state.set_field<QAttitude>(UKF::Quaternion::Identity());
+  filter.state.set_field<QBias>(real_t(0));
+  filter.covariance = QState::CovarianceMatrix::Identity() * real_t(100);
+  filter.process_noise_covariance.setZero();
+  filter.measurement_covariance.set_field<QAttitudeSensor>(attitude_noise);
+  UKF::SquareRootCore<QState, QAttitudeOnly> root_filter;
+  root_filter.state = filter.state;
+  root_filter.root_covariance =
+      QState::CovarianceMatrix::Identity() * real_t(10);
+  root_filter.process_noise_root_covariance.setZero();
+  root_filter.measurement_root_covariance.set_field<QAttitudeSensor>(
+      attitude_noise.array().sqrt().matrix());
+
+  ASSERT_TRUE(filter.step(real_t(0), z));
+  ASSERT_TRUE(root_filter.step(real_t(0), z));
+  const UKF::Matrix<3, 3> expected =
+      UKF::Matrix<3, 3>::Identity() * attitude_variance;
+  const UKF::Matrix<3, 3> attitude = filter.covariance.topLeftCorner<3, 3>();
+  const UKF::Matrix<3, 3> root_attitude =
+      (root_filter.root_covariance * root_filter.root_covariance.transpose())
+          .topLeftCorner<3, 3>();
+  EXPECT_LT((attitude - expected).cwiseAbs().maxCoeff(),
+            real_t(0.02) * attitude_variance);
+  EXPECT_LT((root_attitude - expected).cwiseAbs().maxCoeff(),
+            real_t(0.02) * attitude_variance);
+  EXPECT_LT(rotation_between(filter.state.get_field<QAttitude>(), truth).norm(),
+            real_t(0.01));
+  EXPECT_LT(
+      rotation_between(root_filter.state.get_field<QAttitude>(), truth).norm(),
+      real_t(0.01));
+}
+
 TEST(QuaternionMeasurementTest, ConvergesFromAFarPrior) {
   const UKF::Quaternion truth = rotation(real_t(2.5), UKF::Vector<3>(1, 2, -1));
   QAttitudeOnly z;
@@ -342,8 +387,10 @@ TEST(QuaternionMeasurementTest, ConvergesFromAFarPrior) {
       filter.process_noise_covariance.llt().matrixL();
   root_filter.measurement_root_covariance = noise.array().sqrt().matrix();
 
-  /* The large first correction contracts uncertainty along its axis. Allow
-     repeated noisy observations to remove the resulting residual. */
+  /* The 2.5 rad error is six prior standard deviations in the prior's
+     Gibbs coordinates, where the sensor's noise mapped to the innovation is
+     as broad as the prior along the rotation axis, so the first correction
+     goes only part of the way. Repeated observations remove the rest. */
   for (int i = 0; i < 300; ++i) {
     ASSERT_TRUE(filter.step(real_t(1), z));
     ASSERT_TRUE(root_filter.step(real_t(1), z));
