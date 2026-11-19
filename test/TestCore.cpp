@@ -856,6 +856,91 @@ TEST(AdditiveNoiseTest,
   EXPECT_EQ(real_t(1), filter.covariance(0, 0));
 }
 
+/*
+A split-step caller can write into the public innovation covariance before
+the correction. One that no covariance can have, a negative variance or a
+correlation beyond one, is refused, and the prediction and innovation are
+kept for a corrected retry.
+*/
+using SplitScalarState = UKF::StateVector<UKF::Field<174, real_t>>;
+using SplitScalarMeasurement =
+    UKF::FixedMeasurementVector<UKF::Field<175, real_t>>;
+using SplitPairMeasurement =
+    UKF::FixedMeasurementVector<UKF::Field<175, real_t>,
+                                UKF::Field<176, real_t>>;
+namespace UKF {
+template <>
+template <>
+SplitScalarState SplitScalarState::process_model<>(real_t) const {
+  return *this;
+}
+template <>
+template <>
+real_t SplitScalarMeasurement::expected_measurement<SplitScalarState, 175>(
+    const SplitScalarState& state) {
+  return state(0);
+}
+template <>
+template <>
+real_t SplitPairMeasurement::expected_measurement<SplitScalarState, 175>(
+    const SplitScalarState& state) {
+  return state(0);
+}
+template <>
+template <>
+real_t SplitPairMeasurement::expected_measurement<SplitScalarState, 176>(
+    const SplitScalarState& state) {
+  return -state(0);
+}
+}  // namespace UKF
+
+TEST(AdditiveNoiseTest, SplitPosteriorRefusesAnImpossibleInnovationCovariance) {
+  using Measurement = SplitScalarMeasurement;
+  UKF::Core<SplitScalarState, Measurement> scalar;
+  scalar.state << 0;
+  scalar.covariance << 1;
+  scalar.process_noise_covariance << 0;
+  scalar.measurement_covariance << 1;
+  Measurement z;
+  z << 1;
+  ASSERT_TRUE(scalar.a_priori_step(real_t(0)));
+  ASSERT_TRUE(scalar.innovation_step(z));
+  const real_t predicted_state = scalar.state(0);
+  const real_t predicted_covariance = scalar.covariance(0, 0);
+  scalar.innovation_covariance(0, 0) = -1;
+  EXPECT_FALSE(scalar.a_posteriori_step());
+  EXPECT_EQ(predicted_state, scalar.state(0));
+  EXPECT_EQ(predicted_covariance, scalar.covariance(0, 0));
+  scalar.innovation_covariance(0, 0) = 2;
+  ASSERT_TRUE(scalar.a_posteriori_step());
+  EXPECT_NEAR(real_t(0.5), scalar.state(0), real_t(1e-6));
+  EXPECT_NEAR(real_t(0.5), scalar.covariance(0, 0), real_t(1e-6));
+
+  /* Two readings of the same state, with variances that a correlation of
+     two would make indefinite. */
+  UKF::Core<SplitScalarState, SplitPairMeasurement> pair;
+  pair.state << 0;
+  pair.covariance << 1;
+  pair.process_noise_covariance << 0;
+  pair.measurement_covariance << 1, 1;
+  SplitPairMeasurement readings;
+  readings << 1, -1;
+  ASSERT_TRUE(pair.a_priori_step(real_t(0)));
+  ASSERT_TRUE(pair.innovation_step(readings));
+  const SplitScalarState pair_state = pair.state;
+  const SplitScalarState::CovarianceMatrix pair_covariance = pair.covariance;
+  const SplitPairMeasurement::CovarianceMatrix valid =
+      pair.innovation_covariance;
+  pair.innovation_covariance(0, 1) = pair.innovation_covariance(1, 0) = 4;
+  EXPECT_FALSE(pair.a_posteriori_step());
+  EXPECT_EQ(pair_state(0), pair.state(0));
+  EXPECT_EQ(pair_covariance(0, 0), pair.covariance(0, 0));
+  pair.innovation_covariance = valid;
+  ASSERT_TRUE(pair.a_posteriori_step());
+  EXPECT_NEAR(real_t(2) / real_t(3), pair.state(0), real_t(1e-5));
+  EXPECT_NEAR(real_t(1) / real_t(3), pair.covariance(0, 0), real_t(1e-5));
+}
+
 /* step() rolls back a successful prediction when its correction fails. */
 TEST(AdditiveNoiseTest, StepIsAllOrNothing) {
   UKF::Core<AdditiveNoiseState, AdditiveNoiseMeasurement> filter;
