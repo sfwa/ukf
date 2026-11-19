@@ -93,6 +93,7 @@ list in a minor release, after which the contract covers it.
 | Interface | Since | Why it is experimental |
 | --- | --- | --- |
 | Quaternion measurement fields (`UKF::Quaternion` in a measurement vector), and `InnovationVector` / `InnovationVectorType` where they differ from the measurement type | 1.0.0 | Added just before 1.0; the innovation and noise coordinates should see downstream use before they are fixed. |
+| Smoothing (`UKF/Smoother.h`: `UKF::SmoothingEstimate`, `UKF::unscented_rts_step`, `UKF::FixedLagSmoother`) and `a_priori_step_with_cross_covariance` on `Core` and `SquareRootCore` | 1.0.0 | Added just before 1.0; the snapshot and cross-covariance interface should see downstream use before it is fixed. |
 
 ### Supported configurations
 

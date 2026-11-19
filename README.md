@@ -261,8 +261,9 @@ tests.
 
 For delayed trajectory estimates, `UKF::FixedLagSmoother<State, Lag>` can
 revise any of the last `Lag` states using later observations. An offline RTS
-backward step is also available. See the [smoothing guide](docs/smoothing.md)
-and [runnable example](examples/smoothing/smoothing.cpp).
+backward step is also available; both are experimental in 1.0. See the
+[smoothing guide](docs/smoothing.md) and
+[runnable example](examples/smoothing/smoothing.cpp).
 
 ## References
 

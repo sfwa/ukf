@@ -469,6 +469,7 @@ class Core {
   deviations in each outer product come from the same process trajectory.
   Independent additive process noise contributes to the prediction but
   not to the cross covariance. On failure the output is unchanged.
+  Experimental in 1.0, with the smoother: see RELEASING.md.
   */
   template <typename... U>
   bool a_priori_step_with_cross_covariance(
@@ -886,6 +887,7 @@ class SquareRootCore {
   deviations in each outer product come from the same process trajectory.
   Independent additive process noise contributes to the prediction but
   not to the cross covariance. On failure the output is unchanged.
+  Experimental in 1.0, with the smoother: see RELEASING.md.
   */
   template <typename... U>
   bool a_priori_step_with_cross_covariance(

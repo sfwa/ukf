@@ -4,7 +4,8 @@ The ordinary filters estimate the current state given the samples received so
 far. An unscented Rauch–Tung–Striebel (RTS) smoother uses later observations to
 revise an earlier estimate. A lag of two updates means that the estimate at
 time k incorporates measurements through k+2. The live filter operates at its
-original rate.
+original rate. Smoothing is experimental in 1.0 (see
+[RELEASING.md](../RELEASING.md#experimental-interfaces)).
 
 The [random-walk example](../examples/smoothing/smoothing.cpp) starts with
 mean 0 and variance 1. With process variance 1, sensor variance 1 and successive

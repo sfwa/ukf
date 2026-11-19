@@ -10,6 +10,13 @@
 #include "UKF/Covariance.h"
 #include "UKF/StateVector.h"
 
+/*
+Unscented Rauch-Tung-Striebel smoothing: unscented_rts_step for offline use
+and FixedLagSmoother for a bounded delay. Experimental in 1.0: these
+interfaces and a_priori_step_with_cross_covariance may change in a minor
+release (see RELEASING.md).
+*/
+
 namespace UKF {
 
 /* A state and its full covariance in the tangent coordinates at that state. */
@@ -149,6 +156,11 @@ bool unscented_rts_step(const SmoothingEstimate<State>& filtered,
 A bounded ring of Lag transitions and the latest filtered estimate. Call
 reset once, push one completed forward update per transition, and query any
 retained time by its age. A zero-lag window stores just the current estimate.
+
+Storage is fixed: Lag records of two states and three n-by-n matrices (the
+filtered and predicted covariances and the gain), plus the latest estimate,
+for a state uncertainty of dimension n. Each push solves one n-by-n gain;
+estimate(k) applies k backward steps, each a few n-by-n matrix products.
 */
 template <typename State, std::size_t Lag>
 class FixedLagSmoother {
