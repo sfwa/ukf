@@ -122,6 +122,10 @@ calling the gate. If the gate accepts, the return value reports the actual
 correction result. A rejected or failed split posterior leaves the predicted
 state, covariance and innovation diagnostics unchanged; unlike a failed full
 step, it does not roll back preceding successful split stages.
+Between `innovation_step` and the posterior, a caller may edit the public
+innovation covariance (or root), for example to inflate it; the correction
+uses the edited value. The standard filter refuses an edited covariance that
+is not symmetric and positive semidefinite to within roundoff.
 Gating selects whether to correct with the entire measurement vector; an
 application needing separate decisions per sensor can perform separate
 measurement updates with its dynamic measurement vector.

@@ -78,6 +78,31 @@ inline real_t unit_direction(const Vector<3>& v, Vector<3>& direction) {
 }
 
 /*
+For unit directions the shortest rotation has quaternion components
+(u1 cross u2, 1 + u1 dot u2), up to a common scale. Near a half turn,
+|u1 + u2|^2 / 2 gives the same scalar without subtracting nearly equal
+numbers. Only directions indistinguishable from opposites need a chosen axis.
+*/
+inline void direction_rotation(const Vector<3>& u1, const Vector<3>& u2,
+                               Vector<3>& axis, real_t& w) {
+  const real_t dot = u1.dot(u2);
+  if (dot < real_t(0)) {
+    const Vector<3> sum = u1 + u2;
+    if (sum.cwiseAbs().maxCoeff() <=
+        real_t(4) * std::numeric_limits<real_t>::epsilon()) {
+      axis = antiparallel_axis(u1);
+      w = real_t(0);
+    } else {
+      axis = u1.cross(sum);
+      w = real_t(0.5) * sum.squaredNorm();
+    }
+  } else {
+    axis = u1.cross(u2);
+    w = real_t(1) + dot;
+  }
+}
+
+/*
 Calculate the smallest rotation vector which transforms v1 into v2. The
 rotation depends only on the directions of the two vectors, so the
 calculation is done on unit vectors: its tolerances are then relative,
@@ -92,24 +117,19 @@ inline Vector<3> calculate_rotation_vector(const Vector<3>& v2,
       unit_direction(v2, u2) == real_t(0)) {
     return Vector<3>::Zero();
   }
-  const real_t q_w = real_t(1) + u1.dot(u2);
-
-  /* Check whether the vectors are antiparallel. */
   Vector<3> axis;
-  if (q_w > std::numeric_limits<real_t>::epsilon()) {
-    axis = u1.cross(u2);
-  } else {
-    axis = antiparallel_axis(u1);
+  real_t w;
+  direction_rotation(u1, u2, axis, w);
+  if constexpr (Parameters::MRP_A<T> == real_t(0)) {
+    // The common quaternion scale cancels for the default Gibbs coordinates.
+    return Parameters::MRP_F<T> * axis /
+           (w == real_t(0) ? std::numeric_limits<real_t>::epsilon() : w);
   }
-
-  /* The cross/dot quaternion is not unit length. Multiplying the
-        normalized MRP expression by its norm gives f*axis/(a*norm + w). */
-  const real_t quaternion_norm = std::sqrt(axis.squaredNorm() + q_w * q_w);
-  const real_t denominator = Parameters::MRP_A<T> * quaternion_norm + q_w;
+  const real_t norm = std::sqrt(axis.squaredNorm() + w * w);
+  const real_t denominator = Parameters::MRP_A<T> * norm + w;
+  const real_t minimum = std::numeric_limits<real_t>::epsilon() * norm;
   return Parameters::MRP_F<T> * axis /
-         (std::abs(denominator) > std::numeric_limits<real_t>::epsilon()
-              ? denominator
-              : std::numeric_limits<real_t>::epsilon());
+         (std::abs(denominator) > minimum ? denominator : minimum);
 }
 
 /*
@@ -126,17 +146,13 @@ the same deterministic axis convention as calculate_rotation_vector.
 template <typename T>
 inline Matrix<3, 3> rotation_vector_jacobian_of(const Vector<3>& v2,
                                                 const Vector<3>& v1) {
-  const real_t norm = std::sqrt(v1.squaredNorm() * v2.squaredNorm());
-  const real_t w = norm + v1.dot(v2);
   Vector<3> c = Vector<3>::Zero();
+  real_t w = real_t(0);
   Vector<3> dw = v1;
-  if (norm > std::numeric_limits<real_t>::epsilon()) {
-    dw += v2 * (v1.squaredNorm() / norm);
-    if (w > std::numeric_limits<real_t>::epsilon()) {
-      c = v1.cross(v2);
-    } else {
-      c = antiparallel_axis(v1);
-    }
+  if (!v1.isZero(real_t(0)) && !v2.isZero(real_t(0))) {
+    // Both arguments here are unit vectors when both directions exist.
+    direction_rotation(v1, v2, c, w);
+    dw += v2;
   }
   Matrix<3, 3> dc;
   dc << 0, -v1(2), v1(1), v1(2), 0, -v1(0), -v1(1), v1(0), 0;
@@ -144,12 +160,15 @@ inline Matrix<3, 3> rotation_vector_jacobian_of(const Vector<3>& v2,
   const real_t quaternion_norm = std::sqrt(c.squaredNorm() + w * w);
   real_t denominator = Parameters::MRP_A<T> * quaternion_norm + w;
   Vector<3> denominator_gradient = dw;
-  if (quaternion_norm > std::numeric_limits<real_t>::epsilon()) {
+  if (quaternion_norm > real_t(0)) {
     denominator_gradient +=
         Parameters::MRP_A<T> * (dc.transpose() * c + w * dw) / quaternion_norm;
   }
-  if (std::abs(denominator) < std::numeric_limits<real_t>::epsilon()) {
-    denominator = std::numeric_limits<real_t>::epsilon();
+  const real_t minimum =
+      std::numeric_limits<real_t>::epsilon() *
+      (quaternion_norm > real_t(0) ? quaternion_norm : real_t(1));
+  if (std::abs(denominator) < minimum) {
+    denominator = minimum;
   }
   return Parameters::MRP_F<T> *
          (dc / denominator -

@@ -25,7 +25,8 @@ attitude estimator (experimental in 1.0: see
 three-dimensional uncertainty. Its innovation is the rotation vector of
 `z * conjugate(z_predicted)`, the shortest rotation from the predicted to the
 measured orientation, in the same normalised MRP convention as quaternion
-states. It does not depend on the sign of either quaternion. Its noise is three
+states. It does not depend on the sign of either quaternion. Its noise is a
+small rotation applied on the left of the true orientation, given as three
 rotation variances (standard deviations for square-root filters), or a 3 × 3
 block of [dense noise](dense-measurement-covariance.md), in those rotation
 coordinates. A measurement type's `covariance_size()` counts three for each
@@ -40,9 +41,10 @@ Cartesian sensor uncertainty into those rotation coordinates. Rotation and
 Jacobian calculations use the same normalized MRP convention. The rotation is
 taken between unit vectors, so it does not depend on the field's magnitude or
 units: a magnetometer in teslas behaves as one in gauss, in single precision
-too. The noise Jacobian accounts for the measured magnitude. At exactly
-opposite directions there is no unique rotation axis; the implementation chooses
-a deterministic perpendicular axis. That convention does not create additional
+too. The noise Jacobian accounts for the measured magnitude. Near a half turn,
+the rotation tracks the measured axis until the two directions are
+indistinguishable from exact opposites at the working precision. At that point
+the implementation chooses a deterministic perpendicular axis. That convention does not create additional
 physical information or make the antiparallel derivative unique.
 
 A fixed measurement requires every declared field on every update. A dynamic
@@ -217,8 +219,10 @@ the points drawn from the predicted state and uncertainty, process noise
 included, which the innovation step passes through the measurement model. The
 a posteriori step leaves them unchanged, and they are unspecified after a step
 that fails. To apply a gate, use `step_with_gate(...)` or the gated posterior overload described
-in the gating guide. Do not apply both the gated and ungated posterior to the
-same innovation.
+in the gating guide. A successful nonempty correction consumes its prediction
+and innovation. A second posterior or innovation returns `false` until a new
+prediction prepares sigma points. A rejected gate leaves the prediction
+available for another observation.
 
 When no observation is available, call only `a_priori_step`. An empty dynamic
 measurement also yields prediction-only behaviour with `step` on any of the

@@ -4,6 +4,7 @@
 #include <Eigen/Geometry>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <limits>
 #include <type_traits>
 
@@ -855,6 +856,171 @@ TEST(AdditiveNoiseTest,
   EXPECT_EQ(real_t(1), filter.covariance(0, 0));
 }
 
+/*
+A split-step caller can write into the public innovation covariance before
+the correction. One that no covariance can have, a negative variance or a
+correlation beyond one, is refused, and the prediction and innovation are
+kept for a corrected retry.
+*/
+using SplitScalarState = UKF::StateVector<UKF::Field<174, real_t>>;
+using SplitScalarMeasurement =
+    UKF::FixedMeasurementVector<UKF::Field<175, real_t>>;
+using SplitPairMeasurement =
+    UKF::FixedMeasurementVector<UKF::Field<175, real_t>,
+                                UKF::Field<176, real_t>>;
+namespace UKF {
+template <>
+template <>
+SplitScalarState SplitScalarState::process_model<>(real_t) const {
+  return *this;
+}
+template <>
+template <>
+real_t SplitScalarMeasurement::expected_measurement<SplitScalarState, 175>(
+    const SplitScalarState& state) {
+  return state(0);
+}
+template <>
+template <>
+real_t SplitPairMeasurement::expected_measurement<SplitScalarState, 175>(
+    const SplitScalarState& state) {
+  return state(0);
+}
+template <>
+template <>
+real_t SplitPairMeasurement::expected_measurement<SplitScalarState, 176>(
+    const SplitScalarState& state) {
+  return -state(0);
+}
+}  // namespace UKF
+
+TEST(AdditiveNoiseTest, SplitPosteriorRefusesAnImpossibleInnovationCovariance) {
+  using Measurement = SplitScalarMeasurement;
+  UKF::Core<SplitScalarState, Measurement> scalar;
+  scalar.state << 0;
+  scalar.covariance << 1;
+  scalar.process_noise_covariance << 0;
+  scalar.measurement_covariance << 1;
+  Measurement z;
+  z << 1;
+  ASSERT_TRUE(scalar.a_priori_step(real_t(0)));
+  ASSERT_TRUE(scalar.innovation_step(z));
+  const real_t predicted_state = scalar.state(0);
+  const real_t predicted_covariance = scalar.covariance(0, 0);
+  scalar.innovation_covariance(0, 0) = -1;
+  EXPECT_FALSE(scalar.a_posteriori_step());
+  EXPECT_EQ(predicted_state, scalar.state(0));
+  EXPECT_EQ(predicted_covariance, scalar.covariance(0, 0));
+  scalar.innovation_covariance(0, 0) = 2;
+  ASSERT_TRUE(scalar.a_posteriori_step());
+  EXPECT_NEAR(real_t(0.5), scalar.state(0), real_t(1e-6));
+  EXPECT_NEAR(real_t(0.5), scalar.covariance(0, 0), real_t(1e-6));
+
+  /* Two readings of the same state, with variances that a correlation of
+     two would make indefinite. */
+  UKF::Core<SplitScalarState, SplitPairMeasurement> pair;
+  pair.state << 0;
+  pair.covariance << 1;
+  pair.process_noise_covariance << 0;
+  pair.measurement_covariance << 1, 1;
+  SplitPairMeasurement readings;
+  readings << 1, -1;
+  ASSERT_TRUE(pair.a_priori_step(real_t(0)));
+  ASSERT_TRUE(pair.innovation_step(readings));
+  const SplitScalarState pair_state = pair.state;
+  const SplitScalarState::CovarianceMatrix pair_covariance = pair.covariance;
+  const SplitPairMeasurement::CovarianceMatrix valid =
+      pair.innovation_covariance;
+  pair.innovation_covariance(0, 1) = pair.innovation_covariance(1, 0) = 4;
+  EXPECT_FALSE(pair.a_posteriori_step());
+  EXPECT_EQ(pair_state(0), pair.state(0));
+  EXPECT_EQ(pair_covariance(0, 0), pair.covariance(0, 0));
+  pair.innovation_covariance = valid;
+  ASSERT_TRUE(pair.a_posteriori_step());
+  EXPECT_NEAR(real_t(2) / real_t(3), pair.state(0), real_t(1e-5));
+  EXPECT_NEAR(real_t(1) / real_t(3), pair.covariance(0, 0), real_t(1e-5));
+}
+
+/*
+More covariances that a split-step caller can write and no covariance can
+have: negative in every direction however small, and asymmetric. A
+correlation one rounding step beyond one is semidefinite to within roundoff,
+and the gain leaves out the direction that the check takes as roundoff
+rather than inverting it.
+*/
+using SplitPlaneState =
+    UKF::StateVector<UKF::Field<177, real_t>, UKF::Field<178, real_t>>;
+using SplitPlaneMeasurement =
+    UKF::FixedMeasurementVector<UKF::Field<182, real_t>,
+                                UKF::Field<183, real_t>>;
+namespace UKF {
+template <>
+template <>
+SplitPlaneState SplitPlaneState::process_model<>(real_t) const {
+  return *this;
+}
+template <>
+template <>
+real_t SplitPlaneMeasurement::expected_measurement<SplitPlaneState, 182>(
+    const SplitPlaneState& state) {
+  return state(0);
+}
+template <>
+template <>
+real_t SplitPlaneMeasurement::expected_measurement<SplitPlaneState, 183>(
+    const SplitPlaneState& state) {
+  return state(1);
+}
+}  // namespace UKF
+
+namespace {
+using SplitPlaneFilter = UKF::Core<SplitPlaneState, SplitPlaneMeasurement>;
+
+void prepare_plane(SplitPlaneFilter& filter) {
+  filter.state << 0, 0;
+  filter.covariance.setIdentity();
+  filter.process_noise_covariance.setZero();
+  filter.measurement_covariance << 3, 3;
+  SplitPlaneMeasurement z;
+  z << 1, 1;
+  ASSERT_TRUE(filter.a_priori_step(real_t(0)));
+  ASSERT_TRUE(filter.innovation_step(z));
+}
+
+void expect_refused(SplitPlaneFilter& filter) {
+  const SplitPlaneState state = filter.state;
+  const UKF::Matrix<2, 2> covariance = filter.covariance;
+  EXPECT_FALSE(filter.a_posteriori_step());
+  EXPECT_TRUE(state == filter.state);
+  EXPECT_TRUE(covariance == filter.covariance);
+}
+}  // namespace
+
+TEST(AdditiveNoiseTest, SplitPosteriorChecksTheWholeInnovationCovariance) {
+  const real_t epsilon = std::numeric_limits<real_t>::epsilon();
+
+  SplitPlaneFilter negative;
+  prepare_plane(negative);
+  negative.innovation_covariance =
+      UKF::Matrix<2, 2>::Identity() * real_t(-1e-8);
+  expect_refused(negative);
+
+  SplitPlaneFilter asymmetric;
+  prepare_plane(asymmetric);
+  asymmetric.innovation_covariance << 4, 10, 0, 4;
+  expect_refused(asymmetric);
+
+  SplitPlaneFilter beyond;
+  prepare_plane(beyond);
+  const real_t correlation = real_t(1) + real_t(2) * epsilon;
+  beyond.innovation_covariance << 1, correlation, correlation, 1;
+  ASSERT_TRUE(beyond.a_posteriori_step());
+  for (int i = 0; i < 2; ++i) {
+    EXPECT_GE(beyond.covariance(i, i), -epsilon);
+    EXPECT_LE(beyond.covariance(i, i), real_t(1) + epsilon);
+  }
+}
+
 /* step() rolls back a successful prediction when its correction fails. */
 TEST(AdditiveNoiseTest, StepIsAllOrNothing) {
   UKF::Core<AdditiveNoiseState, AdditiveNoiseMeasurement> filter;
@@ -1130,4 +1296,131 @@ TEST(SigmaPointAccessTest, AllCoresExposeTheirLastSigmaPoints) {
   check_sigma_points(filter, predicted, true);
   check_sigma_points(sr, sr_predicted, true);
   check_sigma_points(parameter, parameter_predicted, true);
+}
+
+/*
+Two field vectors, as from an accelerometer and a magnetometer, each leave
+one direction of the innovation unobservable, so the innovation covariance
+is singular. Every update of a tracked attitude must still succeed, in
+single precision as in double. The generator is deterministic on every
+platform.
+*/
+using FieldPairState = UKF::StateVector<UKF::Field<250, UKF::Quaternion>>;
+using FieldPairMeasurement =
+    UKF::FixedMeasurementVector<UKF::Field<251, UKF::FieldVector>,
+                                UKF::Field<252, UKF::FieldVector>>;
+
+namespace {
+const UKF::Vector<3> field_pair_gravity(0, 0, real_t(-9.8));
+const UKF::Vector<3> field_pair_magnetic(real_t(0.3), real_t(0.1),
+                                         real_t(-0.4));
+
+/* Standard normal deviates from a 64-bit LCG and the Box-Muller transform. */
+class FieldPairNoise {
+ public:
+  real_t operator()() {
+    if (has_spare) {
+      has_spare = false;
+      return spare;
+    }
+    const double u1 = (double(next() >> 11) + 0.5) / 9007199254740992.0;
+    const double u2 = double(next() >> 11) / 9007199254740992.0;
+    const double radius = std::sqrt(-2.0 * std::log(u1));
+    const double angle = 6.283185307179586 * u2;
+    spare = real_t(radius * std::sin(angle));
+    has_spare = true;
+    return real_t(radius * std::cos(angle));
+  }
+
+  UKF::Vector<3> vector() {
+    const real_t x = (*this)();
+    const real_t y = (*this)();
+    const real_t z = (*this)();
+    return UKF::Vector<3>(x, y, z);
+  }
+
+ private:
+  std::uint64_t next() {
+    state = state * 6364136223846793005ULL + 1442695040888963407ULL;
+    return state;
+  }
+
+  std::uint64_t state = 7;
+  real_t spare = 0;
+  bool has_spare = false;
+};
+}  // namespace
+
+namespace UKF {
+template <>
+template <>
+FieldPairState FieldPairState::process_model<>(
+    real_t dt, const UKF::Vector<3>& rate) const {
+  FieldPairState out;
+  out.set_field<250>(
+      (Detail::rotation_vector_to_quaternion<FieldPairState>(rate * dt) *
+       get_field<250>())
+          .normalized());
+  return out;
+}
+template <>
+template <>
+UKF::FieldVector
+FieldPairMeasurement::expected_measurement<FieldPairState, 251, UKF::Vector<3>>(
+    const FieldPairState& state, const UKF::Vector<3>&) {
+  return state.get_field<250>().conjugate() * field_pair_gravity;
+}
+template <>
+template <>
+UKF::FieldVector
+FieldPairMeasurement::expected_measurement<FieldPairState, 252, UKF::Vector<3>>(
+    const FieldPairState& state, const UKF::Vector<3>&) {
+  return state.get_field<250>().conjugate() * field_pair_magnetic;
+}
+}  // namespace UKF
+
+TEST(CoreTest, SingularFieldVectorInnovationsKeepUpdating) {
+  FieldPairNoise noise;
+  const real_t process_sigma = real_t(0.05);
+  const real_t relative_noise = real_t(0.05);
+  const real_t gravity_sigma = relative_noise * field_pair_gravity.norm();
+  const real_t magnetic_sigma = relative_noise * field_pair_magnetic.norm();
+  for (int run = 0; run < 500; ++run) {
+    UKF::Core<FieldPairState, FieldPairMeasurement> filter;
+    filter.state.set_field<250>(UKF::Quaternion::Identity());
+    filter.covariance =
+        FieldPairState::CovarianceMatrix::Identity() * real_t(0.01);
+    filter.process_noise_covariance =
+        FieldPairState::CovarianceMatrix::Identity() * process_sigma *
+        process_sigma;
+    filter.measurement_covariance
+        << UKF::Vector<3>::Constant(gravity_sigma * gravity_sigma),
+        UKF::Vector<3>::Constant(magnetic_sigma * magnetic_sigma);
+    UKF::Quaternion truth =
+        UKF::Detail::rotation_vector_to_quaternion<FieldPairState>(
+            noise.vector() * real_t(0.1));
+    for (int step = 1; step <= 60; ++step) {
+      const UKF::Vector<3> rate(
+          real_t(0.3) * std::sin(real_t(0.1) * real_t(step)), real_t(0.2),
+          real_t(-0.1));
+      truth =
+          (UKF::Detail::rotation_vector_to_quaternion<FieldPairState>(
+               noise.vector() * process_sigma) *
+           UKF::Detail::rotation_vector_to_quaternion<FieldPairState>(rate) *
+           truth)
+              .normalized();
+      FieldPairMeasurement z;
+      z.set_field<251>(UKF::FieldVector(truth.conjugate() * field_pair_gravity +
+                                        gravity_sigma * noise.vector()));
+      z.set_field<252>(
+          UKF::FieldVector(truth.conjugate() * field_pair_magnetic +
+                           magnetic_sigma * noise.vector()));
+      ASSERT_TRUE(filter.a_priori_step(real_t(1), rate))
+          << "run " << run << " step " << step;
+      ASSERT_TRUE(filter.innovation_step(z, rate))
+          << "run " << run << " step " << step;
+      ASSERT_TRUE(filter.a_posteriori_step())
+          << "run " << run << " step " << step;
+    }
+  }
 }

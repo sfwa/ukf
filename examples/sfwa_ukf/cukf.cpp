@@ -56,7 +56,7 @@ using SFWA_StateVector = UKF::StateVector<
 #define G_ACCEL (9.80665)
 #define RHO (1.225)
 
-/* SFWA vehicle dynamics model. Not used for this comparison. */
+/* SFWA vehicle dynamics model. */
 UKF::Vector<6> x8_dynamics_model(const SFWA_StateVector& state,
                                  const UKF::Vector<3>& control) {
   UKF::Vector<6> output;
@@ -155,11 +155,19 @@ UKF::Vector<6> x8_dynamics_model(const SFWA_StateVector& state,
   */
   output.segment<3>(3) << UKF::Vector<3>(
       (3.364222 * roll_moment + 0.27744448 * yaw_moment),
-      10.8823528 * pitch_moment,
+      5.8823529 * pitch_moment,
       (0.27744448 * roll_moment + 2.4920163 * yaw_moment));
 
   return output;
 }
+
+/* The process and measurement model input: the dynamics model to apply and its
+   control vector. */
+struct DynamicsInput {
+  ukf_model_t model;
+  ukf_model_function_t custom_model;
+  const real_t* control;
+};
 
 namespace UKF {
 
@@ -216,6 +224,40 @@ SFWA_StateVector SFWA_StateVector::derivative<>() const {
   return output;
 }
 
+/* The model predicts the body accelerations at the end of this interval,
+   after RK4 has propagated each sigma point with its previous accelerations. */
+template <>
+template <>
+SFWA_StateVector SFWA_StateVector::process_model<>(
+    real_t dt, const DynamicsInput& input) const {
+  SFWA_StateVector predicted = process_model<IntegratorRK4>(dt);
+  if (input.model == UKF_MODEL_NONE) {
+    return predicted;
+  }
+
+  predicted.set_field<Attitude>(predicted.get_field<Attitude>().normalized());
+  UKF::Vector<6> accelerations;
+  switch (input.model) {
+    case UKF_MODEL_CENTRIPETAL:
+      accelerations.head<3>() = predicted.get_field<AngularVelocity>().cross(
+          predicted.get_field<Attitude>() * predicted.get_field<Velocity>());
+      accelerations.tail<3>().setZero();
+      break;
+    case UKF_MODEL_X8:
+      accelerations = x8_dynamics_model(
+          predicted, Eigen::Map<const UKF::Vector<3>>(input.control));
+      break;
+    case UKF_MODEL_CUSTOM:
+      input.custom_model(predicted.data(), input.control, accelerations.data());
+      break;
+    default:
+      return predicted;
+  }
+  predicted.set_field<Acceleration>(accelerations.head<3>());
+  predicted.set_field<AngularAcceleration>(accelerations.tail<3>());
+  return predicted;
+}
+
 }  // namespace UKF
 
 enum SFWA_Measurements {
@@ -246,40 +288,40 @@ static UKF::Vector<3> local_mag_field =
     UKF::Vector<3>(21.2584, 4.4306, -55.9677);
 
 using SFWA_UKF =
-    UKF::Core<SFWA_StateVector, SFWA_MeasurementVector, UKF::IntegratorRK4>;
+    UKF::Core<SFWA_StateVector, SFWA_MeasurementVector, UKF::NotUsedIntegrator>;
 
 namespace UKF {
 /* SFWA measurement model. */
 template <>
 template <>
-UKF::Vector<3>
-SFWA_MeasurementVector::expected_measurement<SFWA_StateVector, Accelerometer>(
-    const SFWA_StateVector& state) {
+UKF::Vector<3> SFWA_MeasurementVector::expected_measurement<
+    SFWA_StateVector, Accelerometer, DynamicsInput>(
+    const SFWA_StateVector& state, const DynamicsInput&) {
   return state.get_field<Acceleration>() +
          state.get_field<Attitude>() * UKF::Vector<3>(0, 0, -G_ACCEL);
 }
 
 template <>
 template <>
-UKF::Vector<3>
-SFWA_MeasurementVector::expected_measurement<SFWA_StateVector, Gyroscope>(
-    const SFWA_StateVector& state) {
+UKF::Vector<3> SFWA_MeasurementVector::expected_measurement<
+    SFWA_StateVector, Gyroscope, DynamicsInput>(const SFWA_StateVector& state,
+                                                const DynamicsInput&) {
   return state.get_field<AngularVelocity>() + state.get_field<GyroBias>();
 }
 
 template <>
 template <>
-UKF::Vector<3>
-SFWA_MeasurementVector::expected_measurement<SFWA_StateVector, Magnetometer>(
-    const SFWA_StateVector& state) {
+UKF::Vector<3> SFWA_MeasurementVector::expected_measurement<
+    SFWA_StateVector, Magnetometer, DynamicsInput>(
+    const SFWA_StateVector& state, const DynamicsInput&) {
   return state.get_field<Attitude>() * local_mag_field;
 }
 
 template <>
 template <>
-UKF::Vector<3>
-SFWA_MeasurementVector::expected_measurement<SFWA_StateVector, GPS_Position>(
-    const SFWA_StateVector& state) {
+UKF::Vector<3> SFWA_MeasurementVector::expected_measurement<
+    SFWA_StateVector, GPS_Position, DynamicsInput>(
+    const SFWA_StateVector& state, const DynamicsInput&) {
   return UKF::Vector<3>(state.get_field<LatLon>()[0],
                         state.get_field<LatLon>()[1],
                         state.get_field<Altitude>());
@@ -287,16 +329,17 @@ SFWA_MeasurementVector::expected_measurement<SFWA_StateVector, GPS_Position>(
 
 template <>
 template <>
-UKF::Vector<3>
-SFWA_MeasurementVector::expected_measurement<SFWA_StateVector, GPS_Velocity>(
-    const SFWA_StateVector& state) {
+UKF::Vector<3> SFWA_MeasurementVector::expected_measurement<
+    SFWA_StateVector, GPS_Velocity, DynamicsInput>(
+    const SFWA_StateVector& state, const DynamicsInput&) {
   return state.get_field<Velocity>();
 }
 
 template <>
 template <>
-real_t SFWA_MeasurementVector::expected_measurement<SFWA_StateVector, Airspeed>(
-    const SFWA_StateVector& state) {
+real_t SFWA_MeasurementVector::expected_measurement<
+    SFWA_StateVector, Airspeed, DynamicsInput>(const SFWA_StateVector& state,
+                                               const DynamicsInput&) {
   return (state.get_field<Attitude>() *
           (state.get_field<Velocity>() - state.get_field<WindVelocity>()))[0];
 }
@@ -304,13 +347,16 @@ real_t SFWA_MeasurementVector::expected_measurement<SFWA_StateVector, Airspeed>(
 template <>
 template <>
 real_t SFWA_MeasurementVector::expected_measurement<
-    SFWA_StateVector, PressureAltitude>(const SFWA_StateVector& state) {
+    SFWA_StateVector, PressureAltitude, DynamicsInput>(
+    const SFWA_StateVector& state, const DynamicsInput&) {
   return state.get_field<Altitude>();
 }
 
 }  // namespace UKF
 static SFWA_UKF ukf;
 static SFWA_MeasurementVector meas;
+static ukf_model_t dynamics_model = UKF_MODEL_NONE;
+static ukf_model_function_t custom_model = nullptr;
 
 /*
 The following functions provide a ctypes-compatible interface for ease of
@@ -318,6 +364,9 @@ testing.
 */
 
 void ukf_init() {
+  ukf_sensor_clear();
+  dynamics_model = UKF_MODEL_NONE;
+  custom_model = nullptr;
   ukf.state.set_field<LatLon>(UKF::Vector<2>(-0.662434, 2.534874));
   ukf.state.set_field<Altitude>(0);
   ukf.state.set_field<Velocity>(UKF::Vector<3>(0, 0, 0));
@@ -492,11 +541,28 @@ void ukf_set_params(struct ukf_ioboard_params_t* in) {
       in->pitot_covariance, in->barometer_amsl_covariance;
 }
 
-void ukf_choose_dynamics(enum ukf_model_t) {}
+void ukf_choose_dynamics(enum ukf_model_t model) {
+  if (model == UKF_MODEL_NONE || model == UKF_MODEL_CENTRIPETAL ||
+      model == UKF_MODEL_X8 || (model == UKF_MODEL_CUSTOM && custom_model)) {
+    dynamics_model = model;
+  }
+}
 
-void ukf_set_custom_dynamics_model(ukf_model_function_t) {}
+void ukf_set_custom_dynamics_model(ukf_model_function_t function) {
+  custom_model = function;
+  if (function) {
+    dynamics_model = UKF_MODEL_CUSTOM;
+  } else if (dynamics_model == UKF_MODEL_CUSTOM) {
+    dynamics_model = UKF_MODEL_NONE;
+  }
+}
 
-void ukf_iterate(float dt, real_t[UKF_CONTROL_DIM]) { ukf.step(dt, meas); }
+void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
+  const real_t zero_control[UKF_CONTROL_DIM] = {};
+  ukf.step(dt, meas,
+           DynamicsInput{dynamics_model, custom_model,
+                         control != nullptr ? control : zero_control});
+}
 
 void ukf_set_process_noise(
     real_t process_noise_covariance[SFWA_StateVector::covariance_size()]) {

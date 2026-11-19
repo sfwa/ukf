@@ -82,24 +82,32 @@ void calculate_cross_correlation(ResultType& result, const StateDeltas& w_prime,
 }
 
 /*
-Replace the lower triangular factor L of A with a factor of
+From the lower triangular factor L of A, compute a factor of
 A + weight * sum(v_i v_i^T) over the columns v_i of vectors. Rank-one
 updates or downdates are tried first; if a downdate would lose positive
 definiteness, the factor is rebuilt from the updated covariance, which
 accepts a semidefinite result within roundoff. Return false, leaving the
-factor unchanged, if the result is indefinite or not finite.
+input factor unchanged, if the result is indefinite or not finite.
 */
 template <typename MatrixType, typename VectorsType>
-bool update_root(MatrixType& factor, const VectorsType& vectors,
-                 typename MatrixType::Scalar weight) {
-  MatrixType updated = factor;
+bool calculate_updated_root(const MatrixType& factor, MatrixType& updated,
+                            const VectorsType& vectors,
+                            typename MatrixType::Scalar weight) {
+  updated = factor;
   if (rank_update<Eigen::Lower>(updated, vectors, weight) >= 0) {
     const MatrixType prior = factor * factor.transpose();
     MatrixType covariance = prior;
     covariance.noalias() += (weight * vectors) * vectors.transpose();
-    return covariance_root(covariance, factor, prior.cwiseAbs().maxCoeff());
+    return covariance_root(covariance, updated, prior.cwiseAbs().maxCoeff());
   }
-  if (!updated.allFinite()) {
+  return updated.allFinite();
+}
+
+template <typename MatrixType, typename VectorsType>
+bool update_root(MatrixType& factor, const VectorsType& vectors,
+                 typename MatrixType::Scalar weight) {
+  MatrixType updated;
+  if (!calculate_updated_root(factor, updated, vectors, weight)) {
     return false;
   }
   factor = updated;
@@ -174,13 +182,259 @@ void whiten(CrossType& cross, InnovationType& innovation,
           cross.col(k) * root.col(k).tail(rest).transpose();
       innovation.tail(rest) -= innovation(k) * root.col(k).tail(rest);
     } else {
-      auto later = root.bottomRightCorner(rest, rest);
-      rank_update_lower(later, root.col(k).tail(rest), Scalar(1));
-      root.col(k).tail(rest).setZero();
+      /* The last column has nothing after it. A root of one column never
+         has a later corner, and leaving it out at compile time keeps GCC's
+         array bounds analysis quiet at -O2 and above. */
+      if constexpr (RootType::MaxColsAtCompileTime != 1) {
+        if (rest > 0) {
+          auto later = root.bottomRightCorner(rest, rest);
+          rank_update_lower(later, root.col(k).tail(rest), Scalar(1));
+          root.col(k).tail(rest).setZero();
+        }
+      }
       cross.col(k).setZero();
       innovation(k) = Scalar(0);
     }
   }
+}
+
+/*
+An innovation covariance S, checked and factored for the Kalman gain. S is
+scaled to unit diagonal first, a zero or negative diagonal being left as it
+is, so that the units of each sensor do not decide its numerical rank. The
+scaled matrix must be symmetric, and is factored as P^T S P = L D L^T by a
+symmetrically pivoted LDL^T decomposition, which eliminates the largest
+remaining diagonal at each stage and stops at the first that is negligible.
+What remains must then be negligible too, because no coefficient of a
+semidefinite matrix exceeds its diagonal: a negative variance, or a
+correlation that no covariance can have, leaves a remainder that is not.
+Both tests take roundoff against the largest scaled coefficient.
+
+The directions left at that point are those in which the innovation cannot
+vary, such as a field vector's rotation about the predicted field, or which
+are negative only by roundoff. The gain leaves out exactly these, so the
+check and the solve agree on what is negligible. Plain loops keep GCC's
+array bounds analysis quiet for a single row.
+*/
+template <typename MatrixType>
+struct SemidefiniteFactor {
+  using Scalar = typename MatrixType::Scalar;
+  using Index = typename MatrixType::Index;
+  using Vector = typename MatrixType::ColXpr::PlainObject;
+  using Order =
+      Eigen::Matrix<Index, MatrixType::RowsAtCompileTime, 1, Eigen::ColMajor,
+                    MatrixType::MaxRowsAtCompileTime, 1>;
+
+  /* L D below and on the diagonal of the scaled, permuted matrix. */
+  MatrixType factor;
+  Vector scale;
+  /* The row of S eliminated at each stage. */
+  Order order;
+  Index rank = 0;
+
+  /* Returns false if S is not finite, symmetric and semidefinite. */
+  bool compute(const MatrixType& covariance) {
+    const Index n = covariance.rows();
+    if (!covariance.allFinite()) {
+      return false;
+    }
+    scale.resize(n);
+    order.resize(n);
+    for (Index i = 0; i < n; ++i) {
+      scale(i) = covariance(i, i) > Scalar(0)
+                     ? Scalar(1) / std::sqrt(covariance(i, i))
+                     : Scalar(1);
+      order(i) = i;
+    }
+    factor = scale.asDiagonal() * covariance * scale.asDiagonal();
+    Scalar largest = Scalar(0);
+    for (Index j = 0; j < n; ++j) {
+      for (Index i = 0; i < n; ++i) {
+        largest = std::max(largest, std::abs(factor(i, j)));
+      }
+    }
+    const Scalar tolerance = Scalar(16) *
+                             std::numeric_limits<Scalar>::epsilon() *
+                             Scalar(n) * largest;
+    for (Index j = 0; j < n; ++j) {
+      for (Index i = j + 1; i < n; ++i) {
+        if (std::abs(factor(i, j) - factor(j, i)) > tolerance) {
+          return false;
+        }
+      }
+    }
+
+    rank = 0;
+    for (Index k = 0; k < n; ++k) {
+      Index pivot = k;
+      for (Index i = k + 1; i < n; ++i) {
+        if (factor(i, i) > factor(pivot, pivot)) {
+          pivot = i;
+        }
+      }
+      if (factor(pivot, pivot) <= tolerance) {
+        for (Index j = k; j < n; ++j) {
+          for (Index i = j; i < n; ++i) {
+            if (std::abs(factor(i, j)) > tolerance) {
+              return false;
+            }
+          }
+        }
+        return true;
+      }
+      /* Exchange rows and columns k and pivot within the lower triangle. */
+      if (pivot != k) {
+        for (Index j = 0; j < k; ++j) {
+          std::swap(factor(k, j), factor(pivot, j));
+        }
+        std::swap(factor(k, k), factor(pivot, pivot));
+        for (Index i = k + 1; i < pivot; ++i) {
+          std::swap(factor(i, k), factor(pivot, i));
+        }
+        for (Index i = pivot + 1; i < n; ++i) {
+          std::swap(factor(i, k), factor(i, pivot));
+        }
+        std::swap(order(k), order(pivot));
+      }
+      const Scalar inverse = Scalar(1) / factor(k, k);
+      for (Index j = k + 1; j < n; ++j) {
+        const Scalar multiple = factor(j, k) * inverse;
+        for (Index i = j; i < n; ++i) {
+          factor(i, j) -= factor(i, k) * multiple;
+        }
+      }
+      rank = k + 1;
+    }
+    return true;
+  }
+
+  /*
+  Solve K S = P for the gain K over the first rank pivots, through the
+  generalised inverse P [L11^-T D^-1 L11^-1, 0; 0, 0] P^T of the factored
+  S, and give the remaining directions no gain.
+  */
+  template <typename CrossType>
+  void solve(const CrossType& cross, CrossType& gain) const {
+    const Index rows = cross.rows();
+    const Index n = factor.rows();
+    CrossType work(rows, n);
+    for (Index k = 0; k < n; ++k) {
+      for (Index r = 0; r < rows; ++r) {
+        work(r, k) = cross(r, order(k)) * scale(order(k));
+      }
+    }
+    for (Index k = 0; k < rank; ++k) {
+      const Scalar inverse = Scalar(1) / factor(k, k);
+      for (Index j = k + 1; j < rank; ++j) {
+        const Scalar multiple = factor(j, k) * inverse;
+        for (Index r = 0; r < rows; ++r) {
+          work(r, j) -= work(r, k) * multiple;
+        }
+      }
+      for (Index r = 0; r < rows; ++r) {
+        work(r, k) *= inverse;
+      }
+    }
+    /* A single row has no back substitution; leaving it out at compile time
+       keeps GCC's array bounds analysis quiet. */
+    if constexpr (MatrixType::MaxColsAtCompileTime != 1) {
+      for (Index i = rank - 1; i > 0; --i) {
+        for (Index j = 0; j < i; ++j) {
+          const Scalar multiple = factor(i, j) / factor(j, j);
+          for (Index r = 0; r < rows; ++r) {
+            work(r, j) -= work(r, i) * multiple;
+          }
+        }
+      }
+    }
+    gain.setZero(rows, n);
+    for (Index k = 0; k < rank; ++k) {
+      for (Index r = 0; r < rows; ++r) {
+        gain(r, order(k)) = work(r, k) * scale(order(k));
+      }
+    }
+  }
+};
+
+/*
+Solve K S = P for the Kalman gain K, given the innovation covariance S and
+the cross-correlation P, leaving out the directions in which S cannot vary.
+An exactly zero S leaves nothing to learn and gives a zero gain. An S that is
+not a covariance, which a split-step caller can write into the public
+innovation covariance, is refused rather than turned into a gain.
+*/
+template <typename MatrixType, typename CrossType>
+bool kalman_gain(const MatrixType& covariance, const CrossType& cross,
+                 CrossType& gain) {
+  if (!cross.allFinite()) {
+    return false;
+  }
+  SemidefiniteFactor<MatrixType> factor;
+  if (!factor.compute(covariance)) {
+    return false;
+  }
+  factor.solve(cross, gain);
+  return gain.allFinite();
+}
+
+/* Make a computed covariance exactly symmetric. */
+template <typename MatrixType>
+void symmetrise(MatrixType& covariance) {
+  using Index = typename MatrixType::Index;
+  for (Index j = 0; j < covariance.cols(); ++j) {
+    for (Index i = j + 1; i < covariance.rows(); ++i) {
+      const typename MatrixType::Scalar mean =
+          (covariance(i, j) + covariance(j, i)) / 2;
+      covariance(i, j) = mean;
+      covariance(j, i) = mean;
+    }
+  }
+}
+
+/*
+A successful Cholesky factor already preserves the units of each observation.
+Equilibrate a singular innovation before the spectral fallback, so the size
+of an independent sensor's variance in its chosen units does not determine
+its numerical rank. Restoring the row scales gives a root in the original
+units; whiten tests each pivot against its own row.
+*/
+template <typename MatrixType>
+bool innovation_root(const MatrixType& covariance, MatrixType& root) {
+  using Scalar = typename MatrixType::Scalar;
+  using Index = typename MatrixType::Index;
+  if (!covariance.allFinite()) {
+    return false;
+  }
+  const Eigen::LLT<MatrixType> llt(covariance);
+  if (llt.info() == Eigen::Success) {
+    root = llt.matrixL();
+    return root.allFinite();
+  }
+
+  typename MatrixType::ColXpr::PlainObject scale(covariance.rows());
+  MatrixType correlation = covariance;
+  for (Index i = 0; i < covariance.rows(); ++i) {
+    scale(i) =
+        covariance(i, i) > Scalar(0) ? std::sqrt(covariance(i, i)) : Scalar(1);
+    correlation.row(i) /= scale(i);
+  }
+  for (Index i = 0; i < covariance.cols(); ++i) {
+    correlation.col(i) /= scale(i);
+  }
+  if (!covariance_root(correlation, root)) {
+    return false;
+  }
+  for (Index i = 0; i < root.rows(); ++i) {
+    if (covariance(i, i) == Scalar(0)) {
+      /* A zero variance in a PSD matrix means an exactly zero row.
+         The eigensolver may leave roundoff here, which the subsequent
+         row-relative whitening would mistake for an observable pivot. */
+      root.row(i).setZero();
+    } else {
+      root.row(i) *= scale(i);
+    }
+  }
+  return root.allFinite();
 }
 
 }  // namespace Detail
@@ -442,17 +696,19 @@ class Core {
     */
     const InnovationVectorType predicted_innovation =
         z_pred.calculate_innovation(z);
-    typename MeasurementVectorType::CovarianceMatrix
-        predicted_innovation_covariance =
-            z_pred.template calculate_sigma_point_covariance<StateVectorType>(
-                z_prime);
-    predicted_innovation_covariance +=
+    const typename MeasurementVectorType::CovarianceMatrix spread =
+        z_pred.template calculate_sigma_point_covariance<StateVectorType>(
+            z_prime);
+    const typename MeasurementVectorType::CovarianceMatrix noise =
         z.calculate_measurement_covariance(measurement_covariance, z_pred);
+    typename MeasurementVectorType::CovarianceMatrix
+        predicted_innovation_covariance = spread + noise;
+    Detail::symmetrise(predicted_innovation_covariance);
     /* The innovation covariance must be positive semidefinite. */
     typename MeasurementVectorType::CovarianceMatrix innovation_root;
     if (!predicted_innovation.allFinite() ||
         (predicted_innovation_covariance.size() != 0 &&
-         !Detail::covariance_root(predicted_innovation_covariance,
+         !Detail::innovation_root(predicted_innovation_covariance,
                                   innovation_root))) {
       return false;
     }
@@ -464,11 +720,10 @@ class Core {
   }
 
   /*
-  In the a posteriori step, the cross-correlation matrix and innovation
-  covariance inverse are calculated and used to calculate the Kalman gain.
-  This step is split from the innovation step to allow the user to carry
-  out innovation consistency checks and identify failed sensors, if
-  desired.
+  The a posteriori step solves for the Kalman gain and applies the
+  correction. It is split from the innovation step to allow consistency
+  checks before applying the observation. A successful, nonempty correction
+  consumes its prediction and innovation.
 
   Returns false if there is no valid innovation step to build on, or if the
   corrected state or covariance is not finite.
@@ -478,18 +733,8 @@ class Core {
       return false;
     }
 
-    /* No observations means prediction only; Eigen's QR requires a
-        nonempty matrix. This also supports the split-step interface. */
+    /* An empty dynamic measurement leaves the prediction available. */
     if (innovation.size() == 0) {
-      return true;
-    }
-
-    /*
-    An innovation covariance that is exactly zero, as after exact
-    observations with no noise, leaves nothing to learn; Eigen's QR would
-    take its zero pivots as nonzero and give a gain that is not finite.
-    */
-    if (innovation_covariance.cwiseAbs().maxCoeff() == real_t(0)) {
       return true;
     }
 
@@ -503,31 +748,26 @@ class Core {
                                                          w_prime, z_prime);
 
     /*
-    Calculate the Kalman gain as described in equation 72 from the Kraft
-    paper, by solving K * innovation_covariance = cross_correlation with a
-    column-pivoting QR decomposition rather than forming an inverse. The
-    rank-revealing decomposition allows the innovation covariance to be
-    positive semidefinite.
+    Calculate the Kalman gain of equation 72 from the Kraft paper, by
+    solving K * innovation_covariance = cross_correlation rather than
+    forming an inverse; a singular innovation is left out in the directions
+    in which it cannot vary.
     */
-    CrossCorrelation kalman_gain = innovation_covariance.colPivHouseholderQr()
-                                       .solve(cross_correlation.transpose())
-                                       .transpose();
-
-    /*
-    Calculate the update delta vector, to be applied to the a priori
-    estimate.
-    */
-    typename StateVectorType::StateVectorDelta update_delta =
-        kalman_gain * innovation;
-
-    /* Apply the update delta to a copy of the state vector. */
+    CrossCorrelation kalman_gain(StateVectorType::covariance_size(),
+                                 innovation.size());
+    if (!Detail::kalman_gain(innovation_covariance, cross_correlation,
+                             kalman_gain)) {
+      return false;
+    }
     StateVectorType updated_state = state;
+    const typename StateVectorType::StateVectorDelta update_delta =
+        kalman_gain * innovation;
     updated_state.apply_delta(update_delta);
 
     /* Update the covariance using equation 75 from the Kraft paper. */
     typename StateVectorType::CovarianceMatrix updated_covariance = covariance;
     updated_covariance.noalias() -=
-        (kalman_gain * innovation_covariance * kalman_gain.transpose());
+        kalman_gain * innovation_covariance * kalman_gain.transpose();
     /*
     Reject an indefinite posterior, allowing for roundoff in the update
     against the prior's scale. A posterior that is semidefinite within
@@ -544,6 +784,8 @@ class Core {
 
     state = updated_state;
     covariance = updated_covariance;
+    prior_valid = false;
+    innovation_valid = false;
     return true;
   }
 
@@ -813,11 +1055,11 @@ class SquareRootCore {
     const InnovationVectorType predicted_innovation =
         z_pred.calculate_innovation(z);
     typename MeasurementVectorType::CovarianceMatrix predicted_root;
+    const auto noise_root = z.calculate_measurement_root_covariance(
+        measurement_root_covariance, z_pred);
     if (!predicted_innovation.allFinite() ||
-        !Detail::sigma_point_root<StateVectorType>(
-            predicted_root, z_prime,
-            z.calculate_measurement_root_covariance(measurement_root_covariance,
-                                                    z_pred))) {
+        !Detail::sigma_point_root<StateVectorType>(predicted_root, z_prime,
+                                                   noise_root)) {
       return false;
     }
 
@@ -860,7 +1102,9 @@ class SquareRootCore {
     Detail::whiten(cross_correlation, whitened_innovation,
                    innovation_root_covariance);
     StateVectorType updated_state = state;
-    updated_state.apply_delta(cross_correlation * whitened_innovation);
+    const typename StateVectorType::StateVectorDelta update_delta =
+        cross_correlation * whitened_innovation;
+    updated_state.apply_delta(update_delta);
 
     /*
     Update the root covariance using a series of rank-one Cholesky
@@ -871,11 +1115,12 @@ class SquareRootCore {
     is left as it was unless every downdate succeeds.
     */
     if (!updated_state.allFinite() ||
-        !Detail::update_root(root_covariance, cross_correlation,
-                             real_t(-1.0))) {
+        !Detail::update_root(root_covariance, cross_correlation, real_t(-1))) {
       return false;
     }
     state = updated_state;
+    prior_valid = false;
+    innovation_valid = false;
     return true;
   }
 
@@ -1130,11 +1375,11 @@ class SquareRootParameterEstimationCore {
     const InnovationVectorType predicted_innovation =
         z_pred.calculate_innovation(z);
     typename MeasurementVectorType::CovarianceMatrix predicted_root;
+    const auto noise_root = z.calculate_measurement_root_covariance(
+        measurement_root_covariance, z_pred);
     if (!predicted_innovation.allFinite() ||
-        !Detail::sigma_point_root<StateVectorType>(
-            predicted_root, z_prime,
-            z.calculate_measurement_root_covariance(measurement_root_covariance,
-                                                    z_pred))) {
+        !Detail::sigma_point_root<StateVectorType>(predicted_root, z_prime,
+                                                   noise_root)) {
       return false;
     }
 
@@ -1177,7 +1422,9 @@ class SquareRootParameterEstimationCore {
     Detail::whiten(cross_correlation, whitened_innovation,
                    innovation_root_covariance);
     StateVectorType updated_state = state;
-    updated_state.apply_delta(cross_correlation * whitened_innovation);
+    const typename StateVectorType::StateVectorDelta update_delta =
+        cross_correlation * whitened_innovation;
+    updated_state.apply_delta(update_delta);
 
     /*
     Update the root covariance using a series of rank-one Cholesky
@@ -1186,11 +1433,12 @@ class SquareRootParameterEstimationCore {
     succeeds.
     */
     if (!updated_state.allFinite() ||
-        !Detail::update_root(root_covariance, cross_correlation,
-                             real_t(-1.0))) {
+        !Detail::update_root(root_covariance, cross_correlation, real_t(-1))) {
       return false;
     }
     state = updated_state;
+    prior_valid = false;
+    innovation_valid = false;
     return true;
   }
 

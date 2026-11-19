@@ -95,7 +95,9 @@ struct ukf_state_t {
 Dynamics model function, for custom model support. These functions have to
 be compatible between the C++ and C versions of the UKF, so they take pointers
 to C arrays representing the state vector, the control vector, and the output
-vector.
+vector. The state has the same 25 scalars as ukf_state_t, including the
+quaternion in x, y, z, W order. The callback reads four controls and writes
+three body-frame linear accelerations followed by three angular accelerations.
 */
 typedef void (*ukf_model_function_t)(const real_t *, const real_t *, real_t *);
 
@@ -143,7 +145,13 @@ UKF-related functions.
 void ukf_set_params(struct ukf_ioboard_params_t *in);
 /* Diagonal variances of discrete additive process noise for one filter step. */
 void ukf_set_process_noise(real_t process_noise_covariance[UKF_STATE_DIM]);
+/* The default retains the propagated accelerations. Centripetal predicts
+   omega cross body velocity and zero angular acceleration. X8 uses throttle
+   and the two elevons in control slots 0 through 2. A registered custom model
+   receives all four controls. Selecting an unregistered custom model leaves
+   the current selection in effect. */
 void ukf_choose_dynamics(enum ukf_model_t t);
+/* Register and select the callback. A null callback unregisters it. */
 void ukf_set_custom_dynamics_model(ukf_model_function_t func);
 /* dt is the time delta in seconds */
 void ukf_iterate(float dt, real_t control_vector[UKF_CONTROL_DIM]);
