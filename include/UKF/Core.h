@@ -418,7 +418,10 @@ class Core {
   }
 
   /* Prepare the current state for a split measurement update, without
-     running the process model or adding process noise. */
+     running the process model or adding process noise. The sigma points are
+     drawn afresh from the stored state and uncertainty, so this replaces
+     the points of any earlier prediction and factors the uncertainty once
+     more. */
   bool prepare_measurement_step() {
     innovation_valid = false;
     typename StateVectorType::CovarianceMatrix root;
@@ -429,7 +432,9 @@ class Core {
   }
 
   /* Fuse an independent observation at the current time. On numerical failure
-     the public state, uncertainty and innovation diagnostics are preserved. */
+     the public state, uncertainty and innovation diagnostics are preserved.
+     Straight after a_priori_step, innovation_step and a_posteriori_step use
+     the predicted points; this call draws new ones. */
   template <typename... U>
   bool measurement_step(const MeasurementVectorType& z, const U&... input) {
     const bool ok =
@@ -830,7 +835,10 @@ class SquareRootCore {
   }
 
   /* Prepare the current state for a split measurement update, without
-     running the process model or adding process noise. */
+     running the process model or adding process noise. The sigma points are
+     drawn afresh from the stored state and uncertainty, so this replaces
+     the points of any earlier prediction and factors the uncertainty once
+     more. */
   bool prepare_measurement_step() {
     innovation_valid = false;
     prior_valid = Detail::draw_measurement_prior(state, root_covariance,
@@ -839,7 +847,9 @@ class SquareRootCore {
   }
 
   /* Fuse an independent observation at the current time. On numerical failure
-     the public state, uncertainty and innovation diagnostics are preserved. */
+     the public state, uncertainty and innovation diagnostics are preserved.
+     Straight after a_priori_step, innovation_step and a_posteriori_step use
+     the predicted points; this call draws new ones. */
   template <typename... U>
   bool measurement_step(const MeasurementVectorType& z, const U&... input) {
     const bool ok =
@@ -1187,7 +1197,10 @@ class SquareRootParameterEstimationCore {
   }
 
   /* Prepare the current state for a split measurement update, without
-     running the process model or adding process noise. */
+     running the process model or adding process noise. The sigma points are
+     drawn afresh from the stored state and uncertainty, so this replaces
+     the points of any earlier prediction and factors the uncertainty once
+     more. */
   bool prepare_measurement_step() {
     innovation_valid = false;
     prior_valid = Detail::draw_measurement_prior(state, root_covariance,
@@ -1196,7 +1209,9 @@ class SquareRootParameterEstimationCore {
   }
 
   /* Fuse an independent observation at the current time. On numerical failure
-     the public state, uncertainty and innovation diagnostics are preserved. */
+     the public state, uncertainty and innovation diagnostics are preserved.
+     Straight after a_priori_step, innovation_step and a_posteriori_step use
+     the predicted points; this call draws new ones. */
   template <typename... U>
   bool measurement_step(const MeasurementVectorType& z, const U&... input) {
     const bool ok =
