@@ -155,7 +155,7 @@ UKF::Vector<6> x8_dynamics_model(const SFWA_StateVector& state,
   */
   output.segment<3>(3) << UKF::Vector<3>(
       (3.364222 * roll_moment + 0.27744448 * yaw_moment),
-      10.8823528 * pitch_moment,
+      5.8823529 * pitch_moment,
       (0.27744448 * roll_moment + 2.4920163 * yaw_moment));
 
   return output;
