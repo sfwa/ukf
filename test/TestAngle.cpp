@@ -49,6 +49,15 @@ real_t DynamicBearing::expected_measurement<AngleState, Range>(
 }
 }  // namespace UKF
 
+TEST(AngleTest, DefaultsToZero) {
+  static_assert(std::is_default_constructible<UKF::Angle>::value,
+                "An angle can be declared before it is set");
+  const UKF::Angle angles[2];
+  EXPECT_EQ(real_t(0), angles[0].radians());
+  EXPECT_EQ(real_t(0), angles[1].radians());
+  EXPECT_EQ(real_t(1.5), UKF::Angle(real_t(1.5)).radians());
+}
+
 TEST(AngleTest, StateSigmaPointsMeanDeltasAndRetractionCrossTheCut) {
   AngleState state;
   state.set_field<Heading>(UKF::Angle(radians(179)));

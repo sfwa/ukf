@@ -58,7 +58,8 @@ a hard-coded component index. Noise storage, however, always follows the
 
 Use `UKF::Angle` for a scalar state or measurement with period 2π. Write
 radians with `set_field<Heading>(UKF::Angle(radians))` and read them with
-`get_field<Heading>().radians()`. A sensor model for a heading state can
+`get_field<Heading>().radians()`; a default-constructed `UKF::Angle` is
+zero. A sensor model for a heading state can
 return that state field directly. An angle has one stored component and one
 tangent coordinate. Set the measurement noise in rad² (rad for root factors).
 The scalar innovation uses the shortest signed displacement in [−π, π).
