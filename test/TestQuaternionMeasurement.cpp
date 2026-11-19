@@ -366,6 +366,83 @@ TEST(QuaternionMeasurementTest, WideInnovationKeepsTheSensorNoise) {
       real_t(0.01));
 }
 
+/*
+With the attitude known, a quaternion sensor's innovation is its own noise,
+so the innovation covariance is the sensor's variance for any reading, and a
+normalised innovation gate at the 95 % point of three degrees of freedom
+rejects readings far from the prediction. The correction maps the noise to
+the observed innovation; the covariance that the gate reads must not, or the
+widened noise would let any outlier through.
+*/
+template <template <typename...> class Core>
+void check_known_attitude_gate() {
+  const real_t threshold = real_t(7.815);
+  const real_t pi = real_t(3.14159265358979323846);
+  for (real_t degrees : {real_t(1), real_t(90), real_t(170), real_t(179)}) {
+    SCOPED_TRACE(degrees);
+    const real_t angle = degrees * pi / real_t(180);
+    QAttitudeOnly z;
+    z.set_field<QAttitudeSensor>(rotation(angle, UKF::Vector<3>(1, 2, -1)));
+    Core<QState, QAttitudeOnly> filter;
+    filter.state.template set_field<QAttitude>(UKF::Quaternion::Identity());
+    filter.state.template set_field<QBias>(real_t(0));
+    real_t nis = std::numeric_limits<real_t>::quiet_NaN();
+    bool applied;
+    UKF::Matrix<3, 3> innovation_covariance;
+    if constexpr (std::is_same_v<Core<QState, QAttitudeOnly>,
+                                 StandardCore<QState, QAttitudeOnly>>) {
+      filter.covariance.setZero();
+      filter.process_noise_covariance.setZero();
+      filter.measurement_covariance.template set_field<QAttitudeSensor>(
+          attitude_noise);
+      auto gate = [&](const auto& current, const auto&, const auto&...) {
+        const auto weighted = current.innovation_covariance.llt()
+                                  .solve(current.innovation)
+                                  .eval();
+        nis = current.innovation.dot(weighted);
+        return std::isfinite(nis) && nis <= threshold;
+      };
+      applied = filter.step_with_gate(real_t(0), z, gate);
+      innovation_covariance = filter.innovation_covariance;
+    } else {
+      filter.root_covariance.setZero();
+      filter.process_noise_root_covariance.setZero();
+      filter.measurement_root_covariance.template set_field<QAttitudeSensor>(
+          attitude_noise.array().sqrt().matrix());
+      auto gate = [&](const auto& current, const auto&, const auto&...) {
+        const auto whitened = current.innovation_root_covariance
+                                  .template triangularView<Eigen::Lower>()
+                                  .solve(current.innovation)
+                                  .eval();
+        nis = whitened.squaredNorm();
+        return std::isfinite(nis) && nis <= threshold;
+      };
+      applied = filter.step_with_gate(real_t(0), z, gate);
+      innovation_covariance = filter.innovation_root_covariance *
+                              filter.innovation_root_covariance.transpose();
+    }
+
+    /* In the default coordinates the innovation is 2 tan(angle / 2). */
+    const real_t length = real_t(2) * std::tan(angle / real_t(2));
+    EXPECT_NEAR(length * length / attitude_variance, nis,
+                real_t(1e-3) * length * length / attitude_variance);
+    EXPECT_LT((innovation_covariance -
+               UKF::Matrix<3, 3>::Identity() * attitude_variance)
+                  .cwiseAbs()
+                  .maxCoeff(),
+              real_t(1e-5) * attitude_variance);
+    EXPECT_EQ(degrees == real_t(1), applied);
+    EXPECT_NEAR(real_t(1),
+                std::abs(filter.state.template get_field<QAttitude>().w()),
+                real_t(1e-6));
+  }
+}
+
+TEST(QuaternionMeasurementTest, KnownAttitudeGateKeepsThePredictiveNoise) {
+  check_known_attitude_gate<StandardCore>();
+  check_known_attitude_gate<RootCore>();
+}
+
 TEST(QuaternionMeasurementTest, ConvergesFromAFarPrior) {
   const UKF::Quaternion truth = rotation(real_t(2.5), UKF::Vector<3>(1, 2, -1));
   QAttitudeOnly z;
