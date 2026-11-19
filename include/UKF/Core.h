@@ -856,9 +856,9 @@ class SquareRootCore {
 
   /* Prepare the current state for a split measurement update, without
      running the process model or adding process noise. The sigma points are
-     drawn afresh from the stored state and uncertainty, so this replaces
-     the points of any earlier prediction and factors the uncertainty once
-     more. */
+     drawn afresh from the stored state and root covariance, so this replaces
+     the points of any earlier prediction; the stored root is used as it is,
+     with no factorisation. */
   bool prepare_measurement_step() {
     innovation_valid = false;
     prior_valid = Detail::draw_measurement_prior(state, root_covariance,
@@ -1218,9 +1218,9 @@ class SquareRootParameterEstimationCore {
 
   /* Prepare the current state for a split measurement update, without
      running the process model or adding process noise. The sigma points are
-     drawn afresh from the stored state and uncertainty, so this replaces
-     the points of any earlier prediction and factors the uncertainty once
-     more. */
+     drawn afresh from the stored state and root covariance, so this replaces
+     the points of any earlier prediction; the stored root is used as it is,
+     with no factorisation. */
   bool prepare_measurement_step() {
     innovation_valid = false;
     prior_valid = Detail::draw_measurement_prior(state, root_covariance,
