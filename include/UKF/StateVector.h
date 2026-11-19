@@ -816,38 +816,6 @@ class StateVector : public StateVectorBaseType<typename Fields::type...> {
   }
 };
 
-namespace Detail {
-
-/*
-After applying a left perturbation q(d), an error originally expressed as
-r is represented by the rotation vector of q(r) q(d)*. Its derivative at
-r = d maps the old local covariance into the new coordinates. For q(d)
-with vector v and scalar w, differentiating r = f v / (a + w) gives
-
-  J = (a+w)/(1+a) (w I + [v]x + a/(1+a w) v v^T).
-
-The scale f is already included in q(d). The two factors containing w
-cancel in the outer-product term when a = 1.
-*/
-template <typename State>
-Matrix<3, 3> quaternion_reset_jacobian(const Vector<3>& delta) {
-  constexpr real_t a = Parameters::MRP_A<State>;
-  const Quaternion q = rotation_vector_to_quaternion<State>(delta);
-  const auto& v = q.vec();
-  Matrix<3, 3> jacobian;
-  jacobian << q.w(), -v.z(), v.y(), v.z(), q.w(), -v.x(), -v.y(), v.x(), q.w();
-  const real_t scale = (a + q.w()) / (real_t(1) + a);
-  jacobian *= scale;
-  if constexpr (a != real_t(0)) {
-    const real_t outer =
-        a == real_t(1) ? real_t(0.5) : scale * a / (real_t(1) + a * q.w());
-    jacobian.noalias() += (outer * v) * v.transpose();
-  }
-  return jacobian;
-}
-
-}  // namespace Detail
-
 }  // namespace UKF
 
 #endif

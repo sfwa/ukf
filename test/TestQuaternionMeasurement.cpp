@@ -317,72 +317,10 @@ TEST(QuaternionMeasurementTest, DirectObservationMatchesLinearFilter) {
 }
 
 /*
-Repeated observations of an orientation far from the prior converge on it,
-in the standard and square-root cores, and the innovation's rotation stays
-the shorter one.
-*/
-/*
-The sensor's noise is a rotation of the true orientation, so in the
-innovation's coordinates about the prediction it widens with the
-innovation. The posterior uncertainty stays in those coordinates: a broad
-prior and an exact observation two radians away leave the sensor's noise
-as it appears there, J(d)^-1 R J(d)^-T for the applied correction d.
-*/
-TEST(QuaternionMeasurementTest, WideInnovationKeepsTheMappedSensorNoise) {
-  const UKF::Quaternion truth = rotation(real_t(2), UKF::Vector<3>(1, 2, -1));
-  QAttitudeOnly z;
-  z.set_field<QAttitudeSensor>(truth);
-
-  UKF::Core<QState, QAttitudeOnly> filter;
-  filter.state.set_field<QAttitude>(UKF::Quaternion::Identity());
-  filter.state.set_field<QBias>(real_t(0));
-  filter.covariance = QState::CovarianceMatrix::Identity() * real_t(100);
-  filter.process_noise_covariance.setZero();
-  filter.measurement_covariance.set_field<QAttitudeSensor>(attitude_noise);
-  UKF::SquareRootCore<QState, QAttitudeOnly> root_filter;
-  root_filter.state = filter.state;
-  root_filter.root_covariance =
-      QState::CovarianceMatrix::Identity() * real_t(10);
-  root_filter.process_noise_root_covariance.setZero();
-  root_filter.measurement_root_covariance.set_field<QAttitudeSensor>(
-      attitude_noise.array().sqrt().matrix());
-
-  ASSERT_TRUE(filter.step(real_t(0), z));
-  ASSERT_TRUE(root_filter.step(real_t(0), z));
-  /* The prior is the identity, so the posterior is the correction. */
-  const auto mapped_noise = [](const UKF::Quaternion& posterior) {
-    const UKF::Matrix<3, 3> inverse =
-        UKF::Detail::quaternion_reset_jacobian<QState>(
-            UKF::Detail::quaternion_to_rotation_vector<QState>(posterior))
-            .inverse();
-    return UKF::Matrix<3, 3>(inverse * inverse.transpose() * attitude_variance);
-  };
-  const UKF::Matrix<3, 3> expected =
-      mapped_noise(filter.state.get_field<QAttitude>());
-  const UKF::Matrix<3, 3> root_expected =
-      mapped_noise(root_filter.state.get_field<QAttitude>());
-  const UKF::Matrix<3, 3> attitude = filter.covariance.topLeftCorner<3, 3>();
-  const UKF::Matrix<3, 3> root_attitude =
-      (root_filter.root_covariance * root_filter.root_covariance.transpose())
-          .topLeftCorner<3, 3>();
-  EXPECT_LT((attitude - expected).cwiseAbs().maxCoeff(),
-            real_t(0.02) * expected.cwiseAbs().maxCoeff());
-  EXPECT_LT((root_attitude - root_expected).cwiseAbs().maxCoeff(),
-            real_t(0.02) * root_expected.cwiseAbs().maxCoeff());
-  EXPECT_LT(rotation_between(filter.state.get_field<QAttitude>(), truth).norm(),
-            real_t(0.01));
-  EXPECT_LT(
-      rotation_between(root_filter.state.get_field<QAttitude>(), truth).norm(),
-      real_t(0.01));
-}
-
-/*
 With the attitude known, a quaternion sensor's innovation is its own noise,
 so the innovation covariance is the sensor's variance for any reading, and a
 normalised innovation gate at the 95 % point of three degrees of freedom
-rejects readings far from the prediction. The correction maps the noise to
-the observed innovation; the covariance that the gate reads must not, or the
-widened noise would let any outlier through.
+rejects readings far from the prediction.
 */
 template <template <typename...> class Core>
 void check_known_attitude_gate() {
@@ -453,6 +391,11 @@ TEST(QuaternionMeasurementTest, KnownAttitudeGateKeepsThePredictiveNoise) {
   check_known_attitude_gate<RootCore>();
 }
 
+/*
+Repeated observations of an orientation far from the prior converge on it,
+in the standard and square-root cores, and the innovation's rotation stays
+the shorter one.
+*/
 TEST(QuaternionMeasurementTest, ConvergesFromAFarPrior) {
   const UKF::Quaternion truth = rotation(real_t(2.5), UKF::Vector<3>(1, 2, -1));
   QAttitudeOnly z;
@@ -474,11 +417,7 @@ TEST(QuaternionMeasurementTest, ConvergesFromAFarPrior) {
       filter.process_noise_covariance.llt().matrixL();
   root_filter.measurement_root_covariance = noise.array().sqrt().matrix();
 
-  /* The 2.5 rad error is six prior standard deviations in the prior's
-     Gibbs coordinates, where the sensor's noise mapped to the innovation is
-     as broad as the prior along the rotation axis, so the first correction
-     goes only part of the way. Repeated observations remove the rest. */
-  for (int i = 0; i < 300; ++i) {
+  for (int i = 0; i < 30; ++i) {
     ASSERT_TRUE(filter.step(real_t(1), z));
     ASSERT_TRUE(root_filter.step(real_t(1), z));
   }
@@ -540,52 +479,10 @@ TEST(QuaternionMeasurementTest, DenseNoiseMatchesDiagonal) {
   check_dense_noise_matches_diagonal<QDynamic>();
 }
 
-using CustomResetState = UKF::StateVector<UKF::Field<410, UKF::Quaternion>>;
-using MrpResetState = UKF::StateVector<UKF::Field<411, UKF::Quaternion>>;
-
-namespace UKF::Parameters {
-template <>
-constexpr real_t MRP_A<CustomResetState> = real_t(0.4);
-template <>
-constexpr real_t MRP_F<CustomResetState> = real_t(1.7);
-template <>
-constexpr real_t MRP_A<MrpResetState> = real_t(1);
-}  // namespace UKF::Parameters
-
-template <typename State>
-void check_reset_derivative() {
-  const UKF::Vector<3> delta(real_t(1.1), real_t(-0.6), real_t(0.3));
-  const auto jacobian = UKF::Detail::quaternion_reset_jacobian<State>(delta);
-  const auto base = UKF::Detail::rotation_vector_to_quaternion<State>(delta);
-  const real_t h = std::cbrt(std::numeric_limits<real_t>::epsilon());
-  for (int k = 0; k < 3; ++k) {
-    const UKF::Vector<3> step = UKF::Vector<3>::Unit(k) * h;
-    const auto above =
-        UKF::Detail::rotation_vector_to_quaternion<State>(delta + step);
-    const auto below =
-        UKF::Detail::rotation_vector_to_quaternion<State>(delta - step);
-    const UKF::Vector<3> derivative =
-        (UKF::Detail::quaternion_to_rotation_vector<State>(above *
-                                                           base.conjugate()) -
-         UKF::Detail::quaternion_to_rotation_vector<State>(below *
-                                                           base.conjugate())) /
-        (real_t(2) * h);
-    EXPECT_LT((jacobian.col(k) - derivative).norm(), real_t(12) * h * h);
-  }
-}
-
-TEST(QuaternionMeasurementTest, ResetJacobianMatchesGeneralisedMrpCoordinates) {
-  check_reset_derivative<QState>();
-  check_reset_derivative<CustomResetState>();
-  check_reset_derivative<MrpResetState>();
-}
-
 /*
 Sensor noise that is exact in one direction leaves the innovation only the
-state's small variance there. The correction covariance takes the state's
-spread and the mapped noise directly: adding the mapped noise's change to an
-innovation covariance that already holds the noise loses that variance to
-rounding in single precision.
+state's small variance there, and a correction keeps that variance between
+zero and its prior value, in single precision too.
 */
 enum { QGibbsAngle = 320, QGibbsSensor };
 using QGibbsState = UKF::StateVector<UKF::Field<QGibbsAngle, real_t>>;
@@ -649,9 +546,8 @@ TEST(QuaternionMeasurementTest, ExactNoiseDirectionKeepsTheStateVariance) {
 }
 
 /*
-A split-step caller's innovation covariance is checked as it is, before the
-correction adds the change in the mapped quaternion noise, which is large
-enough here to hide a negative variance.
+A split-step caller's innovation covariance is checked before the correction
+uses it, here behind a 90-degree quaternion reading with large noise.
 */
 TEST(QuaternionMeasurementTest, SplitPosteriorChecksThePublicCovariance) {
   UKF::Core<QState, QAttitudeOnly> filter;
@@ -680,10 +576,8 @@ TEST(QuaternionMeasurementTest, SplitPosteriorChecksThePublicCovariance) {
 
 /*
 A split-step caller's edit to the public innovation covariance or root takes
-effect in the correction. A measurement type that declares a quaternion
-field need not supply it, and without one the correction uses the public
-values as the caller left them. With one, the edit carries over to the
-covariance that the correction uses: the bias reading is read first and is
+effect in the correction, whether or not the reading sets the quaternion
+field that its type declares. The bias reading is read first and is
 independent of the attitude, so its gain is the edited one either way.
 */
 template <typename Filter>

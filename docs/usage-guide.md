@@ -29,17 +29,11 @@ states. It does not depend on the sign of either quaternion. Its noise is a
 small rotation applied on the left of the true orientation, given as three
 rotation variances (standard deviations for square-root filters), or a 3 × 3
 block of [dense noise](dense-measurement-covariance.md), in those rotation
-coordinates. The innovation covariance (or its root) that gates and
-diagnostics read takes this noise as it is, which is its predictive
-covariance before the observation. The correction maps it into the
-innovation's coordinates at the observed innovation, where a large
-innovation carries a wider noise; judging the observation by that widened
-noise would let an outlier pass a gate. A measurement type's
-`covariance_size()` counts three for each quaternion field, and
-`Measurement::InnovationVector` (also the cores' `InnovationVectorType`)
-holds the innovation in those coordinates: each quaternion field becomes a
-`UKF::Vector<3>` there. For measurements without quaternion fields
-`InnovationVector` is the measurement type itself, as before.
+coordinates. A measurement type's `covariance_size()` counts three for each
+quaternion field, and `Measurement::InnovationVector` (also the cores'
+`InnovationVectorType`) holds the innovation in those coordinates: each
+quaternion field becomes a `UKF::Vector<3>` there. For measurements without
+quaternion fields `InnovationVector` is the measurement type itself, as before.
 
 `UKF::FieldVector` is a directional measurement such as gravity or a magnetic
 field. Its innovation uses a rotation vector, and the noise Jacobian maps raw
