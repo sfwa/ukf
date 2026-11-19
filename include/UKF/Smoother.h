@@ -159,8 +159,12 @@ retained time by its age. A zero-lag window stores just the current estimate.
 
 Storage is fixed: Lag records of two states and three n-by-n matrices (the
 filtered and predicted covariances and the gain), plus the latest estimate,
-for a state uncertainty of dimension n. Each push solves one n-by-n gain;
-estimate(k) applies k backward steps, each a few n-by-n matrix products.
+for a state uncertainty of dimension n. Each push checks the filtered
+covariance and solves one n-by-n gain, each with a Cholesky factorisation.
+estimate(k) applies k backward steps, each a few n-by-n matrix products and
+a Cholesky factorisation that checks the smoothed covariance. Any of these
+factorisations becomes an eigendecomposition when its matrix is singular, as
+after an exact measurement, so budget a query at lag k for k of those.
 */
 template <typename State, std::size_t Lag>
 class FixedLagSmoother {
