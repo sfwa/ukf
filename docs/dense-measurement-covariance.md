@@ -84,7 +84,7 @@ A square-root factor requires particular care: selection removes inactive
 an omitted field could incorrectly disappear. Pass the full factor to the
 filter and let it perform that selection. Storage is fixed or bounded, and the
 diagonal default continues to use its original efficient path. Fixed measurement
-vectors without directional `FieldVector` fields use the supplied dense
+vectors without `FieldVector` or `Quaternion` fields use the supplied dense
 covariance or factor directly in innovation coordinates.
 
 ## Directional fields and changing confidence
@@ -93,8 +93,10 @@ Noise for a `UKF::FieldVector` is supplied in raw Cartesian sensor coordinates.
 The library applies the rotation-vector Jacobian to both sides of `R`, including
 correlations with other fields; for a factor it applies that Jacobian on the
 left. Supply sensor noise, not an already transformed innovation covariance.
-A `UKF::Quaternion` field takes a 3 × 3 block in rotation coordinates, so `R`
-has `covariance_size()` rows rather than one per stored coefficient.
+A `UKF::Quaternion` field takes a 3 × 3 block in the rotation coordinates of
+the sensor's error, so `R` has `covariance_size()` rows rather than one per
+stored coefficient; the library maps that block into the innovation in the
+same way.
 See the usage guide for [directional and quaternion conventions](usage-guide.md#fields-and-measurement-mapping).
 
 Noise is per filter instance and may change for each observation. Estimate the
