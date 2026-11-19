@@ -110,6 +110,7 @@ until CI tests it, and a release notes when one is added.
 | Compilers | GCC 13 and 15, Clang 18 and 22 on Linux; Apple Clang on the current macOS runner |
 | Eigen | 3.2.8 with this repository's patches (the default download), 3.4.0 and 5.0.0, downloaded or installed |
 | CMake | 3.10 or newer to configure; 3.14 or newer to install the package version file as architecture-independent |
+| Generators | Unix Makefiles and Ninja |
 | Build types | Debug and Release |
 
 MSVC and embedded cross-compilers are not in CI. The maintainers measure
