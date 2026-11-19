@@ -95,9 +95,7 @@ correlations with other fields; for a factor it applies that Jacobian on the
 left. Supply sensor noise, not an already transformed innovation covariance.
 A `UKF::Quaternion` field takes a 3 × 3 block in the rotation coordinates of
 the sensor's error, so `R` has `covariance_size()` rows rather than one per
-stored coefficient. The innovation covariance takes that block as it is,
-and the correction maps it to the observed innovation, including its
-correlations with other fields.
+stored coefficient.
 See the usage guide for [directional and quaternion conventions](usage-guide.md#fields-and-measurement-mapping).
 
 Noise is per filter instance and may change for each observation. Estimate the
