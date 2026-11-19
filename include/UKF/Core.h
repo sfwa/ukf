@@ -183,8 +183,9 @@ template <typename CrossType, typename InnovationType, typename RootType>
                           const RootType& innovation_root) {
   using Scalar = typename RootType::Scalar;
   using Index = typename RootType::Index;
-  if (innovation_root.rows() != innovation.size() ||
-      innovation_root.cols() != innovation.size() ||
+  /* A measurement vector reports an unsigned size. */
+  const Index size = static_cast<Index>(innovation.size());
+  if (innovation_root.rows() != size || innovation_root.cols() != size ||
       !innovation_root.allFinite()) {
     return false;
   }
