@@ -1,6 +1,6 @@
 # Recorded EuRoC MAV attitude comparison
 
-Recorded 2026-11-12. **88 evaluations**: all eleven sequences, 8 algorithms/variants, six-axis IMU input only.
+Recorded 2026-11-19. **88 evaluations**: all eleven sequences, 8 algorithms/variants, six-axis IMU input only.
 
 Values are arithmetic means of per-sequence RMSEs in degrees. Heading and total error use one fixed initial yaw alignment; absolute heading is unobservable. The primary process-model target is inclination accuracy.
 
@@ -10,8 +10,8 @@ V1_03_difficult and V2_01_easy, V2_02_medium, V2_03_difficult were not used for 
 
 | Algorithm | Sequences | Inclination | Heading | Total |
 |---|---:|---:|---:|---:|
-| ukf | 4 | 1.511 | 76.698 | 76.718 |
-| srukf | 4 | 1.511 | 76.698 | 76.718 |
+| ukf | 4 | 1.523 | 52.476 | 52.503 |
+| srukf | 4 | 1.523 | 52.476 | 52.503 |
 | mav-srukf | 4 | 1.172 | 2.901 | 3.157 |
 | mav-srukf-gravity | 4 | 1.543 | 5.129 | 5.400 |
 | madgwick | 4 | 8.812 | 100.709 | 100.995 |
@@ -25,8 +25,8 @@ The five Vicon sequences excluding V1_01_easy. V1_02_medium is a development rec
 
 | Algorithm | Sequences | Inclination | Heading | Total |
 |---|---:|---:|---:|---:|
-| ukf | 5 | 1.586 | 67.501 | 67.528 |
-| srukf | 5 | 1.586 | 67.501 | 67.528 |
+| ukf | 5 | 1.597 | 58.812 | 58.838 |
+| srukf | 5 | 1.597 | 58.812 | 58.838 |
 | mav-srukf | 5 | 1.109 | 2.646 | 2.894 |
 | mav-srukf-gravity | 5 | 1.609 | 5.671 | 5.932 |
 | madgwick | 5 | 8.589 | 95.678 | 95.973 |
@@ -40,8 +40,8 @@ Includes five Machine Hall recordings with no independent optical orientation ob
 
 | Algorithm | Sequences | Inclination | Heading | Total |
 |---|---:|---:|---:|---:|
-| ukf | 11 | 1.717 | 66.861 | 66.886 |
-| srukf | 11 | 1.717 | 66.861 | 66.886 |
+| ukf | 11 | 1.730 | 55.960 | 56.003 |
+| srukf | 11 | 1.730 | 55.960 | 56.003 |
 | mav-srukf | 11 | 1.228 | 3.461 | 3.710 |
 | mav-srukf-gravity | 11 | 1.801 | 8.116 | 8.433 |
 | madgwick | 11 | 6.985 | 104.757 | 104.939 |
@@ -71,4 +71,4 @@ Development used MH_01_easy and V1_02_medium. All estimators process complete se
 
 [Methodology](../euroc-benchmark.md) · [Per-sequence metrics](per-sequence.csv) · [Configuration and provenance](provenance.json)
 
-Release build on macOS 27.2 arm64 with Apple clang 21.0.0, C++17, warnings treated as errors, patched Eigen 3.2.8, UKF double precision and Python 3.12.16. The recorded source and executable hashes identify the replayed implementation. Timing is diagnostic, not a cross-language speed ranking.
+Release build on Ubuntu 24.04 x86-64 (glibc 2.39) with GCC 13.3.0, CMake 3.28.3, C++17, warnings treated as errors, patched Eigen 3.2.8, UKF double precision and Python 3.12.3. The recorded source and executable hashes identify the replayed implementation. Timing is diagnostic, not a cross-language speed ranking.

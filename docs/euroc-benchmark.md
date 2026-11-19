@@ -177,10 +177,10 @@ reported without claiming statistical significance from a small sample.
 
 ## Recorded outcome
 
-The 2026-11-12 run completed all **88 evaluations**. On the four primary Vicon
+The 2026-11-19 run completed all **88 evaluations**. On the four primary Vicon
 validation sequences, mean inclination RMSE is **1.172°** for `mav-srukf`,
 compared with **1.615°** for adapted `vqf-mav`, **1.543°** for the control
-without the rotor model, 1.511° for the unmodified `srukf`, and **5.483°** for
+without the rotor model, 1.523° for the unmodified `srukf`, and **5.483°** for
 default VQF. This is 27% lower than adapted VQF and 24% lower than the control.
 The MAV model has lower inclination error than adapted VQF on all four reserved
 sequences, and than the control on three of them; on V2_01_easy the control is
@@ -195,7 +195,7 @@ adapted VQF's 1.946°/60.936°/61.127°. Heading here is drift from an
 unobservable initial value, and the large differences reflect startup and
 motion-bias handling as much as rotor dynamics. Adapted VQF has lower
 inclination error on the known-problem V1_01 reference (2.847° versus 3.025°).
-The unmodified `ukf` and `srukf` reach 1.717° inclination with their hand-held
+The unmodified `ukf` and `srukf` reach 1.730° inclination with their hand-held
 tuning, but their heading drifts by tens of degrees because they never measure
 this IMU's bias at rest. All results and both VQF configurations are retained
 in the recorded tables.
