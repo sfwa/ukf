@@ -225,12 +225,19 @@ class MeasurementStateHelper {
   The innovation is u = r(z z_pred^-1). With the prediction error
   e = r(h(x) z_pred^-1), q(u) = q(n) q(e), so n = r(q(u) q(e)^-1), whose
   derivative in u at u = e is the attitude reset Jacobian J(e) of a state
-  correction. The noise therefore enters the innovation through J(u)^-1 at
-  the observed innovation: the identity for a zero innovation, widening as
-  the innovation grows.
+  correction.
+
+  Before the observation, e is zero on average and the noise enters the
+  innovation unmapped, so the innovation covariance that gates and
+  diagnostics read keeps the sensor's own variances, through the generic
+  noise_jacobian above. Given the observation, the correction maps the noise
+  through J(u)^-1 at the observed innovation, which widens it as the
+  innovation grows; see calculate_correction_noise_transform. Judging an
+  observation by noise widened by that same observation would let an outlier
+  pass a gate, so the widening is kept out of the innovation covariance.
   */
-  static Matrix<3, 3> noise_jacobian(const Quaternion& z_pred,
-                                     const Quaternion& z) {
+  static Matrix<3, 3> correction_noise_jacobian(const Quaternion& z_pred,
+                                                const Quaternion& z) {
     return Detail::quaternion_reset_jacobian<M>(
                Detail::quaternion_to_rotation_vector<M>(z * z_pred.conjugate()))
         .inverse();
@@ -271,14 +278,6 @@ class MeasurementStateHelper {
     return T * Eigen::DiagonalMatrix<real_t, 3>(p) * T.transpose();
   }
 
-  /* Quaternion noise is mapped into the innovation in the same way. */
-  template <typename P>
-  static Matrix<3, 3> field_covariance(const P& p, const Quaternion& z_pred,
-                                       const Quaternion& z) {
-    const Matrix<3, 3> T = noise_jacobian(z_pred, z);
-    return T * Eigen::DiagonalMatrix<real_t, 3>(p) * T.transpose();
-  }
-
   template <typename P, typename T>
   static Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>>
   field_root_covariance(const P& p, [[maybe_unused]] const T& z_pred,
@@ -310,13 +309,6 @@ class MeasurementStateHelper {
     */
     return Detail::calculate_rotation_vector_jacobian<M>(z, z_pred) *
            Eigen::DiagonalMatrix<real_t, 3>(p);
-  }
-
-  template <typename P>
-  static Matrix<3, 3> field_root_covariance(const P& p,
-                                            const Quaternion& z_pred,
-                                            const Quaternion& z) {
-    return noise_jacobian(z_pred, z) * Eigen::DiagonalMatrix<real_t, 3>(p);
   }
 
   /*
@@ -613,7 +605,7 @@ class FixedMeasurementVector
   CovarianceMatrix calculate_measurement_covariance(
       const DenseCovarianceMatrix& measurement_covariance,
       const FixedMeasurementVector& z_pred) const {
-    if constexpr (has_mapped_noise) {
+    if constexpr (has_field_vector) {
       DenseCovarianceMatrix transform = DenseCovarianceMatrix::Zero();
       (calculate_field_noise_transform<Fields>(transform, z_pred), ...);
       return transform * measurement_covariance * transform.transpose();
@@ -627,7 +619,7 @@ class FixedMeasurementVector
   DenseCovarianceMatrix calculate_measurement_root_covariance(
       const DenseCovarianceMatrix& measurement_root_covariance,
       const FixedMeasurementVector& z_pred) const {
-    if constexpr (has_mapped_noise) {
+    if constexpr (has_field_vector) {
       DenseCovarianceMatrix transform = DenseCovarianceMatrix::Zero();
       (calculate_field_noise_transform<Fields>(transform, z_pred), ...);
       return transform * measurement_root_covariance;
@@ -675,6 +667,27 @@ class FixedMeasurementVector
     }
   }
 
+  /*
+  Whether a field is a quaternion, whose noise the correction maps to the
+  observed innovation.
+  */
+  static constexpr bool has_quaternion_field =
+      (std::is_same_v<typename Fields::type, Quaternion> || ...);
+
+  /*
+  The transform from the noise in the innovation covariance to the noise
+  that the correction uses: J(u)^-1 at the observed innovation u for each
+  quaternion field and the identity elsewhere, so that a noise covariance R
+  becomes T R T^T and a noise factor L becomes T L. Called on the observed
+  vector with the predicted one.
+  */
+  CovarianceMatrix calculate_correction_noise_transform(
+      const FixedMeasurementVector& z_pred) const {
+    CovarianceMatrix transform = CovarianceMatrix::Identity();
+    (calculate_field_correction_transform<Fields>(transform, z_pred), ...);
+    return transform;
+  }
+
   /* Return the innovation using the supplied measurement vector. */
   InnovationVector calculate_innovation(const FixedMeasurementVector& z) const {
     InnovationVector temp;
@@ -684,12 +697,10 @@ class FixedMeasurementVector
   }
 
  private:
-  // Only FieldVector and Quaternion noise needs conversion from sensor to
-  // innovation coordinates.
-  static constexpr bool has_mapped_noise =
-      ((std::is_same_v<typename Fields::type, FieldVector> ||
-        std::is_same_v<typename Fields::type, Quaternion>) ||
-       ...);
+  // Only FieldVector noise needs conversion from sensor to innovation
+  // coordinates.
+  static constexpr bool has_field_vector =
+      (std::is_same_v<typename Fields::type, FieldVector> || ...);
 
   /*
   This function is intended to be specialised by the user for each field in
@@ -738,6 +749,19 @@ class FixedMeasurementVector
   These functions build the measurement covariance from all fields in the
   measurement vector.
   */
+  template <typename T>
+  void calculate_field_correction_transform(
+      CovarianceMatrix& transform, const FixedMeasurementVector& z_pred) const {
+    if constexpr (std::is_same_v<typename T::type, Quaternion>) {
+      constexpr std::size_t offset =
+          Detail::get_field_covariance_offset<0, Fields...>(T::key);
+      transform.template block<3, 3>(offset, offset) =
+          Detail::MeasurementStateHelper<FixedMeasurementVector>::
+              correction_noise_jacobian(z_pred.template get_field<T::key>(),
+                                        get_field<T::key>());
+    }
+  }
+
   template <typename T>
   void calculate_field_noise_transform(
       DenseCovarianceMatrix& transform,
@@ -1148,6 +1172,28 @@ class DynamicMeasurementVector
   }
 
   /*
+  Whether a field is a quaternion, whose noise the correction maps to the
+  observed innovation.
+  */
+  static constexpr bool has_quaternion_field =
+      (std::is_same_v<typename Fields::type, Quaternion> || ...);
+
+  /*
+  The transform from the noise in the innovation covariance to the noise
+  that the correction uses: J(u)^-1 at the observed innovation u for each
+  quaternion field and the identity elsewhere, so that a noise covariance R
+  becomes T R T^T and a noise factor L becomes T L. Called on the observed
+  vector with the predicted one.
+  */
+  CovarianceMatrix calculate_correction_noise_transform(
+      const DynamicMeasurementVector& z_pred) const {
+    CovarianceMatrix transform =
+        CovarianceMatrix::Identity(covariance_size(), covariance_size());
+    (calculate_field_correction_transform<Fields>(transform, z_pred), ...);
+    return transform;
+  }
+
+  /*
   Return the innovation using the supplied measurement vector. Its fields
   are in the order in which they were set, as the uncertainty is.
   */
@@ -1252,6 +1298,24 @@ class DynamicMeasurementVector
   These functions build the measurement covariance from all populated
   fields.
   */
+  template <typename T>
+  void calculate_field_correction_transform(
+      CovarianceMatrix& transform,
+      const DynamicMeasurementVector& z_pred) const {
+    if constexpr (std::is_same_v<typename T::type, Quaternion>) {
+      const std::size_t offset =
+          std::get<Detail::get_field_order<0, Fields...>(T::key)>(
+              field_offsets);
+      if (offset != std::numeric_limits<std::size_t>::max()) {
+        transform.template block<3, 3>(covariance_offset(offset),
+                                       covariance_offset(offset)) =
+            Detail::MeasurementStateHelper<DynamicMeasurementVector>::
+                correction_noise_jacobian(z_pred.template get_field<T::key>(),
+                                          get_field<T::key>());
+      }
+    }
+  }
+
   template <typename T>
   void calculate_field_noise_transform(
       DenseNoiseRootMatrix& transform,
