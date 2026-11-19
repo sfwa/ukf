@@ -161,6 +161,14 @@ UKF::Vector<6> x8_dynamics_model(const SFWA_StateVector& state,
   return output;
 }
 
+/* The process and measurement model input: the dynamics model to apply and its
+   control vector. */
+struct DynamicsInput {
+  ukf_model_t model;
+  ukf_model_function_t custom_model;
+  const real_t* control;
+};
+
 namespace UKF {
 
 /* SFWA state vector process model. */
@@ -215,12 +223,6 @@ SFWA_StateVector SFWA_StateVector::derivative<>() const {
 
   return output;
 }
-
-struct DynamicsInput {
-  ukf_model_t model;
-  ukf_model_function_t custom_model;
-  const real_t* control;
-};
 
 /* The model predicts the body accelerations at the end of this interval,
    after RK4 has propagated each sigma point with its previous accelerations. */
@@ -558,8 +560,8 @@ void ukf_set_custom_dynamics_model(ukf_model_function_t function) {
 void ukf_iterate(float dt, real_t control[UKF_CONTROL_DIM]) {
   const real_t zero_control[UKF_CONTROL_DIM] = {};
   ukf.step(dt, meas,
-           UKF::DynamicsInput{dynamics_model, custom_model,
-                              control != nullptr ? control : zero_control});
+           DynamicsInput{dynamics_model, custom_model,
+                         control != nullptr ? control : zero_control});
 }
 
 void ukf_set_process_noise(
