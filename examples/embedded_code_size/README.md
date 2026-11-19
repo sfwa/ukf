@@ -8,8 +8,8 @@ the state, measurement types, model, compiler and calling context matter.
 Measured results and compiler versions are in the
 [STM32H735 README](../stm32h735_benchmark/README.md#estimator-code-size) and
 [ESP32-S31 README](../esp32s31_benchmark/README.md#estimator-code-size).
-Both size measurements include the core optimizations from #92. The earlier
-ESP32 emulator timing capture uses the older core and remains separate.
+Both size measurements are of the `1.0.0-rc.1` candidate. The earlier ESP32
+emulator timing capture uses an older core and remains separate.
 
 ## Measurement boundary
 

@@ -123,17 +123,20 @@ build directory.
 
 ## Estimator code size
 
-Separate RISC-V cross-linked probes on 2026-11-14 measure the float32
-implementation **including the #92 optimizations**. These are actual compiled
-byte counts, not simulated sizes. The older emulator timing capture above
-remains a separate measurement of the pre-#92 implementation.
+Separate RISC-V cross-linked probes on 2026-11-19 measure the float32
+implementation of the `1.0.0-rc.1` candidate (revision `19d5d06`). These are
+actual compiled byte counts, not simulated sizes. The older emulator timing
+capture above remains a separate measurement of the pre-#92 implementation.
 
 | Optimization | Filter | Code (bytes) | Read-only data (bytes) | Added linked flash (bytes) |
 |---|---|---:|---:|---:|
-| `-O2` | UKF | 54,120 | 208 | 82,956 |
-| `-O2` | SR-UKF | 42,806 | 224 | 71,658 |
-| `-Os` | UKF | 47,738 | 208 | 76,574 |
-| `-Os` | SR-UKF | 37,930 | 224 | 66,782 |
+| `-O2` | UKF | 47,864 | 208 | 76,700 |
+| `-O2` | SR-UKF | 38,662 | 224 | 67,514 |
+| `-Os` | UKF | 43,162 | 208 | 71,998 |
+| `-Os` | SR-UKF | 35,648 | 224 | 64,500 |
+
+The first record, of 2026-11-14, and the figures between it and this one are
+in [RELEASING.md](../../RELEASING.md#the-baseline-for-the-first-release).
 
 Code/read-only bytes cover the attitude and heading filters, sensor checks,
 instantiated Eigen code and thin API wrappers, excluding the timing harness
