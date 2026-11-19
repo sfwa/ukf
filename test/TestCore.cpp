@@ -4,6 +4,7 @@
 #include <Eigen/Geometry>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <limits>
 #include <type_traits>
 
@@ -1130,4 +1131,131 @@ TEST(SigmaPointAccessTest, AllCoresExposeTheirLastSigmaPoints) {
   check_sigma_points(filter, predicted, true);
   check_sigma_points(sr, sr_predicted, true);
   check_sigma_points(parameter, parameter_predicted, true);
+}
+
+/*
+Two field vectors, as from an accelerometer and a magnetometer, each leave
+one direction of the innovation unobservable, so the innovation covariance
+is singular. Every update of a tracked attitude must still succeed, in
+single precision as in double. The generator is deterministic on every
+platform.
+*/
+using FieldPairState = UKF::StateVector<UKF::Field<250, UKF::Quaternion>>;
+using FieldPairMeasurement =
+    UKF::FixedMeasurementVector<UKF::Field<251, UKF::FieldVector>,
+                                UKF::Field<252, UKF::FieldVector>>;
+
+namespace {
+const UKF::Vector<3> field_pair_gravity(0, 0, real_t(-9.8));
+const UKF::Vector<3> field_pair_magnetic(real_t(0.3), real_t(0.1),
+                                         real_t(-0.4));
+
+/* Standard normal deviates from a 64-bit LCG and the Box-Muller transform. */
+class FieldPairNoise {
+ public:
+  real_t operator()() {
+    if (has_spare) {
+      has_spare = false;
+      return spare;
+    }
+    const double u1 = (double(next() >> 11) + 0.5) / 9007199254740992.0;
+    const double u2 = double(next() >> 11) / 9007199254740992.0;
+    const double radius = std::sqrt(-2.0 * std::log(u1));
+    const double angle = 6.283185307179586 * u2;
+    spare = real_t(radius * std::sin(angle));
+    has_spare = true;
+    return real_t(radius * std::cos(angle));
+  }
+
+  UKF::Vector<3> vector() {
+    const real_t x = (*this)();
+    const real_t y = (*this)();
+    const real_t z = (*this)();
+    return UKF::Vector<3>(x, y, z);
+  }
+
+ private:
+  std::uint64_t next() {
+    state = state * 6364136223846793005ULL + 1442695040888963407ULL;
+    return state;
+  }
+
+  std::uint64_t state = 7;
+  real_t spare = 0;
+  bool has_spare = false;
+};
+}  // namespace
+
+namespace UKF {
+template <>
+template <>
+FieldPairState FieldPairState::process_model<>(
+    real_t dt, const UKF::Vector<3>& rate) const {
+  FieldPairState out;
+  out.set_field<250>(
+      (Detail::rotation_vector_to_quaternion<FieldPairState>(rate * dt) *
+       get_field<250>())
+          .normalized());
+  return out;
+}
+template <>
+template <>
+UKF::FieldVector
+FieldPairMeasurement::expected_measurement<FieldPairState, 251, UKF::Vector<3>>(
+    const FieldPairState& state, const UKF::Vector<3>&) {
+  return state.get_field<250>().conjugate() * field_pair_gravity;
+}
+template <>
+template <>
+UKF::FieldVector
+FieldPairMeasurement::expected_measurement<FieldPairState, 252, UKF::Vector<3>>(
+    const FieldPairState& state, const UKF::Vector<3>&) {
+  return state.get_field<250>().conjugate() * field_pair_magnetic;
+}
+}  // namespace UKF
+
+TEST(CoreTest, SingularFieldVectorInnovationsKeepUpdating) {
+  FieldPairNoise noise;
+  const real_t process_sigma = real_t(0.05);
+  const real_t relative_noise = real_t(0.05);
+  const real_t gravity_sigma = relative_noise * field_pair_gravity.norm();
+  const real_t magnetic_sigma = relative_noise * field_pair_magnetic.norm();
+  for (int run = 0; run < 500; ++run) {
+    UKF::Core<FieldPairState, FieldPairMeasurement> filter;
+    filter.state.set_field<250>(UKF::Quaternion::Identity());
+    filter.covariance =
+        FieldPairState::CovarianceMatrix::Identity() * real_t(0.01);
+    filter.process_noise_covariance =
+        FieldPairState::CovarianceMatrix::Identity() * process_sigma *
+        process_sigma;
+    filter.measurement_covariance
+        << UKF::Vector<3>::Constant(gravity_sigma * gravity_sigma),
+        UKF::Vector<3>::Constant(magnetic_sigma * magnetic_sigma);
+    UKF::Quaternion truth =
+        UKF::Detail::rotation_vector_to_quaternion<FieldPairState>(
+            noise.vector() * real_t(0.1));
+    for (int step = 1; step <= 60; ++step) {
+      const UKF::Vector<3> rate(
+          real_t(0.3) * std::sin(real_t(0.1) * real_t(step)), real_t(0.2),
+          real_t(-0.1));
+      truth =
+          (UKF::Detail::rotation_vector_to_quaternion<FieldPairState>(
+               noise.vector() * process_sigma) *
+           UKF::Detail::rotation_vector_to_quaternion<FieldPairState>(rate) *
+           truth)
+              .normalized();
+      FieldPairMeasurement z;
+      z.set_field<251>(UKF::FieldVector(truth.conjugate() * field_pair_gravity +
+                                        gravity_sigma * noise.vector()));
+      z.set_field<252>(
+          UKF::FieldVector(truth.conjugate() * field_pair_magnetic +
+                           magnetic_sigma * noise.vector()));
+      ASSERT_TRUE(filter.a_priori_step(real_t(1), rate))
+          << "run " << run << " step " << step;
+      ASSERT_TRUE(filter.innovation_step(z, rate))
+          << "run " << run << " step " << step;
+      ASSERT_TRUE(filter.a_posteriori_step())
+          << "run " << run << " step " << step;
+    }
+  }
 }
