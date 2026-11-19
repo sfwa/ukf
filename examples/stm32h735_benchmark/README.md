@@ -129,7 +129,7 @@ python examples/esp32s31_benchmark/summarize.py \
 ## Estimator code size
 
 Separate cross-linked probes on 2026-11-19 measure the float32 implementation
-of the `1.0.0-rc.1` candidate (revision `19d5d06`). **Code and read-only
+of the `1.0.0-rc.1` candidate (revision `51d4f26`). **Code and read-only
 columns include only the attitude/heading estimator, sensor checks,
 instantiated Eigen operations and thin API wrappers**, excluding the timing
 harness and platform runtime. The timing above was measured on 2026-11-14 with

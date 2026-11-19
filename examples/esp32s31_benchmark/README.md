@@ -124,14 +124,14 @@ build directory.
 ## Estimator code size
 
 Separate RISC-V cross-linked probes on 2026-11-19 measure the float32
-implementation of the `1.0.0-rc.1` candidate (revision `19d5d06`). These are
+implementation of the `1.0.0-rc.1` candidate (revision `51d4f26`). These are
 actual compiled byte counts, not simulated sizes. The older emulator timing
 capture above remains a separate measurement of the pre-#92 implementation.
 
 | Optimization | Filter | Code (bytes) | Read-only data (bytes) | Added linked flash (bytes) |
 |---|---|---:|---:|---:|
 | `-O2` | UKF | 47,864 | 208 | 76,700 |
-| `-O2` | SR-UKF | 38,662 | 224 | 67,514 |
+| `-O2` | SR-UKF | 38,664 | 224 | 67,516 |
 | `-Os` | UKF | 43,162 | 208 | 71,998 |
 | `-Os` | SR-UKF | 35,648 | 224 | 64,500 |
 

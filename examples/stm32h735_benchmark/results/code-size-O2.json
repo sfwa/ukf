@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "measured_at_utc": "2026-11-19T16:40:37.227542+00:00",
+  "measured_at_utc": "2026-11-19T17:05:04.938342+00:00",
   "target": "stm32h735",
   "compiler": "arm-none-eabi-g++ (Arm GNU Toolchain 14.3.Rel1 (Build arm-14.174)) 14.3.1 20250623",
   "compiler_sha256": "275742816c097f75218517c48599e6efb8e98c0acdf0c5e7c0c4ea147fbf3527",
-  "source_commit": "19d5d06c060a0e187bce525936b2be13a5a676d8",
+  "source_commit": "51d4f268232be96da7a78c29fd7250db96d38eb3",
   "source_tree_dirty": false,
   "source_sha256": {
     "examples/embedded_code_size/probe.cpp": "dbc1e15044904cd7c1cab1e1661c16b86041d6c8eba328fd0dc1f423897556ad",
@@ -12,7 +12,7 @@
     "examples/embedded_code_size/measure.py": "e415fc2e8fdd48141a8dfd7ecb4e63ebd7a1781577903a8a5530c818d4421e70",
     "cmake/EigenGccWarnings.h": "1dcd2fdd266081bdd0f83bf10a7128b9834d15322f578c9fbe157a05ac2c0a3d",
     "include/UKF/Config.h": "e12dce202784a4248a3b30f74bf71438b81e6d85d00ceff5c9f7ea3e08fd535e",
-    "include/UKF/Core.h": "e562fbf00c2865bdc2f20c0768a1d3783fe1d6f10e37ac2fe797a263788508d1",
+    "include/UKF/Core.h": "45b1128dc053b86102d900ea3970bd35bd32079463acda9969cf0f4ed313d7d6",
     "include/UKF/Covariance.h": "9de99d0d0e4d8e6ce8d6e6b8f53725fef71c42ed9d07159987396f39e7bbfdae",
     "include/UKF/Integrator.h": "ba6052f6d8926b8164aedc8d738883ec88352855fe69865260661f3d96096133",
     "include/UKF/MeasurementVector.h": "b5dbdc06b0a9e80e6e1bbc1750d664ff23cd926bf2147f082fef601cec728182",
@@ -426,8 +426,8 @@
       "zero_fill_bytes_including_tls": 376,
       "instance_storage_bytes": 3116,
       "instance_alignment_bytes": 4,
-      "elf_sha256": "f7389b7609563b1aa4c9aa819998c55737ec52701dc2abb3e0c3bfab6969a050",
-      "object_sha256": "32639b17b15ee9fc794e049c50beb7d08ac8748e608f34b6771e847a1b8bdf6a",
+      "elf_sha256": "568ec41c8345f9ffe02b229a4651fccad320ea817e164d76d8f9db3ffa8d00a5",
+      "object_sha256": "7e2e357a692bb529ec26cdbb056d400f51e6125f4491df58e96e9f552033bdf3",
       "allocated_sections": [
         {
           "name": ".ukf_text",

@@ -219,9 +219,12 @@ The baseline is these records, as they are in the repository at the tag
   with its [per-sequence results](docs/euroc/per-sequence.csv) and
   [provenance](docs/euroc/provenance.json) (88 evaluations on EuRoC MAV). The
   provenance files name the revision, the hash of every source file, the
-  compiler and the host. A later replay is compared row by row with the
+  compiler and the host. Both were replayed in full at `51d4f26`, the
+  candidate's last change to the library, and every accuracy figure is the
+  one recorded after #108. A later replay is compared row by row with the
   per-recording files; the reference algorithms' rows show whether the host
-  or the data has changed.
+  or the data has changed. The elapsed times in those files were taken on a
+  busy host and are not a baseline for speed.
 - **Code size.** The four records of the
   [size probe](examples/embedded_code_size), for the
   [STM32H735](examples/stm32h735_benchmark/results) and the
@@ -256,7 +259,7 @@ to the library since 17 November moves a replay by more than 4e-11 degrees.
 | STM32H735 `-Os` UKF | 45,054 / 54,802 | 40,594 / 50,342 | 40,714 / 50,462 | 40,738 / 50,486 |
 | STM32H735 `-Os` SR-UKF | 36,086 / 45,834 | 33,928 / 43,684 | 34,048 / 43,804 | 34,144 / 43,900 |
 | ESP32-S31 `-O2` UKF | 54,120 / 82,956 | 47,768 / 76,604 | 47,848 / 76,684 | 47,864 / 76,700 |
-| ESP32-S31 `-O2` SR-UKF | 42,806 / 71,658 | 38,596 / 67,448 | 38,676 / 67,528 | 38,662 / 67,514 |
+| ESP32-S31 `-O2` SR-UKF | 42,806 / 71,658 | 38,596 / 67,448 | 38,676 / 67,528 | 38,664 / 67,516 |
 | ESP32-S31 `-Os` UKF | 47,738 / 76,574 | 43,052 / 71,888 | 43,142 / 71,978 | 43,162 / 71,998 |
 | ESP32-S31 `-Os` SR-UKF | 37,930 / 66,782 | 35,466 / 64,318 | 35,558 / 64,410 | 35,648 / 64,500 |
 

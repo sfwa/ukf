@@ -38,7 +38,7 @@ jobs:
           - { name: Linux Clang 22 (bundled Eigen), os: ubuntu-24.04, CC: clang-22, CXX: clang++-22, eigen: 'OFF', llvm: '22' }
           # The README's other single-configuration generator. Ninja checks
           # that every input has a rule before it builds anything.
-          - { name: Linux GCC (bundled Eigen, Ninja), os: ubuntu-24.04, CC: gcc, CXX: g++, eigen: 'OFF', generator: Ninja }
+          - { name: Linux GCC with Ninja (bundled Eigen), os: ubuntu-24.04, CC: gcc, CXX: g++, eigen: 'OFF', generator: Ninja }
     env:
       CC: ${{ matrix.config.CC }}
       CXX: ${{ matrix.config.CXX }}
