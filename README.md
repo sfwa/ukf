@@ -259,9 +259,11 @@ with the attitude benchmark's estimator, before adapting the larger wrappers.
 CI builds the C++ targets; the Python wrappers are not part of the automated
 tests.
 
-Filtering estimates the current state from observations so far; the library does
-not currently implement an RTS or fixed-lag smoother that revises past estimates
-using later observations.
+For delayed trajectory estimates, `UKF::FixedLagSmoother<State, Lag>` can
+revise any of the last `Lag` states using later observations. An offline RTS
+backward step is also available; both are experimental in 1.0. See the
+[smoothing guide](docs/smoothing.md) and
+[runnable example](examples/smoothing/smoothing.cpp).
 
 ## References
 

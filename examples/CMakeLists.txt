@@ -6,6 +6,7 @@ PROJECT(examples)
 ADD_SUBDIRECTORY(ahrs)
 ADD_SUBDIRECTORY(sfwa_ukf)
 ADD_SUBDIRECTORY(tracking)
+ADD_SUBDIRECTORY(smoothing)
 ADD_SUBDIRECTORY(attitude)
 ADD_SUBDIRECTORY(attitude_benchmark)
 ADD_SUBDIRECTORY(euroc_benchmark)
@@ -14,16 +15,17 @@ ADD_SUBDIRECTORY(stm32h735_benchmark)
 ADD_SUBDIRECTORY(embedded_code_size)
 
 ADD_CUSTOM_TARGET(ukf_examples DEPENDS
-    ahrs sfwa_ukf ukf_tracking_example ukf_attitude_example)
+    ahrs sfwa_ukf ukf_tracking_example ukf_attitude_example ukf_smoothing_example)
 
 ADD_TEST(NAME tracking_example COMMAND ukf_tracking_example)
 ADD_TEST(NAME attitude_example COMMAND ukf_attitude_example)
-SET_TESTS_PROPERTIES(tracking_example attitude_example PROPERTIES
+ADD_TEST(NAME smoothing_example COMMAND ukf_smoothing_example)
+SET_TESTS_PROPERTIES(tracking_example attitude_example smoothing_example PROPERTIES
     LABELS examples TIMEOUT 30)
 
 # The check target, when tests are configured, runs all registered CTest tests.
 IF(TARGET check)
-    ADD_DEPENDENCIES(check ukf_tracking_example ukf_attitude_example)
+    ADD_DEPENDENCIES(check ukf_tracking_example ukf_attitude_example ukf_smoothing_example)
 ENDIF()
 
 IF(UKF_BUILD_TESTS)

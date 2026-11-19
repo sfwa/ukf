@@ -1,0 +1,4 @@
+ADD_EXECUTABLE(ukf_smoothing_example smoothing.cpp)
+TARGET_LINK_LIBRARIES(ukf_smoothing_example PRIVATE ukf::double)
+TARGET_COMPILE_DEFINITIONS(ukf_smoothing_example PRIVATE EIGEN_NO_MALLOC)
+ukf_project_warnings(ukf_smoothing_example)

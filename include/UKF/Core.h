@@ -692,6 +692,26 @@ class Core {
   */
   template <typename... U>
   bool a_priori_step(real_t delta, const U&... input) {
+    return predict(nullptr, delta, input...);
+  }
+
+  /*
+  Also return Cov(x_k, x_{k+1}|z_{1:k}) for an RTS smoother. The two
+  deviations in each outer product come from the same process trajectory.
+  Independent additive process noise contributes to the prediction but
+  not to the cross covariance. On failure the output is unchanged.
+  Experimental in 1.0, with the smoother: see RELEASING.md.
+  */
+  template <typename... U>
+  bool a_priori_step_with_cross_covariance(
+      typename StateVectorType::CovarianceMatrix& cross, real_t delta,
+      const U&... input) {
+    return predict(&cross, delta, input...);
+  }
+
+ private:
+  template <typename Cross, typename... U>
+  bool predict(Cross cross, real_t delta, const U&... input) {
     prior_valid = false;
     innovation_valid = false;
 
@@ -706,6 +726,13 @@ class Core {
       return false;
     }
     sigma_points = state.calculate_sigma_point_distribution(root * sigma_scale);
+
+    constexpr bool trace = !std::is_null_pointer_v<Cross>;
+    [[maybe_unused]] std::conditional_t<
+        trace, typename StateVectorType::SigmaPointDeltas, bool> prior_deltas;
+    if constexpr (trace) {
+      prior_deltas = state.calculate_sigma_point_deltas(sigma_points);
+    }
 
     /* Propagate the sigma points through the process model. */
     Detail::propagate_sigma_points<StateVectorType, IntegratorType>(
@@ -724,6 +751,14 @@ class Core {
       return false;
     }
 
+    if constexpr (trace) {
+      typename StateVectorType::CovarianceMatrix candidate;
+      Detail::calculate_cross_correlation<StateVectorType>(
+          candidate, prior_deltas, w_prime);
+      if (!candidate.allFinite()) return false;
+      *cross = candidate;
+    }
+
     /* Commit the prediction only once it is known to be valid. */
     state = predicted_state;
     covariance = predicted_covariance;
@@ -735,6 +770,7 @@ class Core {
     return true;
   }
 
+ public:
   /*
   In the innovation step, the a priori sigma point distribution is further
   propagated using the measurement model. For the measurement sigma point
@@ -1098,6 +1134,26 @@ class SquareRootCore {
   */
   template <typename... U>
   bool a_priori_step(real_t delta, const U&... input) {
+    return predict(nullptr, delta, input...);
+  }
+
+  /*
+  Also return Cov(x_k, x_{k+1}|z_{1:k}) for an RTS smoother. The two
+  deviations in each outer product come from the same process trajectory.
+  Independent additive process noise contributes to the prediction but
+  not to the cross covariance. On failure the output is unchanged.
+  Experimental in 1.0, with the smoother: see RELEASING.md.
+  */
+  template <typename... U>
+  bool a_priori_step_with_cross_covariance(
+      typename StateVectorType::CovarianceMatrix& cross, real_t delta,
+      const U&... input) {
+    return predict(&cross, delta, input...);
+  }
+
+ private:
+  template <typename Cross, typename... U>
+  bool predict(Cross cross, real_t delta, const U&... input) {
     prior_valid = false;
     innovation_valid = false;
 
@@ -1105,6 +1161,13 @@ class SquareRootCore {
         std::sqrt(Parameters::ScaledDimension<StateVectorType>);
     sigma_points =
         state.calculate_sigma_point_distribution(root_covariance * sigma_scale);
+
+    constexpr bool trace = !std::is_null_pointer_v<Cross>;
+    [[maybe_unused]] std::conditional_t<
+        trace, typename StateVectorType::SigmaPointDeltas, bool> prior_deltas;
+    if constexpr (trace) {
+      prior_deltas = state.calculate_sigma_point_deltas(sigma_points);
+    }
 
     /* Propagate the sigma points through the process model. */
     Detail::propagate_sigma_points<StateVectorType, IntegratorType>(
@@ -1124,6 +1187,14 @@ class SquareRootCore {
       return false;
     }
 
+    if constexpr (trace) {
+      typename StateVectorType::CovarianceMatrix candidate;
+      Detail::calculate_cross_correlation<StateVectorType>(
+          candidate, prior_deltas, w_prime);
+      if (!candidate.allFinite()) return false;
+      *cross = candidate;
+    }
+
     /* Commit the prediction only once it is known to be valid. */
     state = predicted_state;
     root_covariance = predicted_root;
@@ -1136,6 +1207,7 @@ class SquareRootCore {
     return true;
   }
 
+ public:
   /*
   The innovation step differs from the standard UKF in the same way as the
   a priori step; it recovers the innovation root covariance using a QR
