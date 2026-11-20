@@ -14,7 +14,7 @@ evidence, and whether to replay or retune).
 
 Nothing yet.
 
-## [1.0.0-rc.1] - 2026-11-19
+## [1.0.0-rc.1] - 2026-11-20
 
 The first candidate for `1.0.0`, which will be the first numbered release.
 UKF had no releases before it, so this section summarises what has changed
