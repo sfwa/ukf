@@ -1,27 +1,29 @@
 {
   "schema_version": 1,
-  "measured_at_utc": "2026-11-14T07:50:35.784950+00:00",
+  "measured_at_utc": "2026-11-19T17:04:05.303359+00:00",
   "target": "esp32s31",
   "compiler": "riscv32-esp-elf-g++ (crosstool-NG esp-15.2.0_20251204) 15.2.0",
-  "compiler_sha256": "a7c67e5bb0cf320df7f0f78d1b32a9a53763a11f884bf150df5e6bd7043d0566",
-  "source_commit": "a02631e55933d4619bbe8f4cbf1b6b66a2fb0785",
-  "source_tree_dirty": true,
+  "compiler_sha256": "a0dfebec55dd9c6819cd554262c8d1dee784a2a0724af134ebdbc9190aa763aa",
+  "source_commit": "51d4f268232be96da7a78c29fd7250db96d38eb3",
+  "source_tree_dirty": false,
   "source_sha256": {
-    "examples/embedded_code_size/probe.cpp": "8a965d27fbfafdd238c014585298ae63664ca303083192593291442417604de5",
+    "examples/embedded_code_size/probe.cpp": "dbc1e15044904cd7c1cab1e1661c16b86041d6c8eba328fd0dc1f423897556ad",
     "examples/embedded_code_size/probe.ld": "502b61187302e5d314e395e97f3f03f7fdb6ab65cb1d29662b1521895dc6995d",
-    "examples/embedded_code_size/measure.py": "2bf696e8529219ae42e85fd038c07f12a6d53e0642f08be387e37d2bc798803a",
-    "cmake/EigenGccWarnings.h": "0b93648f546f212f9b33c0b90c82079cf0a7b326a728e436af08d06333ad1c90",
-    "include/UKF/Config.h": "cb7ecbc40d15a5689d07dd649ceb52c61d8a6d43119ca4a3d910ff58aedf11a5",
-    "include/UKF/Core.h": "5823a50222894043d9ef78fb326a252b613dc8fa5ad1cfacea8e5ff3554d977f",
-    "include/UKF/Covariance.h": "adb762d09bdf9b1bcae0edd26cd87a5ef13e97c291e36f128a9d4effc8f0323a",
-    "include/UKF/Integrator.h": "239361c00080b3fb451b8a7e8ece39ae35c3444eb0e41a73ae64cc7cdc946549",
-    "include/UKF/MeasurementVector.h": "29226c3ac359848a2adc19cbf3af2c2a5d03ed1154d2889a1c4058b8d0a7bd76",
-    "include/UKF/RankUpdate.h": "9986ba29a46de9cae694c4c8df748b32ef4b8623532bc32c5cb16d0ce52e22c8",
-    "include/UKF/StateVector.h": "3c54b0442492974420c0b774571704de4152b3abb80b81f066a2e480311a09ff",
-    "include/UKF/Types.h": "8d6299373fe92651f3b6742f460e4520bb5c6fe6b082756078dbbd328f21dfa7",
-    "examples/attitude_benchmark/attitude_estimator.h": "6d469dd74043cfc1584a273b2030cc6362fe834cee75610aed50fa507e2e943c",
-    "examples/attitude_benchmark/imu_sample.h": "73f2ce3878e02ce44b4f92e89965bdde435a04a4c029f7b70f4ec93bde099580",
-    "examples/attitude_benchmark/sensor_checks.h": "d5e7f4ad5f66f856de51de26c5aae41e7bbb5e362bdc09891853546ead894395"
+    "examples/embedded_code_size/measure.py": "e415fc2e8fdd48141a8dfd7ecb4e63ebd7a1781577903a8a5530c818d4421e70",
+    "cmake/EigenGccWarnings.h": "1dcd2fdd266081bdd0f83bf10a7128b9834d15322f578c9fbe157a05ac2c0a3d",
+    "include/UKF/Config.h": "e12dce202784a4248a3b30f74bf71438b81e6d85d00ceff5c9f7ea3e08fd535e",
+    "include/UKF/Core.h": "45b1128dc053b86102d900ea3970bd35bd32079463acda9969cf0f4ed313d7d6",
+    "include/UKF/Covariance.h": "9de99d0d0e4d8e6ce8d6e6b8f53725fef71c42ed9d07159987396f39e7bbfdae",
+    "include/UKF/Integrator.h": "ba6052f6d8926b8164aedc8d738883ec88352855fe69865260661f3d96096133",
+    "include/UKF/MeasurementVector.h": "b5dbdc06b0a9e80e6e1bbc1750d664ff23cd926bf2147f082fef601cec728182",
+    "include/UKF/RankUpdate.h": "7e16e32f41279f5488e0999da3861654de06cdfac5e1565fc5cf64d1c4b7ea7b",
+    "include/UKF/Smoother.h": "db22793fcf02ca1ae6d8d09f1bf578751f46b4f19badf829b966ce2abcb17f39",
+    "include/UKF/StateVector.h": "2c20ee3398196da03334384720267b0dd0568fd3d5c165a953c78e8412cfa6a3",
+    "include/UKF/Types.h": "7755d86bc436857e3a3be0102dade9269d31e15ddc382b54eb0b9e8f85db557c",
+    "include/UKF/Version.h": "b6f1737f299c998551ea8d1d578a93a826497066174df99c85ce25a2ec774471",
+    "examples/attitude_benchmark/attitude_estimator.h": "f6ba37af56f9bf5671e631605d999c085dea9dac1ee23a88a8f46518a75112d1",
+    "examples/attitude_benchmark/imu_sample.h": "71d94a06ee6aedd58d3ede0b86d180bb6c2393d75a6e15e29dfc87c7f0613f19",
+    "examples/attitude_benchmark/sensor_checks.h": "6713f1c13d4e898e55be5fe298ca4acbc9e803880947f0fec8f36608edfca966"
   },
   "eigen": {
     "version": "3.2.8 with repository patches",
@@ -39,16 +41,17 @@
       "-march=rv32imafc_zicsr_zifencei_zaamo_zalrsc_xesploop_xespv",
       "-mabi=ilp32f",
       "-mtune=esp-base"
-    ]
+    ],
+    "eigen_unrolling_limit": null
   },
   "libraries": [
     {
       "path": "{toolchain}/picolibc/lib/gcc/riscv32-esp-elf/15.2.0/rv32imafc_zicsr_zifencei_zaamo_zalrsc/ilp32f/no-rtti/libgcc.a",
-      "sha256": "7d20ce9e410c91555d7efeb30654d252d75b6814def79d73e9bed36305dd0a1a"
+      "sha256": "e13dae79bebc98de85cf42ded1a9f86913c0b8e9d1283e07d74dacddc9772f45"
     },
     {
       "path": "{toolchain}/picolibc/riscv32-esp-elf/lib/rv32imafc_zicsr_zifencei_zaamo_zalrsc/ilp32f/no-rtti/libc.a",
-      "sha256": "ee30d3b6fe3ca03689670b30ef260aa1a4f4d69dd0f9dd1c9ad6614b80cd2a81"
+      "sha256": "afb9d6ab5e8304c1ee9c2d67eb2122f53392728fd8580cf5b8265048e26feab0"
     },
     {
       "path": "{toolchain}/picolibc/riscv32-esp-elf/lib/rv32imafc_zicsr_zifencei_zaamo_zalrsc/ilp32f/no-rtti/libm.a",
@@ -56,7 +59,7 @@
     },
     {
       "path": "{toolchain}/picolibc/riscv32-esp-elf/lib/rv32imafc_zicsr_zifencei_zaamo_zalrsc/ilp32f/no-rtti/libstdc++.a",
-      "sha256": "07f06226a92104f5dab062c15a0bc908e9bb097aeeb39e655095b00c24c11128"
+      "sha256": "79b3cfb23942388cb9ae5081f534f91dc28068279b6c808703cdf14c6d60acae"
     }
   ],
   "commands": [
@@ -359,73 +362,73 @@
     },
     {
       "variant": "ukf",
-      "estimator_code_bytes": 47738,
+      "estimator_code_bytes": 43162,
       "estimator_rodata_bytes": 208,
-      "estimator_code_and_rodata_bytes": 47946,
+      "estimator_code_and_rodata_bytes": 43370,
       "runtime_code_bytes": 25376,
       "runtime_rodata_bytes": 3128,
-      "total_flash_payload_bytes": 76618,
+      "total_flash_payload_bytes": 72042,
       "writable_allocated_payload_bytes": 44,
       "zero_fill_bytes_including_tls": 288,
       "instance_storage_bytes": 3116,
       "instance_alignment_bytes": 4,
-      "elf_sha256": "895e592b7fa1295f2bbecfe869c169ed48cf24091b9af3bf03299b7fc2541777",
-      "object_sha256": "a9bbff7db8d3e2db45971dc675286287a439324f2f39a8c4fae0cbf0a58e5c80",
+      "elf_sha256": "e332e50b748b5c9ad3a43d2330d1e4acf5afc1d2e40c5d4da344063849559ff4",
+      "object_sha256": "ea7e86e2b31526582007abc7fbc6da1a19a05a9dbe51fe176ec3e06d912c2e1b",
       "allocated_sections": [
         {
           "name": ".ukf_text",
           "type": 1,
           "flags": 6,
           "address": 268435456,
-          "bytes": 47738
+          "bytes": 43162
         },
         {
           "name": ".ukf_rodata",
           "type": 1,
           "flags": 2,
-          "address": 268483196,
+          "address": 268478620,
           "bytes": 208
         },
         {
           "name": ".runtime_text",
           "type": 1,
           "flags": 6,
-          "address": 268483404,
+          "address": 268478828,
           "bytes": 25376
         },
         {
           "name": ".runtime_rodata",
           "type": 1,
           "flags": 2,
-          "address": 268508784,
+          "address": 268504208,
           "bytes": 3128
         },
         {
           "name": ".probe_metadata",
           "type": 1,
           "flags": 2,
-          "address": 268511912,
+          "address": 268507336,
           "bytes": 8
         },
         {
           "name": ".gcc_except_table",
           "type": 1,
           "flags": 2,
-          "address": 268511920,
+          "address": 268507344,
           "bytes": 116
         },
         {
           "name": ".init_array",
           "type": 14,
           "flags": 3,
-          "address": 268512036,
+          "address": 268507460,
           "bytes": 8
         },
         {
           "name": ".fini_array",
           "type": 15,
           "flags": 3,
-          "address": 268512044,
+          "address": 268507468,
           "bytes": 8
         },
         {
@@ -450,78 +453,78 @@
           "bytes": 284
         }
       ],
-      "incremental_flash_bytes": 76574,
-      "estimator_incremental_bytes": 47910
+      "incremental_flash_bytes": 71998,
+      "estimator_incremental_bytes": 43334
     },
     {
       "variant": "srukf",
-      "estimator_code_bytes": 37930,
+      "estimator_code_bytes": 35648,
       "estimator_rodata_bytes": 224,
-      "estimator_code_and_rodata_bytes": 38154,
+      "estimator_code_and_rodata_bytes": 35872,
       "runtime_code_bytes": 25376,
       "runtime_rodata_bytes": 3128,
-      "total_flash_payload_bytes": 66826,
+      "total_flash_payload_bytes": 64544,
       "writable_allocated_payload_bytes": 44,
       "zero_fill_bytes_including_tls": 280,
       "instance_storage_bytes": 3116,
       "instance_alignment_bytes": 4,
-      "elf_sha256": "b5d6af326f8596426ffa8ba987a58f6fde1959b003dcdf0426f76ff4452c2e2c",
-      "object_sha256": "07a42debff4052a3961622cd2f8071246f6b9b013c74cfe5248ea5a8bb4ca7f0",
+      "elf_sha256": "0a8c5ca43a3ebe3d89f62230ee700fbcae316b792f921675b87ce4cc7adbc1ab",
+      "object_sha256": "4989dde6f2ef3dae6fe41d8e39da90d74ef69167c5afd2a546bf91832ee59668",
       "allocated_sections": [
         {
           "name": ".ukf_text",
           "type": 1,
           "flags": 6,
           "address": 268435456,
-          "bytes": 37930
+          "bytes": 35648
         },
         {
           "name": ".ukf_rodata",
           "type": 1,
           "flags": 2,
-          "address": 268473388,
+          "address": 268471104,
           "bytes": 224
         },
         {
           "name": ".runtime_text",
           "type": 1,
           "flags": 6,
-          "address": 268473612,
+          "address": 268471328,
           "bytes": 25376
         },
         {
           "name": ".runtime_rodata",
           "type": 1,
           "flags": 2,
-          "address": 268498992,
+          "address": 268496704,
           "bytes": 3128
         },
         {
           "name": ".probe_metadata",
           "type": 1,
           "flags": 2,
-          "address": 268502120,
+          "address": 268499832,
           "bytes": 8
         },
         {
           "name": ".gcc_except_table",
           "type": 1,
           "flags": 2,
-          "address": 268502128,
+          "address": 268499840,
           "bytes": 116
         },
         {
           "name": ".init_array",
           "type": 14,
           "flags": 3,
-          "address": 268502244,
+          "address": 268499956,
           "bytes": 8
         },
         {
           "name": ".fini_array",
           "type": 15,
           "flags": 3,
-          "address": 268502252,
+          "address": 268499964,
           "bytes": 8
         },
         {
@@ -546,8 +549,8 @@
           "bytes": 276
         }
       ],
-      "incremental_flash_bytes": 66782,
-      "estimator_incremental_bytes": 38118
+      "incremental_flash_bytes": 64500,
+      "estimator_incremental_bytes": 35836
     }
   ],
   "scope": "Isolated attitude estimator plus Eigen and thin API wrappers; no benchmark, startup, HAL, RTOS, logging or sensor I/O. Incremental flash includes required linked math/runtime helpers. Not a bootable firmware or a timing measurement."

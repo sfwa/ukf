@@ -1,7 +1,7 @@
 {
   "broad": {
     "scope": "full selected datasets",
-    "revision": "8d7feab97c8c4e42d73ec514a5878940d0f75a72",
+    "revision": "51d4f268232be96da7a78c29fd7250db96d38eb3",
     "dirty": false,
     "source_sha256": {
       "examples/attitude_benchmark/CMakeLists.txt": "da08ad74f84250fff13c1e0d109037c8e5b6b98fef4e5ad54a8f76dca15a25a6",
@@ -17,7 +17,7 @@
       "examples/attitude_benchmark/run.py": "d57b843e2c8f8d95367e89b530a6f371d27f352a75c1cf0cfcc54eae392ce3fa",
       "examples/attitude_benchmark/sensor_checks.h": "6713f1c13d4e898e55be5fe298ca4acbc9e803880947f0fec8f36608edfca966",
       "include/UKF/Config.h": "e12dce202784a4248a3b30f74bf71438b81e6d85d00ceff5c9f7ea3e08fd535e",
-      "include/UKF/Core.h": "922e729415e94034ce95a000a03118b7961d9682e4e81cf791deead4f30304cb",
+      "include/UKF/Core.h": "45b1128dc053b86102d900ea3970bd35bd32079463acda9969cf0f4ed313d7d6",
       "include/UKF/Covariance.h": "9de99d0d0e4d8e6ce8d6e6b8f53725fef71c42ed9d07159987396f39e7bbfdae",
       "include/UKF/Integrator.h": "ba6052f6d8926b8164aedc8d738883ec88352855fe69865260661f3d96096133",
       "include/UKF/MeasurementVector.h": "b5dbdc06b0a9e80e6e1bbc1750d664ff23cd926bf2147f082fef601cec728182",
@@ -25,9 +25,9 @@
       "include/UKF/Smoother.h": "db22793fcf02ca1ae6d8d09f1bf578751f46b4f19badf829b966ce2abcb17f39",
       "include/UKF/StateVector.h": "2c20ee3398196da03334384720267b0dd0568fd3d5c165a953c78e8412cfa6a3",
       "include/UKF/Types.h": "7755d86bc436857e3a3be0102dade9269d31e15ddc382b54eb0b9e8f85db557c",
-      "include/UKF/Version.h": "e202c95f936537e51f3a11f24cfbd09eef721508f38567648a4af231ea64c7a3"
+      "include/UKF/Version.h": "b6f1737f299c998551ea8d1d578a93a826497066174df99c85ce25a2ec774471"
     },
-    "binary_sha256": "86c9d042260b5474d099cc06a345818b5a140be4d038f9cbace170d36e34eac9",
+    "binary_sha256": "3ed0e2fa4a117edf561f59469ee4656fb41f3d4ead4545ace58e8b207d2a75b9",
     "platform": "Linux-6.18.44-fc-v653-x86_64-with-glibc2.39",
     "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
     "machine": "x86_64",
@@ -705,7 +705,7 @@
   },
   "sassari": {
     "scope": "full selected datasets",
-    "revision": "8d7feab97c8c4e42d73ec514a5878940d0f75a72",
+    "revision": "51d4f268232be96da7a78c29fd7250db96d38eb3",
     "dirty": false,
     "source_sha256": {
       "examples/attitude_benchmark/CMakeLists.txt": "da08ad74f84250fff13c1e0d109037c8e5b6b98fef4e5ad54a8f76dca15a25a6",
@@ -721,7 +721,7 @@
       "examples/attitude_benchmark/run.py": "d57b843e2c8f8d95367e89b530a6f371d27f352a75c1cf0cfcc54eae392ce3fa",
       "examples/attitude_benchmark/sensor_checks.h": "6713f1c13d4e898e55be5fe298ca4acbc9e803880947f0fec8f36608edfca966",
       "include/UKF/Config.h": "e12dce202784a4248a3b30f74bf71438b81e6d85d00ceff5c9f7ea3e08fd535e",
-      "include/UKF/Core.h": "922e729415e94034ce95a000a03118b7961d9682e4e81cf791deead4f30304cb",
+      "include/UKF/Core.h": "45b1128dc053b86102d900ea3970bd35bd32079463acda9969cf0f4ed313d7d6",
       "include/UKF/Covariance.h": "9de99d0d0e4d8e6ce8d6e6b8f53725fef71c42ed9d07159987396f39e7bbfdae",
       "include/UKF/Integrator.h": "ba6052f6d8926b8164aedc8d738883ec88352855fe69865260661f3d96096133",
       "include/UKF/MeasurementVector.h": "b5dbdc06b0a9e80e6e1bbc1750d664ff23cd926bf2147f082fef601cec728182",
@@ -729,9 +729,9 @@
       "include/UKF/Smoother.h": "db22793fcf02ca1ae6d8d09f1bf578751f46b4f19badf829b966ce2abcb17f39",
       "include/UKF/StateVector.h": "2c20ee3398196da03334384720267b0dd0568fd3d5c165a953c78e8412cfa6a3",
       "include/UKF/Types.h": "7755d86bc436857e3a3be0102dade9269d31e15ddc382b54eb0b9e8f85db557c",
-      "include/UKF/Version.h": "e202c95f936537e51f3a11f24cfbd09eef721508f38567648a4af231ea64c7a3"
+      "include/UKF/Version.h": "b6f1737f299c998551ea8d1d578a93a826497066174df99c85ce25a2ec774471"
     },
-    "binary_sha256": "86c9d042260b5474d099cc06a345818b5a140be4d038f9cbace170d36e34eac9",
+    "binary_sha256": "3ed0e2fa4a117edf561f59469ee4656fb41f3d4ead4545ace58e8b207d2a75b9",
     "platform": "Linux-6.18.44-fc-v653-x86_64-with-glibc2.39",
     "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
     "machine": "x86_64",

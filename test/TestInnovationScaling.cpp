@@ -57,7 +57,7 @@ TEST(InnovationScalingTest, ZeroVarianceChannelKeepsAnExactlyZeroRootRow) {
   auto cross = (gain.transpose() * covariance).eval();
   UKF::Vector<5> residual = factor * UKF::Vector<5>::Ones();
   const real_t expected = gain.dot(residual);
-  UKF::Detail::whiten(cross, residual, root);
+  ASSERT_TRUE(UKF::Detail::whiten(cross, residual, root));
   EXPECT_NEAR(expected, (cross * residual)(0), real_t(1e-4));
 }
 

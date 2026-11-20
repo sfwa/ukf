@@ -127,11 +127,28 @@ if(UKF_INSTALL)
     set_target_properties(ukf_double PROPERTIES EXPORT_NAME double)
     install(TARGETS ukf ukf_single ukf_double EXPORT ukfTargets)
     install(DIRECTORY include/UKF DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+    # The licences go with the headers they cover.
+    set(ukf_license_dir ${CMAKE_INSTALL_DATADIR}/licenses/ukf)
+    install(FILES LICENSE DESTINATION ${ukf_license_dir})
     if(NOT UKF_USE_SYSTEM_EIGEN)
         # The downloaded (and, for 3.2.8, patched) Eigen headers. Build the
         # project before installing so that they have been downloaded.
         install(DIRECTORY ${source_dir}/Eigen ${source_dir}/unsupported
             DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ukf/eigen3)
+        # Eigen's licences are the COPYING files at the top of its source
+        # tree, and which there are depends on the release. They exist only
+        # once Eigen has been downloaded, so they are found when installing.
+        if(IS_ABSOLUTE "${ukf_license_dir}")
+            set(ukf_eigen_license_dir "${ukf_license_dir}/eigen3")
+        else()
+            set(ukf_eigen_license_dir "\${CMAKE_INSTALL_PREFIX}/${ukf_license_dir}/eigen3")
+        endif()
+        install(CODE "
+            file(GLOB ukf_eigen_licenses \"${source_dir}/COPYING.*\")
+            if(NOT ukf_eigen_licenses)
+                message(FATAL_ERROR \"No Eigen licence files in ${source_dir}; build the project before installing it\")
+            endif()
+            file(INSTALL \${ukf_eigen_licenses} DESTINATION \"${ukf_eigen_license_dir}\")")
     endif()
     set(ukf_cmake_dir ${CMAKE_INSTALL_LIBDIR}/cmake/ukf)
     install(EXPORT ukfTargets NAMESPACE ukf:: DESTINATION ${ukf_cmake_dir})

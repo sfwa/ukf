@@ -1179,7 +1179,7 @@ TEST(SquareRootWhitenTest, MatchesKalmanGainForRegularAndSingularRoots) {
     const UKF::Vector<3> innovation = root * UKF::Vector<3>(0.7, -1.2, 0.4);
     UKF::Matrix<2, 3> cross = gain * covariance;
     UKF::Vector<3> whitened = innovation;
-    UKF::Detail::whiten(cross, whitened, root);
+    ASSERT_TRUE(UKF::Detail::whiten(cross, whitened, root));
 
     const UKF::Vector<2> expected_delta = gain * innovation;
     const UKF::Matrix<2, 2> expected_reduction =

@@ -14,17 +14,24 @@ builds with them disabled: every filter step returns whether it succeeded.
 
 All three support scalar, vector, [angle](docs/usage-guide.md#heading-and-bearing) and quaternion measurements, fixed or dynamic measurement
 sets, optional [dense measurement noise](docs/dense-measurement-covariance.md),
-and [innovation gating](docs/innovation-gating.md). Each can be compiled in
-single or double precision.
+and [innovation gating](docs/innovation-gating.md) that reports whether a
+measurement was applied, rejected, empty or failed. Independent observations
+made at the same time can each be fused with a
+[measurement-only step](docs/usage-guide.md#independent-observations-at-the-same-time).
+Each filter can be compiled in single or double precision.
 
 ## Releases
 
 [![Latest release](https://img.shields.io/github/v/release/sfwa/ukf?include_prereleases&sort=semver)](https://github.com/sfwa/ukf/releases)
 
-UKF uses [Semantic Versioning](https://semver.org). The first release will be
-`1.0.0`, after a release candidate `1.0.0-rc.1`; until then master is the
-only version. Use the [latest release](https://github.com/sfwa/ukf/releases/latest)
-and [pin it by its tag](RELEASING.md#using-a-release).
+UKF uses [Semantic Versioning](https://semver.org). This is `1.0.0-rc.1`, the
+first candidate for the first release, `1.0.0`. A candidate is for trying
+against your own project before the release: pin it by its tag,
+`v1.0.0-rc.1`, and report anything that breaks. Blockers found are fixed in a
+further candidate, and `1.0.0` is made from the last candidate without one
+([the path to 1.0.0](RELEASING.md#the-path-to-100)). Once there is a release,
+use the [latest release](https://github.com/sfwa/ukf/releases/latest) and
+[pin it by its tag](RELEASING.md#using-a-release).
 
 - [RELEASING.md](RELEASING.md): the compatibility contract (which interfaces,
   conventions, build options and configurations a release supports, and
@@ -42,7 +49,8 @@ patches), Google Test and Google Benchmark sources as their targets are built;
 [another Eigen](#choosing-an-eigen-version) can be used instead. CMake 4 is
 supported. Visual Studio 2015 does not provide the required C++17 support; CI
 checks GCC (13 and 15) and Clang (18 and 22) on Linux and Clang on macOS, in
-Debug and Release, with Eigen 3.2.8, 3.4.0 and 5.0.0.
+Debug and Release, with Eigen 3.2.8, 3.4.0 and 5.0.0, using Unix Makefiles
+and, in one configuration, Ninja.
 
 ```sh
 git clone https://github.com/sfwa/ukf.git
@@ -114,8 +122,10 @@ The package provides the same `ukf::ukf`, `ukf::single` and `ukf::double`
 targets, carrying the unrolling limit the installed copy was configured with.
 With the downloaded Eigen, its headers (patched, for 3.2.8) are installed
 under `include/ukf/eigen3`; with `UKF_USE_SYSTEM_EIGEN`, the package finds
-Eigen again when it is loaded. Install rules are generated when UKF is built
-on its own, or with `UKF_INSTALL=ON` as a subdirectory.
+Eigen again when it is loaded. UKF's `LICENSE` is installed under
+`share/licenses/ukf`, and with the downloaded Eigen its `COPYING.*` licence
+files under `share/licenses/ukf/eigen3`. Install rules are generated when UKF
+is built on its own, or with `UKF_INSTALL=ON` as a subdirectory.
 
 Without CMake, add `include/` and the Eigen headers to the include path,
 compile as C++17, and define exactly one of `UKF_SINGLE_PRECISION` or

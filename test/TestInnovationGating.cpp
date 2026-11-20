@@ -7,6 +7,7 @@
 #include <stdexcept>
 #endif
 #include <type_traits>
+#include <vector>
 
 #include "UKF/Core.h"
 #include "UKF/Integrator.h"
@@ -437,6 +438,93 @@ void check_failed_correction() {
   EXPECT_EQ(2, calls);
   expect_public_values<F, M>(filter, predicted);
 }
+
+/*
+Between the innovation step and the posterior a caller may edit the public
+innovation covariance or root. An edit that leaves it not finite, or for a
+dynamic measurement not the size of the innovation, must fail the correction
+and leave the prediction and the innovation as they were, so that a corrected
+edit still applies. A square-root filter given a root of NaN once reported a
+correction it had not made.
+*/
+template <typename F, typename M>
+auto& innovation_spread(F& filter) {
+  if constexpr (std::is_same_v<F, Standard<M>>) {
+    return filter.innovation_covariance;
+  } else {
+    return filter.innovation_root_covariance;
+  }
+}
+
+template <typename F, typename M>
+void check_invalid_edited_innovation_spread() {
+  F filter = make_filter<F, M>();
+  const UKF::Vector<2> input(real_t(0.5), real_t(-0.25));
+  M measurement;
+  measurement.template set_field<231>(UKF::Vector<2>(3, -2));
+  ASSERT_TRUE((predict<F, M>(filter, input)));
+  ASSERT_TRUE(filter.innovation_step(measurement, input));
+  const F predicted = filter;
+  const auto valid = innovation_spread<F, M>(filter);
+  ASSERT_EQ(2, valid.rows());
+
+  const real_t nan = std::numeric_limits<real_t>::quiet_NaN();
+  const real_t infinity = std::numeric_limits<real_t>::infinity();
+  std::vector<std::decay_t<decltype(valid)>> invalid;
+  invalid.push_back(valid);
+  invalid.back().setConstant(nan);
+  invalid.push_back(valid);
+  invalid.back()(0, 0) = nan;
+  invalid.push_back(valid);
+  invalid.back()(1, 1) = nan;
+  invalid.push_back(valid);
+  invalid.back()(1, 0) = nan;
+  if constexpr (std::is_same_v<F, Standard<M>>) {
+    invalid.back()(0, 1) = nan;
+  }
+  invalid.push_back(valid);
+  invalid.back()(0, 0) = infinity;
+  invalid.push_back(valid);
+  invalid.back()(1, 1) = -infinity;
+  if constexpr (M::RowsAtCompileTime == Eigen::Dynamic) {
+    invalid.push_back(valid.topLeftCorner(1, 1));
+    invalid.push_back(valid.topRows(1));
+    invalid.push_back(valid.leftCols(1));
+    invalid.emplace_back(0, 0);
+  }
+
+  int calls = 0;
+  auto accept = [&](const auto&, const auto&...) {
+    ++calls;
+    return true;
+  };
+  for (const auto& edited : invalid) {
+    innovation_spread<F, M>(filter) = edited;
+    EXPECT_FALSE(filter.a_posteriori_step());
+    calls = 0;
+    EXPECT_EQ(UKF::GateResult::Failed,
+              filter.a_posteriori_step_with_gate_result(accept));
+    EXPECT_EQ(1, calls);
+    EXPECT_TRUE(filter.state == predicted.state);
+    if constexpr (std::is_same_v<F, Standard<M>>) {
+      EXPECT_TRUE(filter.covariance == predicted.covariance);
+    } else {
+      EXPECT_TRUE(filter.root_covariance == predicted.root_covariance);
+    }
+    EXPECT_TRUE(filter.innovation == predicted.innovation);
+  }
+
+  /* The refusals consumed nothing: the valid root still corrects, and gives
+     what an undisturbed filter gives. */
+  innovation_spread<F, M>(filter) = valid;
+  F undisturbed = predicted;
+  ASSERT_TRUE(undisturbed.a_posteriori_step());
+  EXPECT_EQ(UKF::GateResult::Applied,
+            filter.a_posteriori_step_with_gate_result(accept));
+  EXPECT_GT((filter.state - predicted.state).norm(), real_t(0.1));
+  EXPECT_TRUE(filter.state == undisturbed.state);
+  EXPECT_TRUE((covariance<F, M>(filter)) == (covariance<F, M>(undisturbed)));
+}
 }  // namespace
 
 TEST(InnovationGatingTest, SuccessfulCorrectionConsumesPrediction) {
@@ -477,4 +565,19 @@ TEST(InnovationGatingTest,
   check_failed_correction<Standard<GatingMeasurement>, GatingMeasurement>();
   check_failed_correction<SquareRoot<GatingMeasurement>, GatingMeasurement>();
   check_failed_correction<Parameter<GatingMeasurement>, GatingMeasurement>();
+}
+
+TEST(InnovationGatingTest, SplitPosteriorRefusesAnInvalidEditedInnovation) {
+  check_invalid_edited_innovation_spread<Standard<GatingMeasurement>,
+                                         GatingMeasurement>();
+  check_invalid_edited_innovation_spread<SquareRoot<GatingMeasurement>,
+                                         GatingMeasurement>();
+  check_invalid_edited_innovation_spread<Parameter<GatingMeasurement>,
+                                         GatingMeasurement>();
+  check_invalid_edited_innovation_spread<Standard<GatingDynamicMeasurement>,
+                                         GatingDynamicMeasurement>();
+  check_invalid_edited_innovation_spread<SquareRoot<GatingDynamicMeasurement>,
+                                         GatingDynamicMeasurement>();
+  check_invalid_edited_innovation_spread<Parameter<GatingDynamicMeasurement>,
+                                         GatingDynamicMeasurement>();
 }

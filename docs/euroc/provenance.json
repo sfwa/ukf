@@ -1,9 +1,9 @@
 {
   "scope": "full EuRoC dataset",
-  "revision": "8d7feab97c8c4e42d73ec514a5878940d0f75a72",
+  "revision": "51d4f268232be96da7a78c29fd7250db96d38eb3",
   "dirty": false,
   "source_sha256": {
-    "CMakeLists.txt": "b61515f9967606b490011f6f35f0863b5811f537d56878b9e943c9476b28a42c",
+    "CMakeLists.txt": "db2c7078c99875572e38f84d0ee2bcaa60080140cf0d59de624e3021456a976d",
     "examples/CMakeLists.txt": "efd83b6dfb1e44eb699cf0f8dc5da0730393c993622bcf6f6ee32dcf257c0cf5",
     "examples/attitude_benchmark/CMakeLists.txt": "da08ad74f84250fff13c1e0d109037c8e5b6b98fef4e5ad54a8f76dca15a25a6",
     "examples/attitude_benchmark/attitude_estimator.h": "f6ba37af56f9bf5671e631605d999c085dea9dac1ee23a88a8f46518a75112d1",
@@ -26,7 +26,7 @@
     "examples/euroc_benchmark/rotor_vibration.h": "ffc6e31453559820bc9ad9336e4de15c1ade5a245ea9a16be90f096681074812",
     "examples/euroc_benchmark/run.py": "53cb75da03c2eba0ef6a3340d74928bf506cb9118f6a4690e27fe57cd7bfff36",
     "include/UKF/Config.h": "e12dce202784a4248a3b30f74bf71438b81e6d85d00ceff5c9f7ea3e08fd535e",
-    "include/UKF/Core.h": "922e729415e94034ce95a000a03118b7961d9682e4e81cf791deead4f30304cb",
+    "include/UKF/Core.h": "45b1128dc053b86102d900ea3970bd35bd32079463acda9969cf0f4ed313d7d6",
     "include/UKF/Covariance.h": "9de99d0d0e4d8e6ce8d6e6b8f53725fef71c42ed9d07159987396f39e7bbfdae",
     "include/UKF/Integrator.h": "ba6052f6d8926b8164aedc8d738883ec88352855fe69865260661f3d96096133",
     "include/UKF/MeasurementVector.h": "b5dbdc06b0a9e80e6e1bbc1750d664ff23cd926bf2147f082fef601cec728182",
@@ -34,11 +34,11 @@
     "include/UKF/Smoother.h": "db22793fcf02ca1ae6d8d09f1bf578751f46b4f19badf829b966ce2abcb17f39",
     "include/UKF/StateVector.h": "2c20ee3398196da03334384720267b0dd0568fd3d5c165a953c78e8412cfa6a3",
     "include/UKF/Types.h": "7755d86bc436857e3a3be0102dade9269d31e15ddc382b54eb0b9e8f85db557c",
-    "include/UKF/Version.h": "e202c95f936537e51f3a11f24cfbd09eef721508f38567648a4af231ea64c7a3"
+    "include/UKF/Version.h": "b6f1737f299c998551ea8d1d578a93a826497066174df99c85ce25a2ec774471"
   },
   "binary_sha256": {
-    "attitude_benchmark": "86c9d042260b5474d099cc06a345818b5a140be4d038f9cbace170d36e34eac9",
-    "euroc_benchmark": "ea311e7a6971e3c779b600166858483efeb0ab0a430b1709712a0ab1c2dd8238"
+    "attitude_benchmark": "3ed0e2fa4a117edf561f59469ee4656fb41f3d4ead4545ace58e8b207d2a75b9",
+    "euroc_benchmark": "1a0816de3d92d5de56e38e0ec9ee68d13d4e3ea3382151883aaab31128ce3699"
   },
   "platform": "Linux-6.18.44-fc-v653-x86_64-with-glibc2.39",
   "machine": "x86_64",

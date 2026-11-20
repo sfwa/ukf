@@ -138,7 +138,11 @@ step, it does not roll back preceding successful split stages.
 Between `innovation_step` and the posterior, a caller may edit the public
 innovation covariance (or root), for example to inflate it; the correction
 uses the edited value. The standard filter refuses an edited covariance that
-is not symmetric and positive semidefinite to within roundoff.
+is not symmetric and positive semidefinite to within roundoff. The square-root
+filters refuse an edited root that is not finite. Every filter refuses one
+that is not the size of the innovation. A refused posterior returns `false`,
+or `GateResult::Failed`, and leaves the prediction and the innovation as they
+were, so a corrected edit can still be applied.
 Gating selects whether to correct with the entire measurement vector; an
 application needing separate decisions per sensor can perform separate
 measurement updates with its dynamic measurement vector. For independent

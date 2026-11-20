@@ -110,6 +110,7 @@ until CI tests it, and a release notes when one is added.
 | Compilers | GCC 13 and 15, Clang 18 and 22 on Linux; Apple Clang on the current macOS runner |
 | Eigen | 3.2.8 with this repository's patches (the default download), 3.4.0 and 5.0.0, downloaded or installed |
 | CMake | 3.10 or newer to configure; 3.14 or newer to install the package version file as architecture-independent |
+| Generators | Unix Makefiles and Ninja |
 | Build types | Debug and Release |
 
 MSVC and embedded cross-compilers are not in CI. The maintainers measure
@@ -202,6 +203,76 @@ have passed:
   the last release, in the release notes;
 - the downstream projects the maintainers know of (such as sfwa/models) built
   and tested against the candidate.
+
+### The baseline for the first release
+
+Two of the gates compare a candidate with the last release. `1.0.0-rc.1` has
+no release before it, so its own figures are the baseline: every later
+candidate and release is compared with them, and its notes say what moved.
+The baseline is these records, as they are in the repository at the tag
+`v1.0.0-rc.1`:
+
+- **Replays.** [docs/benchmarks/attitude-comparison.md](docs/benchmarks/attitude-comparison.md)
+  with its [per-recording results](docs/benchmarks/attitude-per-trial.csv)
+  and [provenance](docs/benchmarks/attitude-provenance.json) (570 evaluations
+  on BROAD and Sassari), and [docs/euroc/comparison.md](docs/euroc/comparison.md)
+  with its [per-sequence results](docs/euroc/per-sequence.csv) and
+  [provenance](docs/euroc/provenance.json) (88 evaluations on EuRoC MAV). The
+  provenance files name the revision, the hash of every source file, the
+  compiler and the host. Both were replayed in full at `51d4f26`, the
+  candidate's last change to the library, and every accuracy figure is the
+  one recorded after #108. A later replay is compared row by row with the
+  per-recording files; the reference algorithms' rows show whether the host
+  or the data has changed. The elapsed times in those files were taken on a
+  busy host and are not a baseline for speed.
+- **Code size.** The four records of the
+  [size probe](examples/embedded_code_size), for the
+  [STM32H735](examples/stm32h735_benchmark/results) and the
+  [ESP32-S31](examples/esp32s31_benchmark/results) at `-O2` and `-Os`, which
+  name the revision, the compiler and the hash of every source file and
+  runtime library.
+- **Timing on the microcontroller.** The STM32H735 timing in
+  [examples/stm32h735_benchmark](examples/stm32h735_benchmark) was measured
+  on the board on 2026-11-14 with the library of that date (`ee2f69c`), and
+  has not been repeated for the candidate. It is the baseline until it is,
+  and the first measurement on the board after `1.0.0-rc.1` replaces it.
+
+How the candidate got to these figures, from the two earlier points at which
+the same things were measured:
+
+| Mean heading error, degrees (`srukf`, all recordings) | 17 November (`83995d0`) | `1.0.0-rc.1` |
+| --- | ---: | ---: |
+| BROAD, gyroscope and accelerometer | 6.218 | 6.206 |
+| BROAD, with magnetometer | 2.244 | 2.156 |
+| Sassari, gyroscope and accelerometer | 3.862 | 3.502 |
+| Sassari, with magnetometer | 3.689 | 3.511 |
+| EuRoC MAV estimator, primary validation | 2.901 | 2.901 |
+
+The hand-held rows moved with the benchmark estimator's change to a
+body-frame velocity ([#108](https://github.com/sfwa/ukf/pull/108)); no change
+to the library since 17 November moves a replay by more than 4e-11 degrees.
+
+| Code, then added linked flash, bytes | 14 November (`4e938fb`) | Before #108 (`c4795fe`) | After #108 (`ef18167`) | `1.0.0-rc.1` |
+| --- | ---: | ---: | ---: | ---: |
+| STM32H735 `-O2` UKF | 54,048 / 63,796 | 48,308 / 58,056 | 48,388 / 58,136 | 48,396 / 58,144 |
+| STM32H735 `-O2` SR-UKF | 42,572 / 52,320 | 39,140 / 48,888 | 39,220 / 48,968 | 38,980 / 48,728 |
+| STM32H735 `-Os` UKF | 45,054 / 54,802 | 40,594 / 50,342 | 40,714 / 50,462 | 40,738 / 50,486 |
+| STM32H735 `-Os` SR-UKF | 36,086 / 45,834 | 33,928 / 43,684 | 34,048 / 43,804 | 34,144 / 43,900 |
+| ESP32-S31 `-O2` UKF | 54,120 / 82,956 | 47,768 / 76,604 | 47,848 / 76,684 | 47,864 / 76,700 |
+| ESP32-S31 `-O2` SR-UKF | 42,806 / 71,658 | 38,596 / 67,448 | 38,676 / 67,528 | 38,664 / 67,516 |
+| ESP32-S31 `-Os` UKF | 47,738 / 76,574 | 43,052 / 71,888 | 43,142 / 71,978 | 43,162 / 71,998 |
+| ESP32-S31 `-Os` SR-UKF | 37,930 / 66,782 | 35,466 / 64,318 | 35,558 / 64,410 | 35,648 / 64,500 |
+
+All four columns were measured on 2026-11-19 on one Linux x86-64 host with
+Arm GNU Toolchain 14.3.Rel1 and Espressif's `esp-15.2.0_20251204`; the first
+column reproduces the record made on 2026-11-14 on another host, with
+identical object files and the same linked sizes. The estimator's body-frame velocity (#108) added 80 bytes to each
+filter at `-O2` on both microcontrollers, and 90 to 120 bytes at `-Os`: its
+process model gained a cross product of the angular rate with the velocity.
+Refusing an invalid innovation root in the candidate moved each figure by
+between -240 and +96 bytes. The larger fall since 14 November comes from the
+library changes merged in between and has not been attributed to single
+changes.
 
 ## Making a release
 

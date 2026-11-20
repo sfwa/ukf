@@ -1,27 +1,29 @@
 {
   "schema_version": 1,
-  "measured_at_utc": "2026-11-14T07:50:41.537605+00:00",
+  "measured_at_utc": "2026-11-19T17:06:03.517187+00:00",
   "target": "stm32h735",
   "compiler": "arm-none-eabi-g++ (Arm GNU Toolchain 14.3.Rel1 (Build arm-14.174)) 14.3.1 20250623",
-  "compiler_sha256": "ec23803c14539e7c9cbcc353014b7b1909f3032ca2c7fce048a538e4fdc21bfe",
-  "source_commit": "a02631e55933d4619bbe8f4cbf1b6b66a2fb0785",
-  "source_tree_dirty": true,
+  "compiler_sha256": "275742816c097f75218517c48599e6efb8e98c0acdf0c5e7c0c4ea147fbf3527",
+  "source_commit": "51d4f268232be96da7a78c29fd7250db96d38eb3",
+  "source_tree_dirty": false,
   "source_sha256": {
-    "examples/embedded_code_size/probe.cpp": "8a965d27fbfafdd238c014585298ae63664ca303083192593291442417604de5",
+    "examples/embedded_code_size/probe.cpp": "dbc1e15044904cd7c1cab1e1661c16b86041d6c8eba328fd0dc1f423897556ad",
     "examples/embedded_code_size/probe.ld": "502b61187302e5d314e395e97f3f03f7fdb6ab65cb1d29662b1521895dc6995d",
-    "examples/embedded_code_size/measure.py": "2bf696e8529219ae42e85fd038c07f12a6d53e0642f08be387e37d2bc798803a",
-    "cmake/EigenGccWarnings.h": "0b93648f546f212f9b33c0b90c82079cf0a7b326a728e436af08d06333ad1c90",
-    "include/UKF/Config.h": "cb7ecbc40d15a5689d07dd649ceb52c61d8a6d43119ca4a3d910ff58aedf11a5",
-    "include/UKF/Core.h": "5823a50222894043d9ef78fb326a252b613dc8fa5ad1cfacea8e5ff3554d977f",
-    "include/UKF/Covariance.h": "adb762d09bdf9b1bcae0edd26cd87a5ef13e97c291e36f128a9d4effc8f0323a",
-    "include/UKF/Integrator.h": "239361c00080b3fb451b8a7e8ece39ae35c3444eb0e41a73ae64cc7cdc946549",
-    "include/UKF/MeasurementVector.h": "29226c3ac359848a2adc19cbf3af2c2a5d03ed1154d2889a1c4058b8d0a7bd76",
-    "include/UKF/RankUpdate.h": "9986ba29a46de9cae694c4c8df748b32ef4b8623532bc32c5cb16d0ce52e22c8",
-    "include/UKF/StateVector.h": "3c54b0442492974420c0b774571704de4152b3abb80b81f066a2e480311a09ff",
-    "include/UKF/Types.h": "8d6299373fe92651f3b6742f460e4520bb5c6fe6b082756078dbbd328f21dfa7",
-    "examples/attitude_benchmark/attitude_estimator.h": "6d469dd74043cfc1584a273b2030cc6362fe834cee75610aed50fa507e2e943c",
-    "examples/attitude_benchmark/imu_sample.h": "73f2ce3878e02ce44b4f92e89965bdde435a04a4c029f7b70f4ec93bde099580",
-    "examples/attitude_benchmark/sensor_checks.h": "d5e7f4ad5f66f856de51de26c5aae41e7bbb5e362bdc09891853546ead894395"
+    "examples/embedded_code_size/measure.py": "e415fc2e8fdd48141a8dfd7ecb4e63ebd7a1781577903a8a5530c818d4421e70",
+    "cmake/EigenGccWarnings.h": "1dcd2fdd266081bdd0f83bf10a7128b9834d15322f578c9fbe157a05ac2c0a3d",
+    "include/UKF/Config.h": "e12dce202784a4248a3b30f74bf71438b81e6d85d00ceff5c9f7ea3e08fd535e",
+    "include/UKF/Core.h": "45b1128dc053b86102d900ea3970bd35bd32079463acda9969cf0f4ed313d7d6",
+    "include/UKF/Covariance.h": "9de99d0d0e4d8e6ce8d6e6b8f53725fef71c42ed9d07159987396f39e7bbfdae",
+    "include/UKF/Integrator.h": "ba6052f6d8926b8164aedc8d738883ec88352855fe69865260661f3d96096133",
+    "include/UKF/MeasurementVector.h": "b5dbdc06b0a9e80e6e1bbc1750d664ff23cd926bf2147f082fef601cec728182",
+    "include/UKF/RankUpdate.h": "7e16e32f41279f5488e0999da3861654de06cdfac5e1565fc5cf64d1c4b7ea7b",
+    "include/UKF/Smoother.h": "db22793fcf02ca1ae6d8d09f1bf578751f46b4f19badf829b966ce2abcb17f39",
+    "include/UKF/StateVector.h": "2c20ee3398196da03334384720267b0dd0568fd3d5c165a953c78e8412cfa6a3",
+    "include/UKF/Types.h": "7755d86bc436857e3a3be0102dade9269d31e15ddc382b54eb0b9e8f85db557c",
+    "include/UKF/Version.h": "b6f1737f299c998551ea8d1d578a93a826497066174df99c85ce25a2ec774471",
+    "examples/attitude_benchmark/attitude_estimator.h": "f6ba37af56f9bf5671e631605d999c085dea9dac1ee23a88a8f46518a75112d1",
+    "examples/attitude_benchmark/imu_sample.h": "71d94a06ee6aedd58d3ede0b86d180bb6c2393d75a6e15e29dfc87c7f0613f19",
+    "examples/attitude_benchmark/sensor_checks.h": "6713f1c13d4e898e55be5fe298ca4acbc9e803880947f0fec8f36608edfca966"
   },
   "eigen": {
     "version": "3.2.8 with repository patches",
@@ -40,24 +42,25 @@
       "-mthumb",
       "-mfpu=fpv5-d16",
       "-mfloat-abi=hard"
-    ]
+    ],
+    "eigen_unrolling_limit": null
   },
   "libraries": [
     {
       "path": "{toolchain}/arm-none-eabi/lib/thumb/v7e-m+dp/hard/libc.a",
-      "sha256": "2dc326dc7d821305322e18122b2ffa105d5ce4b28e3a091667a6afc43405b150"
+      "sha256": "a51f70fe1f1415ec73d897bf243d690d1a35b5eaeafacfbec4eab441bd8b1536"
     },
     {
       "path": "{toolchain}/arm-none-eabi/lib/thumb/v7e-m+dp/hard/libm.a",
-      "sha256": "24e8c3f990da724aec5c52fffb7ec39194b73d261c378bbdadcc8f3e3971a463"
+      "sha256": "8e60015051adf80327561c39d0c3c8ee5b2e66648058d6923e9b55210ec18ea3"
     },
     {
       "path": "{toolchain}/arm-none-eabi/lib/thumb/v7e-m+dp/hard/libnosys.a",
-      "sha256": "b4fb72090e218848cb7438daa2071b50828c437a6c53cf04409622577d2175b3"
+      "sha256": "f3f0b5acee756a373989d2ccf0ed93d324248385d3cf386a3ba7a9d00d34e90e"
     },
     {
       "path": "{toolchain}/lib/gcc/arm-none-eabi/14.3.1/thumb/v7e-m+dp/hard/libgcc.a",
-      "sha256": "d148ce7539769f7a9e5645ac6a650909783cee4a14349c7cbbe4eefed0ccfc3f"
+      "sha256": "035b3c36afba29effd3e10b9193f33e23add09f44d0ba3ecaddf29ac8cc032a9"
     }
   ],
   "commands": [
@@ -338,59 +341,59 @@
     },
     {
       "variant": "ukf",
-      "estimator_code_bytes": 45054,
+      "estimator_code_bytes": 40738,
       "estimator_rodata_bytes": 56,
-      "estimator_code_and_rodata_bytes": 45110,
+      "estimator_code_and_rodata_bytes": 40794,
       "runtime_code_bytes": 7428,
       "runtime_rodata_bytes": 720,
-      "total_flash_payload_bytes": 54834,
+      "total_flash_payload_bytes": 50518,
       "writable_allocated_payload_bytes": 1560,
       "zero_fill_bytes_including_tls": 384,
       "instance_storage_bytes": 3116,
       "instance_alignment_bytes": 4,
-      "elf_sha256": "8e983d51f78c8835c666456d97bcf7d6342999b476002c6166d6072dc57c997e",
-      "object_sha256": "799a27bc23e5ec5105b3de6a2e1f2220e35bb62723332956c3f633110284ece8",
+      "elf_sha256": "a510733915098a57dcb5ffb67f2df16015ecc4061919add322b5dac3df861d2a",
+      "object_sha256": "c916100c9db024b5bef5d745457b99227a0a8c38d53754ec5412b64d8c128411",
       "allocated_sections": [
         {
           "name": ".ukf_text",
           "type": 1,
           "flags": 6,
           "address": 268435456,
-          "bytes": 45054
+          "bytes": 40738
         },
         {
           "name": ".ukf_rodata",
           "type": 1,
           "flags": 2,
-          "address": 268480512,
+          "address": 268476196,
           "bytes": 56
         },
         {
           "name": ".runtime_text",
           "type": 1,
           "flags": 6,
-          "address": 268480568,
+          "address": 268476256,
           "bytes": 7428
         },
         {
           "name": ".runtime_rodata",
           "type": 1,
           "flags": 2,
-          "address": 268488000,
+          "address": 268483688,
           "bytes": 720
         },
         {
           "name": ".probe_metadata",
           "type": 1,
           "flags": 2,
-          "address": 268488720,
+          "address": 268484408,
           "bytes": 8
         },
         {
           "name": ".ARM.exidx",
           "type": 1879048193,
           "flags": 130,
-          "address": 268488728,
+          "address": 268484416,
           "bytes": 8
         },
         {
@@ -408,64 +411,64 @@
           "bytes": 384
         }
       ],
-      "incremental_flash_bytes": 54802,
-      "estimator_incremental_bytes": 45086
+      "incremental_flash_bytes": 50486,
+      "estimator_incremental_bytes": 40770
     },
     {
       "variant": "srukf",
-      "estimator_code_bytes": 36086,
-      "estimator_rodata_bytes": 56,
-      "estimator_code_and_rodata_bytes": 36142,
+      "estimator_code_bytes": 34144,
+      "estimator_rodata_bytes": 64,
+      "estimator_code_and_rodata_bytes": 34208,
       "runtime_code_bytes": 7428,
       "runtime_rodata_bytes": 720,
-      "total_flash_payload_bytes": 45866,
+      "total_flash_payload_bytes": 43932,
       "writable_allocated_payload_bytes": 1560,
       "zero_fill_bytes_including_tls": 376,
       "instance_storage_bytes": 3116,
       "instance_alignment_bytes": 4,
-      "elf_sha256": "b774cb35652a4ff94d97155af2f0550eb13ea1136c401cc004b2c1b31436470b",
-      "object_sha256": "7558781971054e260550a0f803306b1f325a1684b07d090e9b14d54ceedce9b8",
+      "elf_sha256": "b0eb0ad9484ffa4b03c7eda3b2e7e7a1eb66e21c6c3a2d1b9f7da3cf8b5cf9bb",
+      "object_sha256": "f473789bef0c0b39ee82220fa242f43afc9eff8c4f33cdc43d9dccba24ec5bfb",
       "allocated_sections": [
         {
           "name": ".ukf_text",
           "type": 1,
           "flags": 6,
           "address": 268435456,
-          "bytes": 36086
+          "bytes": 34144
         },
         {
           "name": ".ukf_rodata",
           "type": 1,
           "flags": 2,
-          "address": 268471544,
-          "bytes": 56
+          "address": 268469600,
+          "bytes": 64
         },
         {
           "name": ".runtime_text",
           "type": 1,
           "flags": 6,
-          "address": 268471600,
+          "address": 268469664,
           "bytes": 7428
         },
         {
           "name": ".runtime_rodata",
           "type": 1,
           "flags": 2,
-          "address": 268479032,
+          "address": 268477096,
           "bytes": 720
         },
         {
           "name": ".probe_metadata",
           "type": 1,
           "flags": 2,
-          "address": 268479752,
+          "address": 268477816,
           "bytes": 8
         },
         {
           "name": ".ARM.exidx",
           "type": 1879048193,
           "flags": 130,
-          "address": 268479760,
+          "address": 268477824,
           "bytes": 8
         },
         {
@@ -483,8 +486,8 @@
           "bytes": 376
         }
       ],
-      "incremental_flash_bytes": 45834,
-      "estimator_incremental_bytes": 36118
+      "incremental_flash_bytes": 43900,
+      "estimator_incremental_bytes": 34184
     }
   ],
   "scope": "Isolated attitude estimator plus Eigen and thin API wrappers; no benchmark, startup, HAL, RTOS, logging or sensor I/O. Incremental flash includes required linked math/runtime helpers. Not a bootable firmware or a timing measurement."
