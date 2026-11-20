@@ -24,14 +24,15 @@ Each filter can be compiled in single or double precision.
 
 [![Latest release](https://img.shields.io/github/v/release/sfwa/ukf?include_prereleases&sort=semver)](https://github.com/sfwa/ukf/releases)
 
-UKF uses [Semantic Versioning](https://semver.org). This is `1.0.0-rc.1`, the
+UKF uses [Semantic Versioning](https://semver.org). `1.0.0-rc.1` is the
 first candidate for the first release, `1.0.0`. A candidate is for trying
 against your own project before the release: pin it by its tag,
 `v1.0.0-rc.1`, and report anything that breaks. Blockers found are fixed in a
 further candidate, and `1.0.0` is made from the last candidate without one
-([the path to 1.0.0](RELEASING.md#the-path-to-100)). Once there is a release,
-use the [latest release](https://github.com/sfwa/ukf/releases/latest) and
-[pin it by its tag](RELEASING.md#using-a-release).
+([the path to 1.0.0](RELEASING.md#the-path-to-100)). Master is `1.0.0-dev`,
+the work towards that release, and is not a version to pin. Once there is a
+release, use the [latest release](https://github.com/sfwa/ukf/releases/latest)
+and [pin it by its tag](RELEASING.md#using-a-release).
 
 - [RELEASING.md](RELEASING.md): the compatibility contract (which interfaces,
   conventions, build options and configurations a release supports, and

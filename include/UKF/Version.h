@@ -21,8 +21,8 @@ master carries the next planned version with the pre-release "dev".
 #define UKF_VERSION_MAJOR 1
 #define UKF_VERSION_MINOR 0
 #define UKF_VERSION_PATCH 0
-#define UKF_VERSION_PRERELEASE "rc.1"
-#define UKF_VERSION_STRING "1.0.0-rc.1"
+#define UKF_VERSION_PRERELEASE "dev"
+#define UKF_VERSION_STRING "1.0.0-dev"
 
 /* One number for comparisons in the preprocessor: 10000 for 1.0.0, 10203 for
    1.2.3. */
